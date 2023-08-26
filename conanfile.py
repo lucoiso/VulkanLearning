@@ -11,7 +11,7 @@ class VulkanProjectRecipe(ConanFile):
     generators = "CMakeToolchain", "CMakeDeps"
 
     def requirements(self):
-        # https://conan.io/center/recipes/boost
+        # https://conan.io/center/recipes/glfw
         self.requires("glfw/[~3.3]")
 
         # https://conan.io/center/recipes/boost

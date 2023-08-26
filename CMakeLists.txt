@@ -1,8 +1,8 @@
 # Copyright Notices: [...]
 
 # ------------ Project Settings ------------
-cmake_minimum_required(VERSION 3.16)
-project(VulkanProject VERSION 0.1 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.22)
+project(VulkanProject VERSION 0.0.1 LANGUAGES CXX)
 
 # ----------- Global Definitions -----------
 set(CMAKE_CXX_STANDARD 20)
