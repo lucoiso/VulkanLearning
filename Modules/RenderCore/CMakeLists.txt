@@ -15,6 +15,7 @@ set(SOURCE_FILES
 
 set(HEADER_FILES
     # Private Headers
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanEnumConverter.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRender.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanCommands.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanPipeline.h

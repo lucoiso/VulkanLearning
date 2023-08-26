@@ -26,12 +26,15 @@ namespace RenderCore
         void Shutdown();
 
         bool IsInitialized() const;
-        VkInstance GetInstance() const;
-        VkDevice GetLogicalDevice() const;
-        VkPhysicalDevice GetPhysicalDevice() const;
-        std::vector<const char*> GetInstanceExtensions() const;
-        std::vector<const char*> GetPhysicalDeviceExtensions() const;
-        bool IsDeviceSuitable(const VkPhysicalDevice& Device) const;
+        [[nodiscard]] VkInstance GetInstance() const;
+        [[nodiscard]] VkDevice GetLogicalDevice() const;
+        [[nodiscard]] VkPhysicalDevice GetPhysicalDevice() const;
+        [[nodiscard]] VkSurfaceCapabilitiesKHR GetPhysicalDeviceSurfaceCapabilities() const;
+        [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetPhysicalDeviceSurfaceFormats() const;
+        [[nodiscard]] std::vector<VkPresentModeKHR> GetPhysicalDeviceSurfacePresentationModes() const;
+        [[nodiscard]] std::vector<const char*> GetInstanceExtensions() const;
+        [[nodiscard]] std::vector<const char*> GetPhysicalDeviceExtensions() const;
+        [[nodiscard]] bool IsDeviceSuitable(const VkPhysicalDevice& Device) const;
         bool SupportsValidationLayer() const;
 
     private:
@@ -40,6 +43,8 @@ namespace RenderCore
         void PickPhysicalDevice();
         void ChooseQueueFamilyIndices(std::optional<std::uint32_t>& GraphicsQueueFamilyIndex, std::optional<std::uint32_t>& PresentationQueueFamilyIndex);
         void CreateLogicalDevice(const std::uint32_t GraphicsQueueFamilyIndex, const std::uint32_t PresentationQueueFamilyIndex);
+        void InitializeSwapChain();
+
         void CheckSupportedValidationLayers();
         void PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT& Info);
         void SetupDebugMessages();

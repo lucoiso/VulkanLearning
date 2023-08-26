@@ -2,6 +2,7 @@
 
 #include "VulkanConfigurator.h"
 #include "Window.h"
+#include "VulkanEnumConverter.h"
 #include <boost/log/trivial.hpp>
 #include <iostream>
 #include <stdexcept>
@@ -113,7 +114,12 @@ void VulkanConfigurator::Initialize(GLFWwindow* const Window)
         throw std::runtime_error("Failed to initialize vulkan.");
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Vulkan configurator initialized";
+    InitializeSwapChain();
+
+    if (IsInitialized())
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Vulkan configurator initialized";
+    }
 }
 
 void VulkanConfigurator::Shutdown()
@@ -161,6 +167,112 @@ VkPhysicalDevice VulkanConfigurator::GetPhysicalDevice() const
     return m_PhysicalDevice;
 }
 
+VkSurfaceCapabilitiesKHR VulkanConfigurator::GetPhysicalDeviceSurfaceCapabilities() const
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting vulkan physical device surface capabilities";
+
+    if (m_PhysicalDevice == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan physical device is invalid.");
+    }
+
+    if (m_Surface == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan surface is invalid.");
+    }
+
+    VkSurfaceCapabilitiesKHR Output;
+    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, m_Surface, &Output) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to get vulkan physical device surface capabilites.");
+    }
+
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing vulkan physical device surface capabilities...";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min Image Count: " << Output.minImageCount;
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max Image Count: " << Output.maxImageCount;
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Current Extent: (" << Output.currentExtent.width << ", " << Output.currentExtent.height << ")";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min Image Extent: (" << Output.minImageExtent.width << ", " << Output.minImageExtent.height << ")";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max Image Extent: (" << Output.maxImageExtent.width << ", " << Output.maxImageExtent.height << ")";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max Image Array Layers: " << Output.maxImageArrayLayers;
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Transforms: " << TransformFlagToString(static_cast<VkSurfaceTransformFlagBitsKHR>(Output.supportedTransforms));
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Current Transform: " << TransformFlagToString(Output.currentTransform);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Composite Alpha: " << CompositeAlphaFlagToString(Output.supportedCompositeAlpha);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Usage Flags: " << ImageUsageFlagToString(static_cast<VkImageUsageFlagBits>(Output.supportedUsageFlags));
+
+    return Output;
+}
+
+std::vector<VkSurfaceFormatKHR> VulkanConfigurator::GetPhysicalDeviceSurfaceFormats() const
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting vulkan physical device surface formats";
+
+    if (m_PhysicalDevice == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan physical device is invalid.");
+    }
+
+    if (m_Surface == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan surface is invalid.");
+    }
+
+    std::uint32_t Count;
+    if (vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_Surface, &Count, nullptr) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to get physical device surface formats");
+    }
+
+    std::vector<VkSurfaceFormatKHR> Output(Count, VkSurfaceFormatKHR());
+    if (vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_Surface, &Count, Output.data()) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to get physical device surface formats after count");
+    }
+
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing vulkan physical device surface formats...";
+    for (const VkSurfaceFormatKHR& FormatIter : Output)
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Color Space: " << ColorSpaceModeToString(FormatIter.colorSpace);
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Format: " << SurfaceFormatToString(FormatIter.format) << std::endl;
+    }
+
+    return Output;
+}
+
+std::vector<VkPresentModeKHR> VulkanConfigurator::GetPhysicalDeviceSurfacePresentationModes() const
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting vulkan physical device surface presentation modes";
+
+    if (m_PhysicalDevice == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan physical device is invalid.");
+    }
+
+    if (m_Surface == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan surface is invalid.");
+    }
+
+    std::uint32_t Count;
+    if (vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, m_Surface, &Count, nullptr) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to get physical device surface presentation modes");
+    }
+
+    std::vector<VkPresentModeKHR> Output(Count, VkPresentModeKHR());
+    if (vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, m_Surface, &Count, Output.data()) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to get physical device surface presentation modes after count");
+    }
+
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing vulkan physical device surface presentation modes...";
+    for (const VkPresentModeKHR& FormatIter : Output)
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Mode: " << PresentationModeToString(FormatIter);
+    }
+
+    return Output;
+}
+
 std::vector<const char*> VulkanConfigurator::GetInstanceExtensions() const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting vulkan instance extensions";
@@ -190,10 +302,16 @@ std::vector<const char*> VulkanConfigurator::GetPhysicalDeviceExtensions() const
     }
 
     std::uint32_t ExtensionsCount;
-    vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, nullptr);
+    if (vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, nullptr) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to enumerate device extension properties");
+    }
 
     std::vector<VkExtensionProperties> Extensions(ExtensionsCount);
-    vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, Extensions.data());
+    if (vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, Extensions.data()) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to enumerate device extension properties after count");
+    }
 
     std::set<std::string> RequiredExtensions(m_RequiredDeviceExtensions.begin(), m_RequiredDeviceExtensions.end());
 
@@ -339,7 +457,7 @@ void VulkanConfigurator::PickPhysicalDevice()
         throw std::runtime_error("No suitable Vulkan physical devices found.");
     }
 
-    std::vector<VkPhysicalDevice> Devices(DeviceCount);
+    std::vector<VkPhysicalDevice> Devices(DeviceCount, VkPhysicalDevice());
     vkEnumeratePhysicalDevices(m_Instance, &DeviceCount, Devices.data());
 
     for (const VkPhysicalDevice& Device : Devices)
@@ -449,6 +567,25 @@ void VulkanConfigurator::CreateLogicalDevice(const std::uint32_t GraphicsQueueFa
 
     vkGetDeviceQueue(m_Device, GraphicsQueueFamilyIndex, 0u, &m_GraphicsQueue);
     vkGetDeviceQueue(m_Device, PresentationQueueFamilyIndex, 0u, &m_PresentationQueue);
+}
+
+void VulkanConfigurator::InitializeSwapChain()
+{
+    const VkSurfaceCapabilitiesKHR SupportedCapabilities = GetPhysicalDeviceSurfaceCapabilities();
+    const std::vector<VkSurfaceFormatKHR> SupportedFormats = GetPhysicalDeviceSurfaceFormats();
+    if (SupportedFormats.empty())
+    {
+        throw std::runtime_error("No supported surface formats found.");
+    }
+
+    const std::vector<VkPresentModeKHR> SupportedPresentationModes = GetPhysicalDeviceSurfacePresentationModes();
+    if (SupportedFormats.empty())
+    {
+        throw std::runtime_error("No supported presentation modes found.");
+    }
+
+    // TODO - WIP
+    BOOST_LOG_TRIVIAL(warning) << "[" << __func__ << "]: Swap chain was not implemented yet - Location: " << __FILE__ << ":" << __LINE__;
 }
 
 void VulkanConfigurator::CheckSupportedValidationLayers()
