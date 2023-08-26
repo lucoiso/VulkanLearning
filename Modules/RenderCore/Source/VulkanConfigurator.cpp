@@ -17,12 +17,12 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsM
                                                                    const VkDebugUtilsMessengerCallbackDataEXT* const CallbackData,
                                                                    [[maybe_unused]] void* UserData)
 {
+    #ifdef NDEBUG
     if (MessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+    #endif
     {
-        // Debug logs
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Validation layer: " << CallbackData->pMessage;
     }
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Validation layer: " << CallbackData->pMessage;
 
     return VK_FALSE;
 }
@@ -121,6 +121,13 @@ void VulkanConfigurator::Shutdown()
 
         vkDestroyDevice(m_Device, nullptr);
         vkDestroyInstance(m_Instance, nullptr);
+
+        m_Instance = VK_NULL_HANDLE;
+        m_Surface = VK_NULL_HANDLE;
+        m_PhysicalDevice = VK_NULL_HANDLE;
+        m_Device = VK_NULL_HANDLE;
+        m_GraphicsQueue = VK_NULL_HANDLE;
+        m_PresentQueue = VK_NULL_HANDLE;
     }
 }
 
@@ -401,6 +408,11 @@ void VulkanConfigurator::CreateDevice(const std::uint32_t GraphicsQueueFamilyInd
 
 void VulkanConfigurator::CheckSupportedValidationLayers()
 {
+    #ifdef NDEBUG
+    m_SupportsValidationLayer = false;
+    return;
+    #endif
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Checking validation layers";
 
     if (m_ValidationLayers.empty())

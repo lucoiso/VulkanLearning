@@ -69,12 +69,14 @@ public:
 
             glfwDestroyWindow(m_Window);
             glfwTerminate();
+
+            m_Window = nullptr;
         }
     }
 
     bool IsInitialized() const
     {
-        return m_Window != nullptr;
+        return m_Window != nullptr && m_Render != nullptr;
     }
 
     bool IsOpen() const
