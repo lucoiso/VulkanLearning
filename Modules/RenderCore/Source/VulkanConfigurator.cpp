@@ -122,23 +122,23 @@ void VulkanConfigurator::Shutdown()
         vkDestroyDevice(m_Device, nullptr);
         vkDestroyInstance(m_Instance, nullptr);
 
-        m_Instance = VK_NULL_HANDLE;
-        m_Surface = VK_NULL_HANDLE;
-        m_PhysicalDevice = VK_NULL_HANDLE;
-        m_Device = VK_NULL_HANDLE;
-        m_GraphicsQueue = VK_NULL_HANDLE;
-        m_PresentQueue = VK_NULL_HANDLE;
+        m_Instance          = VK_NULL_HANDLE;
+        m_Surface           = VK_NULL_HANDLE;
+        m_PhysicalDevice    = VK_NULL_HANDLE;
+        m_Device            = VK_NULL_HANDLE;
+        m_GraphicsQueue     = VK_NULL_HANDLE;
+        m_PresentQueue      = VK_NULL_HANDLE;
     }
 }
 
 bool VulkanConfigurator::IsInitialized() const
 {
-    return m_Instance != VK_NULL_HANDLE 
-        && m_Surface != VK_NULL_HANDLE 
+    return m_Instance       != VK_NULL_HANDLE 
+        && m_Surface        != VK_NULL_HANDLE 
         && m_PhysicalDevice != VK_NULL_HANDLE 
-        && m_Device != VK_NULL_HANDLE
-        && m_GraphicsQueue != VK_NULL_HANDLE
-        && m_PresentQueue != VK_NULL_HANDLE;
+        && m_Device         != VK_NULL_HANDLE
+        && m_GraphicsQueue  != VK_NULL_HANDLE
+        && m_PresentQueue   != VK_NULL_HANDLE;
 }
 
 VkInstance VulkanConfigurator::GetInstance() const
