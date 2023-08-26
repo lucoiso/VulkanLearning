@@ -18,7 +18,7 @@ namespace RenderCore
 
         ~VulkanRender();
 
-        void Initialize(GLFWwindow* const Window);
+        bool Initialize(GLFWwindow* const Window);
         void Shutdown();
 
         bool IsInitialized() const;

@@ -64,7 +64,7 @@ VulkanConfigurator::VulkanConfigurator()
     , m_PhysicalDevice()
     , m_Device()
     , m_GraphicsQueue()
-    , m_PresentQueue()
+    , m_PresentationQueue()
     , m_DebugMessenger()
     , m_ValidationLayers({ "VK_LAYER_KHRONOS_validation" })
     , m_RequiredDeviceExtensions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME })
@@ -82,12 +82,17 @@ VulkanConfigurator::~VulkanConfigurator()
 
 void VulkanConfigurator::Initialize(GLFWwindow* const Window)
 {
-    if (IsInitialized() || !Window)
+    if (IsInitialized())
     {
         return;
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulkan configurator";
+
+    if (!Window)
+    {
+        throw std::runtime_error("GLFW Window is invalid.");
+    }
 
     CheckSupportedValidationLayers();
     CreateInstance();
@@ -101,7 +106,7 @@ void VulkanConfigurator::Initialize(GLFWwindow* const Window)
 
     if (GraphicsQueueFamilyIndex.has_value() && PresentQueueFamilyIndex.has_value())
     {
-        CreateDevice(GraphicsQueueFamilyIndex.value(), PresentQueueFamilyIndex.value());
+        CreateLogicalDevice(GraphicsQueueFamilyIndex.value(), PresentQueueFamilyIndex.value());
     }
     else
     {
@@ -127,7 +132,7 @@ void VulkanConfigurator::Shutdown()
         m_PhysicalDevice    = VK_NULL_HANDLE;
         m_Device            = VK_NULL_HANDLE;
         m_GraphicsQueue     = VK_NULL_HANDLE;
-        m_PresentQueue      = VK_NULL_HANDLE;
+        m_PresentationQueue      = VK_NULL_HANDLE;
     }
 }
 
@@ -138,7 +143,7 @@ bool VulkanConfigurator::IsInitialized() const
         && m_PhysicalDevice != VK_NULL_HANDLE 
         && m_Device         != VK_NULL_HANDLE
         && m_GraphicsQueue  != VK_NULL_HANDLE
-        && m_PresentQueue   != VK_NULL_HANDLE;
+        && m_PresentationQueue   != VK_NULL_HANDLE;
 }
 
 VkInstance VulkanConfigurator::GetInstance() const
@@ -146,7 +151,7 @@ VkInstance VulkanConfigurator::GetInstance() const
     return m_Instance;
 }
 
-VkDevice VulkanConfigurator::GetDevice() const
+VkDevice VulkanConfigurator::GetLogicalDevice() const
 {
     return m_Device;
 }
@@ -175,9 +180,14 @@ std::vector<const char*> VulkanConfigurator::GetInstanceExtensions() const
     return Output;
 }
 
-std::vector<const char*> VulkanConfigurator::GetDeviceExtensions() const
+std::vector<const char*> VulkanConfigurator::GetPhysicalDeviceExtensions() const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting vulkan physical device extensions";
+
+    if (m_PhysicalDevice == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan physical device is invalid.");
+    }
 
     std::uint32_t ExtensionsCount;
     vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, nullptr);
@@ -208,6 +218,11 @@ std::vector<const char*> VulkanConfigurator::GetDeviceExtensions() const
 bool VulkanConfigurator::IsDeviceSuitable(const VkPhysicalDevice& Device) const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Checking if device is suitable...";
+
+    if (Device == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan physical device is invalid.");
+    }
 
     VkPhysicalDeviceProperties DeviceProperties;
     VkPhysicalDeviceFeatures DeviceFeatures;
@@ -291,6 +306,16 @@ void VulkanConfigurator::CreateSurface(GLFWwindow* const Window)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan surface";
 
+    if (!Window)
+    {
+        throw std::runtime_error("GLFW Window is invalid.");
+    }
+
+    if (m_Instance == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan instance is invalid.");
+    }
+
     if (glfwCreateWindowSurface(m_Instance, Window, nullptr, &m_Surface) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create window surface.");
@@ -300,6 +325,11 @@ void VulkanConfigurator::CreateSurface(GLFWwindow* const Window)
 void VulkanConfigurator::PickPhysicalDevice()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Picking a physical device";
+
+    if (m_Instance == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan instance is invalid.");
+    }
 
     std::uint32_t DeviceCount = 0u;
     vkEnumeratePhysicalDevices(m_Instance, &DeviceCount, nullptr);
@@ -330,9 +360,19 @@ void VulkanConfigurator::PickPhysicalDevice()
     }
 }
 
-void VulkanConfigurator::ChooseQueueFamilyIndices(std::optional<std::uint32_t>& GraphicsQueueFamilyIndex, std::optional<std::uint32_t>& PresentQueueFamilyIndex)
+void VulkanConfigurator::ChooseQueueFamilyIndices(std::optional<std::uint32_t>& GraphicsQueueFamilyIndex, std::optional<std::uint32_t>& PresentationQueueFamilyIndex)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Choosing queue family indices (Graphics Queue & Presentation Queue)";
+
+    if (m_PhysicalDevice == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan physical device is invalid.");
+    }
+
+    if (m_Surface == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan surface is invalid.");
+    }
 
     std::uint32_t QueueFamilyCount = 0u;
     vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &QueueFamilyCount, nullptr);
@@ -352,31 +392,36 @@ void VulkanConfigurator::ChooseQueueFamilyIndices(std::optional<std::uint32_t>& 
 
         if (PresentSupport)
         {
-            PresentQueueFamilyIndex = Iterator;
+            PresentationQueueFamilyIndex = Iterator;
         }
 
-        if (GraphicsQueueFamilyIndex.has_value() && PresentQueueFamilyIndex.has_value())
+        if (GraphicsQueueFamilyIndex.has_value() && PresentationQueueFamilyIndex.has_value())
         {
             break;
         }
     }
 
-    if (!GraphicsQueueFamilyIndex.has_value() || !PresentQueueFamilyIndex.has_value())
+    if (!GraphicsQueueFamilyIndex.has_value() || !PresentationQueueFamilyIndex.has_value())
     {
         throw std::runtime_error("Failed to find suitable queue families.");
     }
 }
 
-void VulkanConfigurator::CreateDevice(const std::uint32_t GraphicsQueueFamilyIndex, const std::uint32_t PresentQueueFamilyIndex)
+void VulkanConfigurator::CreateLogicalDevice(const std::uint32_t GraphicsQueueFamilyIndex, const std::uint32_t PresentationQueueFamilyIndex)
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan device";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan logical device";
 
-    const std::vector<const char*> AvailableDevices = GetDeviceExtensions();
+    if (m_PhysicalDevice == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan physical device is invalid.");
+    }
+
+    const std::vector<const char*> AvailableDevices = GetPhysicalDeviceExtensions();
     for (const char* const& RequiredDevicesIter : m_RequiredDeviceExtensions)
     {
         if (std::find(AvailableDevices.begin(), AvailableDevices.end(), RequiredDevicesIter) != AvailableDevices.end())
         {
-            const std::string ErrMessage = "Device doesn not supports the required extension: " + std::string(RequiredDevicesIter) + ".";
+            const std::string ErrMessage = "Device does not supports the required extension: " + std::string(RequiredDevicesIter) + ".";
             throw std::runtime_error(ErrMessage);
         }
     }
@@ -403,7 +448,7 @@ void VulkanConfigurator::CreateDevice(const std::uint32_t GraphicsQueueFamilyInd
     }
 
     vkGetDeviceQueue(m_Device, GraphicsQueueFamilyIndex, 0u, &m_GraphicsQueue);
-    vkGetDeviceQueue(m_Device, PresentQueueFamilyIndex, 0u, &m_PresentQueue);
+    vkGetDeviceQueue(m_Device, PresentationQueueFamilyIndex, 0u, &m_PresentationQueue);
 }
 
 void VulkanConfigurator::CheckSupportedValidationLayers()
@@ -489,6 +534,11 @@ void VulkanConfigurator::SetupDebugMessages()
         return;
     }
 
+    if (m_Instance == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan instance is invalid.");
+    }
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Setting up debug messages";
 
     VkDebugUtilsMessengerCreateInfoEXT CreateInfo{};
@@ -505,6 +555,11 @@ void VulkanConfigurator::ShutdownDebugMessages()
     if (!SupportsValidationLayer() || m_DebugMessenger == VK_NULL_HANDLE)
     {
         return;
+    }
+
+    if (m_Instance == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan instance is invalid.");
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down debug messages";

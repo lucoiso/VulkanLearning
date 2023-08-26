@@ -4,22 +4,26 @@
 #include <iostream>
 #include <exception>
 #include <memory>
+#include <boost/log/trivial.hpp>
 
 int main(int Argc, char* Argv[])
 {
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing application";
+
     try
     {
-        const std::unique_ptr<RenderCore::Window> Window = std::make_unique<RenderCore::Window>();
-        Window->Initialize(800u, 600u, "Vulkan Project");
-
-        while (Window->IsOpen())
+        if (const std::unique_ptr<RenderCore::Window> Window = std::make_unique<RenderCore::Window>();
+            Window && Window->Initialize(800u, 600u, "Vulkan Project"))
         {
-            Window->PollEvents();
+            while (Window->IsOpen())
+            {
+                Window->PollEvents();
+            }
         }
     }
-    catch (const std::exception& Exception)
+    catch (const std::exception& Ex)
     {
-        std::cerr << Exception.what();
+        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
         return EXIT_FAILURE;
     }
 

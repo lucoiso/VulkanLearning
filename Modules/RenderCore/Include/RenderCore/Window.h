@@ -21,7 +21,7 @@ namespace RenderCore
 
         ~Window();
 
-        void Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title);
+        bool Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title);
         void Shutdown();
 
         bool IsInitialized() const;

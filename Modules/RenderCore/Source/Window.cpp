@@ -21,28 +21,28 @@ public:
     Impl()
         : m_Window(nullptr)
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating GLFW Window";
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Window Implementation";
     }
 
     ~Impl()
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing GLFW Window";
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing Window Implementation";
 
         Shutdown();
     }
 
-    void Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title)
+    bool Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title)
     {
         if (IsInitialized())
         {
             throw std::runtime_error("Window is already initialized");
         }
 
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing GLFW Window";
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing Window";
 
         if (!glfwInit())
         {
-            throw std::runtime_error("Failed to initialize GLFW");
+            throw std::runtime_error("Failed to initialize GLFW Library");
         }
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -50,22 +50,25 @@ public:
 
         if (m_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr); !m_Window)
         {
-            throw std::runtime_error("Failed to create GLFW window");
+            throw std::runtime_error("Failed to create GLFW Window");
         }
 
-        if (m_Render = std::make_unique<VulkanRender>(); m_Render)
+        if (m_Render = std::make_unique<VulkanRender>(); m_Render && m_Render->Initialize(m_Window))
         {
-            m_Render->Initialize(m_Window);
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Window initialized";
+            return true;
         }
 
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: GLFW Window initialized";
+        Shutdown();
+
+        return false;
     }
 
     void Shutdown()
     {
         if (IsInitialized())
         {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down GLFW Window";
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Window";
 
             glfwDestroyWindow(m_Window);
             glfwTerminate();
@@ -109,12 +112,9 @@ Window::~Window()
     Shutdown();
 }
 
-void Window::Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title)
+bool Window::Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title)
 {
-    if (m_Impl)
-    {
-        m_Impl->Initialize(Width, Height, Title);
-    }
+    return m_Impl && m_Impl->Initialize(Width, Height, Title);
 }
 
 void Window::Shutdown()

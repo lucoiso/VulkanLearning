@@ -27,10 +27,10 @@ namespace RenderCore
 
         bool IsInitialized() const;
         VkInstance GetInstance() const;
-        VkDevice GetDevice() const;
+        VkDevice GetLogicalDevice() const;
         VkPhysicalDevice GetPhysicalDevice() const;
         std::vector<const char*> GetInstanceExtensions() const;
-        std::vector<const char*> GetDeviceExtensions() const;
+        std::vector<const char*> GetPhysicalDeviceExtensions() const;
         bool IsDeviceSuitable(const VkPhysicalDevice& Device) const;
         bool SupportsValidationLayer() const;
 
@@ -38,8 +38,8 @@ namespace RenderCore
         void CreateInstance();
         void CreateSurface(GLFWwindow* const Window);
         void PickPhysicalDevice();
-        void ChooseQueueFamilyIndices(std::optional<std::uint32_t>& graphicsQueueFamilyIndex, std::optional<std::uint32_t>& presentQueueFamilyIndex);
-        void CreateDevice(const std::uint32_t GraphicsQueueFamilyIndex, const std::uint32_t PresentQueueFamilyIndex);
+        void ChooseQueueFamilyIndices(std::optional<std::uint32_t>& GraphicsQueueFamilyIndex, std::optional<std::uint32_t>& PresentationQueueFamilyIndex);
+        void CreateLogicalDevice(const std::uint32_t GraphicsQueueFamilyIndex, const std::uint32_t PresentationQueueFamilyIndex);
         void CheckSupportedValidationLayers();
         void PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT& Info);
         void SetupDebugMessages();
@@ -50,7 +50,7 @@ namespace RenderCore
         VkPhysicalDevice m_PhysicalDevice;
         VkDevice m_Device;
         VkQueue m_GraphicsQueue;
-        VkQueue m_PresentQueue;
+        VkQueue m_PresentationQueue;
         VkDebugUtilsMessengerEXT m_DebugMessenger;
         const std::vector<const char*> m_ValidationLayers;
         const std::vector<const char*> m_RequiredDeviceExtensions;

@@ -18,28 +18,35 @@ VulkanRender::~VulkanRender()
     Shutdown();
 }
 
-void VulkanRender::Initialize(GLFWwindow* const Window)
+bool VulkanRender::Initialize(GLFWwindow* const Window)
 {
-    if (IsInitialized() || !Window)
+    if (IsInitialized())
     {
-        return;
+        return false;
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulakn render";
+
+    if (!Window)
+    {
+        throw std::runtime_error("GLFW Window is invalid.");
+    }
 
     if (m_Configurator = std::make_unique<VulkanConfigurator>(); m_Configurator)
     {
         try
         {
             m_Configurator->Initialize(Window);
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Vulkan render initialized";
+            return true;
         }
         catch (const std::exception& Ex)
         {
-            BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Exception thrown: " << Ex.what();
+            BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
         }
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Vulkan render initialized";
+    return false;
 }
 
 void VulkanRender::Shutdown()
@@ -54,7 +61,7 @@ void VulkanRender::Shutdown()
         }
         catch (const std::exception& Ex)
         {
-            BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Exception thrown: " << Ex.what();
+            BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
         }
     }
 }
