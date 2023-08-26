@@ -1,0 +1,36 @@
+// Copyright Notice: [...]
+
+#pragma once
+
+#include "RenderCoreModule.h"
+#include <string_view>
+#include <cstdint>
+#include <memory>
+
+namespace RenderCore
+{
+    class RENDERCOREMODULE_API Window
+    {
+        class Impl;
+        
+    public:
+        Window();
+
+        Window(const Window&) = delete;
+        Window& operator=(const Window&) = delete;
+
+        ~Window();
+
+        void Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title);
+        void Shutdown();
+
+        bool IsInitialized() const;
+        bool IsOpen() const;
+        bool ShouldClose() const;
+
+        void PollEvents();
+
+    private:
+        std::unique_ptr<Impl> m_Impl;
+    };
+}

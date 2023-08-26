@@ -1,0 +1,3 @@
+[submodule "Modules/cpp-submodules"]
+	path = Modules/cpp-submodules
+	url = https://github.com/lucoiso/cpp-submodules.git
