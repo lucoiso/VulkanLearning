@@ -7,6 +7,7 @@
 #include <glslang/Public/ShaderLang.h>
 #include <memory>
 #include <vector>
+#include <string_view>
 #include <unordered_map>
 
 struct GLFWwindow;
@@ -21,15 +22,15 @@ namespace RenderCore
         VulkanShaderCompiler();
         ~VulkanShaderCompiler();
 
-        bool CompileShader(const char* ShaderSource, std::vector<uint32_t>& OutSPIRVCode);
-        bool LoadShader(const char* ShaderSource, std::vector<uint32_t>& OutSPIRVCode);
+        bool Compile(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
+        bool Load(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
 
-        VkShaderModule CreateShaderModule(const VkDevice& Device, const std::vector<uint32_t>& SPIRVCode, EShLanguage ShaderLanguage);
+        VkShaderModule CreateModule(const VkDevice& Device, const std::vector<uint32_t>& SPIRVCode, EShLanguage Language);
 
     private:
-        bool CompileShader(const char* ShaderSource, EShLanguage ShaderLanguage, std::vector<uint32_t>& OutSPIRVCode);
-        void StageShaderInfo(const VkShaderModule& Module, EShLanguage ShaderLanguage);
+        bool Compile(const std::string_view Source, EShLanguage Language, std::vector<uint32_t>& OutSPIRVCode);
+        void StageInfo(const VkShaderModule& Module, EShLanguage Language);
 
-        std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> m_ShaderStageInfos;
+        std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> m_StageInfos;
     };
 }

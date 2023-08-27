@@ -303,19 +303,7 @@ void VulkanConfigurator::InitializeSwapChain(GLFWwindow* const Window)
     }
     else
     {
-        std::int32_t Width = 0u;
-        std::int32_t Height = 0u;
-        glfwGetFramebufferSize(Window, &Width, &Height);
-
-        VkExtent2D ActualExtent {
-            .width = static_cast<std::uint32_t>(Width),
-            .height = static_cast<std::uint32_t>(Height)
-        };
-
-        ActualExtent.width = std::clamp(ActualExtent.width, SupportedCapabilities.minImageExtent.width, SupportedCapabilities.maxImageExtent.width);
-        ActualExtent.height = std::clamp(ActualExtent.height, SupportedCapabilities.minImageExtent.height, SupportedCapabilities.maxImageExtent.height);
-
-        PreferredExtent = ActualExtent;
+        PreferredExtent = GetExtent(Window, SupportedCapabilities);
     }
 
     VkSurfaceFormatKHR PreferredFormat = SupportedFormats[0];
@@ -455,6 +443,27 @@ VkDevice VulkanConfigurator::GetLogicalDevice() const
 VkPhysicalDevice VulkanConfigurator::GetPhysicalDevice() const
 {
     return m_PhysicalDevice;
+}
+
+VkExtent2D VulkanConfigurator::GetExtent(GLFWwindow* const Window) const
+{
+    return GetExtent(Window, GetAvailablePhysicalDeviceSurfaceCapabilities());
+}
+
+VkExtent2D VulkanConfigurator::GetExtent(GLFWwindow* const Window, const VkSurfaceCapabilitiesKHR& Capabilities) const
+{
+    std::int32_t Width = 0u;
+    std::int32_t Height = 0u;
+    glfwGetFramebufferSize(Window, &Width, &Height);
+
+    VkExtent2D ActualExtent{
+        .width = static_cast<std::uint32_t>(Width),
+        .height = static_cast<std::uint32_t>(Height)
+    };
+
+    ActualExtent.width = std::clamp(ActualExtent.width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
+    ActualExtent.height = std::clamp(ActualExtent.height, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
+    return VkExtent2D();
 }
 
 VkSurfaceCapabilitiesKHR VulkanConfigurator::GetAvailablePhysicalDeviceSurfaceCapabilities() const

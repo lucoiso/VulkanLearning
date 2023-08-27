@@ -1,9 +1,29 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <charconv>
+#include <array>
 
 namespace RenderCore
 {
+    constexpr const char* ToChars(auto Argument)
+    {
+        std::array<char, 16> Buffer;
+        auto Result = std::to_chars(Buffer.data(), Buffer.data() + Buffer.size(), Argument);
+
+        if (Result.ec == std::errc())
+        {
+            *Result.ptr = '\0';
+            char* DynamicBuffer = new char[Buffer.size()];
+            std::copy(Buffer.begin(), Buffer.end(), DynamicBuffer);
+            return DynamicBuffer;
+        }
+        else
+        {
+            return nullptr;
+        }
+    }
+
     constexpr const char* SurfaceFormatToString(const VkFormat Input)
     {
         switch (Input)
@@ -259,7 +279,7 @@ namespace RenderCore
         default: break;
         }
 
-        return "invalid";
+        return ToChars(static_cast<std::uint8_t>(Input));
     }
 
     constexpr const char* ColorSpaceModeToString(const VkColorSpaceKHR Input)
@@ -285,7 +305,7 @@ namespace RenderCore
         default: break;
         }
 
-        return "invalid";
+        return ToChars(static_cast<std::uint8_t>(Input));
     }
 
     constexpr const char* PresentationModeToString(const VkPresentModeKHR Input)
@@ -301,7 +321,7 @@ namespace RenderCore
         default: break;
         }
 
-        return "invalid";
+        return ToChars(static_cast<std::uint8_t>(Input));
     }
 
     constexpr const char* TransformFlagToString(const VkSurfaceTransformFlagBitsKHR Input)
@@ -320,7 +340,7 @@ namespace RenderCore
         default: break;
         }
 
-        return "invalid";
+        return ToChars(static_cast<std::uint8_t>(Input));
     }
 
     constexpr const char* CompositeAlphaFlagToString(const VkCompositeAlphaFlagsKHR Input)
@@ -334,7 +354,7 @@ namespace RenderCore
         default: break;
         }
 
-        return "invalid";
+        return ToChars(static_cast<std::uint8_t>(Input));
     }
 
     constexpr const char* ImageUsageFlagToString(const VkImageUsageFlagBits Input)
@@ -361,6 +381,6 @@ namespace RenderCore
         default: break;
         }
 
-        return "invalid";
+        return ToChars(static_cast<std::uint8_t>(Input));
     }
 }

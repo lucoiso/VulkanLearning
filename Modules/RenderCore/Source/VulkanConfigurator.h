@@ -36,6 +36,8 @@ namespace RenderCore
         [[nodiscard]] VkInstance GetInstance() const;
         [[nodiscard]] VkDevice GetLogicalDevice() const;
         [[nodiscard]] VkPhysicalDevice GetPhysicalDevice() const;
+        [[nodiscard]] VkExtent2D GetExtent(GLFWwindow* const Window) const;
+        [[nodiscard]] VkExtent2D GetExtent(GLFWwindow* const Window, const VkSurfaceCapabilitiesKHR& Capabilities) const;
         [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities() const;
         [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats() const;
         [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes() const;

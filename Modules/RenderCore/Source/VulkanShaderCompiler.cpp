@@ -3,118 +3,10 @@
 #include "VulkanShaderCompiler.h"
 #include <boost/log/trivial.hpp>
 #include <SPIRV/GlslangToSpv.h>
+#include <glslang/Public/ResourceLimits.h>
 #include <filesystem>
 #include <fstream>
-
-constexpr TBuiltInResource InitResources()
-{
-    TBuiltInResource Resources;
-
-    Resources.maxLights = 32;
-    Resources.maxClipPlanes = 6;
-    Resources.maxTextureUnits = 32;
-    Resources.maxTextureCoords = 32;
-    Resources.maxVertexAttribs = 64;
-    Resources.maxVertexUniformComponents = 4096;
-    Resources.maxVaryingFloats = 64;
-    Resources.maxVertexTextureImageUnits = 32;
-    Resources.maxCombinedTextureImageUnits = 80;
-    Resources.maxTextureImageUnits = 32;
-    Resources.maxFragmentUniformComponents = 4096;
-    Resources.maxDrawBuffers = 32;
-    Resources.maxVertexUniformVectors = 128;
-    Resources.maxVaryingVectors = 8;
-    Resources.maxFragmentUniformVectors = 16;
-    Resources.maxVertexOutputVectors = 16;
-    Resources.maxFragmentInputVectors = 15;
-    Resources.minProgramTexelOffset = -8;
-    Resources.maxProgramTexelOffset = 7;
-    Resources.maxClipDistances = 8;
-    Resources.maxComputeWorkGroupCountX = 65535;
-    Resources.maxComputeWorkGroupCountY = 65535;
-    Resources.maxComputeWorkGroupCountZ = 65535;
-    Resources.maxComputeWorkGroupSizeX = 1024;
-    Resources.maxComputeWorkGroupSizeY = 1024;
-    Resources.maxComputeWorkGroupSizeZ = 64;
-    Resources.maxComputeUniformComponents = 1024;
-    Resources.maxComputeTextureImageUnits = 16;
-    Resources.maxComputeImageUniforms = 8;
-    Resources.maxComputeAtomicCounters = 8;
-    Resources.maxComputeAtomicCounterBuffers = 1;
-    Resources.maxVaryingComponents = 60;
-    Resources.maxVertexOutputComponents = 64;
-    Resources.maxGeometryInputComponents = 64;
-    Resources.maxGeometryOutputComponents = 128;
-    Resources.maxFragmentInputComponents = 128;
-    Resources.maxImageUnits = 8;
-    Resources.maxCombinedImageUnitsAndFragmentOutputs = 8;
-    Resources.maxCombinedShaderOutputResources = 8;
-    Resources.maxImageSamples = 0;
-    Resources.maxVertexImageUniforms = 0;
-    Resources.maxTessControlImageUniforms = 0;
-    Resources.maxTessEvaluationImageUniforms = 0;
-    Resources.maxGeometryImageUniforms = 0;
-    Resources.maxFragmentImageUniforms = 8;
-    Resources.maxCombinedImageUniforms = 8;
-    Resources.maxGeometryTextureImageUnits = 16;
-    Resources.maxGeometryOutputVertices = 256;
-    Resources.maxGeometryTotalOutputComponents = 1024;
-    Resources.maxGeometryUniformComponents = 1024;
-    Resources.maxGeometryVaryingComponents = 64;
-    Resources.maxTessControlInputComponents = 128;
-    Resources.maxTessControlOutputComponents = 128;
-    Resources.maxTessControlTextureImageUnits = 16;
-    Resources.maxTessControlUniformComponents = 1024;
-    Resources.maxTessControlTotalOutputComponents = 4096;
-    Resources.maxTessEvaluationInputComponents = 128;
-    Resources.maxTessEvaluationOutputComponents = 128;
-    Resources.maxTessEvaluationTextureImageUnits = 16;
-    Resources.maxTessEvaluationUniformComponents = 1024;
-    Resources.maxTessPatchComponents = 120;
-    Resources.maxPatchVertices = 32;
-    Resources.maxTessGenLevel = 64;
-    Resources.maxViewports = 16;
-    Resources.maxVertexAtomicCounters = 0;
-    Resources.maxTessControlAtomicCounters = 0;
-    Resources.maxTessEvaluationAtomicCounters = 0;
-    Resources.maxGeometryAtomicCounters = 0;
-    Resources.maxFragmentAtomicCounters = 8;
-    Resources.maxCombinedAtomicCounters = 8;
-    Resources.maxAtomicCounterBindings = 1;
-    Resources.maxVertexAtomicCounterBuffers = 0;
-    Resources.maxTessControlAtomicCounterBuffers = 0;
-    Resources.maxTessEvaluationAtomicCounterBuffers = 0;
-    Resources.maxGeometryAtomicCounterBuffers = 0;
-    Resources.maxFragmentAtomicCounterBuffers = 1;
-    Resources.maxCombinedAtomicCounterBuffers = 1;
-    Resources.maxAtomicCounterBufferSize = 16384;
-    Resources.maxTransformFeedbackBuffers = 4;
-    Resources.maxTransformFeedbackInterleavedComponents = 64;
-    Resources.maxCullDistances = 8;
-    Resources.maxCombinedClipAndCullDistances = 8;
-    Resources.maxSamples = 4;
-    Resources.maxMeshOutputVerticesNV = 256;
-    Resources.maxMeshOutputPrimitivesNV = 512;
-    Resources.maxMeshWorkGroupSizeX_NV = 32;
-    Resources.maxMeshWorkGroupSizeY_NV = 1;
-    Resources.maxMeshWorkGroupSizeZ_NV = 1;
-    Resources.maxTaskWorkGroupSizeX_NV = 32;
-    Resources.maxTaskWorkGroupSizeY_NV = 1;
-    Resources.maxTaskWorkGroupSizeZ_NV = 1;
-    Resources.maxMeshViewCountNV = 4;
-
-    Resources.limits.nonInductiveForLoops = 1;
-    Resources.limits.whileLoops = 1;
-    Resources.limits.doWhileLoops = 1;
-    Resources.limits.generalUniformIndexing = 1;
-    Resources.limits.generalAttributeMatrixVectorIndexing = 1;
-    Resources.limits.generalVaryingIndexing = 1;
-    Resources.limits.generalSamplerIndexing = 1;
-    Resources.limits.generalVariableIndexing = 1;
-    Resources.limits.generalConstantMatrixVectorIndexing = 1;
-
-    return Resources;
-}
+#include <format>
 
 using namespace RenderCore;
 
@@ -128,94 +20,120 @@ VulkanShaderCompiler::~VulkanShaderCompiler()
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing vulkan shader compiler";
 }
 
-bool VulkanShaderCompiler::CompileShader(const char* ShaderSource, std::vector<uint32_t>& OutSPIRVCode)
+bool VulkanShaderCompiler::Compile(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode)
 {
-    EShLanguage ShaderLanguage = EShLangVertex;
-    const std::filesystem::path ShaderPath(ShaderSource);
+    EShLanguage Language = EShLangVertex;
+    const std::filesystem::path Path(Source);
     
-    if (const std::filesystem::path ShaderExtension = ShaderPath.extension(); 
-        ShaderExtension == ".frag")
+    if (const std::filesystem::path Extension = Path.extension();
+        Extension == ".frag")
     {
-        ShaderLanguage = EShLangFragment;
+        Language = EShLangFragment;
     }
-    else if (ShaderExtension == ".comp")
+    else if (Extension == ".comp")
     {
-        ShaderLanguage = EShLangCompute;
+        Language = EShLangCompute;
     }
-    else if (ShaderExtension == ".geom")
+    else if (Extension == ".geom")
     {
-        ShaderLanguage = EShLangGeometry;
+        Language = EShLangGeometry;
     }
-    else if (ShaderExtension == ".tesc")
+    else if (Extension == ".tesc")
     {
-        ShaderLanguage = EShLangTessControl;
+        Language = EShLangTessControl;
     }
-    else if (ShaderExtension == ".tese")
+    else if (Extension == ".tese")
     {
-        ShaderLanguage = EShLangTessEvaluation;
+        Language = EShLangTessEvaluation;
     }
-    else if (ShaderExtension == ".rgen")
+    else if (Extension == ".rgen")
     {
-        ShaderLanguage = EShLangRayGen;
+        Language = EShLangRayGen;
     }
-    else if (ShaderExtension == ".rint")
+    else if (Extension == ".rint")
     {
-        ShaderLanguage = EShLangIntersect;
+        Language = EShLangIntersect;
     }
-    else if (ShaderExtension == ".rahit")
+    else if (Extension == ".rahit")
     {
-        ShaderLanguage = EShLangAnyHit;
+        Language = EShLangAnyHit;
     }
-    else if (ShaderExtension == ".rchit")
+    else if (Extension == ".rchit")
     {
-        ShaderLanguage = EShLangClosestHit;
+        Language = EShLangClosestHit;
     }
-    else if (ShaderExtension == ".rmiss")
+    else if (Extension == ".rmiss")
     {
-        ShaderLanguage = EShLangMiss;
+        Language = EShLangMiss;
     }
-    else if (ShaderExtension == ".rcall")
+    else if (Extension == ".rcall")
     {
-        ShaderLanguage = EShLangCallable;
+        Language = EShLangCallable;
     }
-    else if (ShaderExtension != ".vert")
+    else if (Extension != ".vert")
     {
-        throw std::runtime_error("Unknown shader extension: " + ShaderExtension.string());
+        throw std::runtime_error("Unknown shader extension: " + Extension.string());
     }
 
-    return CompileShader(ShaderSource, ShaderLanguage, OutSPIRVCode);
+    std::stringstream ShaderSource;
+    std::ifstream File(Path);
+    if (!File.is_open())
+    {
+        throw std::runtime_error("Failed to open shader file: " + Path.string());
+    }
+
+    ShaderSource << File.rdbuf();
+    File.close();
+
+    const bool bResult = Compile(ShaderSource.str(), Language, OutSPIRVCode);
+    if (bResult)
+    {
+        const std::string SPIRVPath = std::format("{}.spv", Source);
+        std::ofstream SPIRVFile(SPIRVPath, std::ios::binary);
+        if (!SPIRVFile.is_open())
+        {
+            throw std::runtime_error("Failed to open SPIRV file: " + SPIRVPath);
+        }
+
+        SPIRVFile << std::string(reinterpret_cast<const char*>(OutSPIRVCode.data()), OutSPIRVCode.size() * sizeof(uint32_t));
+        SPIRVFile.close();
+
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compiled, generated SPIR-V shader file: " << SPIRVPath;
+    }
+
+    return bResult;
 }
 
-bool VulkanShaderCompiler::LoadShader(const char* ShaderSource, std::vector<uint32_t>& OutSPIRVCode)
+bool VulkanShaderCompiler::Load(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode)
 {
-    std::filesystem::path ShaderPath(ShaderSource);
-    if (!std::filesystem::exists(ShaderPath))
+    std::filesystem::path Path(Source);
+    if (!std::filesystem::exists(Path))
     {
-        const std::string ErrMessage = "Shader file does not exist" + std::string(ShaderSource);
+        const std::string ErrMessage = "Shader file does not exist" + std::string(Source);
         throw std::runtime_error(ErrMessage);
     }
 
-    std::ifstream ShaderFile(ShaderPath, std::ios::ate | std::ios::binary);
-    if (!ShaderFile.is_open())
+    std::ifstream File(Path, std::ios::ate | std::ios::binary);
+    if (!File.is_open())
     {
-        const std::string ErrMessage = "Failed to open shader file" + std::string(ShaderSource);
+        const std::string ErrMessage = "Failed to open shader file" + std::string(Source);
         throw std::runtime_error(ErrMessage);
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading shader: " << ShaderSource;
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading shader: " << Source;
 
-    const size_t FileSize = static_cast<size_t>(ShaderFile.tellg());
+    const size_t FileSize = static_cast<size_t>(File.tellg());
     OutSPIRVCode.resize(FileSize / sizeof(uint32_t));
 
-    ShaderFile.seekg(0);
-    ShaderFile.read(reinterpret_cast<char*>(OutSPIRVCode.data()), FileSize);
-    ShaderFile.close();
+    File.seekg(0);
+    File.read(reinterpret_cast<char*>(OutSPIRVCode.data()), FileSize);
+    File.close();
 
     return !OutSPIRVCode.empty();
 }
 
 
-VkShaderModule VulkanShaderCompiler::CreateShaderModule(const VkDevice& Device, const std::vector<uint32_t>& SPIRVCode, EShLanguage ShaderLanguage)
+VkShaderModule VulkanShaderCompiler::CreateModule(const VkDevice& Device, const std::vector<uint32_t>& SPIRVCode, EShLanguage Language)
 {
     if (Device == VK_NULL_HANDLE)
     {
@@ -241,52 +159,62 @@ VkShaderModule VulkanShaderCompiler::CreateShaderModule(const VkDevice& Device, 
         throw std::runtime_error("Failed to create shader module");
     }
 
-    StageShaderInfo(Output, ShaderLanguage);
+    StageInfo(Output, Language);
 
     return Output;
 }
 
-bool VulkanShaderCompiler::CompileShader(const char* ShaderSource, EShLanguage ShaderLanguage, std::vector<uint32_t>& OutSPIRVCode)
+bool VulkanShaderCompiler::Compile(const std::string_view Source, EShLanguage Language, std::vector<uint32_t>& OutSPIRVCode)
 {
     glslang::InitializeProcess();
 
-    glslang::TShader Shader(ShaderLanguage);
-    Shader.setStrings(&ShaderSource, 1);
-    Shader.setPreamble("#version 450");
+    glslang::TShader Shader(Language);
+    // Shader.setPreamble("#version 450");
+
+    const char* ShaderContent = Source.data();
+    Shader.setStrings(&ShaderContent, 1);
 
     Shader.setEntryPoint(EntryPoint);
     Shader.setSourceEntryPoint(EntryPoint);
 
-    const TBuiltInResource Resources = InitResources();
+    const TBuiltInResource* Resources = GetDefaultResources();
+    const EShMessages MessageFlags = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
 
-    if (!Shader.parse(&Resources, 450, true, EShMessages::EShMsgEnhanced))
+    if (!Shader.parse(Resources, 450, EProfile::ECoreProfile, false, true, MessageFlags))
     {
-        throw std::runtime_error("Failed to parse shader");
+        glslang::FinalizeProcess();
+        const std::string InfoLog("Info Log: " + std::string(Shader.getInfoLog()));
+        const std::string DebugLog("Debug Log: " + std::string(Shader.getInfoDebugLog()));
+        const std::string ErrMessage = std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog);
+        throw std::runtime_error(ErrMessage);
     }
 
     glslang::TProgram Program;
     Program.addShader(&Shader);
 
-    if (!Program.link(EShMessages::EShMsgEnhanced))
+    if (!Program.link(MessageFlags))
     {
-        const std::string ErrMessage = "Failed to link shader" + std::string(Program.getInfoLog());
+        glslang::FinalizeProcess();
+        const std::string InfoLog("Info Log: " + std::string(Program.getInfoLog()));
+        const std::string DebugLog("Debug Log: " + std::string(Program.getInfoDebugLog()));
+        const std::string ErrMessage = std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog);
         throw std::runtime_error(ErrMessage);
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader: " << ShaderSource;
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n" << Source;
 
     glslang::SpvOptions Options;
 #ifdef _DEBUG
     Options.generateDebugInfo = true;
 #endif
 
-    glslang::GlslangToSpv(*Program.getIntermediate(ShaderLanguage), OutSPIRVCode, &Options);
+    glslang::GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Options);
     glslang::FinalizeProcess();
 
     return !OutSPIRVCode.empty();
 }
 
-void VulkanShaderCompiler::StageShaderInfo(const VkShaderModule& Module, EShLanguage ShaderLanguage)
+void VulkanShaderCompiler::StageInfo(const VkShaderModule& Module, EShLanguage Language)
 {
     if (Module == VK_NULL_HANDLE)
     {
@@ -294,23 +222,23 @@ void VulkanShaderCompiler::StageShaderInfo(const VkShaderModule& Module, EShLang
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Staging shader info";
-    VkPipelineShaderStageCreateInfo ShaderStageInfo{
+    VkPipelineShaderStageCreateInfo StageInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         .module = Module,
         .pName = EntryPoint
     };
 
-    switch (ShaderLanguage)
+    switch (Language)
     {
         case EShLangVertex:
-            ShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+            StageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
             break;
         case EShLangFragment:
-            ShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+            StageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
             break;
 
         default: throw std::runtime_error("Unsupported shader language");
     }
 
-    m_ShaderStageInfos.emplace(Module, ShaderStageInfo);
+    m_StageInfos.emplace(Module, StageInfo);
 }

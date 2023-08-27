@@ -9,7 +9,7 @@ set(SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanShaderCompiler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Window.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanCommands.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanPipeline.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanPipelineManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanBufferManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanConfigurator.cpp
 )
@@ -22,7 +22,7 @@ set(HEADER_FILES
     # Private Headers
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanEnumConverter.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanCommands.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanPipeline.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanPipelineManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanBufferManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanConfigurator.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanShaderCompiler.h
@@ -43,11 +43,12 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE
     ${Vulkan_LIBRARIES}
     Boost::log
     glslang
+    glslang-default-resource-limits
     SPIRV
 )
 
 target_include_directories(${LIBRARY_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
 
 # Testing only - Debugging Shaders
-target_compile_definitions(${LIBRARY_NAME} PRIVATE DEBUG_SHADER_VERT "${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.vert")
-target_compile_definitions(${LIBRARY_NAME} PRIVATE DEBUG_SHADER_FRAG "${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.frag")
+target_compile_definitions(${LIBRARY_NAME} PRIVATE DEBUG_SHADER_VERT="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.vert")
+target_compile_definitions(${LIBRARY_NAME} PRIVATE DEBUG_SHADER_FRAG="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.frag")

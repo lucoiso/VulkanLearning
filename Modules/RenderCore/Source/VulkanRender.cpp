@@ -2,6 +2,7 @@
 
 #include "VulkanRender.h"
 #include "VulkanConfigurator.h"
+#include "VulkanPipelineManager.h"
 #include <boost/log/trivial.hpp>
 
 using namespace RenderCore;
@@ -34,7 +35,7 @@ public:
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing Vulkan render";
 
         const bool Result = InitializeConfigurator(Window)
-                         && InitializePipeline();
+                         && InitializePipelineManager(Window);
 
         if (Result)
         {
@@ -95,12 +96,26 @@ private:
         return false;
     }
 
-    bool InitializePipeline()
+    bool InitializePipelineManager(GLFWwindow* const Window)
     {
-        return true;
+        try
+        {
+            if (m_PipelineManager = std::make_unique<VulkanPipelineManager>(); m_PipelineManager)
+            {
+                m_PipelineManager->Initialize(m_Configurator->GetLogicalDevice(), VK_NULL_HANDLE, m_Configurator->GetExtent(Window));
+                return true;
+            }
+        }
+        catch (const std::exception& Ex)
+        {
+            BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
+        }
+
+        return false;
     }
 
     std::unique_ptr<VulkanConfigurator> m_Configurator;
+    std::unique_ptr<VulkanPipelineManager> m_PipelineManager;
 };
 
 VulkanRender::VulkanRender()
