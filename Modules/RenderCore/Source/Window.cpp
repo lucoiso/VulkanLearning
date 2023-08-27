@@ -99,7 +99,7 @@ public:
 
 private:
     GLFWwindow* m_Window;
-    std::unique_ptr<RenderCore::VulkanRender> m_Render;
+    std::unique_ptr<VulkanRender> m_Render;
 };
 
 Window::Window()
