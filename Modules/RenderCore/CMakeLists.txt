@@ -6,6 +6,7 @@ set(LIBRARY_NAME RenderCore)
 # ------------- Library Setup --------------
 set(SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRender.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanShaderCompiler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Window.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanCommands.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanPipeline.cpp
@@ -24,6 +25,7 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanPipeline.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanBufferManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanConfigurator.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanShaderCompiler.h
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
@@ -40,6 +42,12 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE
     glfw
     ${Vulkan_LIBRARIES}
     Boost::log
+    glslang
+    SPIRV
 )
 
 target_include_directories(${LIBRARY_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
+
+# Testing only - Debugging Shaders
+target_compile_definitions(${LIBRARY_NAME} PRIVATE DEBUG_SHADER_VERT "${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.vert")
+target_compile_definitions(${LIBRARY_NAME} PRIVATE DEBUG_SHADER_FRAG "${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.frag")
