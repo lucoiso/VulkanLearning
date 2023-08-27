@@ -35,6 +35,7 @@ void VulkanPipelineManager::Initialize(const VkDevice& Device, const VkRenderPas
         throw std::runtime_error("Invalid vulkan logical device");
     }
 
+    BOOST_LOG_TRIVIAL(warning) << "[" << __func__ << "]: Commented Render Pass checking for testing. Location " << __FILE__ << ":" << __LINE__;
     // if (RenderPass == VK_NULL_HANDLE)
     // {
     //     throw std::runtime_error("Invalid vulkan render pass");
@@ -77,7 +78,7 @@ void VulkanPipelineManager::CompileShader(const char* ShaderSource)
         throw std::runtime_error("Invalid shader compiler");
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Running test function to compile shader. Location: " << __FILE__ << ":" << __LINE__;
+    BOOST_LOG_TRIVIAL(warning) << "[" << __func__ << "]: Running test function to compile shader. Location: " << __FILE__ << ":" << __LINE__;
 
     std::vector<uint32_t> SPIRVCode;
     if (!m_ShaderCompiler->Compile(ShaderSource, SPIRVCode))

@@ -102,6 +102,7 @@ private:
         {
             if (m_PipelineManager = std::make_unique<VulkanPipelineManager>(); m_PipelineManager)
             {
+                BOOST_LOG_TRIVIAL(warning) << "[" << __func__ << "]: Passing null Render Pass for testing. Location " << __FILE__ << ":" << __LINE__;
                 m_PipelineManager->Initialize(m_Configurator->GetLogicalDevice(), VK_NULL_HANDLE, m_Configurator->GetExtent(Window));
                 return true;
             }
