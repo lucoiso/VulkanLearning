@@ -1,7 +1,7 @@
 // Copyright Notice: [...]
 
-#ifndef RENDERMODULE_H
-#define RENDERMODULE_H
+#ifndef RENDERCOREMODULE_H
+#define RENDERCOREMODULE_H
 
 #ifdef BUILD_DLL
 #define RENDERCOREMODULE_API _declspec(dllexport)

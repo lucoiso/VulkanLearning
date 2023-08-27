@@ -6,24 +6,24 @@ set(LIBRARY_NAME RenderCore)
 # ------------- Library Setup --------------
 set(SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRender.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Window.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanCommands.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanPipeline.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanBufferManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanConfigurator.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Window.cpp
 )
 
 set(HEADER_FILES
+    # Public Headers
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/VulkanRender.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Window.h
+
     # Private Headers
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanEnumConverter.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRender.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanCommands.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanPipeline.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanBufferManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanConfigurator.h
-
-    # Public Headers
-    ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Window.h
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})

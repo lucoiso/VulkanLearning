@@ -6,7 +6,7 @@
 
 namespace RenderCore
 {
-class RENDERCOREMODULE_API VulkanPipeline
+class VulkanPipeline
 {
     public:
         VulkanPipeline();

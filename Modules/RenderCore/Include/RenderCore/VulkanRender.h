@@ -3,13 +3,16 @@
 #pragma once
 
 #include "RenderCoreModule.h"
-#include "VulkanConfigurator.h"
 #include <memory>
+
+struct GLFWwindow;
 
 namespace RenderCore
 {
     class RENDERCOREMODULE_API VulkanRender
     {
+        class Impl;
+
     public:
         VulkanRender();
 
@@ -24,6 +27,6 @@ namespace RenderCore
         bool IsInitialized() const;
 
     private:
-        std::unique_ptr<VulkanConfigurator> m_Configurator;
+        std::unique_ptr<Impl> m_Impl;
     };
 }

@@ -6,7 +6,7 @@
 
 namespace RenderCore
 {
-    class RENDERCOREMODULE_API VulkanBufferManager
+    class VulkanBufferManager
     {
     public:
         VulkanBufferManager();

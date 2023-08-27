@@ -12,7 +12,7 @@ struct GLFWwindow;
 
 namespace RenderCore
 {
-    class RENDERCOREMODULE_API VulkanConfigurator
+    class VulkanConfigurator
     {
     public:
         VulkanConfigurator();
@@ -22,40 +22,47 @@ namespace RenderCore
 
         ~VulkanConfigurator();
 
-        void Initialize(GLFWwindow* const Window);
+        void CreateInstance();
+        void UpdateSupportsValidationLayer();
+        void CreateSurface(GLFWwindow* const Window);
+        void PickPhysicalDevice(const VkPhysicalDevice& PreferredDevice = VK_NULL_HANDLE);
+        void CreateLogicalDevice();
+        void InitializeSwapChain(GLFWwindow* const Window);
+        void InitializeSwapChain(const VkSurfaceFormatKHR& PreferredFormat, const VkPresentModeKHR& PreferredMode, const VkExtent2D& PreferredExtent, const VkSurfaceCapabilitiesKHR& Capabilities);
+
         void Shutdown();
 
         bool IsInitialized() const;
         [[nodiscard]] VkInstance GetInstance() const;
         [[nodiscard]] VkDevice GetLogicalDevice() const;
         [[nodiscard]] VkPhysicalDevice GetPhysicalDevice() const;
-        [[nodiscard]] VkSurfaceCapabilitiesKHR GetPhysicalDeviceSurfaceCapabilities() const;
-        [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetPhysicalDeviceSurfaceFormats() const;
-        [[nodiscard]] std::vector<VkPresentModeKHR> GetPhysicalDeviceSurfacePresentationModes() const;
-        [[nodiscard]] std::vector<const char*> GetInstanceExtensions() const;
-        [[nodiscard]] std::vector<const char*> GetPhysicalDeviceExtensions() const;
+        [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities() const;
+        [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats() const;
+        [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes() const;
+        [[nodiscard]] std::vector<const char*> GetAvailableInstanceExtensions() const;
+        [[nodiscard]] std::vector<const char*> GetAvailablePhysicalDeviceExtensions() const;
+        [[nodiscard]] std::vector<VkLayerProperties> GetAvailableValidationLayers() const;
         [[nodiscard]] bool IsDeviceSuitable(const VkPhysicalDevice& Device) const;
         bool SupportsValidationLayer() const;
 
     private:
-        void CreateInstance();
-        void CreateSurface(GLFWwindow* const Window);
-        void PickPhysicalDevice();
-        void ChooseQueueFamilyIndices(std::optional<std::uint32_t>& GraphicsQueueFamilyIndex, std::optional<std::uint32_t>& PresentationQueueFamilyIndex);
-        void CreateLogicalDevice(const std::uint32_t GraphicsQueueFamilyIndex, const std::uint32_t PresentationQueueFamilyIndex);
-        void InitializeSwapChain();
-
-        void CheckSupportedValidationLayers();
+        bool GetQueueFamilyIndices(std::optional<std::uint32_t>& GraphicsQueueFamilyIndex, std::optional<std::uint32_t>& PresentationQueueFamilyIndex);
         void PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT& Info);
         void SetupDebugMessages();
         void ShutdownDebugMessages();
+
+        void ResetSwapChain(const bool bDestroyImages = true);
+        void CreateSwapChainImageViews(const VkFormat& ImageFormat);
 
         VkInstance m_Instance;
         VkSurfaceKHR m_Surface;
         VkPhysicalDevice m_PhysicalDevice;
         VkDevice m_Device;
-        VkQueue m_GraphicsQueue;
-        VkQueue m_PresentationQueue;
+        VkSwapchainKHR m_SwapChain;
+        std::vector<VkImage> m_SwapChainImages;
+        std::vector<VkImageView> m_SwapChainImageViews;
+        std::pair<std::uint32_t, VkQueue> m_GraphicsQueue;
+        std::pair<std::uint32_t, VkQueue> m_PresentationQueue;
         VkDebugUtilsMessengerEXT m_DebugMessenger;
         const std::vector<const char*> m_ValidationLayers;
         const std::vector<const char*> m_RequiredDeviceExtensions;

@@ -6,7 +6,7 @@
 
 namespace RenderCore
 {
-class RENDERCOREMODULE_API VulkanCommands
+class VulkanCommands
 {
     public:
         VulkanCommands();
