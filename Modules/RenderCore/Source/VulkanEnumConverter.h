@@ -1,8 +1,11 @@
 // Copyright Notice: [...]
 
+#ifndef ENUMCONVERTER_H
+#define ENUMCONVERTER_H
+
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 #include <charconv>
 #include <array>
 
@@ -386,3 +389,5 @@ namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 }
+
+#endif

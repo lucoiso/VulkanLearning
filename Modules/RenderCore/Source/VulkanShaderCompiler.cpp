@@ -10,14 +10,39 @@
 
 using namespace RenderCore;
 
-VulkanShaderCompiler::VulkanShaderCompiler()
+VulkanShaderCompiler::VulkanShaderCompiler(const VkDevice& Device)
+    : m_Device(Device)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan shader compiler";
 }
 
 VulkanShaderCompiler::~VulkanShaderCompiler()
 {
+    if (m_Device == VK_NULL_HANDLE || m_StageInfos.empty())
+    {
+        return;
+    }
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing vulkan shader compiler";
+    Shutdown();
+}
+
+void VulkanShaderCompiler::Shutdown()
+{
+    if (m_Device == VK_NULL_HANDLE || m_StageInfos.empty())
+    {
+        return;
+    }
+
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan shader compiler";
+
+    for (auto& [ShaderModule, _] : m_StageInfos)
+    {
+        if (ShaderModule != VK_NULL_HANDLE)
+        {
+            vkDestroyShaderModule(m_Device, ShaderModule, nullptr);
+        }
+    }
 }
 
 bool VulkanShaderCompiler::Compile(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode)
@@ -104,7 +129,7 @@ bool VulkanShaderCompiler::Compile(const std::string_view Source, std::vector<ui
     return bResult;
 }
 
-bool VulkanShaderCompiler::Load(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode)
+bool VulkanShaderCompiler::Load(const std::string_view Source, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     std::filesystem::path Path(Source);
     if (!std::filesystem::exists(Path))
@@ -133,7 +158,7 @@ bool VulkanShaderCompiler::Load(const std::string_view Source, std::vector<uint3
 }
 
 
-VkShaderModule VulkanShaderCompiler::CreateModule(const VkDevice& Device, const std::vector<uint32_t>& SPIRVCode, EShLanguage Language)
+VkShaderModule VulkanShaderCompiler::CreateModule(const VkDevice& Device, const std::vector<std::uint32_t>& SPIRVCode, EShLanguage Language)
 {
     if (Device == VK_NULL_HANDLE)
     {
@@ -149,7 +174,7 @@ VkShaderModule VulkanShaderCompiler::CreateModule(const VkDevice& Device, const 
 
     const VkShaderModuleCreateInfo CreateInfo{
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        .codeSize = SPIRVCode.size(),
+        .codeSize = SPIRVCode.size() * sizeof(std::uint32_t),
         .pCode = SPIRVCode.data()
     };
 
@@ -164,17 +189,25 @@ VkShaderModule VulkanShaderCompiler::CreateModule(const VkDevice& Device, const 
     return Output;
 }
 
-bool VulkanShaderCompiler::Compile(const std::string_view Source, EShLanguage Language, std::vector<uint32_t>& OutSPIRVCode)
+VkPipelineShaderStageCreateInfo VulkanShaderCompiler::GetStageInfo(const VkShaderModule& Module)
+{
+    return m_StageInfos.at(Module);
+}
+
+bool VulkanShaderCompiler::Compile(const std::string_view Source, EShLanguage Language, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     glslang::InitializeProcess();
 
     glslang::TShader Shader(Language);
 
     const char* ShaderContent = Source.data();
-    Shader.setStrings(&ShaderContent, 1);
+    Shader.setStringsWithLengths(&ShaderContent, nullptr, 1);
 
     Shader.setEntryPoint(EntryPoint);
     Shader.setSourceEntryPoint(EntryPoint);
+    Shader.setEnvInput(glslang::EShSourceGlsl, Language, glslang::EShClientVulkan, 1);
+    Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
+    Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
 
     const TBuiltInResource* Resources = GetDefaultResources();
     const EShMessages MessageFlags = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
@@ -201,14 +234,12 @@ bool VulkanShaderCompiler::Compile(const std::string_view Source, EShLanguage La
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n" << Source;
-
-    glslang::SpvOptions Options;
-#ifdef _DEBUG
-    Options.generateDebugInfo = true;
-#endif
-
-    glslang::GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Options);
+    
+    spv::SpvBuildLogger Logger;
+    glslang::GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
     glslang::FinalizeProcess();
+
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compile result log:\n" << Logger.getAllMessages();
 
     return !OutSPIRVCode.empty();
 }

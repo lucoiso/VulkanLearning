@@ -18,18 +18,24 @@ namespace RenderCore
     class VulkanShaderCompiler
     {
     public:
-        VulkanShaderCompiler();
+        VulkanShaderCompiler() = delete;
+
+        VulkanShaderCompiler(const VkDevice& Device);
         ~VulkanShaderCompiler();
+
+        void Shutdown();
 
         bool Compile(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
         bool Load(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
 
         VkShaderModule CreateModule(const VkDevice& Device, const std::vector<uint32_t>& SPIRVCode, EShLanguage Language);
+        VkPipelineShaderStageCreateInfo GetStageInfo(const VkShaderModule& Module);
 
     private:
         bool Compile(const std::string_view Source, EShLanguage Language, std::vector<uint32_t>& OutSPIRVCode);
         void StageInfo(const VkShaderModule& Module, EShLanguage Language);
 
+        const VkDevice& m_Device;
         std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> m_StageInfos;
     };
 }

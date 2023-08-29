@@ -5,6 +5,7 @@
 #include "VulkanPipelineManager.h"
 #include "VulkanBufferManager.h"
 #include "VulkanCommandsManager.h"
+#include "VulkanShaderCompiler.h"
 #include "VulkanDebugHelpers.h"
 #include "VulkanConstants.h"
 #include "RenderCoreHelpers.h"
@@ -29,6 +30,7 @@ public:
         , m_PipelineManager(nullptr)
         , m_BufferManager(nullptr)
         , m_CommandsManager(nullptr)
+        , m_ShaderCompiler(nullptr)
         , m_Instance(VK_NULL_HANDLE)
         , m_Surface(VK_NULL_HANDLE)
 #ifdef _DEBUG
@@ -147,6 +149,8 @@ public:
         {
             m_DeviceManager->PickPhysicalDevice();
             m_DeviceManager->CreateLogicalDevice();
+
+            m_ShaderCompiler = std::make_unique<VulkanShaderCompiler>(m_DeviceManager->GetLogicalDevice());
         }
 
         return m_DeviceManager != nullptr;
@@ -171,10 +175,24 @@ public:
     bool InitializePipelineManager(GLFWwindow* const Window)
     {
         if (m_PipelineManager = std::make_unique<VulkanPipelineManager>(m_Instance, m_DeviceManager->GetLogicalDevice());
-            m_PipelineManager)
+            m_PipelineManager && m_ShaderCompiler)
         {
-            BOOST_LOG_TRIVIAL(warning) << "[" << __func__ << "]: Passing null Render Pass for testing. Location " << __FILE__ << ":" << __LINE__;
-            m_PipelineManager->Initialize(VK_NULL_HANDLE, GetWindowExtent(Window, m_DeviceManager->GetAvailablePhysicalDeviceSurfaceCapabilities()));
+            VkSurfaceFormatKHR PreferredFormat;
+            VkPresentModeKHR PreferredMode;
+            VkExtent2D PreferredExtent;
+            VkSurfaceCapabilitiesKHR Capabilities;
+            m_DeviceManager->GetSwapChainPreferredProperties(Window, PreferredFormat, PreferredMode, PreferredExtent, Capabilities);
+            m_PipelineManager->CreateRenderPass(PreferredFormat.format);
+
+            std::vector<std::uint32_t> FragmentShaderCode;
+            m_ShaderCompiler->Compile(DEBUG_SHADER_FRAG, FragmentShaderCode);
+            const VkShaderModule FragmentModule = m_ShaderCompiler->CreateModule(m_DeviceManager->GetLogicalDevice(), FragmentShaderCode, EShLangFragment);
+
+            std::vector<std::uint32_t> VertexShaderCode;
+            m_ShaderCompiler->Compile(DEBUG_SHADER_VERT, VertexShaderCode);
+            const VkShaderModule VertexModule = m_ShaderCompiler->CreateModule(m_DeviceManager->GetLogicalDevice(), VertexShaderCode, EShLangVertex);
+
+            m_PipelineManager->CreateGraphicsPipeline({ m_ShaderCompiler->GetStageInfo(FragmentModule), m_ShaderCompiler->GetStageInfo(VertexModule) });
         }
 
         return m_PipelineManager != nullptr;
@@ -189,6 +207,7 @@ public:
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan render";
 
+        m_ShaderCompiler->Shutdown();
         m_BufferManager->Shutdown();
         m_PipelineManager->Shutdown();
         // m_CommandsManager->Shutdown();
@@ -243,6 +262,7 @@ private:
     std::unique_ptr<VulkanPipelineManager> m_PipelineManager;
     std::unique_ptr<VulkanBufferManager> m_BufferManager;
     std::unique_ptr<VulkanCommandsManager> m_CommandsManager;
+    std::unique_ptr<VulkanShaderCompiler> m_ShaderCompiler;
 
     VkInstance m_Instance;
     VkSurfaceKHR m_Surface;

@@ -19,17 +19,20 @@ class VulkanPipelineManager
         VulkanPipelineManager(const VkInstance& Instance, const VkDevice& Device);
         ~VulkanPipelineManager();
 
-        void Initialize(const VkRenderPass& RenderPass, const VkExtent2D& Extent);
+        void CreateRenderPass(const VkFormat& Format);
+        void CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo>& ShaderStages);
+
         void Shutdown();
 
         bool IsInitialized() const;
-        [[nodiscard]] const std::vector<VkPipeline>& GetPipelines() const;
 
     private:
         const VkInstance& m_Instance;
         const VkDevice& m_Device;
-
-        std::vector<VkPipeline> m_Pipelines;
-        std::unique_ptr<class VulkanShaderCompiler> m_ShaderCompiler;
+        VkRenderPass m_RenderPass;
+        VkPipeline m_Pipeline;
+        VkPipelineLayout m_PipelineLayout;
+        VkPipelineCache m_PipelineCache;
+        VkDescriptorSetLayout m_DescriptorSetLayout;
     };
 }
