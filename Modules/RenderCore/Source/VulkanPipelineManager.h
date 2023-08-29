@@ -12,24 +12,24 @@ namespace RenderCore
 class VulkanPipelineManager
 {
     public:
-        VulkanPipelineManager();
-
+        VulkanPipelineManager() = delete;
         VulkanPipelineManager(const VulkanPipelineManager&) = delete;
         VulkanPipelineManager& operator=(const VulkanPipelineManager&) = delete;
 
+        VulkanPipelineManager(const VkInstance& Instance, const VkDevice& Device);
         ~VulkanPipelineManager();
 
-        void Initialize(const VkDevice& Device, const VkRenderPass& RenderPass, const VkExtent2D& Extent);
+        void Initialize(const VkRenderPass& RenderPass, const VkExtent2D& Extent);
         void Shutdown();
 
-        // Testing only - will be removed
-        void CompileShader(const char* ShaderSource);
-
         bool IsInitialized() const;
+        [[nodiscard]] const std::vector<VkPipeline>& GetPipelines() const;
 
     private:
+        const VkInstance& m_Instance;
+        const VkDevice& m_Device;
+
         std::vector<VkPipeline> m_Pipelines;
-        VkDevice m_Device;
         std::unique_ptr<class VulkanShaderCompiler> m_ShaderCompiler;
     };
 }

@@ -6,50 +6,39 @@
 
 using namespace RenderCore;
 
-VulkanPipelineManager::VulkanPipelineManager()
-    : m_Pipelines()
-    , m_Device(VK_NULL_HANDLE)
+VulkanPipelineManager::VulkanPipelineManager(const VkInstance& Instance, const VkDevice& Device)
+    : m_Instance(Instance)
+    , m_Device(Device)
+    , m_Pipelines({})
     , m_ShaderCompiler(std::make_unique<VulkanShaderCompiler>())
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan pipeline manager";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan pipelines manager";
 }
 
 VulkanPipelineManager::~VulkanPipelineManager()
 {
-    if (IsInitialized())
+    if (!IsInitialized())
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing vulkan pipeline manager";
-        Shutdown();
+       return;
     }
+
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing vulkan pipelines manager";
+    Shutdown();
 }
 
-void VulkanPipelineManager::Initialize(const VkDevice& Device, const VkRenderPass& RenderPass, const VkExtent2D& Extent)
+void VulkanPipelineManager::Initialize(const VkRenderPass& RenderPass, const VkExtent2D& Extent)
 {
     if (IsInitialized())
     {
         return;
     }
 
-    if (Device == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Invalid vulkan logical device");
-    }
-
-    BOOST_LOG_TRIVIAL(warning) << "[" << __func__ << "]: Commented Render Pass checking for testing. Location " << __FILE__ << ":" << __LINE__;
+    BOOST_LOG_TRIVIAL(warning) << "[" << __func__ << "]: Commented render pass verification for testing. Location " << __FILE__ << ":" << __LINE__;
     // if (RenderPass == VK_NULL_HANDLE)
     // {
     //     throw std::runtime_error("Invalid vulkan render pass");
     // }
 
-    #ifdef DEBUG_SHADER_FRAG
-    CompileShader(DEBUG_SHADER_FRAG);
-    #endif
-
-    #ifdef DEBUG_SHADER_VERT
-    CompileShader(DEBUG_SHADER_VERT);
-    #endif
-
-    m_Device = Device;
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan pipelines";
 }
 
@@ -60,7 +49,8 @@ void VulkanPipelineManager::Shutdown()
         return;
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan pipelines";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan pipelines";
+
     for (const VkPipeline& PipelineIter : m_Pipelines)
     {
         if (PipelineIter != VK_NULL_HANDLE)
@@ -71,24 +61,13 @@ void VulkanPipelineManager::Shutdown()
     m_Pipelines.clear();
 }
 
-void VulkanPipelineManager::CompileShader(const char* ShaderSource)
-{
-    if (m_ShaderCompiler == nullptr)
-    {
-        throw std::runtime_error("Invalid shader compiler");
-    }
-
-    BOOST_LOG_TRIVIAL(warning) << "[" << __func__ << "]: Running test function to compile shader. Location: " << __FILE__ << ":" << __LINE__;
-
-    std::vector<uint32_t> SPIRVCode;
-    if (!m_ShaderCompiler->Compile(ShaderSource, SPIRVCode))
-    {
-        const std::string ErrMessage = "Failed to compile shader: " + std::string(ShaderSource);
-        throw std::runtime_error(ErrMessage);
-    }
-}
-
 bool VulkanPipelineManager::IsInitialized() const
 {
-    return !m_Pipelines.empty() && m_Device != VK_NULL_HANDLE;
+    return m_Instance   != VK_NULL_HANDLE
+        && m_Device     != VK_NULL_HANDLE;
+}
+
+const std::vector<VkPipeline>& RenderCore::VulkanPipelineManager::GetPipelines() const
+{
+    return m_Pipelines;
 }

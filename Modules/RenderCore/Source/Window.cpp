@@ -26,8 +26,12 @@ public:
 
     ~Impl()
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing Window Implementation";
+        if (!IsInitialized())
+        {
+            return;
+        }
 
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing Window Implementation";
         Shutdown();
     }
 
@@ -35,7 +39,7 @@ public:
     {
         if (IsInitialized())
         {
-            throw std::runtime_error("Window is already initialized");
+            return false;
         }
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing Window";
@@ -48,15 +52,17 @@ public:
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-        if (m_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr); !m_Window)
+        if (m_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr);
+            !m_Window)
         {
             throw std::runtime_error("Failed to create GLFW Window");
         }
 
-        if (m_Render = std::make_unique<RenderCore::VulkanRender>(); m_Render && m_Render->Initialize(m_Window))
+        if (m_Render = std::make_unique<RenderCore::VulkanRender>();
+            m_Render)
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Window initialized";
-            return true;
+            return m_Render->Initialize(m_Window);
         }
 
         Shutdown();
@@ -66,15 +72,19 @@ public:
 
     void Shutdown()
     {
-        if (IsInitialized())
+        if (!IsInitialized())
         {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Window";
-
-            glfwDestroyWindow(m_Window);
-            glfwTerminate();
-
-            m_Window = nullptr;
+            return;
         }
+
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Window";
+
+        m_Render->Shutdown();
+
+        glfwDestroyWindow(m_Window);
+        glfwTerminate();
+
+        m_Window = nullptr;
     }
 
     bool IsInitialized() const
@@ -109,19 +119,47 @@ Window::Window()
 
 Window::~Window()
 {
+    if (!IsInitialized())
+    {
+        return;
+    }
+
     Shutdown();
 }
 
 bool Window::Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title)
 {
-    return m_Impl && m_Impl->Initialize(Width, Height, Title);
+    if (IsInitialized())
+    {
+        return false;
+    }
+
+    try
+    {
+        return m_Impl && m_Impl->Initialize(Width, Height, Title);
+    }
+    catch (const std::exception& Ex)
+    {
+        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
+    }
+
+    return false;
 }
 
 void Window::Shutdown()
 {
-    if (m_Impl)
+    if (!IsInitialized())
+    {
+        return;
+    }
+
+    try
     {
         m_Impl->Shutdown();
+    }
+    catch (const std::exception& Ex)
+    {
+        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
     }
 }
 
@@ -142,8 +180,17 @@ bool Window::ShouldClose() const
 
 void Window::PollEvents()
 {
-    if (m_Impl)
+    if (!IsInitialized())
+    {
+        return;
+    }
+
+    try
     {
         m_Impl->PollEvents();
+    }
+    catch (const std::exception& Ex)
+    {
+        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
     }
 }

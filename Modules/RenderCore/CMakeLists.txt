@@ -6,12 +6,12 @@ set(LIBRARY_NAME RenderCore)
 # ------------- Library Setup --------------
 set(SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRender.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanShaderCompiler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Window.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanCommands.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanShaderCompiler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanCommandsManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanPipelineManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanBufferManager.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanConfigurator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanDeviceManager.cpp
 )
 
 set(HEADER_FILES
@@ -20,12 +20,14 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Window.h
 
     # Private Headers
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanDebugHelpers.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanEnumConverter.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanCommands.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanConstants.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanShaderCompiler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanCommandsManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanPipelineManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanBufferManager.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanConfigurator.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanShaderCompiler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanDeviceManager.h
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})

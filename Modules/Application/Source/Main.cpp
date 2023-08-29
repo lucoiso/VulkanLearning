@@ -27,5 +27,6 @@ int main(int Argc, char* Argv[])
         return EXIT_FAILURE;
     }
 
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down application";
     return EXIT_SUCCESS;
 }

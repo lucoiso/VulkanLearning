@@ -169,7 +169,6 @@ bool VulkanShaderCompiler::Compile(const std::string_view Source, EShLanguage La
     glslang::InitializeProcess();
 
     glslang::TShader Shader(Language);
-    // Shader.setPreamble("#version 450");
 
     const char* ShaderContent = Source.data();
     Shader.setStrings(&ShaderContent, 1);

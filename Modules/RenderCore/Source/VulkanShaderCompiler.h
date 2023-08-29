@@ -5,7 +5,6 @@
 #include "RenderCoreModule.h"
 #include <vulkan/vulkan.h>
 #include <glslang/Public/ShaderLang.h>
-#include <memory>
 #include <vector>
 #include <string_view>
 #include <unordered_map>
