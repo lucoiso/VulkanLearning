@@ -12,6 +12,10 @@ VulkanBufferManager::VulkanBufferManager(const VkDevice& Device, const VkSurface
     , m_SwapChain(VK_NULL_HANDLE)
     , m_SwapChainImages({})
     , m_SwapChainImageViews({})
+    , m_FrameBuffers({})
+    , m_VertexBuffers({})
+    , m_CommandPool(VK_NULL_HANDLE)
+    , m_CommandBuffers({})
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan buffer manager";
 }
@@ -39,11 +43,47 @@ void VulkanBufferManager::RefreshSwapChain(const VkSurfaceFormatKHR& PreferredFo
     CreateSwapChain(PreferredFormat, PreferredMode, PreferredExtent, Capabilities);
 }
 
+void VulkanBufferManager::InitializeFrameBuffers(const VkRenderPass& RenderPass, const VkExtent2D& Extent)
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing Vulkan frame buffers";
+    CreateFrameBuffers(RenderPass, Extent);
+}
+
+void VulkanBufferManager::RefreshFrameBuffers(const VkRenderPass& RenderPass, const VkExtent2D& Extent)
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing Vulkan frame buffers";
+    CreateFrameBuffers(RenderPass, Extent);
+}
+
+void VulkanBufferManager::InitializeVertexBuffers()
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing Vulkan vertex buffers";
+    CreateVertexBuffers();
+}
+
+void VulkanBufferManager::RefreshVertexBuffers()
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing Vulkan vertex buffers";
+    CreateVertexBuffers();
+}
+
+void VulkanBufferManager::InitializeCommandPool(const std::uint32_t GraphicsFamilyQueueIndex)
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing Vulkan command pool";
+    CreateCommandPool(GraphicsFamilyQueueIndex);
+}
+
+void VulkanBufferManager::RefreshCommandPool(const std::uint32_t GraphicsFamilyQueueIndex)
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing Vulkan command pool";
+    CreateCommandPool(GraphicsFamilyQueueIndex);
+}
+
 void VulkanBufferManager::CreateSwapChain(const VkSurfaceFormatKHR& PreferredFormat, const VkPresentModeKHR& PreferredMode, const VkExtent2D& PreferredExtent, const VkSurfaceCapabilitiesKHR& Capabilities)
 {
     if (IsInitialized())
     {
-        ResetSwapChain();
+        DestroyResources();
     }
 
     if (m_Device == VK_NULL_HANDLE)
@@ -103,7 +143,7 @@ void VulkanBufferManager::Shutdown()
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Vulkan buffer manager";
-    ResetSwapChain(false);
+    DestroyResources(false);
 }
 
 bool VulkanBufferManager::IsInitialized() const
@@ -126,6 +166,26 @@ const std::vector<VkImage>& VulkanBufferManager::GetSwapChainImages() const
 const std::vector<VkImageView>& VulkanBufferManager::GetSwapChainImageViews() const
 {
     return m_SwapChainImageViews;
+}
+
+const std::vector<VkFramebuffer>& VulkanBufferManager::GetFrameBuffers() const
+{
+    return m_FrameBuffers;
+}
+
+const std::vector<VkBuffer>& VulkanBufferManager::GetVertexBuffers() const
+{
+    return m_VertexBuffers;
+}
+
+const VkCommandPool& VulkanBufferManager::GetCommandPool() const
+{
+    return m_CommandPool;
+}
+
+const std::vector<VkCommandBuffer>& VulkanBufferManager::GetCommandBuffers() const
+{
+    return m_CommandBuffers;
 }
 
 void VulkanBufferManager::CreateSwapChainImageViews(const VkFormat& ImageFormat)
@@ -168,8 +228,90 @@ void VulkanBufferManager::CreateSwapChainImageViews(const VkFormat& ImageFormat)
     }
 }
 
-void VulkanBufferManager::ResetSwapChain(const bool bDestroyImages)
+void VulkanBufferManager::CreateFrameBuffers(const VkRenderPass& RenderPass, const VkExtent2D& Extent)
 {
+    if (m_Device == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan logical device is invalid.");
+    }
+
+    if (RenderPass == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan render pass is invalid.");
+    }
+
+    m_FrameBuffers.resize(m_SwapChainImageViews.size(), VK_NULL_HANDLE);
+
+    const VkFramebufferCreateInfo FrameBufferCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+        .renderPass = RenderPass,
+        .attachmentCount = static_cast<std::uint32_t>(m_SwapChainImageViews.size()),
+        .pAttachments = m_SwapChainImageViews.data(),
+        .width = Extent.width,
+        .height = Extent.height,
+        .layers = 1u
+    };
+
+    if (vkCreateFramebuffer(m_Device, &FrameBufferCreateInfo, nullptr, m_FrameBuffers.data()) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to create Vulkan image view.");
+    }
+}
+
+void VulkanBufferManager::CreateVertexBuffers()
+{
+    
+}
+
+void VulkanBufferManager::CreateCommandPool(const std::uint32_t GraphicsFamilyQueueIndex)
+{
+    if (m_Device == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan logical device is invalid.");
+    }
+
+    const VkCommandPoolCreateInfo CommandPoolCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        .queueFamilyIndex = GraphicsFamilyQueueIndex
+    };
+
+    if (vkCreateCommandPool(m_Device, &CommandPoolCreateInfo, nullptr, &m_CommandPool) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to create Vulkan command pool.");
+    }
+
+    const VkCommandBufferAllocateInfo CommandBufferAllocateInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = m_CommandPool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = static_cast<std::uint32_t>(m_FrameBuffers.size())
+    };
+
+    m_CommandBuffers.resize(m_FrameBuffers.size(), VK_NULL_HANDLE);
+    if (vkAllocateCommandBuffers(m_Device, &CommandBufferAllocateInfo, m_CommandBuffers.data()) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to allocate Vulkan command buffers.");
+    }
+
+    const VkCommandBufferBeginInfo CommandBufferBeginInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT
+    };
+
+    for (const VkCommandBuffer& CommandBufferIt : m_CommandBuffers)
+    {
+        if (vkBeginCommandBuffer(CommandBufferIt, &CommandBufferBeginInfo) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to begin Vulkan command buffer.");
+        }
+    }
+}
+
+void VulkanBufferManager::DestroyResources(const bool bDestroyImages)
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying resources from vulkan buffer manager";
+
     if (m_Device == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan logical device is invalid.");
@@ -201,4 +343,31 @@ void VulkanBufferManager::ResetSwapChain(const bool bDestroyImages)
         }
     }
     m_SwapChainImageViews.clear();
+
+    for (const VkFramebuffer& FrameBufferIter : m_FrameBuffers)
+    {
+        if (FrameBufferIter != VK_NULL_HANDLE)
+        {
+            vkDestroyFramebuffer(m_Device, FrameBufferIter, nullptr);
+        }
+    }
+    m_FrameBuffers.clear();
+
+    for (const VkBuffer& VertexBufferIter : m_VertexBuffers)
+    {
+        if (VertexBufferIter != VK_NULL_HANDLE)
+        {
+            vkDestroyBuffer(m_Device, VertexBufferIter, nullptr);
+        }
+    }
+    m_VertexBuffers.clear();
+
+    if (m_CommandPool != VK_NULL_HANDLE)
+    {
+        vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
+        m_CommandPool = VK_NULL_HANDLE;
+    }
+
+    // Automatically freed when the command pool is destroyed
+    m_CommandBuffers.clear();
 }

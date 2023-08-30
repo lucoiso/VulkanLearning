@@ -12,8 +12,20 @@ VulkanPipelineManager::VulkanPipelineManager(const VkInstance& Instance, const V
     , m_RenderPass(VK_NULL_HANDLE)
     , m_Pipeline(VK_NULL_HANDLE)
     , m_PipelineLayout(VK_NULL_HANDLE)
-    , m_PipelineCache(VK_NULL_HANDLE)
-    , m_DescriptorSetLayout(VK_NULL_HANDLE)
+    // , m_PipelineCache(VK_NULL_HANDLE)
+    // , m_DescriptorSetLayout(VK_NULL_HANDLE)
+    , m_Viewport {
+            .x = 0.f,
+            .y = 0.f,
+            .width = 0.f,
+            .height = 0.f,
+            .minDepth = 0.f,
+            .maxDepth = 1.f
+        }
+    , m_Scissor{
+            .offset = { 0, 0 },
+            .extent = { 0, 0 }
+        }
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan pipelines manager";
 }
@@ -69,42 +81,48 @@ void VulkanPipelineManager::CreateRenderPass(const VkFormat& Format)
     }
 }
 
-void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo>& ShaderStages)
+void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo>& ShaderStages, const VkExtent2D& Extent)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan graphics pipeline";
 
-    const VkPipelineDynamicStateCreateInfo DynamicState{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-        .dynamicStateCount = static_cast<uint32_t>(g_DynamicStates.size()),
-        .pDynamicStates = g_DynamicStates.data()
-    };
+    // const VkPipelineDynamicStateCreateInfo DynamicState{
+    //     .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+    //     .dynamicStateCount = static_cast<uint32_t>(g_DynamicStates.size()),
+    //     .pDynamicStates = g_DynamicStates.data()
+    // };
 
-    const std::vector<VkVertexInputBindingDescription> BindingDescription{
-        VkVertexInputBindingDescription{
-            .binding = 0,
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-        }
-    };
+    // const std::vector<VkVertexInputBindingDescription> BindingDescription{
+    //     VkVertexInputBindingDescription{
+    //         .binding = 0,
+    //         .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+    //     },
+    //     VkVertexInputBindingDescription{
+    //         .binding = 1,
+    //         .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+    //     }
+    // };
 
-    const std::vector<VkVertexInputAttributeDescription> AttributeDescriptions{
-        VkVertexInputAttributeDescription{
-            .location = 0,
-            .binding = 0,
-            .format = VK_FORMAT_R32G32B32_SFLOAT
-        },
-        VkVertexInputAttributeDescription{
-            .location = 1,
-            .binding = 0,
-            .format = VK_FORMAT_R32G32B32_SFLOAT
-        }
-    };
+    // const std::vector<VkVertexInputAttributeDescription> AttributeDescriptions{
+    //     VkVertexInputAttributeDescription{
+    //         .location = 0,
+    //         .binding = 0,
+    //         .format = VK_FORMAT_R32G32B32_SFLOAT
+    //     },
+    //     VkVertexInputAttributeDescription{
+    //         .location = 1,
+    //         .binding = 1,
+    //         .format = VK_FORMAT_R32G32B32_SFLOAT
+    //     }
+    // };
 
     const VkPipelineVertexInputStateCreateInfo VertexInputState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-        .vertexBindingDescriptionCount = static_cast<std::uint32_t>(BindingDescription.size()),
-        .pVertexBindingDescriptions = BindingDescription.data(),
-        .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(AttributeDescriptions.size()),
-        .pVertexAttributeDescriptions = AttributeDescriptions.data()
+        .vertexBindingDescriptionCount = 0u,
+        .vertexAttributeDescriptionCount = 0u
+        // .vertexBindingDescriptionCount = static_cast<std::uint32_t>(BindingDescription.size()),
+        // .pVertexBindingDescriptions = BindingDescription.data(),
+        // .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(AttributeDescriptions.size()),
+        // .pVertexAttributeDescriptions = AttributeDescriptions.data()
     };
 
     const VkPipelineInputAssemblyStateCreateInfo InputAssemblyState{
@@ -129,22 +147,36 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
     };
 
-    const VkPipelineColorBlendStateCreateInfo ColorBlendState{
+    VkPipelineColorBlendStateCreateInfo ColorBlendState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
         .logicOpEnable = VK_FALSE,
+        .logicOp = VK_LOGIC_OP_COPY,
         .attachmentCount = 1u,
         .pAttachments = &ColorBlendAttachment
     };
 
+    ColorBlendState.blendConstants[0] = 0.0f;
+    ColorBlendState.blendConstants[1] = 0.0f;
+    ColorBlendState.blendConstants[2] = 0.0f;
+    ColorBlendState.blendConstants[3] = 0.0f;
+
+    m_Viewport.width = static_cast<float>(Extent.width);
+    m_Viewport.height = static_cast<float>(Extent.height);
+
+    m_Scissor.extent = Extent;
+
     const VkPipelineViewportStateCreateInfo ViewportState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         .viewportCount = 1u,
-        .scissorCount = 1u
+        .pViewports = &m_Viewport,
+        .scissorCount = 1u,
+        .pScissors = &m_Scissor
     };
 
     const VkPipelineMultisampleStateCreateInfo MultisampleState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT
+        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+        .sampleShadingEnable = VK_FALSE,
     };
 
     const VkPipelineDepthStencilStateCreateInfo DepthStencilState{
@@ -156,29 +188,32 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         .stencilTestEnable = VK_FALSE
     };
 
-    VkDescriptorSetLayoutBinding LayoutBinding{
-        .binding = 0,
-        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .descriptorCount = 1,
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-        .pImmutableSamplers = nullptr
-    };
-
-    VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutInfo{
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        .bindingCount = 1,
-        .pBindings = &LayoutBinding
-    };
-
-    if (vkCreateDescriptorSetLayout(m_Device, &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create descriptor set layout");
-    }
+    // const VkDescriptorSetLayoutBinding LayoutBinding{
+    //     .binding = 0u,
+    //     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+    //     //.descriptorCount = 1u,
+    //     .descriptorCount = 0u,
+    //     .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+    //     .pImmutableSamplers = nullptr
+    // };
+    
+    // const VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutInfo{
+    //     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+    //     // .bindingCount = 1u,
+    //     .bindingCount = 0u,
+    //     .pBindings = &LayoutBinding
+    // };
+    // 
+    // if (vkCreateDescriptorSetLayout(m_Device, &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout) != VK_SUCCESS)
+    // {
+    //     throw std::runtime_error("Failed to create descriptor set layout");
+    // }
 
     const VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .setLayoutCount = 1u,
-        .pSetLayouts = &m_DescriptorSetLayout,
+        .setLayoutCount = 0u,
+        // .setLayoutCount = 1u,
+        // .pSetLayouts = &m_DescriptorSetLayout,
         .pushConstantRangeCount = 0u
     };
 
@@ -187,14 +222,14 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         throw std::runtime_error("Failed to create vulkan pipeline layout");
     }
 
-    const VkPipelineCacheCreateInfo PipelineCacheCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO
-    };
-
-    if (vkCreatePipelineCache(m_Device, &PipelineCacheCreateInfo, nullptr, &m_PipelineCache) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create vulkan pipeline cache");
-    }
+    // const VkPipelineCacheCreateInfo PipelineCacheCreateInfo{
+    //     .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO
+    // };
+    // 
+    // if (vkCreatePipelineCache(m_Device, &PipelineCacheCreateInfo, nullptr, &m_PipelineCache) != VK_SUCCESS)
+    // {
+    //     throw std::runtime_error("Failed to create vulkan pipeline cache");
+    // }
 
     const std::vector<VkGraphicsPipelineCreateInfo> GraphicsPipelineCreateInfo{
         VkGraphicsPipelineCreateInfo{
@@ -208,14 +243,14 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
             .pMultisampleState = &MultisampleState,
             .pDepthStencilState = &DepthStencilState,
             .pColorBlendState = &ColorBlendState,
-            .pDynamicState = &DynamicState,
+            // .pDynamicState = &DynamicState,
             .layout = m_PipelineLayout,
             .renderPass = m_RenderPass,
             .subpass = 0u
         }
     };
 
-    if (vkCreateGraphicsPipelines(m_Device, m_PipelineCache, GraphicsPipelineCreateInfo.size(), GraphicsPipelineCreateInfo.data(), nullptr, &m_Pipeline) != VK_SUCCESS)
+    if (vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE /*m_PipelineCache*/, GraphicsPipelineCreateInfo.size(), GraphicsPipelineCreateInfo.data(), nullptr, &m_Pipeline) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create vulkan graphics pipeline");
     }
@@ -233,12 +268,90 @@ void VulkanPipelineManager::Shutdown()
     vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);
     vkDestroyPipeline(m_Device, m_Pipeline, nullptr);
     vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
-    vkDestroyPipelineCache(m_Device, m_PipelineCache, nullptr);
-    vkDestroyDescriptorSetLayout(m_Device, m_DescriptorSetLayout, nullptr);
+    // vkDestroyPipelineCache(m_Device, m_PipelineCache, nullptr);
+    // vkDestroyDescriptorSetLayout(m_Device, m_DescriptorSetLayout, nullptr);
 }
 
 bool VulkanPipelineManager::IsInitialized() const
 {
     return m_Instance   != VK_NULL_HANDLE
         && m_Device     != VK_NULL_HANDLE;
+}
+
+const VkRenderPass& VulkanPipelineManager::GetRenderPass() const
+{
+    return m_RenderPass;
+}
+
+const VkPipeline& VulkanPipelineManager::GetPipeline() const
+{
+    return m_Pipeline;
+}
+
+const VkPipelineLayout& VulkanPipelineManager::GetPipelineLayout() const
+{
+    return m_PipelineLayout;
+}
+
+// const VkPipelineCache& VulkanPipelineManager::GetPipelineCache() const
+// {
+//     return m_PipelineCache;
+// }
+
+// const VkDescriptorSetLayout& VulkanPipelineManager::GetDescriptorSetLayout() const
+// {
+//     return m_DescriptorSetLayout;
+// }
+
+void VulkanPipelineManager::StartRenderPass(const VkExtent2D& Extent, const std::vector<VkCommandBuffer>& CommandBuffer, const std::vector<VkFramebuffer>& FrameBuffers, const std::vector<VkBuffer>& VertexBuffer, const std::vector<VkDeviceSize>& Offsets)
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Starting render pass";
+
+    if (m_Pipeline == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan graphics pipeline is invalid");
+    }
+
+    auto CommandBufferIter = CommandBuffer.begin();
+    for (const VkFramebuffer& FrameBufferIter : FrameBuffers)
+    {
+        if (CommandBufferIter == CommandBuffer.end())
+        {
+            break;
+        }
+
+        const VkClearValue ClearValue{
+            .color = { 0.0f, 0.0f, 0.0f, 1.0f }
+        };
+
+        const VkRenderPassBeginInfo RenderPassBeginInfo{
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+            .renderPass = m_RenderPass,
+            .framebuffer = FrameBufferIter,
+            .renderArea = {
+                .offset = { 0, 0 },
+                .extent = Extent
+            },
+            .clearValueCount = 1u,
+            .pClearValues = &ClearValue
+        };
+
+        vkCmdBeginRenderPass(*CommandBufferIter, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(*CommandBufferIter, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
+
+        // vkCmdBindVertexBuffers(*CommandBufferIter, 0, 1, VertexBuffer.data(), Offsets.data());
+
+        // vkCmdSetViewport(*CommandBufferIter, 0u, 1u, &m_Viewport);
+        // vkCmdSetScissor(*CommandBufferIter, 0u, 1u, &m_Scissor);
+
+        vkCmdDraw(*CommandBufferIter, 3, 1, 0, 0);
+        vkCmdEndRenderPass(*CommandBufferIter);
+
+        if (vkEndCommandBuffer(*CommandBufferIter) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to record command buffer");
+        }
+
+        ++CommandBufferIter;
+    }
 }

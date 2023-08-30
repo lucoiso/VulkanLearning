@@ -36,35 +36,24 @@ VulkanDeviceManager::~VulkanDeviceManager()
 
 void VulkanDeviceManager::PickPhysicalDevice(const VkPhysicalDevice& PreferredDevice)
 {
+    if (m_Instance == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan instance is invalid.");
+    }
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Picking a physical device";
 
-    if (PreferredDevice != VK_NULL_HANDLE && IsDeviceSuitable(PreferredDevice))
+    if (PreferredDevice != VK_NULL_HANDLE && IsPhysicalDeviceSuitable(PreferredDevice))
     {
         m_PhysicalDevice = PreferredDevice;
     }
     else
-    {
-        if (m_Instance == VK_NULL_HANDLE)
+    {    
+        for (const VkPhysicalDevice& DeviceIter : GetAvailablePhysicalDevices())
         {
-            throw std::runtime_error("Vulkan instance is invalid.");
-        }
-
-        std::uint32_t DeviceCount = 0u;
-        vkEnumeratePhysicalDevices(m_Instance, &DeviceCount, nullptr);
-
-        if (DeviceCount == 0u)
-        {
-            throw std::runtime_error("No suitable Vulkan physical devices found.");
-        }
-
-        std::vector<VkPhysicalDevice> Devices(DeviceCount, VkPhysicalDevice());
-        vkEnumeratePhysicalDevices(m_Instance, &DeviceCount, Devices.data());
-    
-        for (const VkPhysicalDevice& Device : Devices)
-        {
-            if (m_PhysicalDevice == VK_NULL_HANDLE && IsDeviceSuitable(Device))
+            if (m_PhysicalDevice == VK_NULL_HANDLE && IsPhysicalDeviceSuitable(DeviceIter))
             {
-                m_PhysicalDevice = Device;
+                m_PhysicalDevice = DeviceIter;
 
     #ifdef NDEBUG
                 break;
@@ -98,7 +87,7 @@ void VulkanDeviceManager::CreateLogicalDevice()
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    const std::vector<const char*> AvailableDevices = GetAvailablePhysicalDeviceExtensions();
+    const std::vector<const char*> AvailableDevices = GetAvailablePhysicalDeviceExtensionsNames();
     for (const char* const& RequiredDevicesIter : g_RequiredExtensions)
     {
         if (std::find(AvailableDevices.begin(), AvailableDevices.end(), RequiredDevicesIter) != AvailableDevices.end())
@@ -219,19 +208,117 @@ bool VulkanDeviceManager::IsInitialized() const
         && m_PresentationQueue.second   != VK_NULL_HANDLE;
 }
 
-const VkDevice& VulkanDeviceManager::GetLogicalDevice() const
-{
-    return m_Device;
-}
-
 const VkPhysicalDevice& VulkanDeviceManager::GetPhysicalDevice() const
 {
     return m_PhysicalDevice;
 }
 
+const VkDevice& VulkanDeviceManager::GetLogicalDevice() const
+{
+    return m_Device;
+}
+
+const VkQueue& VulkanDeviceManager::GetGraphicsQueue() const
+{
+    return m_GraphicsQueue.second;
+}
+
+const VkQueue& VulkanDeviceManager::GetPresentationQueue() const
+{
+    return m_PresentationQueue.second;
+}
+
+std::vector<std::uint32_t> RenderCore::VulkanDeviceManager::GetQueueFamilyIndices() const
+{
+    return { m_GraphicsQueue.first, m_PresentationQueue.first };
+}
+
+std::uint32_t VulkanDeviceManager::GetGraphicsQueueFamilyIndex() const
+{
+    return m_GraphicsQueue.first;
+}
+
+std::uint32_t VulkanDeviceManager::GetPresentationQueueFamilyIndex() const
+{
+    return m_PresentationQueue.first;
+}
+
+std::vector<VkPhysicalDevice> VulkanDeviceManager::GetAvailablePhysicalDevices() const
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting available vulkan physical devices";
+
+    if (m_Instance == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan instance is invalid.");
+    }
+
+    std::uint32_t DeviceCount = 0u;
+    vkEnumeratePhysicalDevices(m_Instance, &DeviceCount, nullptr);
+
+    if (DeviceCount == 0u)
+    {
+        throw std::runtime_error("No suitable Vulkan physical devices found.");
+    }
+
+    std::vector<VkPhysicalDevice> Output(DeviceCount, VkPhysicalDevice());
+    vkEnumeratePhysicalDevices(m_Instance, &DeviceCount, Output.data());
+
+    return Output;
+}
+
+std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensions() const
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting available vulkan physical device extensions";
+
+    if (m_PhysicalDevice == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan physical device is invalid.");
+    }
+
+    std::uint32_t ExtensionsCount;
+    if (vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, nullptr) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to enumerate device extension properties");
+    }
+
+    std::vector<VkExtensionProperties> Output(ExtensionsCount);
+    if (vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, Output.data()) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to enumerate device extension properties after count");
+    }
+
+    return Output;
+}
+
+std::vector<const char*> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensionsNames() const
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting available vulkan physical device extensions names";
+
+    const std::vector<VkExtensionProperties> AvailableExtensions = GetAvailablePhysicalDeviceExtensions();
+
+    std::set<std::string> RequiredExtensions(g_RequiredExtensions.begin(), g_RequiredExtensions.end());
+
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found extensions:";
+    for (const VkExtensionProperties& ExtensionsIter : AvailableExtensions)
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: " << ExtensionsIter.extensionName;
+
+        RequiredExtensions.erase(ExtensionsIter.extensionName);
+    }
+
+    std::vector<const char*> Output;
+    Output.reserve(RequiredExtensions.size());
+    for (const std::string& ExtensionIter : RequiredExtensions)
+    {
+        Output.push_back(ExtensionIter.c_str());
+    }
+
+    return Output;
+}
+
 VkSurfaceCapabilitiesKHR VulkanDeviceManager::GetAvailablePhysicalDeviceSurfaceCapabilities() const
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting vulkan physical device surface capabilities";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting available vulkan physical device surface capabilities";
 
     if (m_PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -266,7 +353,7 @@ VkSurfaceCapabilitiesKHR VulkanDeviceManager::GetAvailablePhysicalDeviceSurfaceC
 
 std::vector<VkSurfaceFormatKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceSurfaceFormats() const
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting vulkan physical device surface formats";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting available vulkan physical device surface formats";
 
     if (m_PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -302,7 +389,7 @@ std::vector<VkSurfaceFormatKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceS
 
 std::vector<VkPresentModeKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceSurfacePresentationModes() const
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting vulkan physical device surface presentation modes";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting available vulkan physical device surface presentation modes";
 
     if (m_PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -335,53 +422,7 @@ std::vector<VkPresentModeKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceSur
     return Output;
 }
 
-std::vector<std::uint32_t> RenderCore::VulkanDeviceManager::GetQueueFamilyIndices() const
-{
-    return { m_GraphicsQueue.first, m_PresentationQueue.first };
-}
-
-std::vector<const char*> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensions() const
-{
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting vulkan physical device extensions";
-
-    if (m_PhysicalDevice == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan physical device is invalid.");
-    }
-
-    std::uint32_t ExtensionsCount;
-    if (vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, nullptr) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to enumerate device extension properties");
-    }
-
-    std::vector<VkExtensionProperties> Extensions(ExtensionsCount);
-    if (vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, Extensions.data()) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to enumerate device extension properties after count");
-    }
-
-    std::set<std::string> RequiredExtensions(g_RequiredExtensions.begin(), g_RequiredExtensions.end());
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found extensions:";
-    for (const VkExtensionProperties& ExtensionsIter : Extensions)
-    {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: " << ExtensionsIter.extensionName;
-        
-        RequiredExtensions.erase(ExtensionsIter.extensionName);
-    }
-    
-    std::vector<const char*> Output;
-    Output.reserve(RequiredExtensions.size());
-    for (const std::string& ExtensionIter : RequiredExtensions)
-    {
-        Output.push_back(ExtensionIter.c_str());
-    }
-
-    return Output;
-}
-
-bool VulkanDeviceManager::IsDeviceSuitable(const VkPhysicalDevice& Device) const
+bool VulkanDeviceManager::IsPhysicalDeviceSuitable(const VkPhysicalDevice& Device) const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Checking if device is suitable...";
 
@@ -416,7 +457,7 @@ bool VulkanDeviceManager::IsDeviceSuitable(const VkPhysicalDevice& Device) const
 
 bool VulkanDeviceManager::GetQueueFamilyIndices(std::optional<std::uint32_t>& GraphicsQueueFamilyIndex, std::optional<std::uint32_t>& PresentationQueueFamilyIndex)
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Choosing queue family indices (Graphics Queue & Presentation Queue)";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting queue family indices (Graphics Queue & Presentation Queue)";
 
     if (m_PhysicalDevice == VK_NULL_HANDLE)
     {

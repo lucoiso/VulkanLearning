@@ -137,7 +137,7 @@ public:
         }
     }
 
-    bool InitializeDeviceManager(GLFWwindow* const Window)
+    bool InitializeDeviceManagement(GLFWwindow* const Window)
     {
         if (!Window)
         {
@@ -156,7 +156,7 @@ public:
         return m_DeviceManager != nullptr;
     }
 
-    bool InitializeBufferManager(GLFWwindow* const Window)
+    bool InitializeBufferManagement(GLFWwindow* const Window)
     {
         if (m_BufferManager = std::make_unique<VulkanBufferManager>(m_DeviceManager->GetLogicalDevice(), m_Surface, m_DeviceManager->GetQueueFamilyIndices());
             m_BufferManager)
@@ -172,7 +172,7 @@ public:
         return m_BufferManager != nullptr;
     }
 
-    bool InitializePipelineManager(GLFWwindow* const Window)
+    bool InitializePipelineManagement(GLFWwindow* const Window)
     {
         if (m_PipelineManager = std::make_unique<VulkanPipelineManager>(m_Instance, m_DeviceManager->GetLogicalDevice());
             m_PipelineManager && m_ShaderCompiler)
@@ -183,6 +183,8 @@ public:
             VkSurfaceCapabilitiesKHR Capabilities;
             m_DeviceManager->GetSwapChainPreferredProperties(Window, PreferredFormat, PreferredMode, PreferredExtent, Capabilities);
             m_PipelineManager->CreateRenderPass(PreferredFormat.format);
+            m_BufferManager->InitializeFrameBuffers(m_PipelineManager->GetRenderPass(), PreferredExtent);
+            m_BufferManager->InitializeCommandPool(m_DeviceManager->GetGraphicsQueueFamilyIndex());
 
             std::vector<std::uint32_t> FragmentShaderCode;
             m_ShaderCompiler->Compile(DEBUG_SHADER_FRAG, FragmentShaderCode);
@@ -192,7 +194,8 @@ public:
             m_ShaderCompiler->Compile(DEBUG_SHADER_VERT, VertexShaderCode);
             const VkShaderModule VertexModule = m_ShaderCompiler->CreateModule(m_DeviceManager->GetLogicalDevice(), VertexShaderCode, EShLangVertex);
 
-            m_PipelineManager->CreateGraphicsPipeline({ m_ShaderCompiler->GetStageInfo(FragmentModule), m_ShaderCompiler->GetStageInfo(VertexModule) });
+            m_PipelineManager->CreateGraphicsPipeline({ m_ShaderCompiler->GetStageInfo(FragmentModule), m_ShaderCompiler->GetStageInfo(VertexModule) }, PreferredExtent);
+            m_PipelineManager->StartRenderPass(PreferredExtent, m_BufferManager->GetCommandBuffers(), m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), { 0u });
         }
 
         return m_PipelineManager != nullptr;
@@ -218,6 +221,7 @@ public:
         if (m_DebugMessenger != VK_NULL_HANDLE)
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan debug messenger";
+
             DestroyDebugUtilsMessenger(m_Instance, m_DebugMessenger, nullptr);
             m_DebugMessenger = VK_NULL_HANDLE;
         }
@@ -299,9 +303,9 @@ bool VulkanRender::Initialize(GLFWwindow* const Window)
         m_Impl->CreateVulkanInstance();
         m_Impl->CreateVulkanSurface(Window);
 
-        return m_Impl->InitializeDeviceManager(Window)
-            && m_Impl->InitializeBufferManager(Window)
-            && m_Impl->InitializePipelineManager(Window);
+        return m_Impl->InitializeDeviceManagement(Window)
+            && m_Impl->InitializeBufferManagement(Window)
+            && m_Impl->InitializePipelineManagement(Window);
     }
     catch (const std::exception& Ex)
     {

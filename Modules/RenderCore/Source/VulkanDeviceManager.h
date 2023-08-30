@@ -28,14 +28,25 @@ namespace RenderCore
         void Shutdown();
 
         bool IsInitialized() const;
-        [[nodiscard]] const VkDevice& GetLogicalDevice() const;
+
         [[nodiscard]] const VkPhysicalDevice& GetPhysicalDevice() const;
-        [[nodiscard]] std::vector<const char*> GetAvailablePhysicalDeviceExtensions() const;
+        [[nodiscard]] const VkDevice& GetLogicalDevice() const;
+        [[nodiscard]] const VkQueue& GetGraphicsQueue() const;
+        [[nodiscard]] const VkQueue& GetPresentationQueue() const;
+
+        [[nodiscard]] std::vector<std::uint32_t> GetQueueFamilyIndices() const;
+        [[nodiscard]] std::uint32_t GetGraphicsQueueFamilyIndex() const;
+        [[nodiscard]] std::uint32_t GetPresentationQueueFamilyIndex() const;
+
+        [[nodiscard]] std::vector<VkPhysicalDevice> GetAvailablePhysicalDevices() const;
+        [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions() const;
+        [[nodiscard]] std::vector<const char*> GetAvailablePhysicalDeviceExtensionsNames() const;
         [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities() const;
         [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats() const;
         [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes() const;
-        [[nodiscard]] std::vector<std::uint32_t> GetQueueFamilyIndices() const;
-        [[nodiscard]] bool IsDeviceSuitable(const VkPhysicalDevice& Device) const;
+
+        [[nodiscard]] bool IsPhysicalDeviceSuitable(const VkPhysicalDevice& Device) const;
+
         void GetSwapChainPreferredProperties(GLFWwindow* const Window, VkSurfaceFormatKHR& PreferredFormat, VkPresentModeKHR& PreferredMode, VkExtent2D& PreferredExtent, VkSurfaceCapabilitiesKHR& Capabilities);
 
     private:
