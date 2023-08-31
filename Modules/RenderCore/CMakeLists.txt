@@ -7,11 +7,11 @@ set(LIBRARY_NAME RenderCore)
 set(SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRender.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Window.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanShaderCompiler.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanCommandsManager.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanPipelineManager.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanBufferManager.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanDeviceManager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanShaderManager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanCommandsManager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanPipelineManager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanBufferManager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanDeviceManager.cpp
 )
 
 set(HEADER_FILES
@@ -20,20 +20,24 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Window.h
 
     # Private Headers
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanDebugHelpers.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanEnumConverter.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanConstants.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanShaderCompiler.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanCommandsManager.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanPipelineManager.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanBufferManager.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanDeviceManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanDebugHelpers.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanEnumConverter.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanConstants.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanShaderManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanCommandsManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanPipelineManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanBufferManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanDeviceManager.h
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
 
 target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
-target_include_directories(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME})
+target_include_directories(${LIBRARY_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source
+)
+
 target_compile_definitions(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 
 find_package(glfw3 REQUIRED)

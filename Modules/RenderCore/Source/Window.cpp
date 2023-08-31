@@ -52,8 +52,7 @@ public:
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-        if (m_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr);
-            !m_Window)
+        if (m_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr); !m_Window)
         {
             throw std::runtime_error("Failed to create GLFW Window");
         }
@@ -105,6 +104,11 @@ public:
     void PollEvents()
     {
         glfwPollEvents();
+    }
+
+    void DrawFrame()
+    {
+        m_Render->DrawFrame();
     }
 
 private:

@@ -1,6 +1,6 @@
 // Copyright Notice: [...]
 
-#include "VulkanShaderCompiler.h"
+#include "Managers/VulkanShaderManager.h"
 #include <boost/log/trivial.hpp>
 #include <SPIRV/GlslangToSpv.h>
 #include <glslang/Public/ResourceLimits.h>
@@ -10,13 +10,13 @@
 
 using namespace RenderCore;
 
-VulkanShaderCompiler::VulkanShaderCompiler(const VkDevice& Device)
+VulkanShaderManager::VulkanShaderManager(const VkDevice& Device)
     : m_Device(Device)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan shader compiler";
 }
 
-VulkanShaderCompiler::~VulkanShaderCompiler()
+VulkanShaderManager::~VulkanShaderManager()
 {
     if (m_Device == VK_NULL_HANDLE || m_StageInfos.empty())
     {
@@ -27,7 +27,7 @@ VulkanShaderCompiler::~VulkanShaderCompiler()
     Shutdown();
 }
 
-void VulkanShaderCompiler::Shutdown()
+void VulkanShaderManager::Shutdown()
 {
     if (m_Device == VK_NULL_HANDLE || m_StageInfos.empty())
     {
@@ -43,9 +43,10 @@ void VulkanShaderCompiler::Shutdown()
             vkDestroyShaderModule(m_Device, ShaderModule, nullptr);
         }
     }
+    m_StageInfos.clear();
 }
 
-bool VulkanShaderCompiler::Compile(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode)
+bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode)
 {
     EShLanguage Language = EShLangVertex;
     const std::filesystem::path Path(Source);
@@ -129,7 +130,7 @@ bool VulkanShaderCompiler::Compile(const std::string_view Source, std::vector<ui
     return bResult;
 }
 
-bool VulkanShaderCompiler::Load(const std::string_view Source, std::vector<std::uint32_t>& OutSPIRVCode)
+bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     std::filesystem::path Path(Source);
     if (!std::filesystem::exists(Path))
@@ -158,7 +159,7 @@ bool VulkanShaderCompiler::Load(const std::string_view Source, std::vector<std::
 }
 
 
-VkShaderModule VulkanShaderCompiler::CreateModule(const VkDevice& Device, const std::vector<std::uint32_t>& SPIRVCode, EShLanguage Language)
+VkShaderModule VulkanShaderManager::CreateModule(const VkDevice& Device, const std::vector<std::uint32_t>& SPIRVCode, EShLanguage Language)
 {
     if (Device == VK_NULL_HANDLE)
     {
@@ -189,12 +190,12 @@ VkShaderModule VulkanShaderCompiler::CreateModule(const VkDevice& Device, const 
     return Output;
 }
 
-VkPipelineShaderStageCreateInfo VulkanShaderCompiler::GetStageInfo(const VkShaderModule& Module)
+VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(const VkShaderModule& Module)
 {
     return m_StageInfos.at(Module);
 }
 
-bool VulkanShaderCompiler::Compile(const std::string_view Source, EShLanguage Language, std::vector<std::uint32_t>& OutSPIRVCode)
+bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Language, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     glslang::InitializeProcess();
 
@@ -244,7 +245,7 @@ bool VulkanShaderCompiler::Compile(const std::string_view Source, EShLanguage La
     return !OutSPIRVCode.empty();
 }
 
-void VulkanShaderCompiler::StageInfo(const VkShaderModule& Module, EShLanguage Language)
+void VulkanShaderManager::StageInfo(const VkShaderModule& Module, EShLanguage Language)
 {
     if (Module == VK_NULL_HANDLE)
     {

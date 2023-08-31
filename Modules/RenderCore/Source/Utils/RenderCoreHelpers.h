@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "VulkanConstants.h"
+#include "Utils/VulkanConstants.h"
 #include <boost/log/trivial.hpp>
 
 #ifndef GLFW_INCLUDE_VULKAN

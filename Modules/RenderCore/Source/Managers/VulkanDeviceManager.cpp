@@ -1,9 +1,9 @@
 // Copyright Notice: [...]
 
-#include "VulkanDeviceManager.h"
-#include "VulkanEnumConverter.h"
-#include "VulkanConstants.h"
-#include "RenderCoreHelpers.h"
+#include "Managers/VulkanDeviceManager.h"
+#include "Utils/VulkanEnumConverter.h"
+#include "Utils/VulkanConstants.h"
+#include "Utils/RenderCoreHelpers.h"
 #include <boost/log/trivial.hpp>
 #include <set>
 
@@ -200,9 +200,7 @@ void VulkanDeviceManager::Shutdown()
 
 bool VulkanDeviceManager::IsInitialized() const
 {
-    return m_Instance                   != VK_NULL_HANDLE 
-        && m_Surface                    != VK_NULL_HANDLE 
-        && m_PhysicalDevice             != VK_NULL_HANDLE 
+    return m_PhysicalDevice             != VK_NULL_HANDLE 
         && m_Device                     != VK_NULL_HANDLE
         && m_GraphicsQueue.second       != VK_NULL_HANDLE
         && m_PresentationQueue.second   != VK_NULL_HANDLE;

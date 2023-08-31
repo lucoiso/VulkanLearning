@@ -15,13 +15,13 @@ namespace RenderCore
 {
     constexpr const char* EntryPoint = "main";
 
-    class VulkanShaderCompiler
+    class VulkanShaderManager
     {
     public:
-        VulkanShaderCompiler() = delete;
+        VulkanShaderManager() = delete;
 
-        VulkanShaderCompiler(const VkDevice& Device);
-        ~VulkanShaderCompiler();
+        VulkanShaderManager(const VkDevice& Device);
+        ~VulkanShaderManager();
 
         void Shutdown();
 

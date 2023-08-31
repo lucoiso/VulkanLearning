@@ -1,7 +1,7 @@
 // Copyright Notice: [...]
 
-#include "VulkanPipelineManager.h"
-#include "VulkanConstants.h"
+#include "Managers/VulkanPipelineManager.h"
+#include "Utils/VulkanConstants.h"
 #include <boost/log/trivial.hpp>
 
 using namespace RenderCore;
@@ -266,16 +266,26 @@ void VulkanPipelineManager::Shutdown()
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan pipelines";
 
     vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);
+    m_RenderPass = VK_NULL_HANDLE;
+
     vkDestroyPipeline(m_Device, m_Pipeline, nullptr);
+    m_Pipeline = VK_NULL_HANDLE;
+
     vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
+    m_PipelineLayout = VK_NULL_HANDLE;
+
     // vkDestroyPipelineCache(m_Device, m_PipelineCache, nullptr);
+    // m_PipelineCache = VK_NULL_HANDLE;
+    
     // vkDestroyDescriptorSetLayout(m_Device, m_DescriptorSetLayout, nullptr);
+    // m_DescriptorSetLayout = VK_NULL_HANDLE;
 }
 
 bool VulkanPipelineManager::IsInitialized() const
 {
-    return m_Instance   != VK_NULL_HANDLE
-        && m_Device     != VK_NULL_HANDLE;
+    return m_RenderPass != VK_NULL_HANDLE
+        && m_Pipeline   != VK_NULL_HANDLE
+        && m_PipelineLayout != VK_NULL_HANDLE;
 }
 
 const VkRenderPass& VulkanPipelineManager::GetRenderPass() const
