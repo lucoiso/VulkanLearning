@@ -85,6 +85,11 @@ public:
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan render";
 
+        if (vkDeviceWaitIdle(m_DeviceManager->GetLogicalDevice()) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to wait for vulkan device idle");
+        }
+
         m_ShaderManager->Shutdown();
         m_CommandsManager->Shutdown({ m_DeviceManager->GetGraphicsQueue(), m_DeviceManager ->GetPresentationQueue()});
         m_BufferManager->Shutdown();
