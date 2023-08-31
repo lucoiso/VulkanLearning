@@ -50,15 +50,14 @@ public:
         }
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
         if (m_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr); !m_Window)
         {
             throw std::runtime_error("Failed to create GLFW Window");
         }
 
-        if (m_Render = std::make_unique<RenderCore::VulkanRender>();
-            m_Render)
+        if (m_Render = std::make_unique<RenderCore::VulkanRender>())
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Window initialized";
             return m_Render->Initialize(m_Window);
@@ -108,7 +107,7 @@ public:
 
     void DrawFrame()
     {
-        m_Render->DrawFrame();
+        m_Render->DrawFrame(m_Window);
     }
 
 private:

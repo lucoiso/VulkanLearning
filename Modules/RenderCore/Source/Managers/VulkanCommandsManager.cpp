@@ -9,9 +9,10 @@ VulkanCommandsManager::VulkanCommandsManager(const VkDevice& Device)
     : m_Device(Device)
     , m_CommandPool(VK_NULL_HANDLE)
     , m_CommandBuffers({})
-    , m_ImageAvailableSemaphore(VK_NULL_HANDLE)
-    , m_RenderFinishedSemaphore(VK_NULL_HANDLE)
-    , m_Fence(VK_NULL_HANDLE)
+    , m_ImageAvailableSemaphores({})
+    , m_RenderFinishedSemaphores({})
+    , m_Fences({})
+    , m_ProcessingUnitsCount(0u)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan commands manager";
 }
@@ -36,34 +37,22 @@ void VulkanCommandsManager::Shutdown(const std::vector<VkQueue>& PendingQueues)
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Vulkan commands manager";
 
-    const VkSubmitInfo SubmitInfo = {
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .commandBufferCount = static_cast<std::uint32_t>(m_CommandBuffers.size()),
-        .pCommandBuffers = m_CommandBuffers.data()
+    const std::vector<VkSubmitInfo> SubmitInfo {
+        VkSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount = static_cast<std::uint32_t>(m_CommandBuffers.size()),
+            .pCommandBuffers = m_CommandBuffers.data()
+        }
     };
 
-    for (const VkQueue& QueueIter : PendingQueues)
+    if (vkWaitForFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data(), VK_TRUE, Timeout) != VK_SUCCESS)
     {
-        if (vkWaitForFences(m_Device, 1, &m_Fence, VK_TRUE, std::numeric_limits<std::uint64_t>::max()) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to wait Vulkan fence.");
-        }
+        throw std::runtime_error("Failed to wait Vulkan fence.");
+    }
 
-        if (vkResetFences(m_Device, 1, &m_Fence) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to reset Vulkan fence.");
-        }
-
-        if (vkQueueSubmit(QueueIter, 1, &SubmitInfo, m_Fence) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to submit Vulkan queue.");
-        }
-
-        if (vkQueueWaitIdle(QueueIter) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to wait Vulkan queue idle.");
-        }
-
+    if (vkResetFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data()) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to reset Vulkan fence.");
     }
 
     vkFreeCommandBuffers(m_Device, m_CommandPool, static_cast<std::uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());
@@ -72,14 +61,7 @@ void VulkanCommandsManager::Shutdown(const std::vector<VkQueue>& PendingQueues)
     vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
     m_CommandPool = VK_NULL_HANDLE;
 
-    vkDestroySemaphore(m_Device, m_ImageAvailableSemaphore, nullptr);
-    m_ImageAvailableSemaphore = VK_NULL_HANDLE;
-
-    vkDestroySemaphore(m_Device, m_RenderFinishedSemaphore, nullptr);
-    m_RenderFinishedSemaphore = VK_NULL_HANDLE;
-
-    vkDestroyFence(m_Device, m_Fence, nullptr);
-    m_Fence = VK_NULL_HANDLE;
+    DestroySynchronizationObjects();
 }
 
 void VulkanCommandsManager::CreateCommandPool(const std::vector<VkFramebuffer>& FrameBuffers, const std::uint32_t GraphicsFamilyQueueIndex)
@@ -129,56 +111,124 @@ void VulkanCommandsManager::CreateSynchronizationObjects()
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
 
-    if (vkCreateSemaphore(m_Device, &SemaphoreCreateInfo, nullptr, &m_ImageAvailableSemaphore) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create Vulkan semaphore: Image Available.");
-    }
-
-    if (vkCreateSemaphore(m_Device, &SemaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphore) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create Vulkan semaphore: Render Finished");
-    }
-
     const VkFenceCreateInfo FenceCreateInfo{
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
         .flags = VK_FENCE_CREATE_SIGNALED_BIT
     };
 
-    if (vkCreateFence(m_Device, &FenceCreateInfo, nullptr, &m_Fence) != VK_SUCCESS)
+    m_ProcessingUnitsCount = static_cast<std::uint32_t>(m_CommandBuffers.size());
+
+    m_ImageAvailableSemaphores.resize(m_ProcessingUnitsCount, VK_NULL_HANDLE);
+    m_RenderFinishedSemaphores.resize(m_ProcessingUnitsCount, VK_NULL_HANDLE);
+    m_Fences.resize(m_ProcessingUnitsCount, VK_NULL_HANDLE);
+
+    for (std::uint32_t Iterator = 0u; Iterator < m_ProcessingUnitsCount; ++Iterator)
     {
-        throw std::runtime_error("Failed to create Vulkan fence.");
+        if (vkCreateSemaphore(m_Device, &SemaphoreCreateInfo, nullptr, &m_ImageAvailableSemaphores[Iterator]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create Vulkan semaphore: Image Available.");
+        }
+
+        if (vkCreateSemaphore(m_Device, &SemaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphores[Iterator]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create Vulkan semaphore: Render Finished");
+        }
+
+        if (vkCreateFence(m_Device, &FenceCreateInfo, nullptr, &m_Fences[Iterator]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create Vulkan fence.");
+        }
     }
 }
 
-std::uint32_t VulkanCommandsManager::DrawFrame(const VkSwapchainKHR& SwapChain)
+void VulkanCommandsManager::DestroySynchronizationObjects()
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying Vulkan synchronization objects";
+
+    for (const VkSemaphore& SemaphoreIter : m_ImageAvailableSemaphores)
+    {
+        if (SemaphoreIter != VK_NULL_HANDLE)
+        {
+            vkDestroySemaphore(m_Device, SemaphoreIter, nullptr);
+        }
+    }
+    m_ImageAvailableSemaphores.clear();
+
+    for (const VkSemaphore& SemaphoreIter : m_RenderFinishedSemaphores)
+    {
+        if (SemaphoreIter != VK_NULL_HANDLE)
+        {
+            vkDestroySemaphore(m_Device, SemaphoreIter, nullptr);
+        }
+    }
+    m_RenderFinishedSemaphores.clear();
+
+    for (const VkFence& FenceITer : m_Fences)
+    {
+        if (FenceITer != VK_NULL_HANDLE)
+        {
+            vkDestroyFence(m_Device, FenceITer, nullptr);
+        }
+    }
+    m_Fences.clear();
+}
+
+std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<VkSwapchainKHR>& SwapChains)
 {
     if (m_Device == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan logical device is invalid.");
     }
 
-    if (SwapChain == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan swap chain is invalid.");
-    }
-
-    if (vkWaitForFences(m_Device, 1, &m_Fence, VK_TRUE, std::numeric_limits<std::uint64_t>::max()) != VK_SUCCESS)
+    if (vkWaitForFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data(), VK_TRUE, Timeout) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to wait Vulkan fence.");
     }
 
-    if (vkResetFences(m_Device, 1, &m_Fence) != VK_SUCCESS)
+    if (vkResetFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data()) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to reset Vulkan fence.");
     }
 
-    std::uint32_t ImageIndex;
-    if (vkAcquireNextImageKHR(m_Device, SwapChain, std::numeric_limits<std::uint64_t>::max(), m_ImageAvailableSemaphore, VK_NULL_HANDLE, &ImageIndex) != VK_SUCCESS)
+    std::vector<std::uint32_t> ImageIndexes;
+    for (std::uint32_t Iterator = 0u; Iterator < m_ProcessingUnitsCount; ++Iterator)
     {
-        throw std::runtime_error("Failed to acquire Vulkan swap chain image.");
+        if (m_ImageAvailableSemaphores[Iterator] == VK_NULL_HANDLE)
+        {
+            throw std::runtime_error("Vulkan semaphore: Image Available is invalid.");
+        }
+
+        if (m_Fences[Iterator] == VK_NULL_HANDLE)
+        {
+            throw std::runtime_error("Vulkan fence is invalid.");
+        }
+
+        if (SwapChains[Iterator] == VK_NULL_HANDLE)
+        {
+            throw std::runtime_error("Vulkan swap chain is invalid.");
+        }
+
+        ImageIndexes.emplace_back(0u);
+        if (const VkResult OperationResult = vkAcquireNextImageKHR(m_Device, SwapChains[Iterator], Timeout, m_ImageAvailableSemaphores[Iterator], m_Fences[Iterator], &ImageIndexes.back()); OperationResult != VK_SUCCESS)
+        {
+            if (OperationResult == VK_ERROR_OUT_OF_DATE_KHR)
+            {
+                BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Failed to acquire next image: Vulkan swap chain is outdated";
+                
+                vkDeviceWaitIdle(m_Device);
+                DestroySynchronizationObjects();
+                CreateSynchronizationObjects();
+
+                return std::vector<std::uint32_t>();
+            }
+            else if (OperationResult != VK_SUBOPTIMAL_KHR)
+            {
+                throw std::runtime_error("Failed to acquire Vulkan swap chain image.");
+            }
+        }
     }
 
-    return ImageIndex;
+    return ImageIndexes;
 }
 
 void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass, const VkPipeline& Pipeline, const VkExtent2D& Extent, const std::vector<VkFramebuffer>& FrameBuffers, const std::vector<VkBuffer>& VertexBuffers, const std::vector<VkDeviceSize>& Offsets)
@@ -188,6 +238,15 @@ void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass,
         throw std::runtime_error("Vulkan graphics pipeline is invalid");
     }
 
+    const VkCommandBufferBeginInfo CommandBufferBeginInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT
+    };
+
+    const VkClearValue ClearValue{
+        .color = { 0.0f, 0.0f, 0.0f, 1.0f }
+    };
+
     auto CommandBufferIter = m_CommandBuffers.begin();
     for (const VkFramebuffer& FrameBufferIter : FrameBuffers)
     {
@@ -195,11 +254,6 @@ void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass,
         {
             break;
         }
-
-        const VkCommandBufferBeginInfo CommandBufferBeginInfo{
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            .flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT
-        };
 
         if (vkResetCommandBuffer(*CommandBufferIter, 0) != VK_SUCCESS)
         {
@@ -210,10 +264,6 @@ void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass,
         {
             throw std::runtime_error("Failed to begin Vulkan command buffer.");
         }
-
-        const VkClearValue ClearValue{
-            .color = { 0.0f, 0.0f, 0.0f, 1.0f }
-        };
 
         const VkRenderPassBeginInfo RenderPassBeginInfo{
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -254,48 +304,63 @@ void VulkanCommandsManager::SubmitCommandBuffers(const VkQueue& GraphicsQueue)
         throw std::runtime_error("Vulkan graphics queue is invalid.");
     }
 
-    const std::vector<VkPipelineStageFlags> WaitStages = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    const std::vector<VkPipelineStageFlags> WaitStages { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
-    const VkSubmitInfo SubmitInfo{
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .waitSemaphoreCount = 1u,
-        .pWaitSemaphores = &m_ImageAvailableSemaphore,
-        .pWaitDstStageMask = WaitStages.data(),
-        .commandBufferCount = static_cast<std::uint32_t>(m_CommandBuffers.size()),
-        .pCommandBuffers = m_CommandBuffers.data(),
-        .signalSemaphoreCount = 1u,
-        .pSignalSemaphores = &m_RenderFinishedSemaphore
+    const std::vector<VkSubmitInfo> SubmitInfo{
+        VkSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .waitSemaphoreCount = static_cast<std::uint32_t>(m_ImageAvailableSemaphores.size()),
+            .pWaitSemaphores = m_ImageAvailableSemaphores.data(),
+            .pWaitDstStageMask = WaitStages.data(),
+            .commandBufferCount = static_cast<std::uint32_t>(m_CommandBuffers.size()),
+            .pCommandBuffers = m_CommandBuffers.data(),
+            .signalSemaphoreCount = static_cast<std::uint32_t>(m_RenderFinishedSemaphores.size()),
+            .pSignalSemaphores = m_RenderFinishedSemaphores.data()
+        }
     };
 
-    if (vkQueueSubmit(GraphicsQueue, 1u, &SubmitInfo, m_Fence) != VK_SUCCESS)
+    if (vkWaitForFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data(), VK_TRUE, Timeout) != VK_SUCCESS)
     {
-        throw std::runtime_error("Failed to submit Vulkan queue.");
+        throw std::runtime_error("Failed to wait Vulkan fence.");
+    }
+
+    if (vkResetFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data()) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to reset Vulkan fence.");
+    }
+
+    for (const VkFence& FenceIter : m_Fences)
+    {
+        if (FenceIter == VK_NULL_HANDLE)
+        {
+            throw std::runtime_error("Vulkan fence is invalid.");
+        }
+
+        if (vkQueueSubmit(GraphicsQueue, static_cast<std::uint32_t>(SubmitInfo.size()), SubmitInfo.data(), FenceIter) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to submit Vulkan queue.");
+        }
     }
 }
 
-void VulkanCommandsManager::PresentFrame(const VkQueue& PresentQueue, const VkSwapchainKHR& SwapChain, const std::uint32_t ImageIndex)
+void VulkanCommandsManager::PresentFrame(const VkQueue& PresentQueue, const std::vector<VkSwapchainKHR>& SwapChains, const std::vector<std::uint32_t>& ImageIndexes)
 {
     if (PresentQueue == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan present queue is invalid.");
     }
 
-    if (SwapChain == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan swap chain is invalid.");
-    }
-
     const VkPresentInfoKHR PresentInfo{
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-        .waitSemaphoreCount = 1u,
-        .pWaitSemaphores = &m_RenderFinishedSemaphore,
-        .swapchainCount = 1u,
-        .pSwapchains = &SwapChain,
-        .pImageIndices = &ImageIndex,
+        .waitSemaphoreCount = static_cast<std::uint32_t>(m_RenderFinishedSemaphores.size()),
+        .pWaitSemaphores = m_RenderFinishedSemaphores.data(),
+        .swapchainCount = static_cast<std::uint32_t>(SwapChains.size()),
+        .pSwapchains = SwapChains.data(),
+        .pImageIndices = ImageIndexes.data(),
         .pResults = nullptr
     };
 
-    if (vkQueuePresentKHR(PresentQueue, &PresentInfo) != VK_SUCCESS)
+    if (const VkResult OperationResult = vkQueuePresentKHR(PresentQueue, &PresentInfo); OperationResult != VK_SUCCESS && OperationResult != VK_SUBOPTIMAL_KHR)
     {
         throw std::runtime_error("Failed to present Vulkan queue.");
     }

@@ -10,6 +10,7 @@
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
 #include <boost/log/trivial.hpp>
+#include <boost/bind/bind.hpp>
 #include <set>
 
 #ifndef GLFW_INCLUDE_VULKAN
@@ -66,7 +67,6 @@ public:
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulkan render";
 
-
         CreateVulkanInstance();
         CreateVulkanSurface(Window);
 
@@ -113,17 +113,25 @@ public:
         m_Instance = VK_NULL_HANDLE;
     }
 
-    void DrawFrame()
+    void DrawFrame(GLFWwindow* const Window)
     {
         if (!IsInitialized())
         {
             return;
         }
 
-        const std::uint32_t ImageIndex = m_CommandsManager->DrawFrame(m_BufferManager->GetSwapChain());
-        m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), { 0u });
-        m_CommandsManager->SubmitCommandBuffers(m_DeviceManager->GetGraphicsQueue());
-        m_CommandsManager->PresentFrame(m_DeviceManager->GetPresentationQueue(), m_BufferManager->GetSwapChain(), ImageIndex);
+        const std::vector<std::uint32_t> ImageIndexes = m_CommandsManager->DrawFrame({ m_BufferManager->GetSwapChain() });
+        if (ImageIndexes.empty())
+        {
+            m_SharedDeviceProperties.PreferredExtent = GetWindowExtent(Window, m_SharedDeviceProperties.Capabilities);
+            m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
+        }
+        else
+        {
+            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), { 0u });
+            m_CommandsManager->SubmitCommandBuffers(m_DeviceManager->GetGraphicsQueue());
+            m_CommandsManager->PresentFrame(m_DeviceManager->GetPresentationQueue(), { m_BufferManager->GetSwapChain() }, ImageIndexes);
+        }
     }
 
     bool IsInitialized() const
@@ -370,7 +378,7 @@ void VulkanRender::Shutdown()
     }
 }
 
-void VulkanRender::DrawFrame()
+void VulkanRender::DrawFrame(GLFWwindow* const Window)
 {
     if (!IsInitialized())
     {
@@ -379,7 +387,7 @@ void VulkanRender::DrawFrame()
 
     try
     {
-        m_Impl->DrawFrame();
+        m_Impl->DrawFrame(Window);
     }
     catch (const std::exception& Ex)
     {

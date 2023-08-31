@@ -35,11 +35,11 @@ namespace RenderCore
 
     private:
         void CreateSwapChainImageViews(const VkFormat& ImageFormat);
-        void DestroyResources(const bool bDestroyImages = true);
+        void DestroyResources();
 
         const VkDevice& m_Device;
         const VkSurfaceKHR& m_Surface;
-        const std::vector<std::uint32_t>& m_QueueFamilyIndices;
+        std::vector<std::uint32_t> m_QueueFamilyIndices;
 
         VkSwapchainKHR m_SwapChain;
         std::vector<VkImage> m_SwapChainImages;

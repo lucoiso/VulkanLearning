@@ -16,6 +16,9 @@ VulkanBufferManager::VulkanBufferManager(const VkDevice& Device, const VkSurface
     , m_VertexBuffers({})
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan buffer manager";
+
+    std::sort(m_QueueFamilyIndices.begin(), m_QueueFamilyIndices.end());
+    m_QueueFamilyIndices.erase(std::unique(m_QueueFamilyIndices.begin(), m_QueueFamilyIndices.end()), m_QueueFamilyIndices.end());
 }
 
 VulkanBufferManager::~VulkanBufferManager()
@@ -86,7 +89,7 @@ void VulkanBufferManager::CreateSwapChain(const VkSurfaceFormatKHR& PreferredFor
     CreateSwapChainImageViews(PreferredFormat.format);
 }
 
-void VulkanBufferManager::CreateFrameBuffers(const VkRenderPass & RenderPass, const VkExtent2D & Extent)
+void VulkanBufferManager::CreateFrameBuffers(const VkRenderPass& RenderPass, const VkExtent2D& Extent)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan frame buffers";
 
@@ -138,7 +141,7 @@ void VulkanBufferManager::Shutdown()
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Vulkan buffer manager";
-    DestroyResources(false);
+    DestroyResources();
 }
 
 bool VulkanBufferManager::IsInitialized() const
@@ -213,7 +216,7 @@ void VulkanBufferManager::CreateSwapChainImageViews(const VkFormat& ImageFormat)
     }
 }
 
-void VulkanBufferManager::DestroyResources(const bool bDestroyImages)
+void VulkanBufferManager::DestroyResources()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying resources from vulkan buffer manager";
 
@@ -228,18 +231,6 @@ void VulkanBufferManager::DestroyResources(const bool bDestroyImages)
         m_SwapChain = VK_NULL_HANDLE;
     }
 
-    if (bDestroyImages)
-    {
-        for (const VkImage& ImageIter : m_SwapChainImages)
-        {
-            if (ImageIter != VK_NULL_HANDLE)
-            {
-                vkDestroyImage(m_Device, ImageIter, nullptr);
-            }
-        }
-    }
-    m_SwapChainImages.clear();
-
     for (const VkImageView& ImageViewIter : m_SwapChainImageViews)
     {
         if (ImageViewIter != VK_NULL_HANDLE)
@@ -248,6 +239,7 @@ void VulkanBufferManager::DestroyResources(const bool bDestroyImages)
         }
     }
     m_SwapChainImageViews.clear();
+    m_SwapChainImages.clear();
 
     for (const VkFramebuffer& FrameBufferIter : m_FrameBuffers)
     {

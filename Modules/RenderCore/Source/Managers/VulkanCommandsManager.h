@@ -8,8 +8,10 @@
 
 namespace RenderCore
 {
-class VulkanCommandsManager
-{
+    constexpr std::uint32_t Timeout = std::numeric_limits<std::uint32_t>::max();
+
+    class VulkanCommandsManager
+    {
     public:
         VulkanCommandsManager() = delete;
         VulkanCommandsManager(const VulkanCommandsManager&) = delete;
@@ -22,11 +24,12 @@ class VulkanCommandsManager
 
         void CreateCommandPool(const std::vector<VkFramebuffer>& FrameBuffers, const std::uint32_t GraphicsFamilyQueueIndex);
         void CreateSynchronizationObjects();
+        void DestroySynchronizationObjects();
 
-        std::uint32_t DrawFrame(const VkSwapchainKHR& SwapChain);
+        std::vector<std::uint32_t> DrawFrame(const std::vector<VkSwapchainKHR>& SwapChains);
         void RecordCommandBuffers(const VkRenderPass& RenderPass, const VkPipeline& Pipeline, const VkExtent2D& Extent, const std::vector<VkFramebuffer>& FrameBuffers, const std::vector<VkBuffer>& VertexBuffers, const std::vector<VkDeviceSize>& Offsets);
         void SubmitCommandBuffers(const VkQueue& GraphicsQueue);
-        void PresentFrame(const VkQueue& PresentQueue, const VkSwapchainKHR& SwapChain, const std::uint32_t ImageIndex);
+        void PresentFrame(const VkQueue& PresentQueue, const std::vector<VkSwapchainKHR>& SwapChains, const std::vector<std::uint32_t>& ImageIndexes);
 
         bool IsInitialized() const;
         [[nodiscard]] const VkCommandPool& GetCommandPool() const;
@@ -36,8 +39,10 @@ class VulkanCommandsManager
         const VkDevice& m_Device;
         VkCommandPool m_CommandPool;
         std::vector<VkCommandBuffer> m_CommandBuffers;
-        VkSemaphore m_ImageAvailableSemaphore;
-        VkSemaphore m_RenderFinishedSemaphore;
-        VkFence m_Fence;
+        std::vector<VkSemaphore> m_ImageAvailableSemaphores;
+        std::vector<VkSemaphore> m_RenderFinishedSemaphores;
+        std::vector<VkFence> m_Fences;
+
+        std::uint32_t m_ProcessingUnitsCount;
     };
 }

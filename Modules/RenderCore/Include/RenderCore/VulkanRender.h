@@ -24,7 +24,7 @@ namespace RenderCore
         bool Initialize(GLFWwindow* const Window);
         void Shutdown();
 
-        void DrawFrame();
+        void DrawFrame(GLFWwindow* const Window);
 
         bool IsInitialized() const;
 
