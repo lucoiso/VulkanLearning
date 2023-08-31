@@ -31,8 +31,6 @@ class VulkanPipelineManager
         // [[nodiscard]] const VkPipelineCache& GetPipelineCache() const;
         // [[nodiscard]] const VkDescriptorSetLayout& GetDescriptorSetLayout() const;
 
-        void StartRenderPass(const VkExtent2D& Extent, const std::vector<VkCommandBuffer>& CommandBuffer, const std::vector<VkFramebuffer>& FrameBuffers, const std::vector<VkBuffer>& VertexBuffer, const std::vector<VkDeviceSize>& Offsets);
-
     private:
         const VkInstance& m_Instance;
         const VkDevice& m_Device;

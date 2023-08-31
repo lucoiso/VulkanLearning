@@ -67,12 +67,23 @@ void VulkanPipelineManager::CreateRenderPass(const VkFormat& Format)
         .pColorAttachments = &ColorAttachmentRef
     };
 
+    const VkSubpassDependency Dependency{
+        .srcSubpass = VK_SUBPASS_EXTERNAL,
+        .dstSubpass = 0u,
+        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .srcAccessMask = 0u,
+        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+    };
+
     const VkRenderPassCreateInfo RenderPassCreateInfo{
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-        .attachmentCount = 1,
+        .attachmentCount = 1u,
         .pAttachments = &ColorAttachment,
-        .subpassCount = 1,
-        .pSubpasses = &Subpass
+        .subpassCount = 1u,
+        .pSubpasses = &Subpass,
+        .dependencyCount = 1u,
+        .pDependencies = &Dependency
     };
 
     if (vkCreateRenderPass(m_Device, &RenderPassCreateInfo, nullptr, &m_RenderPass) != VK_SUCCESS)
@@ -312,56 +323,3 @@ const VkPipelineLayout& VulkanPipelineManager::GetPipelineLayout() const
 // {
 //     return m_DescriptorSetLayout;
 // }
-
-void VulkanPipelineManager::StartRenderPass(const VkExtent2D& Extent, const std::vector<VkCommandBuffer>& CommandBuffer, const std::vector<VkFramebuffer>& FrameBuffers, const std::vector<VkBuffer>& VertexBuffer, const std::vector<VkDeviceSize>& Offsets)
-{
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Starting render pass";
-
-    if (m_Pipeline == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan graphics pipeline is invalid");
-    }
-
-    auto CommandBufferIter = CommandBuffer.begin();
-    for (const VkFramebuffer& FrameBufferIter : FrameBuffers)
-    {
-        if (CommandBufferIter == CommandBuffer.end())
-        {
-            break;
-        }
-
-        const VkClearValue ClearValue{
-            .color = { 0.0f, 0.0f, 0.0f, 1.0f }
-        };
-
-        const VkRenderPassBeginInfo RenderPassBeginInfo{
-            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            .renderPass = m_RenderPass,
-            .framebuffer = FrameBufferIter,
-            .renderArea = {
-                .offset = { 0, 0 },
-                .extent = Extent
-            },
-            .clearValueCount = 1u,
-            .pClearValues = &ClearValue
-        };
-
-        vkCmdBeginRenderPass(*CommandBufferIter, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(*CommandBufferIter, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
-
-        // vkCmdBindVertexBuffers(*CommandBufferIter, 0, 1, VertexBuffer.data(), Offsets.data());
-
-        // vkCmdSetViewport(*CommandBufferIter, 0u, 1u, &m_Viewport);
-        // vkCmdSetScissor(*CommandBufferIter, 0u, 1u, &m_Scissor);
-
-        vkCmdDraw(*CommandBufferIter, 3, 1, 0, 0);
-        vkCmdEndRenderPass(*CommandBufferIter);
-
-        if (vkEndCommandBuffer(*CommandBufferIter) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to record command buffer");
-        }
-
-        ++CommandBufferIter;
-    }
-}

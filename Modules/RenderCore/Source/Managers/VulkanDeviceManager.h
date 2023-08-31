@@ -12,6 +12,14 @@ struct GLFWwindow;
 
 namespace RenderCore
 {
+    struct DeviceProperties
+    {
+        VkSurfaceFormatKHR PreferredFormat;
+        VkPresentModeKHR PreferredMode;
+        VkExtent2D PreferredExtent;
+        VkSurfaceCapabilitiesKHR Capabilities;
+    };
+
     class VulkanDeviceManager
     {
     public:
@@ -46,8 +54,7 @@ namespace RenderCore
         [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes() const;
 
         [[nodiscard]] bool IsPhysicalDeviceSuitable(const VkPhysicalDevice& Device) const;
-
-        void GetSwapChainPreferredProperties(GLFWwindow* const Window, VkSurfaceFormatKHR& PreferredFormat, VkPresentModeKHR& PreferredMode, VkExtent2D& PreferredExtent, VkSurfaceCapabilitiesKHR& Capabilities);
+        [[nodiscard]] DeviceProperties GetPreferredProperties(GLFWwindow* const Window);
 
     private:
         bool GetQueueFamilyIndices(std::optional<std::uint32_t>& GraphicsQueueFamilyIndex, std::optional<std::uint32_t>& PresentationQueueFamilyIndex);

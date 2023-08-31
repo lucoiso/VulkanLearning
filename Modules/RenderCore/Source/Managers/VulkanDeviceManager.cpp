@@ -131,9 +131,11 @@ void VulkanDeviceManager::CreateLogicalDevice()
     }
 }
 
-void VulkanDeviceManager::GetSwapChainPreferredProperties(GLFWwindow* const Window, VkSurfaceFormatKHR& PreferredFormat, VkPresentModeKHR& PreferredMode, VkExtent2D& PreferredExtent, VkSurfaceCapabilitiesKHR& Capabilities)
+DeviceProperties VulkanDeviceManager::GetPreferredProperties(GLFWwindow* const Window)
 {
-    Capabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
+    DeviceProperties Output;
+
+    Output.Capabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
 
     const std::vector<VkSurfaceFormatKHR> SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats();
     if (SupportedFormats.empty())
@@ -147,38 +149,40 @@ void VulkanDeviceManager::GetSwapChainPreferredProperties(GLFWwindow* const Wind
         throw std::runtime_error("No supported presentation modes found.");
     }
 
-    if (Capabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
+    if (Output.Capabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
     {
-        PreferredExtent = Capabilities.currentExtent;
+        Output.PreferredExtent = Output.Capabilities.currentExtent;
     }
     else
     {
-        PreferredExtent = GetWindowExtent(Window, Capabilities);
+        Output.PreferredExtent = GetWindowExtent(Window, Output.Capabilities);
     }
 
-    PreferredFormat = SupportedFormats[0];
+    Output.PreferredFormat = SupportedFormats[0];
     if (const auto MatchingFormat = std::find_if(SupportedFormats.begin(), SupportedFormats.end(),
-            [] (const VkSurfaceFormatKHR& Iter)
-            {
-                return Iter.format == VK_FORMAT_B8G8R8A8_SRGB && Iter.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-            }
-        );
+        [](const VkSurfaceFormatKHR& Iter)
+        {
+            return Iter.format == VK_FORMAT_B8G8R8A8_SRGB && Iter.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+        }
+    );
         MatchingFormat != SupportedFormats.end())
     {
-       PreferredFormat = *MatchingFormat;
+        Output.PreferredFormat = *MatchingFormat;
     }
 
-    PreferredMode = VK_PRESENT_MODE_FIFO_KHR;
+    Output.PreferredMode = VK_PRESENT_MODE_FIFO_KHR;
     if (const auto MatchingMode = std::find_if(SupportedPresentationModes.begin(), SupportedPresentationModes.end(),
-            [](const VkPresentModeKHR& Iter)
-            {
-                return Iter == VK_PRESENT_MODE_MAILBOX_KHR;
-            }
-        );
+        [](const VkPresentModeKHR& Iter)
+        {
+            return Iter == VK_PRESENT_MODE_MAILBOX_KHR;
+        }
+    );
         MatchingMode != SupportedPresentationModes.end())
     {
-        PreferredMode = *MatchingMode;
+        Output.PreferredMode = *MatchingMode;
     }
+
+    return Output;
 }
 
 void VulkanDeviceManager::Shutdown()

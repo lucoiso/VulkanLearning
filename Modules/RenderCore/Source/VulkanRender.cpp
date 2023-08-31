@@ -33,6 +33,7 @@ public:
         , m_ShaderManager(nullptr)
         , m_Instance(VK_NULL_HANDLE)
         , m_Surface(VK_NULL_HANDLE)
+        , m_SharedDeviceProperties()
 #ifdef _DEBUG
         , m_DebugMessenger(VK_NULL_HANDLE)
 #endif
@@ -85,9 +86,9 @@ public:
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan render";
 
         m_ShaderManager->Shutdown();
+        m_CommandsManager->Shutdown({ m_DeviceManager->GetGraphicsQueue(), m_DeviceManager ->GetPresentationQueue()});
         m_BufferManager->Shutdown();
         m_PipelineManager->Shutdown();
-        m_CommandsManager->Shutdown();
         m_DeviceManager->Shutdown();
 
 #ifdef _DEBUG
@@ -114,7 +115,10 @@ public:
             return;
         }
 
-        // TODO: Implement
+        const std::uint32_t ImageIndex = m_CommandsManager->DrawFrame(m_BufferManager->GetSwapChain());
+        m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), { 0u });
+        m_CommandsManager->SubmitCommandBuffers(m_DeviceManager->GetGraphicsQueue());
+        m_CommandsManager->PresentFrame(m_DeviceManager->GetPresentationQueue(), m_BufferManager->GetSwapChain(), ImageIndex);
     }
 
     bool IsInitialized() const
@@ -253,12 +257,8 @@ private:
     {
         if (m_BufferManager = std::make_unique<VulkanBufferManager>(m_DeviceManager->GetLogicalDevice(), m_Surface, m_DeviceManager->GetQueueFamilyIndices()))
         {
-            VkSurfaceFormatKHR PreferredFormat;
-            VkPresentModeKHR PreferredMode;
-            VkExtent2D PreferredExtent;
-            VkSurfaceCapabilitiesKHR Capabilities;
-            m_DeviceManager->GetSwapChainPreferredProperties(Window, PreferredFormat, PreferredMode, PreferredExtent, Capabilities);
-            m_BufferManager->CreateSwapChain(PreferredFormat, PreferredMode, PreferredExtent, Capabilities);
+            m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
+            m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
         }
 
         return m_BufferManager != nullptr;
@@ -268,14 +268,8 @@ private:
     {
         if (m_PipelineManager = std::make_unique<VulkanPipelineManager>(m_Instance, m_DeviceManager->GetLogicalDevice()))
         {
-            VkSurfaceFormatKHR PreferredFormat;
-            VkPresentModeKHR PreferredMode;
-            VkExtent2D PreferredExtent;
-            VkSurfaceCapabilitiesKHR Capabilities;
-            m_DeviceManager->GetSwapChainPreferredProperties(Window, PreferredFormat, PreferredMode, PreferredExtent, Capabilities);
-
-            m_PipelineManager->CreateRenderPass(PreferredFormat.format);
-            m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), PreferredExtent);
+            m_PipelineManager->CreateRenderPass(m_SharedDeviceProperties.PreferredFormat.format);
+            m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
 
             std::vector<std::uint32_t> FragmentShaderCode;
             m_ShaderManager->Compile(DEBUG_SHADER_FRAG, FragmentShaderCode);
@@ -285,7 +279,7 @@ private:
             m_ShaderManager->Compile(DEBUG_SHADER_VERT, VertexShaderCode);
             const VkShaderModule VertexModule = m_ShaderManager->CreateModule(m_DeviceManager->GetLogicalDevice(), VertexShaderCode, EShLangVertex);
 
-            m_PipelineManager->CreateGraphicsPipeline({ m_ShaderManager->GetStageInfo(FragmentModule), m_ShaderManager->GetStageInfo(VertexModule) }, PreferredExtent);
+            m_PipelineManager->CreateGraphicsPipeline({ m_ShaderManager->GetStageInfo(FragmentModule), m_ShaderManager->GetStageInfo(VertexModule) }, m_SharedDeviceProperties.PreferredExtent);
         }
 
         return m_PipelineManager != nullptr;
@@ -296,14 +290,8 @@ private:
         if (m_CommandsManager = std::make_unique<VulkanCommandsManager>(m_DeviceManager->GetLogicalDevice()))
         {
             m_CommandsManager->CreateCommandPool(m_BufferManager->GetFrameBuffers(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
-
-            VkSurfaceFormatKHR PreferredFormat;
-            VkPresentModeKHR PreferredMode;
-            VkExtent2D PreferredExtent;
-            VkSurfaceCapabilitiesKHR Capabilities;
-            m_DeviceManager->GetSwapChainPreferredProperties(Window, PreferredFormat, PreferredMode, PreferredExtent, Capabilities);
-
-            m_PipelineManager->StartRenderPass(PreferredExtent, m_CommandsManager->GetCommandBuffers(), m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), { 0u });
+            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), { 0u });
+            m_CommandsManager->CreateSynchronizationObjects();
         }
 
         return m_CommandsManager != nullptr;
@@ -319,6 +307,7 @@ private:
 
     VkInstance m_Instance;
     VkSurfaceKHR m_Surface;
+    DeviceProperties m_SharedDeviceProperties;
 
     #ifdef _DEBUG
     VkDebugUtilsMessengerEXT m_DebugMessenger;

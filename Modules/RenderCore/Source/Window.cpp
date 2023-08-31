@@ -192,6 +192,7 @@ void Window::PollEvents()
     try
     {
         m_Impl->PollEvents();
+        m_Impl->DrawFrame();
     }
     catch (const std::exception& Ex)
     {
