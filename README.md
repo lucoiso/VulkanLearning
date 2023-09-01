@@ -1,14 +1,14 @@
 # Dependencies
- 1. Python 3.11
- 2. Conan 2.0
- 3. CMake 3.22
- 4. Visual Studio 2022 Build Tools for C++
- 5. Windows 10/11
- 6. x64 Arch
- 7. Vulkan SDK
+1. Python 3.11 
+2. Conan 2.0 
+3. CMake 3.22 
+4. Visual Studio 2022 Build Tools for C++ 
+5. Windows 10/11 
+6. x64 Arch 
+7. Vulkan SDK 
 
 # Setup
-  - Run these commands:
+- Run these commands:  
 ```
 git clone https://github.com/lucoiso/VulkanLearning.git
 cd VulkanLearning

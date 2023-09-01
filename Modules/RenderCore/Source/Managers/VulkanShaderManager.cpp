@@ -149,6 +149,12 @@ bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::u
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading shader: " << Source;
 
     const size_t FileSize = static_cast<size_t>(File.tellg());
+
+    if (FileSize <= 0)
+    {
+        throw std::runtime_error("Shader file is empty");
+    }
+
     OutSPIRVCode.resize(FileSize / sizeof(uint32_t));
 
     File.seekg(0);
