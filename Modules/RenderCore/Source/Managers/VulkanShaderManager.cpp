@@ -152,10 +152,10 @@ bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::u
     OutSPIRVCode.resize(FileSize / sizeof(uint32_t));
 
     File.seekg(0);
-    File.read(reinterpret_cast<char*>(OutSPIRVCode.data()), FileSize);
+    const std::istream& ReadResult = File.read(reinterpret_cast<char*>(OutSPIRVCode.data()), FileSize);
     File.close();
 
-    return !OutSPIRVCode.empty();
+    return !ReadResult.fail();
 }
 
 

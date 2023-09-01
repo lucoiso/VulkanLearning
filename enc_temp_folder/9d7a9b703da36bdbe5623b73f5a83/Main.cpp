@@ -22,7 +22,7 @@ int main(int Argc, char* Argv[])
                     Window->PollEvents();
                 }
             }
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Window closed. Starting to freeing up resources";
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Window closed starting to freeing up resources";
         }
     }
     catch (const std::exception& Ex)
