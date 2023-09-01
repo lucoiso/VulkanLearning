@@ -158,8 +158,7 @@ bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::u
     OutSPIRVCode.resize(FileSize / sizeof(uint32_t));
 
     File.seekg(0);
-    // ff-ignore[ALL]
-    const std::istream& ReadResult = File.read(reinterpret_cast<char*>(OutSPIRVCode.data()), FileSize);
+    const std::istream& ReadResult = File.read(reinterpret_cast<char*>(OutSPIRVCode.data()), FileSize); /* Flawfinder: ignore */
     File.close();
 
     return !ReadResult.fail();
