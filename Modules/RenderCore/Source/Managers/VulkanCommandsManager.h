@@ -36,6 +36,8 @@ namespace RenderCore
         [[nodiscard]] const std::vector<VkCommandBuffer>& GetCommandBuffers() const;
 
     private:
+        void WaitAndResetFences();
+
         const VkDevice& m_Device;
         VkCommandPool m_CommandPool;
         std::vector<VkCommandBuffer> m_CommandBuffers;

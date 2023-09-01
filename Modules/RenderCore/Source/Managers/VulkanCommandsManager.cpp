@@ -45,15 +45,7 @@ void VulkanCommandsManager::Shutdown(const std::vector<VkQueue>& PendingQueues)
         }
     };
 
-    if (vkWaitForFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data(), VK_TRUE, Timeout) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to wait Vulkan fence.");
-    }
-
-    if (vkResetFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data()) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to reset Vulkan fence.");
-    }
+    WaitAndResetFences();
 
     vkFreeCommandBuffers(m_Device, m_CommandPool, static_cast<std::uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());
     m_CommandBuffers.clear();
@@ -180,15 +172,7 @@ std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<Vk
         throw std::runtime_error("Vulkan logical device is invalid.");
     }
 
-    if (vkWaitForFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data(), VK_TRUE, Timeout) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to wait Vulkan fence.");
-    }
-
-    if (vkResetFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data()) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to reset Vulkan fence.");
-    }
+    WaitAndResetFences();
 
     std::vector<std::uint32_t> ImageIndexes;
     for (std::uint32_t Iterator = 0u; Iterator < m_ProcessingUnitsCount; ++Iterator)
@@ -304,15 +288,7 @@ void VulkanCommandsManager::SubmitCommandBuffers(const VkQueue& GraphicsQueue)
         throw std::runtime_error("Vulkan graphics queue is invalid.");
     }
 
-    if (vkWaitForFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data(), VK_TRUE, Timeout) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to wait Vulkan fence.");
-    }
-
-    if (vkResetFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data()) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to reset Vulkan fence.");
-    }
+    WaitAndResetFences();
 
     const std::vector<VkPipelineStageFlags> WaitStages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
@@ -379,4 +355,17 @@ const VkCommandPool& VulkanCommandsManager::GetCommandPool() const
 const std::vector<VkCommandBuffer>& VulkanCommandsManager::GetCommandBuffers() const
 {
     return m_CommandBuffers;
+}
+
+void VulkanCommandsManager::WaitAndResetFences()
+{
+    if (vkWaitForFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data(), VK_TRUE, Timeout) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to wait Vulkan fence.");
+    }
+
+    if (vkResetFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data()) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to reset Vulkan fence.");
+    }
 }
