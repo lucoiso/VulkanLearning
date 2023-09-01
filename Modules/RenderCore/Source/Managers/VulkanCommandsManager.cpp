@@ -37,14 +37,6 @@ void VulkanCommandsManager::Shutdown(const std::vector<VkQueue>& PendingQueues)
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Vulkan commands manager";
 
-    const std::vector<VkSubmitInfo> SubmitInfo {
-        VkSubmitInfo{
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .commandBufferCount = static_cast<std::uint32_t>(m_CommandBuffers.size()),
-            .pCommandBuffers = m_CommandBuffers.data()
-        }
-    };
-
     WaitAndResetFences();
 
     vkFreeCommandBuffers(m_Device, m_CommandPool, static_cast<std::uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());

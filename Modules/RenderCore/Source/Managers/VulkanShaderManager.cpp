@@ -150,7 +150,7 @@ bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::u
 
     const size_t FileSize = static_cast<size_t>(File.tellg());
 
-    if (FileSize <= 0)
+    if (FileSize == 0)
     {
         throw std::runtime_error("Shader file is empty");
     }
