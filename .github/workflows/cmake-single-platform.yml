@@ -2,9 +2,9 @@ name: VulkanLearning CMake Workflow
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "gtact-workflows" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "gtact-workflows" ]
 
 env:
   BUILD_TYPE: Debug
