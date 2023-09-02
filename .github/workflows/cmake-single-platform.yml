@@ -24,6 +24,7 @@ jobs:
             Remove-Item -Path ${{github.workspace}}\build -Recurse -Force
         }
         mkdir ${{github.workspace}}/build
+        git submodule update --init --recursive --force
 
     - name: Configure Packages
       run: |
@@ -33,8 +34,9 @@ jobs:
         conan build . -pr=Profiles/Windows_x64_${{env.BUILD_TYPE}}
 
     - name: Build Project
-      working-directory: ${{github.workspace}}/build/generators
-      run: cmake .. --build --preset ${{env.CONAN_PRESET}}
+      run: |
+        cmake --preset ${{env.CONAN_PRESET}}
+        cmake --build --preset ${{env.CONAN_PRESET}}
 
     - name: Test Binaries
       working-directory: ${{github.workspace}}/build
