@@ -26,8 +26,8 @@ jobs:
         mkdir ${{github.workspace}}/build
         git submodule update --init --recursive --force
 
-    - name: Prepare Vulkan SDK
-      uses: humbletim/setup-vulkan-sdk@latest
+    - name: Install Vulkan SDK
+      uses: humbletim/setup-vulkan-sdk@1.2.0
       with:
         vulkan-query-version: latest
         vulkan-components: Vulkan-Headers, Vulkan-Loader
