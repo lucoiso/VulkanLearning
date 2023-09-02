@@ -62,13 +62,7 @@ jobs:
         tool: 'googlecpp'
         output-file-path: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/application_benchmark_result.json
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        alert-comment-cc-users: '@lucoiso'
-        summary-always: true
-        comment-always: true
-        fail-on-alert: true
         auto-push: true
-        gh-pages-branch: 'gh-pages'
-        gh-repository: 'github.com/lucoiso/VulkanLearning'
     
     - name: Run Submodules Benchmark
       working-directory: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}
@@ -80,10 +74,6 @@ jobs:
         tool: 'googlecpp'
         output-file-path: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/submodules_benchmark_result.json
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        alert-comment-cc-users: '@lucoiso'
-        summary-always: true
-        comment-always: true
-        fail-on-alert: true
         auto-push: false
 
     - name: Push Submodules Benchmark Result
