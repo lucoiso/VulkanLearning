@@ -53,11 +53,10 @@ jobs:
       run: ./SubmodulesBenchmark.exe --benchmark_format=json | tee submodule_benchmark_result.json
 
     - name: Store Submodules Benchmark
-      working-directory: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}
       uses: benchmark-action/github-action-benchmark@v1
       with:
         tool: 'googlecpp'
-        output-file-path: submodule_benchmark_result.json        
+        output-file-path: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/submodule_benchmark_result.json        
     
     # TODO: Implement application modules benchmark 
     # - name: Run Application Benchmark
@@ -65,8 +64,7 @@ jobs:
     #   run: ./Benchmark.exe --benchmark_format=json | tee application_benchmark_result.json
 
     # - name: Store Application Benchmark
-    #   working-directory: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}
     #   uses: benchmark-action/github-action-benchmark@v1
     #   with:
     #     tool: 'googlecpp'
-    #     output-file-path: application_benchmark_result.json
+    #     output-file-path: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/application_benchmark_result.json
