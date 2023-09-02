@@ -19,7 +19,7 @@ jobs:
 
     - name: Setup Environment
       run: |
-        rmdir ${{github.workspace}}/build
+        if exist ${{github.workspace}}\build rd /s /q ${{github.workspace}}\build
         mkdir ${{github.workspace}}/build
         cd ${{github.workspace}}/build
         cmake --clean-cache
