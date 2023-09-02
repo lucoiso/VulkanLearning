@@ -49,8 +49,8 @@ jobs:
       run: ctest -C ${{env.BUILD_TYPE}}
     
     - name: Run Benchmark
-      working-directory: ${{github.workspace}}/build
-        run: ./bin/SubmodulesBenchmark.exe --benchmark_format=json | tee benchmark_result.json
+      working-directory: ${{github.workspace}}/build/bin
+      run: ./SubmodulesBenchmark.exe --benchmark_format=json | tee benchmark_result.json
     
     - name: Store Benchmark
       uses: benchmark-action/github-action-benchmark@v1
