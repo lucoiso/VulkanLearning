@@ -27,11 +27,11 @@ jobs:
         git submodule update --init --recursive --force
 
     - name: Prepare Vulkan SDK
-       uses: humbletim/setup-vulkan-sdk@latest
-       with:
-         vulkan-query-version: latest
-         vulkan-components: Vulkan-Headers, Vulkan-Loader
-         vulkan-use-cache: true
+      uses: humbletim/setup-vulkan-sdk@latest
+      with:
+        vulkan-query-version: latest
+        vulkan-components: Vulkan-Headers, Vulkan-Loader
+        vulkan-use-cache: true
             
     - name: Configure Packages
       run: |
