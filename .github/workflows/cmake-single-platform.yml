@@ -35,7 +35,7 @@ jobs:
 
     - name: Build Project
       run: |
-        cmake --preset ${{env.CONAN_PRESET}}
+        cmake --preset conan-default
         cmake --build --preset ${{env.CONAN_PRESET}}
 
     - name: Test Binaries
