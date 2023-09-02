@@ -46,4 +46,5 @@ jobs:
         cmake --build --preset ${{env.CONAN_PRESET}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Test Binaries
+      working-directory: ${{github.workspace}}/build
       run: ctest -C ${{env.BUILD_TYPE}}
