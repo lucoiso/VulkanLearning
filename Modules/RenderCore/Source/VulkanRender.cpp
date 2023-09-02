@@ -123,8 +123,13 @@ public:
         const std::vector<std::uint32_t> ImageIndexes = m_CommandsManager->DrawFrame({ m_BufferManager->GetSwapChain() });
         if (ImageIndexes.empty())
         {
-            m_SharedDeviceProperties.PreferredExtent = GetWindowExtent(Window, m_SharedDeviceProperties.Capabilities);
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing device properties & capabilities...";
+            m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
             m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
+            m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
+            m_BufferManager->CreateVertexBuffers();
+
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Buffers updated, starting to draw frames with new surface properties";
         }
         else
         {

@@ -187,11 +187,18 @@ std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<Vk
         ImageIndexes.emplace_back(0u);
         if (const VkResult OperationResult = vkAcquireNextImageKHR(m_Device, SwapChains[Iterator], Timeout, m_ImageAvailableSemaphores[Iterator], m_Fences[Iterator], &ImageIndexes.back()); OperationResult != VK_SUCCESS)
         {
-            if (OperationResult == VK_ERROR_OUT_OF_DATE_KHR)
+            if (OperationResult == VK_ERROR_OUT_OF_DATE_KHR || OperationResult == VK_SUBOPTIMAL_KHR)
             {
-                BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Failed to acquire next image: Vulkan swap chain is outdated";
+                if (OperationResult == VK_ERROR_OUT_OF_DATE_KHR)
+                {
+                    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Failed to acquire next image: Vulkan swap chain is outdated";
+                }
+                else if (OperationResult == VK_SUBOPTIMAL_KHR)
+                {
+                    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Failed to acquire next image: Vulkan swap chain is suboptimal";
+                }
                 
-                vkDeviceWaitIdle(m_Device);
+                WaitAndResetFences();
                 DestroySynchronizationObjects();
                 CreateSynchronizationObjects();
 
