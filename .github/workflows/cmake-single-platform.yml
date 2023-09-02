@@ -19,7 +19,9 @@ jobs:
 
     - name: Setup Environment
       run: |
-        if exist ${{github.workspace}}\build rd /s /q ${{github.workspace}}\build
+        if (Test-Path -Path ${{github.workspace}}\build) {
+            Remove-Item -Path ${{github.workspace}}\build -Recurse -Force
+        }
         mkdir ${{github.workspace}}/build
         cd ${{github.workspace}}/build
         cmake --clean-cache
