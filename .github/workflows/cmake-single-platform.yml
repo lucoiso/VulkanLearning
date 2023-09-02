@@ -61,7 +61,7 @@ jobs:
       with:
         tool: 'googlecpp'
         output-file-path: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/application_benchmark_result.json
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ secrets.LUCOISO_PAT }}
         auto-push: true
     
     - name: Run Submodules Benchmark
@@ -73,10 +73,5 @@ jobs:
       with:
         tool: 'googlecpp'
         output-file-path: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/submodules_benchmark_result.json
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        auto-push: false
-
-    - name: Push Submodules Benchmark Result
-      run: |
-        git config --unset-all http.https://github.com/.extraheader
-        git push 'https://lucoiso:${{ secrets.GITHUB_TOKEN }}@github.com/lucoiso/cpp-submodules.git' gh-pages:gh-pages
+        github-token: ${{ secrets.LUCOISO_PAT }}
+        auto-push: true
