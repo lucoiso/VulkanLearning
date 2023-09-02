@@ -24,9 +24,6 @@ jobs:
             Remove-Item -Path ${{github.workspace}}\build -Recurse -Force
         }
         mkdir ${{github.workspace}}/build
-        cd ${{github.workspace}}/build
-        cmake --clean-cache
-        cd ..
 
     - name: Configure Packages
       run: |
