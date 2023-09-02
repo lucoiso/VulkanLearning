@@ -113,6 +113,8 @@ void VulkanCommandsManager::DestroySynchronizationObjects()
 {
 	BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying Vulkan synchronization objects";
 
+	vkDeviceWaitIdle(m_Device);
+
 	for (const VkSemaphore& SemaphoreIter : m_ImageAvailableSemaphores)
 	{
 		if (SemaphoreIter != VK_NULL_HANDLE)
@@ -139,6 +141,8 @@ void VulkanCommandsManager::DestroySynchronizationObjects()
 		}
 	}
 	m_Fences.clear();
+
+	m_ProcessingUnitsCount = 0u;
 }
 
 std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<VkSwapchainKHR>& SwapChains)
@@ -146,6 +150,11 @@ std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<Vk
 	if (m_Device == VK_NULL_HANDLE)
 	{
 		throw std::runtime_error("Vulkan logical device is invalid.");
+	}
+
+	if (m_ProcessingUnitsCount == 0u)
+	{
+		return std::vector<std::uint32_t>();
 	}
 
 	WaitAndResetFences();
@@ -184,7 +193,6 @@ std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<Vk
 
 				WaitAndResetFences();
 				DestroySynchronizationObjects();
-				CreateSynchronizationObjects();
 
 				return std::vector<std::uint32_t>();
 			}
@@ -330,6 +338,11 @@ const std::vector<VkCommandBuffer>& VulkanCommandsManager::GetCommandBuffers() c
 
 void VulkanCommandsManager::WaitAndResetFences()
 {
+	if (m_Fences.empty())
+	{
+		return;
+	}
+
 	RENDERCORE_CHECK_VULKAN_RESULT(vkWaitForFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data(), VK_TRUE, Timeout));
 	RENDERCORE_CHECK_VULKAN_RESULT(vkResetFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data()));
 }

@@ -18,6 +18,8 @@ namespace RenderCore
         VkPresentModeKHR PreferredMode;
         VkExtent2D PreferredExtent;
         VkSurfaceCapabilitiesKHR Capabilities;
+
+        inline bool IsValid() const { return PreferredExtent.height != 0u && PreferredExtent.width != 0u; }
     };
 
     class VulkanDeviceManager
@@ -58,6 +60,14 @@ namespace RenderCore
 
     private:
         bool GetQueueFamilyIndices(std::optional<std::uint32_t>& GraphicsQueueFamilyIndex, std::optional<std::uint32_t>& PresentationQueueFamilyIndex);
+
+#ifdef _DEBUG
+        void ListAvailablePhysicalDevices() const;
+        void ListAvailablePhysicalDeviceExtensions() const;
+        void ListAvailablePhysicalDeviceSurfaceCapabilities() const;
+        void ListAvailablePhysicalDeviceSurfaceFormats() const;
+        void ListAvailablePhysicalDeviceSurfacePresentationModes() const;
+#endif
 
         const VkInstance& m_Instance;
         const VkSurfaceKHR& m_Surface;

@@ -54,10 +54,7 @@ void VulkanDeviceManager::PickPhysicalDevice(const VkPhysicalDevice& PreferredDe
             if (m_PhysicalDevice == VK_NULL_HANDLE && IsPhysicalDeviceSuitable(DeviceIter))
             {
                 m_PhysicalDevice = DeviceIter;
-
-    #ifdef NDEBUG
                 break;
-    #endif
             }
         }
     }
@@ -66,6 +63,14 @@ void VulkanDeviceManager::PickPhysicalDevice(const VkPhysicalDevice& PreferredDe
     {
         throw std::runtime_error("No suitable Vulkan physical device found.");
     }
+
+#ifdef _DEBUG
+    ListAvailablePhysicalDevices();
+    ListAvailablePhysicalDeviceExtensions();
+    ListAvailablePhysicalDeviceSurfaceCapabilities();
+    ListAvailablePhysicalDeviceSurfaceFormats();
+    ListAvailablePhysicalDeviceSurfacePresentationModes();
+#endif
 }
 
 void VulkanDeviceManager::CreateLogicalDevice()
@@ -244,8 +249,6 @@ std::uint32_t VulkanDeviceManager::GetPresentationQueueFamilyIndex() const
 
 std::vector<VkPhysicalDevice> VulkanDeviceManager::GetAvailablePhysicalDevices() const
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting available vulkan physical devices";
-
     if (m_Instance == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan instance is invalid.");
@@ -262,8 +265,6 @@ std::vector<VkPhysicalDevice> VulkanDeviceManager::GetAvailablePhysicalDevices()
 
 std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensions() const
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting available vulkan physical device extensions";
-
     if (m_PhysicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
@@ -280,17 +281,11 @@ std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDevi
 
 std::vector<const char*> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensionsNames() const
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting available vulkan physical device extensions names";
-
     const std::vector<VkExtensionProperties> AvailableExtensions = GetAvailablePhysicalDeviceExtensions();
-
     std::set<std::string> RequiredExtensions(g_RequiredExtensions.begin(), g_RequiredExtensions.end());
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found extensions:";
     for (const VkExtensionProperties& ExtensionsIter : AvailableExtensions)
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: " << ExtensionsIter.extensionName;
-
         RequiredExtensions.erase(ExtensionsIter.extensionName);
     }
 
@@ -306,8 +301,6 @@ std::vector<const char*> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensio
 
 VkSurfaceCapabilitiesKHR VulkanDeviceManager::GetAvailablePhysicalDeviceSurfaceCapabilities() const
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting available vulkan physical device surface capabilities";
-
     if (m_PhysicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
@@ -321,25 +314,11 @@ VkSurfaceCapabilitiesKHR VulkanDeviceManager::GetAvailablePhysicalDeviceSurfaceC
     VkSurfaceCapabilitiesKHR Output;
     RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, m_Surface, &Output));
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing vulkan physical device surface capabilities...";
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min Image Count: " << Output.minImageCount;
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max Image Count: " << Output.maxImageCount;
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Current Extent: (" << Output.currentExtent.width << ", " << Output.currentExtent.height << ")";
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min Image Extent: (" << Output.minImageExtent.width << ", " << Output.minImageExtent.height << ")";
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max Image Extent: (" << Output.maxImageExtent.width << ", " << Output.maxImageExtent.height << ")";
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max Image Array Layers: " << Output.maxImageArrayLayers;
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Transforms: " << TransformFlagToString(static_cast<VkSurfaceTransformFlagBitsKHR>(Output.supportedTransforms));
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Current Transform: " << TransformFlagToString(Output.currentTransform);
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Composite Alpha: " << CompositeAlphaFlagToString(Output.supportedCompositeAlpha);
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Usage Flags: " << ImageUsageFlagToString(static_cast<VkImageUsageFlagBits>(Output.supportedUsageFlags));
-
     return Output;
 }
 
 std::vector<VkSurfaceFormatKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceSurfaceFormats() const
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting available vulkan physical device surface formats";
-
     if (m_PhysicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
@@ -356,20 +335,11 @@ std::vector<VkSurfaceFormatKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceS
     std::vector<VkSurfaceFormatKHR> Output(Count, VkSurfaceFormatKHR());
     RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_Surface, &Count, Output.data()));
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing vulkan physical device surface formats...";
-    for (const VkSurfaceFormatKHR& FormatIter : Output)
-    {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Color Space: " << ColorSpaceModeToString(FormatIter.colorSpace);
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Format: " << SurfaceFormatToString(FormatIter.format) << std::endl;
-    }
-
     return Output;
 }
 
 std::vector<VkPresentModeKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceSurfacePresentationModes() const
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting available vulkan physical device surface presentation modes";
-
     if (m_PhysicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
@@ -386,44 +356,23 @@ std::vector<VkPresentModeKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceSur
     std::vector<VkPresentModeKHR> Output(Count, VkPresentModeKHR());
     RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, m_Surface, &Count, Output.data()));
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing vulkan physical device surface presentation modes...";
-    for (const VkPresentModeKHR& FormatIter : Output)
-    {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Mode: " << PresentationModeToString(FormatIter);
-    }
-
     return Output;
 }
 
 bool VulkanDeviceManager::IsPhysicalDeviceSuitable(const VkPhysicalDevice& Device) const
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Checking if device is suitable...";
-
     if (Device == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
     VkPhysicalDeviceProperties DeviceProperties;
-    VkPhysicalDeviceFeatures DeviceFeatures;
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting target properties...";
-
     vkGetPhysicalDeviceProperties(Device, &DeviceProperties);
-    vkGetPhysicalDeviceFeatures(Device, &DeviceFeatures);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << DeviceProperties.deviceName;
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target ID: " << DeviceProperties.deviceID;
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Vendor ID: " << DeviceProperties.vendorID;
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Driver Version: " << DeviceProperties.driverVersion;
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target API Version: " << DeviceProperties.apiVersion << std::endl;
 
     if (DeviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
     {
         return false;
     }
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target is suitable";
 
     return true;
 }
@@ -474,3 +423,73 @@ bool VulkanDeviceManager::GetQueueFamilyIndices(std::optional<std::uint32_t>& Gr
 
     return GraphicsQueueFamilyIndex.has_value() && PresentationQueueFamilyIndex.has_value();
 }
+
+#ifdef _DEBUG
+void VulkanDeviceManager::ListAvailablePhysicalDevices() const
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical devices...";
+
+    for (const VkPhysicalDevice& DeviceIter : GetAvailablePhysicalDevices())
+    {
+        VkPhysicalDeviceProperties DeviceProperties;
+        vkGetPhysicalDeviceProperties(DeviceIter, &DeviceProperties);
+
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << DeviceProperties.deviceName;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target ID: " << DeviceProperties.deviceID;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Vendor ID: " << DeviceProperties.vendorID;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Driver Version: " << DeviceProperties.driverVersion;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target API Version: " << DeviceProperties.apiVersion << std::endl;
+    }
+}
+
+void VulkanDeviceManager::ListAvailablePhysicalDeviceExtensions() const
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device extensions...";
+
+    for (const VkExtensionProperties& ExtensionIter : GetAvailablePhysicalDeviceExtensions())
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << ExtensionIter.extensionName;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << ExtensionIter.specVersion << std::endl;
+    }
+}
+
+void VulkanDeviceManager::ListAvailablePhysicalDeviceSurfaceCapabilities() const
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device surface capabilities...";
+
+    const VkSurfaceCapabilitiesKHR SurfaceCapabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
+
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing vulkan physical device surface capabilities...";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min Image Count: " << SurfaceCapabilities.minImageCount;
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max Image Count: " << SurfaceCapabilities.maxImageCount;
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Current Extent: (" << SurfaceCapabilities.currentExtent.width << ", " << SurfaceCapabilities.currentExtent.height << ")";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min Image Extent: (" << SurfaceCapabilities.minImageExtent.width << ", " << SurfaceCapabilities.minImageExtent.height << ")";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max Image Extent: (" << SurfaceCapabilities.maxImageExtent.width << ", " << SurfaceCapabilities.maxImageExtent.height << ")";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max Image Array Layers: " << SurfaceCapabilities.maxImageArrayLayers;
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Transforms: " << TransformFlagToString(static_cast<VkSurfaceTransformFlagBitsKHR>(SurfaceCapabilities.supportedTransforms));
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Current Transform: " << TransformFlagToString(SurfaceCapabilities.currentTransform);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Composite Alpha: " << CompositeAlphaFlagToString(SurfaceCapabilities.supportedCompositeAlpha);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Usage Flags: " << ImageUsageFlagToString(static_cast<VkImageUsageFlagBits>(SurfaceCapabilities.supportedUsageFlags));
+}
+
+void VulkanDeviceManager::ListAvailablePhysicalDeviceSurfaceFormats() const
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device surface formats...";
+
+    for (const VkSurfaceFormatKHR& FormatIter : GetAvailablePhysicalDeviceSurfaceFormats())
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Format: " << FormatIter.format;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Color Space: " << FormatIter.colorSpace;
+    }
+}
+
+void VulkanDeviceManager::ListAvailablePhysicalDeviceSurfacePresentationModes() const
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device presentation modes...";
+
+    for (const VkPresentModeKHR& FormatIter : GetAvailablePhysicalDeviceSurfacePresentationModes())
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Mode: " << PresentationModeToString(FormatIter);
+    }
+}
+#endif

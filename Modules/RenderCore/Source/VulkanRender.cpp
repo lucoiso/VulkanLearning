@@ -117,11 +117,23 @@ public:
             return;
         }
 
-        const std::vector<std::uint32_t> ImageIndexes = m_CommandsManager->DrawFrame({ m_BufferManager->GetSwapChain() });
-        if (ImageIndexes.empty())
+        if (Window == nullptr)
         {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing device properties & capabilities...";
+            throw std::runtime_error("GLFW Window is invalid");
+        }
+
+        const std::vector<std::uint32_t> ImageIndexes = m_CommandsManager->DrawFrame({ m_BufferManager->GetSwapChain() });
+        if (!m_SharedDeviceProperties.IsValid() || ImageIndexes.empty())
+        {
             m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
+            if (!m_SharedDeviceProperties.IsValid())
+            {
+                return;
+            }
+
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing device properties & capabilities...";
+
+            m_CommandsManager->CreateSynchronizationObjects();
             m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
             m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
             m_BufferManager->CreateVertexBuffers();
