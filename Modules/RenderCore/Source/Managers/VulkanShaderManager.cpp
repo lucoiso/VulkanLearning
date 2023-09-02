@@ -244,7 +244,10 @@ bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Lan
     glslang::GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
     glslang::FinalizeProcess();
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compile result log:\n" << Logger.getAllMessages();
+    if (const std::string_view GeneratedLogs = Logger.getAllMessages(); !GeneratedLogs.empty())
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compilation result log:\n" << GeneratedLogs;
+    }
 
     return !OutSPIRVCode.empty();
 }
