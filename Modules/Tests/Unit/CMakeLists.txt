@@ -9,7 +9,7 @@ set(SOURCE_FILES
 )
 
 set(INCLUDE_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Window.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Placeholder.h
 )
 
 add_executable(${LIBRARY_NAME} ${SOURCE_FILES} ${INCLUDE_FILES})
@@ -20,5 +20,4 @@ find_package(Boost REQUIRED CONFIG COMPONENTS test)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE
     Boost::test
-    RenderCore
 )
