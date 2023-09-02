@@ -48,11 +48,12 @@ jobs:
       working-directory: ${{github.workspace}}/build
       run: ctest -C ${{env.BUILD_TYPE}}
     
-    - name: Perform Benchmark
+    - name: Run Benchmark
       working-directory: ${{github.workspace}}/build
-      uses: benchmark-action/github-action-benchmark@v1.18.0
+        run: ./bin/SubmodulesBenchmark.exe --benchmark_format=json | tee benchmark_result.json
+    
+    - name: Store Benchmark
+      uses: benchmark-action/github-action-benchmark@v1
       with:
-        tool: googlecpp
-        output-file-path: benchmark/result.txt
-        external-data-json-path: benchmark/external_data.json
-        fail-on-alert: true
+        tool: 'googlecpp'
+        output-file-path: benchmark_result.json
