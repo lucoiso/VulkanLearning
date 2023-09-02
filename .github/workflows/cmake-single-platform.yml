@@ -27,7 +27,7 @@ jobs:
         git submodule update --init --recursive --force
 
     - name: Install Vulkan SDK
-      uses: humbletim/setup-vulkan-sdk@1.2.0
+      uses: humbletim/setup-vulkan-sdk@v1.2.0
       with:
         vulkan-query-version: latest
         vulkan-components: Vulkan-Headers, Vulkan-Loader
