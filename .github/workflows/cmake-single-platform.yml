@@ -18,24 +18,24 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Environment
-        run: |
-            rm -rf ${{github.workspace}}/build
-            mkdir ${{github.workspace}}/build
-            cd ${{github.workspace}}/build
-            cmake --clean-cache
-            cd ..
+      run: |
+        rm -rf ${{github.workspace}}/build
+        mkdir ${{github.workspace}}/build
+        cd ${{github.workspace}}/build
+        cmake --clean-cache
+        cd ..
 
     - name: Configure Packages
-        run: |
-            python -m pip install conan
-            conan profile detect --force
-            conan install . --build=missing -pr=Profiles/Windows_x64_${{env.BUILD_TYPE}}
-            conan build . -pr=Profiles/Windows_x64_${{env.BUILD_TYPE}}
+      run: |
+        python -m pip install conan
+        conan profile detect --force
+        conan install . --build=missing -pr=Profiles/Windows_x64_${{env.BUILD_TYPE}}
+        conan build . -pr=Profiles/Windows_x64_${{env.BUILD_TYPE}}
 
     - name: Build Project
-        run: cmake --build ${{github.workspace}}/build --preset ${{env.CONAN_PRESET}}
+      run: cmake --build ${{github.workspace}}/build --preset ${{env.CONAN_PRESET}}
 
     - name: Test Binaries
-        working-directory: ${{github.workspace}}/build
-        run: ctest -C ${{env.BUILD_TYPE}}
+      working-directory: ${{github.workspace}}/build
+      run: ctest -C ${{env.BUILD_TYPE}}
 
