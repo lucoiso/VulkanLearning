@@ -38,7 +38,6 @@ jobs:
         python -m pip install conan
         conan profile detect --force
         conan install . --build=missing -pr=Profiles/Windows_x64_${{env.BUILD_TYPE}}
-        conan build . -pr=Profiles/Windows_x64_${{env.BUILD_TYPE}}
 
     - name: Build Project
       run: |
