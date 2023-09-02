@@ -50,21 +50,18 @@ jobs:
     
     - name: Run Submodules Benchmark
       working-directory: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}
-      run: ./SubmodulesBenchmark.exe --benchmark_format=json | tee submodule_benchmark_result.json
+      run: ./SubmodulesBenchmark.exe --benchmark_format=json | tee submodules_benchmark_result.json
+      
+    - name: Download Previous Submodules Benchmark Data
+      uses: actions/cache@v1
+      with:
+        path: ./cache
+        key: ${{ runner.os }}-submodules_benchmark
 
-    - name: Store Submodules Benchmark
+    - name: Store Submodules Benchmark Result
       uses: benchmark-action/github-action-benchmark@v1
       with:
         tool: 'googlecpp'
-        output-file-path: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/submodule_benchmark_result.json        
-    
-    # TODO: Implement application modules benchmark 
-    # - name: Run Application Benchmark
-    #   working-directory: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}
-    #   run: ./Benchmark.exe --benchmark_format=json | tee application_benchmark_result.json
-
-    # - name: Store Application Benchmark
-    #   uses: benchmark-action/github-action-benchmark@v1
-    #   with:
-    #     tool: 'googlecpp'
-    #     output-file-path: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/application_benchmark_result.json
+        output-file-path: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/submodules_benchmark_result.json
+        external-data-json-path: ./cache/submodules_benchmark_data.json
+        fail-on-alert: true
