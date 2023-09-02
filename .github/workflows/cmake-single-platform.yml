@@ -8,7 +8,7 @@ on:
 
 env:
   BUILD_TYPE: Release
-  CONAN_PRESET: conan-release
+  CONAN_PRESET: conan-${{env.BUILD_TYPE}}
 
 jobs:
   build:
@@ -33,7 +33,9 @@ jobs:
         conan build . -pr=Profiles/Windows_x64_${{env.BUILD_TYPE}}
 
     - name: Build Project
-      run: cmake --build ${{github.workspace}}/build --preset ${{env.CONAN_PRESET}}
+      run: |
+        cd ${{github.workspace}}\build  
+        cmake --build --preset ${{env.CONAN_PRESET}}
 
     - name: Test Binaries
       working-directory: ${{github.workspace}}/build
