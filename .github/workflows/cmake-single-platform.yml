@@ -48,12 +48,23 @@ jobs:
       working-directory: ${{github.workspace}}/build
       run: ctest -C ${{env.BUILD_TYPE}}
     
-    - name: Run Benchmark
+    - name: Run Submodules Benchmark
       working-directory: ${{github.workspace}}/build/bin
-      run: ./SubmodulesBenchmark.exe --benchmark_format=json | tee benchmark_result.json
+      run: ./SubmodulesBenchmark.exe --benchmark_format=json | tee submodule_benchmark_result.json
 
-    - name: Store Benchmark
+    - name: Store Submodules Benchmark
       uses: benchmark-action/github-action-benchmark@v1
       with:
         tool: 'googlecpp'
-        output-file-path: benchmark_result.json
+        output-file-path: submodule_benchmark_result.json        
+    
+    # TODO: Implement application modules benchmark 
+    # - name: Run Application Benchmark
+    #   working-directory: ${{github.workspace}}/build/bin
+    #   run: ./Benchmark.exe --benchmark_format=json | tee application_benchmark_result.json
+
+    # - name: Store Application Benchmark
+    #   uses: benchmark-action/github-action-benchmark@v1
+    #   with:
+    #     tool: 'googlecpp'
+    #     output-file-path: application_benchmark_result.json
