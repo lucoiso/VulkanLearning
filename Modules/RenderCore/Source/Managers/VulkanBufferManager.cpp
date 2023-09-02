@@ -211,6 +211,8 @@ void VulkanBufferManager::DestroyResources()
         throw std::runtime_error("Vulkan logical device is invalid.");
     }
 
+    m_QueueFamilyIndices.clear();
+
     if (m_SwapChain != VK_NULL_HANDLE)
     {
         vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);

@@ -54,13 +54,13 @@ jobs:
     
     - name: Run Submodules Benchmark
       working-directory: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}
-      run: ./SubmodulesBenchmark.exe --benchmark_format=json | tee benchmark_result.json
+      run: ./SubmodulesBenchmark.exe --benchmark_format=json | tee submodules_benchmark_result.json
 
     - name: Store Submodules Benchmark Result
       uses: benchmark-action/github-action-benchmark@v1
       with:
         tool: 'googlecpp'
-        output-file-path: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/benchmark_result.json
+        output-file-path: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/submodules_benchmark_result.json
         github-token: ${{ secrets.GITHUB_TOKEN }}
         alert-comment-cc-users: '@lucoiso'
         summary-always: true
@@ -68,4 +68,22 @@ jobs:
         auto-push: true
         fail-on-alert: true
         gh-pages-branch: 'gh-pages'
-        gh-repository: 'lucoiso/cpp-submodules'
+        gh-repository: 'github.com/lucoiso/cpp-submodules'
+    
+    - name: Run Application Benchmark
+      working-directory: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}
+      run: ./Benchmark.exe --benchmark_format=json | tee application_benchmark_result.json
+
+    - name: Store Application Benchmark Result
+      uses: benchmark-action/github-action-benchmark@v1
+      with:
+        tool: 'googlecpp'
+        output-file-path: ${{github.workspace}}/build/bin/${{env.BUILD_TYPE}}/application_benchmark_result.json
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        alert-comment-cc-users: '@lucoiso'
+        summary-always: true
+        comment-always: true
+        auto-push: true
+        fail-on-alert: true
+        gh-pages-branch: 'gh-pages'
+        gh-repository: 'github.com/lucoiso/VulkanLearning'

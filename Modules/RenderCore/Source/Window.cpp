@@ -173,12 +173,12 @@ bool Window::IsInitialized() const
 
 bool Window::IsOpen() const
 {
-    return m_Impl && m_Impl->IsOpen();
+    return IsInitialized() && m_Impl->IsOpen();
 }
 
 bool Window::ShouldClose() const
 {
-    return m_Impl && m_Impl->ShouldClose();
+    return !IsInitialized() || (m_Impl && m_Impl->ShouldClose());
 }
 
 void Window::PollEvents()
