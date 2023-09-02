@@ -1,6 +1,7 @@
 // Copyright Notice: [...]
 
 #include "Managers/VulkanPipelineManager.h"
+#include "Utils/RenderCoreHelpers.h"
 #include "Utils/VulkanConstants.h"
 #include <boost/log/trivial.hpp>
 
@@ -86,10 +87,7 @@ void VulkanPipelineManager::CreateRenderPass(const VkFormat& Format)
         .pDependencies = &Dependency
     };
 
-    if (vkCreateRenderPass(m_Device, &RenderPassCreateInfo, nullptr, &m_RenderPass) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create vulkan render pass");
-    }
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateRenderPass(m_Device, &RenderPassCreateInfo, nullptr, &m_RenderPass));
 }
 
 void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo>& ShaderStages, const VkExtent2D& Extent)
@@ -228,10 +226,7 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         .pushConstantRangeCount = 0u
     };
 
-    if (vkCreatePipelineLayout(m_Device, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create vulkan pipeline layout");
-    }
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineLayout(m_Device, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 
     // const VkPipelineCacheCreateInfo PipelineCacheCreateInfo{
     //     .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO
@@ -261,10 +256,7 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         }
     };
 
-    if (vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE /*m_PipelineCache*/, GraphicsPipelineCreateInfo.size(), GraphicsPipelineCreateInfo.data(), nullptr, &m_Pipeline) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create vulkan graphics pipeline");
-    }
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE /*m_PipelineCache*/, GraphicsPipelineCreateInfo.size(), GraphicsPipelineCreateInfo.data(), nullptr, &m_Pipeline));
 }
 
 void VulkanPipelineManager::Shutdown()

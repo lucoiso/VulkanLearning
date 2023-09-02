@@ -1,6 +1,7 @@
 // Copyright Notice: [...]
 
 #include "Managers/VulkanShaderManager.h"
+#include "Utils/RenderCoreHelpers.h"
 #include <boost/log/trivial.hpp>
 #include <SPIRV/GlslangToSpv.h>
 #include <glslang/Public/ResourceLimits.h>
@@ -50,7 +51,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uin
 {
     EShLanguage Language = EShLangVertex;
     const std::filesystem::path Path(Source);
-    
+
     if (const std::filesystem::path Extension = Path.extension();
         Extension == ".frag")
     {
@@ -186,10 +187,7 @@ VkShaderModule VulkanShaderManager::CreateModule(const VkDevice& Device, const s
     };
 
     VkShaderModule Output;
-    if (vkCreateShaderModule(Device, &CreateInfo, nullptr, &Output) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create shader module");
-    }
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateShaderModule(Device, &CreateInfo, nullptr, &Output));
 
     StageInfo(Output, Language);
 
@@ -241,7 +239,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Lan
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n" << Source;
-    
+
     spv::SpvBuildLogger Logger;
     glslang::GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
     glslang::FinalizeProcess();
@@ -267,14 +265,56 @@ void VulkanShaderManager::StageInfo(const VkShaderModule& Module, EShLanguage La
 
     switch (Language)
     {
-        case EShLangVertex:
-            StageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-            break;
-        case EShLangFragment:
-            StageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-            break;
+    case EShLangVertex:
+        StageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        break;
 
-        default: throw std::runtime_error("Unsupported shader language");
+    case EShLangFragment:
+        StageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        break;
+
+    case EShLangCompute:
+        StageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+        break;
+
+    case EShLangGeometry:
+        StageInfo.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
+        break;
+
+    case EShLangTessControl:
+        StageInfo.stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+        break;
+
+    case EShLangTessEvaluation:
+        StageInfo.stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+        break;
+
+    case EShLangRayGen:
+        StageInfo.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+        break;
+
+    case EShLangIntersect:
+        StageInfo.stage = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+        break;
+
+    case EShLangAnyHit:
+        StageInfo.stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+        break;
+
+    case EShLangClosestHit:
+        StageInfo.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+        break;
+
+    case EShLangMiss:
+        StageInfo.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
+        break;
+
+    case EShLangCallable:
+        StageInfo.stage = VK_SHADER_STAGE_CALLABLE_BIT_KHR;
+        break;
+
+    default:
+        throw std::runtime_error("Unsupported shader language");
     }
 
     m_StageInfos.emplace(Module, StageInfo);

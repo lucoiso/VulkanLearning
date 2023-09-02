@@ -1,6 +1,7 @@
 // Copyright Notice: [...]
 
 #include "Managers/VulkanBufferManager.h"
+#include "Utils/RenderCoreHelpers.h"
 #include <boost/log/trivial.hpp>
 
 using namespace RenderCore;
@@ -69,22 +70,13 @@ void VulkanBufferManager::CreateSwapChain(const VkSurfaceFormatKHR& PreferredFor
         .oldSwapchain = VK_NULL_HANDLE,
     };
 
-    if (vkCreateSwapchainKHR(m_Device, &SwapChainCreateInfo, nullptr, &m_SwapChain) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create Vulkan swap chain.");
-    }
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSwapchainKHR(m_Device, &SwapChainCreateInfo, nullptr, &m_SwapChain));
 
     std::uint32_t Count = 0u;
-    if (vkGetSwapchainImagesKHR(m_Device, m_SwapChain, &Count, nullptr) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to get Vulkan swap chain images count.");
-    }
+    RENDERCORE_CHECK_VULKAN_RESULT(vkGetSwapchainImagesKHR(m_Device, m_SwapChain, &Count, nullptr));
 
     m_SwapChainImages.resize(Count, VK_NULL_HANDLE);
-    if (vkGetSwapchainImagesKHR(m_Device, m_SwapChain, &Count, m_SwapChainImages.data()) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to get Vulkan swap chain images.");
-    }
+    RENDERCORE_CHECK_VULKAN_RESULT(vkGetSwapchainImagesKHR(m_Device, m_SwapChain, &Count, m_SwapChainImages.data()));
 
     CreateSwapChainImageViews(PreferredFormat.format);
 }
@@ -115,10 +107,7 @@ void VulkanBufferManager::CreateFrameBuffers(const VkRenderPass& RenderPass, con
         .layers = 1u
     };
 
-    if (vkCreateFramebuffer(m_Device, &FrameBufferCreateInfo, nullptr, m_FrameBuffers.data()) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create Vulkan image view.");
-    }
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateFramebuffer(m_Device, &FrameBufferCreateInfo, nullptr, m_FrameBuffers.data()));
 }
 
 void VulkanBufferManager::CreateVertexBuffers()
@@ -207,12 +196,9 @@ void VulkanBufferManager::CreateSwapChainImageViews(const VkFormat& ImageFormat)
                 .layerCount = 1u
             }
         };
-
+        
         const std::int32_t Index = std::distance(m_SwapChainImages.begin(), ImageIter);
-        if (vkCreateImageView(m_Device, &ImageViewCreateInfo, nullptr, &m_SwapChainImageViews[Index]) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to create Vulkan image view.");
-        }
+        RENDERCORE_CHECK_VULKAN_RESULT(vkCreateImageView(m_Device, &ImageViewCreateInfo, nullptr, &m_SwapChainImageViews[Index]))
     }
 }
 
