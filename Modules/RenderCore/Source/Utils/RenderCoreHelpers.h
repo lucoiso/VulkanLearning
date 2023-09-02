@@ -6,7 +6,9 @@
 #pragma once
 
 #include "Utils/VulkanConstants.h"
+#include "Utils/VulkanEnumConverter.h"
 #include <boost/log/trivial.hpp>
+#include <vulkan/vulkan.h>
 
 #ifndef GLFW_INCLUDE_VULKAN
 #define GLFW_INCLUDE_VULKAN
@@ -95,6 +97,12 @@ namespace RenderCore
         return Output;
 #endif
     }
+}
+
+#define RENDERCORE_CHECK_VULKAN_RESULT(INPUT_OPERATION) \
+if (const VkResult OperationResult = INPUT_OPERATION; OperationResult != VK_SUCCESS) \
+{ \
+    throw std::runtime_error("Vulkan operation failed with result: " + std::string(ResultToString(OperationResult))); \
 }
 
 #endif

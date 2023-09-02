@@ -85,10 +85,7 @@ public:
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan render";
 
-        if (vkDeviceWaitIdle(m_DeviceManager->GetLogicalDevice()) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to wait for vulkan device idle");
-        }
+        RENDERCORE_CHECK_VULKAN_RESULT(vkDeviceWaitIdle(m_DeviceManager->GetLogicalDevice()));
 
         m_ShaderManager->Shutdown();
         m_CommandsManager->Shutdown({ m_DeviceManager->GetGraphicsQueue(), m_DeviceManager ->GetPresentationQueue()});
@@ -215,20 +212,13 @@ private:
         CreateInfo.enabledExtensionCount = static_cast<std::uint32_t>(Extensions.size());
         CreateInfo.ppEnabledExtensionNames = Extensions.data();
 
-        if (vkCreateInstance(&CreateInfo, nullptr, &m_Instance) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to create Vulkan instance.");
-        }
+        RENDERCORE_CHECK_VULKAN_RESULT(vkCreateInstance(&CreateInfo, nullptr, &m_Instance));
 
 #ifdef _DEBUG
         if (bSupportsValidationLayer)
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Setting up debug messages";
-
-            if (CreateDebugUtilsMessenger(m_Instance, &CreateDebugInfo, nullptr, &m_DebugMessenger) != VK_SUCCESS)
-            {
-                throw std::runtime_error("Failed to set up debug messenger!");
-            }
+            RENDERCORE_CHECK_VULKAN_RESULT(CreateDebugUtilsMessenger(m_Instance, &CreateDebugInfo, nullptr, &m_DebugMessenger));
         }
 #endif
     }
@@ -247,10 +237,7 @@ private:
             throw std::runtime_error("Vulkan instance is invalid.");
         }
 
-        if (glfwCreateWindowSurface(m_Instance, Window, nullptr, &m_Surface) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to create window surface.");
-        }
+        RENDERCORE_CHECK_VULKAN_RESULT(glfwCreateWindowSurface(m_Instance, Window, nullptr, &m_Surface));
     }
 
     bool InitializeDeviceManagement(GLFWwindow* const Window)
