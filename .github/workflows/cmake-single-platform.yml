@@ -43,7 +43,7 @@ jobs:
     - name: Build Project
       run: |
         cmake --preset conan-default
-        cmake --build --preset ${{env.CONAN_PRESET}}
+        cmake --build --preset ${{env.CONAN_PRESET}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Test Binaries
       run: ctest -C ${{env.BUILD_TYPE}}
