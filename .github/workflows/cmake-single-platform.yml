@@ -45,6 +45,8 @@ jobs:
         cmake --build --preset ${{env.CONAN_PRESET}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Test Binaries
-      uses: benchmark-action/github-action-benchmark@v1.18.0
       working-directory: ${{github.workspace}}/build
       run: ctest -C ${{env.BUILD_TYPE}}
+    
+    - name: Perform Benchmark
+      uses: benchmark-action/github-action-benchmark@v1.18.0
