@@ -133,6 +133,7 @@ public:
 
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing device properties & capabilities...";
 
+            m_PipelineManager->UpdateExtent(m_SharedDeviceProperties.PreferredExtent);
             m_CommandsManager->CreateSynchronizationObjects();
             m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
             m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);

@@ -156,28 +156,6 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         .blendConstants = { 0.f, 0.f, 0.f, 0.f }
     };
 
-    const std::uint32_t NumViewports = static_cast<std::uint32_t>(m_Viewports.size());
-    for (VkViewport& ViewportIter : m_Viewports)
-    {
-        ViewportIter.width = static_cast<float>(Extent.width / NumViewports);
-        ViewportIter.height = static_cast<float>(Extent.height / NumViewports);
-    }
-
-    const std::uint32_t NumScissors = static_cast<std::uint32_t>(m_Scissors.size());
-    for (VkRect2D& ScissorIter : m_Scissors)
-    {
-        ScissorIter.extent.width = static_cast<float>(Extent.width / NumScissors);
-        ScissorIter.extent.height = static_cast<float>(Extent.height / NumScissors);
-    }
-
-    const VkPipelineViewportStateCreateInfo ViewportState{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-        .viewportCount = NumViewports,
-        .pViewports = m_Viewports.data(),
-        .scissorCount = NumScissors,
-        .pScissors = m_Scissors.data()
-    };
-
     const VkPipelineMultisampleStateCreateInfo MultisampleState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
@@ -232,6 +210,16 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         throw std::runtime_error("Failed to create vulkan pipeline cache");
     }
 
+    UpdateExtent(Extent);
+
+    const VkPipelineViewportStateCreateInfo ViewportState{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+        .viewportCount = static_cast<std::uint32_t>(m_Viewports.size()),
+        .pViewports = m_Viewports.data(),
+        .scissorCount = static_cast<std::uint32_t>(m_Scissors.size()),
+        .pScissors = m_Scissors.data()
+    };
+
     const std::vector<VkGraphicsPipelineCreateInfo> GraphicsPipelineCreateInfo{
         VkGraphicsPipelineCreateInfo{
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -252,6 +240,23 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
     };
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateGraphicsPipelines(m_Device, m_PipelineCache, GraphicsPipelineCreateInfo.size(), GraphicsPipelineCreateInfo.data(), nullptr, &m_Pipeline));
+}
+
+void VulkanPipelineManager::UpdateExtent(const VkExtent2D& Extent)
+{
+    const std::uint32_t NumViewports = static_cast<std::uint32_t>(m_Viewports.size());
+    for (VkViewport& ViewportIter : m_Viewports)
+    {
+        ViewportIter.width = static_cast<float>(Extent.width / NumViewports);
+        ViewportIter.height = static_cast<float>(Extent.height / NumViewports);
+    }
+
+    const std::uint32_t NumScissors = static_cast<std::uint32_t>(m_Scissors.size());
+    for (VkRect2D& ScissorIter : m_Scissors)
+    {
+        ScissorIter.extent.width = static_cast<float>(Extent.width / NumScissors);
+        ScissorIter.extent.height = static_cast<float>(Extent.height / NumScissors);
+    }
 }
 
 void VulkanPipelineManager::Shutdown()

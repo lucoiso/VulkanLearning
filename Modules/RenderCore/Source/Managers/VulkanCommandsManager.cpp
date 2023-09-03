@@ -232,8 +232,7 @@ void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass,
 			break;
 		}
 
-		RENDERCORE_CHECK_VULKAN_RESULT(vkResetCommandBuffer(*CommandBufferIter, 0));
-
+		RENDERCORE_CHECK_VULKAN_RESULT(vkResetCommandBuffer(*CommandBufferIter, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
 		RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(*CommandBufferIter, &CommandBufferBeginInfo));
 
 		const VkRenderPassBeginInfo RenderPassBeginInfo{

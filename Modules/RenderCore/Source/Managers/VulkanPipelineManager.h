@@ -21,6 +21,7 @@ class VulkanPipelineManager
 
         void CreateRenderPass(const VkFormat& Format);
         void CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo>& ShaderStages, const VkExtent2D& Extent);
+        void UpdateExtent(const VkExtent2D& Extent);
 
         void Shutdown();
 
