@@ -36,10 +36,12 @@ namespace RenderCore
         [[nodiscard]] const VkDevice& GetLogicalDevice() const;
         [[nodiscard]] const VkQueue& GetGraphicsQueue() const;
         [[nodiscard]] const VkQueue& GetPresentationQueue() const;
+        [[nodiscard]] const VkQueue& GetTransferQueue() const;
 
         [[nodiscard]] std::vector<std::uint32_t> GetQueueFamilyIndices() const;
         [[nodiscard]] std::uint32_t GetGraphicsQueueFamilyIndex() const;
         [[nodiscard]] std::uint32_t GetPresentationQueueFamilyIndex() const;
+        [[nodiscard]] std::uint32_t GetTransferQueueFamilyIndex() const;
 
         [[nodiscard]] std::vector<VkPhysicalDevice> GetAvailablePhysicalDevices() const;
         [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions() const;
@@ -52,7 +54,7 @@ namespace RenderCore
         [[nodiscard]] DeviceProperties GetPreferredProperties(GLFWwindow* const Window);
 
     private:
-        bool GetQueueFamilyIndices(std::optional<std::uint32_t>& GraphicsQueueFamilyIndex, std::optional<std::uint32_t>& PresentationQueueFamilyIndex);
+        bool GetQueueFamilyIndices(std::optional<std::uint32_t>& GraphicsQueueFamilyIndex, std::optional<std::uint32_t>& PresentationQueueFamilyIndex, std::optional<std::uint32_t>& TransferQueueFamilyIndex);
 
 #ifdef _DEBUG
         void ListAvailablePhysicalDevices() const;
@@ -70,5 +72,6 @@ namespace RenderCore
 
         std::pair<std::uint32_t, VkQueue> m_GraphicsQueue;
         std::pair<std::uint32_t, VkQueue> m_PresentationQueue;
+        std::pair<std::uint32_t, VkQueue> m_TransferQueue;
     };
 }

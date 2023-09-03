@@ -161,7 +161,7 @@ std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<Vk
 
 	WaitAndResetFences();
 
-	std::vector<std::uint32_t> ImageIndexes;
+	std::vector<std::uint32_t> ImageIndices;
 	for (std::uint32_t Iterator = 0u; Iterator < m_ProcessingUnitsCount; ++Iterator)
 	{
 		if (m_ImageAvailableSemaphores[Iterator] == VK_NULL_HANDLE)
@@ -179,8 +179,8 @@ std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<Vk
 			throw std::runtime_error("Vulkan swap chain is invalid.");
 		}
 
-		ImageIndexes.emplace_back(0u);
-		if (const VkResult OperationResult = vkAcquireNextImageKHR(m_Device, SwapChains[Iterator], Timeout, m_ImageAvailableSemaphores[Iterator], m_Fences[Iterator], &ImageIndexes.back()); OperationResult != VK_SUCCESS)
+		ImageIndices.emplace_back(0u);
+		if (const VkResult OperationResult = vkAcquireNextImageKHR(m_Device, SwapChains[Iterator], Timeout, m_ImageAvailableSemaphores[Iterator], m_Fences[Iterator], &ImageIndices.back()); OperationResult != VK_SUCCESS)
 		{
 			if (OperationResult == VK_ERROR_OUT_OF_DATE_KHR || OperationResult == VK_SUBOPTIMAL_KHR)
 			{
@@ -205,10 +205,10 @@ std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<Vk
 		}
 	}
 
-	return ImageIndexes;
+	return ImageIndices;
 }
 
-void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass, const VkPipeline& Pipeline, const std::vector<VkViewport>& Viewports, const std::vector<VkRect2D>& Scissors, const VkExtent2D& Extent, const std::vector<VkFramebuffer>& FrameBuffers, const std::vector<VkBuffer>& VertexBuffers, const std::vector<VkDeviceSize>& Offsets)
+void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass, const VkPipeline& Pipeline, const std::vector<VkViewport>& Viewports, const std::vector<VkRect2D>& Scissors, const VkExtent2D& Extent, const std::vector<VkFramebuffer>& FrameBuffers, const std::vector<VkBuffer>& VertexBuffers, const std::vector<VkBuffer>& IndexBuffers, const std::uint32_t IndexCount, const std::vector<VkDeviceSize>& Offsets)
 {
 	if (Pipeline == VK_NULL_HANDLE)
 	{
@@ -252,15 +252,17 @@ void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass,
 		vkCmdBeginRenderPass(*CommandBufferIter, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindPipeline(*CommandBufferIter, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
 
-		if (!VertexBuffers.empty())
+		vkCmdBindVertexBuffers(*CommandBufferIter, 0, 1, VertexBuffers.data(), Offsets.data());
+
+		for (const VkBuffer& IndexBufferIter : IndexBuffers)
 		{
-			vkCmdBindVertexBuffers(*CommandBufferIter, 0, 1, VertexBuffers.data(), Offsets.data());
-		}
+            vkCmdBindIndexBuffer(*CommandBufferIter, IndexBufferIter, 0, VK_INDEX_TYPE_UINT32);
+        }
 
 		vkCmdSetViewport(*CommandBufferIter, 0u, static_cast<std::uint32_t>(Viewports.size()), Viewports.data());
 		vkCmdSetScissor(*CommandBufferIter, 0u, static_cast<std::uint32_t>(Scissors.size()), Scissors.data());
 
-		vkCmdDraw(*CommandBufferIter, 3, 1, 0, 0);
+		vkCmdDrawIndexed(*CommandBufferIter, IndexCount, 1u, 0u, 0u, 0u);
 		vkCmdEndRenderPass(*CommandBufferIter);
 
 		if (vkEndCommandBuffer(*CommandBufferIter) != VK_SUCCESS)
@@ -307,7 +309,7 @@ void VulkanCommandsManager::SubmitCommandBuffers(const VkQueue& GraphicsQueue)
 	}
 }
 
-void VulkanCommandsManager::PresentFrame(const VkQueue& PresentQueue, const std::vector<VkSwapchainKHR>& SwapChains, const std::vector<std::uint32_t>& ImageIndexes)
+void VulkanCommandsManager::PresentFrame(const VkQueue& PresentQueue, const std::vector<VkSwapchainKHR>& SwapChains, const std::vector<std::uint32_t>& ImageIndices)
 {
 	if (PresentQueue == VK_NULL_HANDLE)
 	{
@@ -320,7 +322,7 @@ void VulkanCommandsManager::PresentFrame(const VkQueue& PresentQueue, const std:
 		.pWaitSemaphores = m_RenderFinishedSemaphores.data(),
 		.swapchainCount = static_cast<std::uint32_t>(SwapChains.size()),
 		.pSwapchains = SwapChains.data(),
-		.pImageIndices = ImageIndexes.data(),
+		.pImageIndices = ImageIndices.data(),
 		.pResults = nullptr
 	};
 

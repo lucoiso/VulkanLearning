@@ -25,7 +25,11 @@ namespace RenderCore
 
         void CreateSwapChain(const VkSurfaceFormatKHR& PreferredFormat, const VkPresentModeKHR& PreferredMode, const VkExtent2D& PreferredExtent, const VkSurfaceCapabilitiesKHR& Capabilities);
         void CreateFrameBuffers(const VkRenderPass& RenderPass, const VkExtent2D& Extent);
-        void CreateVertexBuffers(const VkPhysicalDevice& PhysicalDevice);
+        void CreateVertexBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const std::vector<VkCommandBuffer>& CommandBuffers, const VkCommandPool& CommandPool);
+        void CreateIndexBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const std::vector<VkCommandBuffer>& CommandBuffers, const VkCommandPool& CommandPool);
+
+        void CreateBuffer(const VkPhysicalDeviceMemoryProperties& Properties, const VkDeviceSize& Size, const VkBufferUsageFlags& Usage, const VkMemoryPropertyFlags& Flags, VkBuffer& Buffer, VkDeviceMemory& BufferMemory) const;
+        void CopyBuffer(const VkBuffer& Source, const VkBuffer& Destination, const VkDeviceSize& Size, const VkQueue& TransferQueue, const std::vector<VkCommandBuffer>& CommandBuffers, const VkCommandPool& CommandPool) const;
 
         void Shutdown();
 
@@ -35,6 +39,12 @@ namespace RenderCore
         [[nodiscard]] const std::vector<VkImageView>& GetSwapChainImageViews() const;
         [[nodiscard]] const std::vector<VkFramebuffer>& GetFrameBuffers() const;
         [[nodiscard]] const std::vector<VkBuffer>& GetVertexBuffers() const;
+        [[nodiscard]] const std::vector<VkDeviceMemory>& GetVertexBuffersMemory() const;
+        [[nodiscard]] const std::vector<VkBuffer>& GetIndexBuffers() const;
+        [[nodiscard]] const std::vector<VkDeviceMemory>& GetIndexBuffersMemory() const;
+        [[nodiscard]] const std::vector<Vertex>& GetVertices() const;
+        [[nodiscard]] const std::vector<std::uint32_t>& GetIndices() const;
+        [[nodiscard]] std::uint32_t GetIndexCount() const;
 
     private:
         void CreateSwapChainImageViews(const VkFormat& ImageFormat);
@@ -44,7 +54,7 @@ namespace RenderCore
 
         const VkDevice& m_Device;
         const VkSurfaceKHR& m_Surface;
-        std::vector<std::uint32_t> m_QueueFamilyIndices;
+        const std::vector<std::uint32_t> m_QueueFamilyIndices;
 
         VkSwapchainKHR m_SwapChain;
         std::vector<VkImage> m_SwapChainImages;
@@ -52,6 +62,9 @@ namespace RenderCore
         std::vector<VkFramebuffer> m_FrameBuffers;
         std::vector<VkBuffer> m_VertexBuffers;
         std::vector<VkDeviceMemory> m_VertexBuffersMemory;
+        std::vector<VkBuffer> m_IndexBuffers;
+        std::vector<VkDeviceMemory> m_IndexBuffersMemory;
         std::vector<Vertex> m_Vertices;
+        std::vector<std::uint32_t> m_Indices;
     };
 }

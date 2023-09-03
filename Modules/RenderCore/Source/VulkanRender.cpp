@@ -124,8 +124,8 @@ public:
             throw std::runtime_error("GLFW Window is invalid");
         }
 
-        const std::vector<std::uint32_t> ImageIndexes = m_CommandsManager->DrawFrame({ m_BufferManager->GetSwapChain() });
-        if (!m_SharedDeviceProperties.IsValid() || ImageIndexes.empty())
+        const std::vector<std::uint32_t> ImageIndices = m_CommandsManager->DrawFrame({ m_BufferManager->GetSwapChain() });
+        if (!m_SharedDeviceProperties.IsValid() || ImageIndices.empty())
         {
             m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
             if (!m_SharedDeviceProperties.IsValid())
@@ -139,15 +139,16 @@ public:
             m_CommandsManager->CreateSynchronizationObjects();
             m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
             m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
-            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetPhysicalDevice());
+            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
+            m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
 
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Buffers updated, starting to draw frames with new surface properties";
         }
         else
         {
-            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_PipelineManager->GetViewports(), m_PipelineManager->GetScissors(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), { 0u });
+            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_PipelineManager->GetViewports(), m_PipelineManager->GetScissors(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), m_BufferManager->GetIndexBuffers(), m_BufferManager->GetIndexCount(), { 0u });
             m_CommandsManager->SubmitCommandBuffers(m_DeviceManager->GetGraphicsQueue());
-            m_CommandsManager->PresentFrame(m_DeviceManager->GetPresentationQueue(), { m_BufferManager->GetSwapChain() }, ImageIndexes);
+            m_CommandsManager->PresentFrame(m_DeviceManager->GetPresentationQueue(), { m_BufferManager->GetSwapChain() }, ImageIndices);
         }
     }
 
@@ -279,7 +280,6 @@ private:
         {
             m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
             m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
-            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetPhysicalDevice());
         }
 
         return m_BufferManager != nullptr;
@@ -311,8 +311,10 @@ private:
         if (m_CommandsManager = std::make_unique<VulkanCommandsManager>(m_DeviceManager->GetLogicalDevice()))
         {
             m_CommandsManager->CreateCommandPool(m_BufferManager->GetFrameBuffers(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
-            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_PipelineManager->GetViewports(), m_PipelineManager->GetScissors(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), { 0u });
             m_CommandsManager->CreateSynchronizationObjects();
+            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
+            m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
+            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_PipelineManager->GetViewports(), m_PipelineManager->GetScissors(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), m_BufferManager->GetIndexBuffers(), m_BufferManager->GetIndexCount(), { 0u });
         }
 
         return m_CommandsManager != nullptr;

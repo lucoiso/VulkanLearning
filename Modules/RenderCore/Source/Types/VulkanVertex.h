@@ -11,6 +11,7 @@ namespace RenderCore
 {
     struct Vertex
     {
+        std::uint16_t Index = 0u;
         std::array<float, 3> Position{ 0.f, 0.f, 0.f };
         std::array<float, 3> Color{ 0.f, 0.f, 0.f };
 
