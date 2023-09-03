@@ -14,7 +14,7 @@ int main(int Argc, char* Argv[])
     try
     {
         if (const std::unique_ptr<RenderCore::Window> Window = std::make_unique<RenderCore::Window>();
-            Window && Window->Initialize(800u, 600u, "Vulkan Project"))
+            Window && Window->Initialize(600u, 600u, "Vulkan Project"))
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Starting polling events & drawing frames";
             {
