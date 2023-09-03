@@ -206,7 +206,7 @@ std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<Vk
 	return ImageIndexes;
 }
 
-void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass, const VkPipeline& Pipeline, const VkExtent2D& Extent, const std::vector<VkFramebuffer>& FrameBuffers, const std::vector<VkBuffer>& VertexBuffers, const std::vector<VkDeviceSize>& Offsets)
+void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass, const VkPipeline& Pipeline, const std::vector<VkViewport>& Viewports, const std::vector<VkRect2D>& Scissors, const VkExtent2D& Extent, const std::vector<VkFramebuffer>& FrameBuffers, const std::vector<VkBuffer>& VertexBuffers, const std::vector<VkDeviceSize>& Offsets)
 {
 	if (Pipeline == VK_NULL_HANDLE)
 	{
@@ -218,8 +218,10 @@ void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass,
 		.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT
 	};
 
-	const VkClearValue ClearValue{
-		.color = { 0.0f, 0.0f, 0.0f, 1.0f }
+	const std::vector<VkClearValue> ClearValues{
+		VkClearValue{
+			.color = { 0.0f, 0.0f, 0.0f, 1.0f }
+		}
 	};
 
 	auto CommandBufferIter = m_CommandBuffers.begin();
@@ -235,24 +237,27 @@ void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass,
 		RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(*CommandBufferIter, &CommandBufferBeginInfo));
 
 		const VkRenderPassBeginInfo RenderPassBeginInfo{
-		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 			.renderPass = RenderPass,
 			.framebuffer = FrameBufferIter,
 			.renderArea = {
 				.offset = { 0, 0 },
 				.extent = Extent
 			},
-			.clearValueCount = 1u,
-			.pClearValues = &ClearValue
+			.clearValueCount = static_cast<std::uint32_t>(ClearValues.size()),
+			.pClearValues = ClearValues.data()
 		};
 
 		vkCmdBeginRenderPass(*CommandBufferIter, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindPipeline(*CommandBufferIter, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
 
-		// vkCmdBindVertexBuffers(*CommandBufferIter, 0, 1, VertexBuffer.data(), Offsets.data());
+		if (!VertexBuffers.empty())
+		{
+			vkCmdBindVertexBuffers(*CommandBufferIter, 0, 1, VertexBuffers.data(), Offsets.data());
+		}
 
-		// vkCmdSetViewport(*CommandBufferIter, 0u, 1u, &m_Viewport);
-		// vkCmdSetScissor(*CommandBufferIter, 0u, 1u, &m_Scissor);
+		vkCmdSetViewport(*CommandBufferIter, 0u, static_cast<std::uint32_t>(Viewports.size()), Viewports.data());
+		vkCmdSetScissor(*CommandBufferIter, 0u, static_cast<std::uint32_t>(Scissors.size()), Scissors.data());
 
 		vkCmdDraw(*CommandBufferIter, 3, 1, 0, 0);
 		vkCmdEndRenderPass(*CommandBufferIter);

@@ -27,7 +27,7 @@ namespace RenderCore
         void DestroySynchronizationObjects();
 
         std::vector<std::uint32_t> DrawFrame(const std::vector<VkSwapchainKHR>& SwapChains);
-        void RecordCommandBuffers(const VkRenderPass& RenderPass, const VkPipeline& Pipeline, const VkExtent2D& Extent, const std::vector<VkFramebuffer>& FrameBuffers, const std::vector<VkBuffer>& VertexBuffers, const std::vector<VkDeviceSize>& Offsets);
+        void RecordCommandBuffers(const VkRenderPass& RenderPass, const VkPipeline& Pipeline, const std::vector<VkViewport>& Viewports, const std::vector<VkRect2D>& Scissors, const VkExtent2D& Extent, const std::vector<VkFramebuffer>& FrameBuffers, const std::vector<VkBuffer>& VertexBuffers, const std::vector<VkDeviceSize>& Offsets);
         void SubmitCommandBuffers(const VkQueue& GraphicsQueue);
         void PresentFrame(const VkQueue& PresentQueue, const std::vector<VkSwapchainKHR>& SwapChains, const std::vector<std::uint32_t>& ImageIndexes);
 

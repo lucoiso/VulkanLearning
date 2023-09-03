@@ -142,7 +142,7 @@ public:
         }
         else
         {
-            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), { 0u });
+            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_PipelineManager->GetViewports(), m_PipelineManager->GetScissors(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), { 0u });
             m_CommandsManager->SubmitCommandBuffers(m_DeviceManager->GetGraphicsQueue());
             m_CommandsManager->PresentFrame(m_DeviceManager->GetPresentationQueue(), { m_BufferManager->GetSwapChain() }, ImageIndexes);
         }
@@ -307,7 +307,7 @@ private:
         if (m_CommandsManager = std::make_unique<VulkanCommandsManager>(m_DeviceManager->GetLogicalDevice()))
         {
             m_CommandsManager->CreateCommandPool(m_BufferManager->GetFrameBuffers(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
-            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), { 0u });
+            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_PipelineManager->GetViewports(), m_PipelineManager->GetScissors(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), { 0u });
             m_CommandsManager->CreateSynchronizationObjects();
         }
 

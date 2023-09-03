@@ -28,8 +28,10 @@ class VulkanPipelineManager
         [[nodiscard]] const VkRenderPass& GetRenderPass() const;
         [[nodiscard]] const VkPipeline& GetPipeline() const;
         [[nodiscard]] const VkPipelineLayout& GetPipelineLayout() const;
-        // [[nodiscard]] const VkPipelineCache& GetPipelineCache() const;
-        // [[nodiscard]] const VkDescriptorSetLayout& GetDescriptorSetLayout() const;
+        [[nodiscard]] const VkPipelineCache& GetPipelineCache() const;
+        [[nodiscard]] const VkDescriptorSetLayout& GetDescriptorSetLayout() const;
+        [[nodiscard]] const std::vector<VkViewport>& GetViewports() const;
+        [[nodiscard]] const std::vector<VkRect2D>& GetScissors() const;
 
     private:
         const VkInstance& m_Instance;
@@ -38,9 +40,9 @@ class VulkanPipelineManager
         VkRenderPass m_RenderPass;
         VkPipeline m_Pipeline;
         VkPipelineLayout m_PipelineLayout;
-        // VkPipelineCache m_PipelineCache;
-        // VkDescriptorSetLayout m_DescriptorSetLayout;
-        VkViewport m_Viewport;
-        VkRect2D m_Scissor;
+        VkPipelineCache m_PipelineCache;
+        VkDescriptorSetLayout m_DescriptorSetLayout;
+        std::vector<VkViewport> m_Viewports;
+        std::vector<VkRect2D> m_Scissors;
     };
 }
