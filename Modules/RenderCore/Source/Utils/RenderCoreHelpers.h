@@ -9,8 +9,10 @@
 
 #include "Utils/VulkanConstants.h"
 #include "Utils/VulkanEnumConverter.h"
+#include "Types/VulkanVertex.h"
 #include <boost/log/trivial.hpp>
 #include <vulkan/vulkan.h>
+#include <numbers>
 
 #ifndef GLFW_INCLUDE_VULKAN
 #define GLFW_INCLUDE_VULKAN
@@ -98,6 +100,76 @@ namespace RenderCore
 
         return Output;
 #endif
+    }
+
+    constexpr void CreateTriangle(std::vector<Vertex>& Vertices, std::vector<std::uint32_t>& Indices)
+    {
+        Vertices.clear();
+        Indices.clear();
+
+        Vertices = {
+            Vertex{ .Position = { -0.5f, -0.5f }, .Color = { 1.0f, 0.0f, 0.0f } },
+            Vertex{ .Position = { 0.5f, -0.5f }, .Color = { 0.0f, 1.0f, 0.0f } },
+            Vertex{ .Position = { 0.0f, 0.5f }, .Color = { 0.0f, 0.0f, 1.0f } }
+        };
+
+        Indices = { 0u, 1u, 2u };
+    }
+
+    constexpr void CreateSquare(std::vector<Vertex>& Vertices, std::vector<std::uint32_t>& Indices)
+    {
+        Vertices.clear();
+        Indices.clear();
+
+        Vertices = {
+            Vertex {
+                .Position = { -0.5f, -0.5f, 0.f },
+                .Color = {1.0f, 0.0f, 0.0f }
+            },
+            Vertex {
+                .Position = { 0.5f, -0.5f, 0.f },
+                .Color = {0.0f, 1.0f, 0.0f}
+            },
+            Vertex {
+                .Position = { 0.5f, 0.5f, 0.f },
+                .Color = {0.0f, 0.0f, 1.0f}
+            },
+            Vertex {
+                .Position = { -0.5f, 0.5f, 0.f },
+                .Color = { 0.0f, 0.0f, 1.0f }
+            }
+        };
+
+        Indices = { 0u, 1u, 2u, 2u, 3u, 0u };
+    }
+
+    constexpr void CreateCircle(std::vector<Vertex>& Vertices, std::vector<std::uint32_t>& Indices)
+    {
+        Vertices.clear();
+        Indices.clear();
+
+        constexpr std::uint32_t CircleResolution = 100u;
+        constexpr float CircleRadius = 0.5f;
+
+        Vertices.reserve(CircleResolution + 1u);
+        Indices.reserve(CircleResolution * 3u);
+
+        for (std::uint32_t Iterator = 0u; Iterator < CircleResolution; ++Iterator)
+        {
+            const float Angle = 2.f * std::numbers::pi * Iterator / CircleResolution;
+            const float X = CircleRadius * std::cos(Angle);
+            const float Y = CircleRadius * std::sin(Angle);
+
+            const float RedChannel = std::clamp(1.f - X, 0.f, 1.f);
+            const float GreenChannel = std::clamp(Y + 0.5f, 0.f, 1.f);
+            const float BlueChannel = std::clamp(X + 0.5f, 0.f, 1.f);
+
+            Vertices.emplace_back(Vertex{ .Position = { X, Y, 0.f }, .Color = { RedChannel, GreenChannel, BlueChannel } });
+
+            Indices.emplace_back(0u);
+            Indices.emplace_back(Iterator + 1u);
+            Indices.emplace_back(Iterator + 2u);
+        }
     }
 }
 

@@ -13,7 +13,7 @@ namespace RenderCore
     {
         std::uint16_t Index = 0u;
         std::array<float, 3> Position{ 0.f, 0.f, 0.f };
-        std::array<float, 3> Color{ 0.f, 0.f, 0.f };
+        std::array<float, 4> Color{ 0.f, 0.f, 0.f, 1.f };
 
         static inline std::array<VkVertexInputBindingDescription, 1> GetBindingDescriptors()
         {

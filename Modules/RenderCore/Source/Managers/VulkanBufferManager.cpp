@@ -22,19 +22,19 @@ VulkanBufferManager::VulkanBufferManager(const VkDevice& Device, const VkSurface
     , m_IndexBuffersMemory({})
     , m_Vertices({
         Vertex {
-            .Position = { -0.5f, -0.5f, 0.f },
+            .Position = { -1.f, -1.f, 0.f },
             .Color = {1.0f, 0.0f, 0.0f }
         },
         Vertex {
-            .Position = { 0.5f, -0.5f, 0.f },
+            .Position = { 1.f, -1.f, 0.f },
             .Color = {0.0f, 1.0f, 0.0f}
         },
         Vertex {
-            .Position = { 0.5f, 0.5f, 0.f },
+            .Position = { 1.f, 1.f, 0.f },
             .Color = {0.0f, 0.0f, 1.0f}
         },
         Vertex {
-            .Position = { -0.5f, 0.5f, 0.f },
+            .Position = { -1.f, 1.f, 0.f },
             .Color = { 0.0f, 0.0f, 1.0f }
         }
     })
@@ -43,6 +43,7 @@ VulkanBufferManager::VulkanBufferManager(const VkDevice& Device, const VkSurface
     )
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan buffer manager";
+    CreateCircle(m_Vertices, m_Indices);
 }
 
 VulkanBufferManager::~VulkanBufferManager()
