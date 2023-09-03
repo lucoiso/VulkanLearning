@@ -11,8 +11,12 @@ env:
   CONAN_PRESET: conan-release
   
 permissions:
+  actions: read
   deployments: write
   contents: write
+  permissions:
+  id-token: write
+  security-events: write
 
 jobs:
   build:
@@ -20,6 +24,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
     - name: Setup Environment
       shell: powershell
@@ -76,3 +82,27 @@ jobs:
         github-token: ${{ secrets.LUCOISO_PAT }}
         auto-push: true
         gh-repository: 'github.com/lucoiso/cpp-submodules'
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: arn:aws:iam::152836898893:role/CodeGuruSecurityGitHubAccessRole
+        aws-region: eu-north-1
+        role-session-name: GitHubActionScript
+
+    - name: Run AWS CodeGuru Security Analysis
+      uses: aws-actions/codeguru-security@v1
+      with:
+        source_path: .
+        aws_region: eu-north-1
+        fail_on_severity: Critical
+
+    - name: Print AWS CodeGuru Security Analysis Findings
+      run: |
+        ls -l
+        cat codeguru-security-results.sarif.json
+
+    - name: Upload AWS CodeGuru Security Analysis Result
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: codeguru-security-results.sarif.json
