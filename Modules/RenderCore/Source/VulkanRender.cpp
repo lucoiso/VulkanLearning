@@ -139,7 +139,7 @@ public:
             m_CommandsManager->CreateSynchronizationObjects();
             m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
             m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
-            m_BufferManager->CreateVertexBuffers();
+            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetPhysicalDevice());
 
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Buffers updated, starting to draw frames with new surface properties";
         }
@@ -279,6 +279,7 @@ private:
         {
             m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
             m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
+            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetPhysicalDevice());
         }
 
         return m_BufferManager != nullptr;

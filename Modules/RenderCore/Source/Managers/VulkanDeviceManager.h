@@ -5,6 +5,7 @@
 #pragma once
 
 #include "RenderCoreModule.h"
+#include "Types/DeviceProperties.h"
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <string>
@@ -14,16 +15,6 @@ struct GLFWwindow;
 
 namespace RenderCore
 {
-    struct DeviceProperties
-    {
-        VkSurfaceFormatKHR PreferredFormat;
-        VkPresentModeKHR PreferredMode;
-        VkExtent2D PreferredExtent;
-        VkSurfaceCapabilitiesKHR Capabilities;
-
-        inline bool IsValid() const { return PreferredExtent.height != 0u && PreferredExtent.width != 0u; }
-    };
-
     class VulkanDeviceManager
     {
     public:

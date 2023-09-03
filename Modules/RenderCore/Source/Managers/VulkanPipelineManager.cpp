@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/VulkanLearning
 
 #include "Managers/VulkanPipelineManager.h"
+#include "Types/VulkanVertex.h"
 #include "Utils/RenderCoreHelpers.h"
 #include "Utils/VulkanConstants.h"
 #include <boost/log/trivial.hpp>
@@ -114,8 +115,8 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         .pDynamicStates = g_DynamicStates.data()
     };
 
-    const std::vector<VkVertexInputBindingDescription> BindingDescription{ };
-    const std::vector<VkVertexInputAttributeDescription> AttributeDescriptions{ };
+    const auto BindingDescription = Vertex::GetBindingDescriptors();
+    const auto AttributeDescriptions = Vertex::GetAttributeDescriptions();
 
     const VkPipelineVertexInputStateCreateInfo VertexInputState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,

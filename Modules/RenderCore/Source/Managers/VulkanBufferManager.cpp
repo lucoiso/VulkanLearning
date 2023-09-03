@@ -17,6 +17,21 @@ VulkanBufferManager::VulkanBufferManager(const VkDevice& Device, const VkSurface
     , m_SwapChainImageViews({})
     , m_FrameBuffers({})
     , m_VertexBuffers({})
+    , m_VertexBuffersMemory({})
+    , m_Vertices({
+        Vertex {
+            .Position = {0.0f, -0.5f, 0.f},
+            .Color = {1.0f, 0.0f, 0.0f}
+        },
+        Vertex {
+            .Position = {0.5f, 0.5f, 0.f},
+            .Color = {0.0f, 1.0f, 0.0f}
+        },
+        Vertex {
+            .Position = {-0.5f, 0.5f, 0.f},
+            .Color = {0.0f, 0.0f, 1.0f}
+        }        
+    })
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan buffer manager";
 
@@ -112,7 +127,7 @@ void VulkanBufferManager::CreateFrameBuffers(const VkRenderPass& RenderPass, con
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateFramebuffer(m_Device, &FrameBufferCreateInfo, nullptr, m_FrameBuffers.data()));
 }
 
-void VulkanBufferManager::CreateVertexBuffers()
+void VulkanBufferManager::CreateVertexBuffers(const VkPhysicalDevice& PhysicalDevice)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan vertex buffers";
 
@@ -121,7 +136,40 @@ void VulkanBufferManager::CreateVertexBuffers()
         throw std::runtime_error("Vulkan logical device is invalid.");
     }
 
-    // TODO: Create vertex buffers
+    m_VertexBuffers.resize(m_SwapChainImages.size(), VK_NULL_HANDLE);
+    m_VertexBuffersMemory.resize(m_SwapChainImages.size(), VK_NULL_HANDLE);
+
+    const VkBufferCreateInfo BufferCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .size = m_Vertices.size() * sizeof(Vertex),
+        .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    };
+
+    VkPhysicalDeviceMemoryProperties MemoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(PhysicalDevice, &MemoryProperties);
+
+    for (std::uint32_t Iterator = 0u; Iterator < static_cast<std::uint32_t>(m_VertexBuffers.size()); ++Iterator)
+    {
+        RENDERCORE_CHECK_VULKAN_RESULT(vkCreateBuffer(m_Device, &BufferCreateInfo, nullptr, &m_VertexBuffers[Iterator]));
+
+        VkMemoryRequirements MemoryRequirements;
+        vkGetBufferMemoryRequirements(m_Device, m_VertexBuffers[Iterator], &MemoryRequirements);
+
+        const VkMemoryAllocateInfo MemoryAllocateInfo{
+            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .allocationSize = MemoryRequirements.size,
+            .memoryTypeIndex = FindMemoryType(MemoryProperties, MemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
+        };
+
+        RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateMemory(m_Device, &MemoryAllocateInfo, nullptr, &m_VertexBuffersMemory[Iterator]));
+        RENDERCORE_CHECK_VULKAN_RESULT(vkBindBufferMemory(m_Device, m_VertexBuffers[Iterator], m_VertexBuffersMemory[Iterator], 0u));
+
+        void* Data;
+        vkMapMemory(m_Device, m_VertexBuffersMemory[Iterator], 0u, BufferCreateInfo.size, 0u, &Data);
+        std::memcpy(Data, m_Vertices.data(), static_cast<std::size_t>(BufferCreateInfo.size));
+        vkUnmapMemory(m_Device, m_VertexBuffersMemory[Iterator]);
+    }
 }
 
 void VulkanBufferManager::Shutdown()
@@ -248,4 +296,26 @@ void VulkanBufferManager::DestroyResources()
         }
     }
     m_VertexBuffers.clear();
+
+    for (const VkDeviceMemory& VertexBufferMemoryIter : m_VertexBuffersMemory)
+    {
+        if (VertexBufferMemoryIter != VK_NULL_HANDLE)
+        {
+            vkFreeMemory(m_Device, VertexBufferMemoryIter, nullptr);
+        }
+    }
+    m_VertexBuffersMemory.clear();
+}
+
+std::uint32_t VulkanBufferManager::FindMemoryType(const VkPhysicalDeviceMemoryProperties& Properties, const std::uint32_t& TypeFilter, const VkMemoryPropertyFlags& Flags) const
+{
+    for (std::uint32_t Iterator = 0u; Iterator < Properties.memoryTypeCount; ++Iterator)
+    {
+        if ((TypeFilter & (1 << Iterator)) && (Properties.memoryTypes[Iterator].propertyFlags & Flags) == Flags)
+        {
+            return Iterator;
+        }
+    }
+
+    throw std::runtime_error("Failed to find suitable memory type.");
 }

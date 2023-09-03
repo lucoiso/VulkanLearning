@@ -5,6 +5,7 @@
 #pragma once
 
 #include "RenderCoreModule.h"
+#include "Types/VulkanVertex.h"
 #include <vulkan/vulkan.h>
 #include <vector>
 
@@ -24,7 +25,7 @@ namespace RenderCore
 
         void CreateSwapChain(const VkSurfaceFormatKHR& PreferredFormat, const VkPresentModeKHR& PreferredMode, const VkExtent2D& PreferredExtent, const VkSurfaceCapabilitiesKHR& Capabilities);
         void CreateFrameBuffers(const VkRenderPass& RenderPass, const VkExtent2D& Extent);
-        void CreateVertexBuffers();
+        void CreateVertexBuffers(const VkPhysicalDevice& PhysicalDevice);
 
         void Shutdown();
 
@@ -39,6 +40,8 @@ namespace RenderCore
         void CreateSwapChainImageViews(const VkFormat& ImageFormat);
         void DestroyResources();
 
+        std::uint32_t FindMemoryType(const VkPhysicalDeviceMemoryProperties& Properties, const std::uint32_t& TypeFilter, const VkMemoryPropertyFlags& Flags) const;
+
         const VkDevice& m_Device;
         const VkSurfaceKHR& m_Surface;
         std::vector<std::uint32_t> m_QueueFamilyIndices;
@@ -48,5 +51,7 @@ namespace RenderCore
         std::vector<VkImageView> m_SwapChainImageViews;
         std::vector<VkFramebuffer> m_FrameBuffers;
         std::vector<VkBuffer> m_VertexBuffers;
+        std::vector<VkDeviceMemory> m_VertexBuffersMemory;
+        std::vector<Vertex> m_Vertices;
     };
 }

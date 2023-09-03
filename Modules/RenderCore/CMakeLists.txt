@@ -25,6 +25,8 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanDebugHelpers.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanEnumConverter.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanConstants.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/DeviceProperties.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/VulkanVertex.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanShaderManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanCommandsManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanPipelineManager.h
