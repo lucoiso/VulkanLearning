@@ -7,7 +7,7 @@
 #include <exception>
 #include <memory>
 
-int main(int Argc, char* Argv[])
+int main(int Argc, char *Argv[])
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing application";
 
@@ -26,7 +26,7 @@ int main(int Argc, char* Argv[])
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Window closed. Starting to freeing up resources";
         }
     }
-    catch (const std::exception& Ex)
+    catch (const std::exception &Ex)
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
         return EXIT_FAILURE;

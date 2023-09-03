@@ -8,39 +8,21 @@
 
 using namespace RenderCore;
 
-VulkanBufferManager::VulkanBufferManager(const VkDevice& Device, const VkSurfaceKHR& Surface, const std::vector<std::uint32_t>& QueueFamilyIndices)
-    : m_Device(Device)
-    , m_Surface(Surface)
-    , m_QueueFamilyIndices(QueueFamilyIndices)
-    , m_SwapChain(VK_NULL_HANDLE)
-    , m_SwapChainImages({})
-    , m_SwapChainImageViews({})
-    , m_FrameBuffers({})
-    , m_VertexBuffers({})
-    , m_VertexBuffersMemory({})
-    , m_IndexBuffers({})
-    , m_IndexBuffersMemory({})
-    , m_Vertices({
-        Vertex {
-            .Position = { -1.f, -1.f, 0.f },
-            .Color = {1.0f, 0.0f, 0.0f }
-        },
-        Vertex {
-            .Position = { 1.f, -1.f, 0.f },
-            .Color = {0.0f, 1.0f, 0.0f}
-        },
-        Vertex {
-            .Position = { 1.f, 1.f, 0.f },
-            .Color = {0.0f, 0.0f, 1.0f}
-        },
-        Vertex {
-            .Position = { -1.f, 1.f, 0.f },
-            .Color = { 0.0f, 0.0f, 1.0f }
-        }
-    })
-    , m_Indices(
-        { 0u, 1u, 2u, 2u, 3u, 0u }
-    )
+VulkanBufferManager::VulkanBufferManager(const VkDevice &Device, const VkSurfaceKHR &Surface, const std::vector<std::uint32_t> &QueueFamilyIndices)
+    : m_Device(Device), m_Surface(Surface), m_QueueFamilyIndices(QueueFamilyIndices), m_SwapChain(VK_NULL_HANDLE), m_SwapChainImages({}), m_SwapChainImageViews({}), m_FrameBuffers({}), m_VertexBuffers({}), m_VertexBuffersMemory({}), m_IndexBuffers({}), m_IndexBuffersMemory({}), m_Vertices({Vertex{
+                                                                                                                                                                                                                                                                                                       .Position = {-1.f, -1.f, 0.f},
+                                                                                                                                                                                                                                                                                                       .Color = {10.f, 00.f, 00.f}},
+                                                                                                                                                                                                                                                                                                   Vertex{
+                                                                                                                                                                                                                                                                                                       .Position = {1.f, -1.f, 0.f},
+                                                                                                                                                                                                                                                                                                       .Color = {00.f, 10.f, 00.f}},
+                                                                                                                                                                                                                                                                                                   Vertex{
+                                                                                                                                                                                                                                                                                                       .Position = {1.f, 1.f, 0.f},
+                                                                                                                                                                                                                                                                                                       .Color = {00.f, 00.f, 10.f}},
+                                                                                                                                                                                                                                                                                                   Vertex{
+                                                                                                                                                                                                                                                                                                       .Position = {-1.f, 1.f, 0.f},
+                                                                                                                                                                                                                                                                                                       .Color = {00.f, 00.f, 10.f}}}),
+      m_Indices(
+          {0u, 1u, 2u, 2u, 3u, 0u})
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan buffer manager";
     CreateCircle(m_Vertices, m_Indices);
@@ -56,7 +38,7 @@ VulkanBufferManager::~VulkanBufferManager()
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing vulkan buffer manager";
     Shutdown();
 }
-void VulkanBufferManager::CreateSwapChain(const VkSurfaceFormatKHR& PreferredFormat, const VkPresentModeKHR& PreferredMode, const VkExtent2D& PreferredExtent, const VkSurfaceCapabilitiesKHR& Capabilities)
+void VulkanBufferManager::CreateSwapChain(const VkSurfaceFormatKHR &PreferredFormat, const VkPresentModeKHR &PreferredMode, const VkExtent2D &PreferredExtent, const VkSurfaceCapabilitiesKHR &Capabilities)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain";
 
@@ -105,7 +87,7 @@ void VulkanBufferManager::CreateSwapChain(const VkSurfaceFormatKHR& PreferredFor
     CreateSwapChainImageViews(PreferredFormat.format);
 }
 
-void VulkanBufferManager::CreateFrameBuffers(const VkRenderPass& RenderPass, const VkExtent2D& Extent)
+void VulkanBufferManager::CreateFrameBuffers(const VkRenderPass &RenderPass, const VkExtent2D &Extent)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan frame buffers";
 
@@ -128,13 +110,12 @@ void VulkanBufferManager::CreateFrameBuffers(const VkRenderPass& RenderPass, con
         .pAttachments = m_SwapChainImageViews.data(),
         .width = Extent.width,
         .height = Extent.height,
-        .layers = 1u
-    };
+        .layers = 1u};
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateFramebuffer(m_Device, &FrameBufferCreateInfo, nullptr, m_FrameBuffers.data()));
 }
 
-void VulkanBufferManager::CreateVertexBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const std::vector<VkCommandBuffer>& CommandBuffers, const VkCommandPool& CommandPool)
+void VulkanBufferManager::CreateVertexBuffers(const VkPhysicalDevice &PhysicalDevice, const VkQueue &TransferQueue, const std::vector<VkCommandBuffer> &CommandBuffers, const VkCommandPool &CommandPool)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan vertex buffers";
 
@@ -157,7 +138,7 @@ void VulkanBufferManager::CreateVertexBuffers(const VkPhysicalDevice& PhysicalDe
         VkDeviceMemory StagingBufferMemory;
         CreateBuffer(MemoryProperties, BufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, StagingBuffer, StagingBufferMemory);
 
-        void* Data;
+        void *Data;
         vkMapMemory(m_Device, StagingBufferMemory, 0u, BufferSize, 0u, &Data);
         std::memcpy(Data, m_Vertices.data(), static_cast<std::size_t>(BufferSize));
         vkUnmapMemory(m_Device, StagingBufferMemory);
@@ -170,7 +151,7 @@ void VulkanBufferManager::CreateVertexBuffers(const VkPhysicalDevice& PhysicalDe
     }
 }
 
-void VulkanBufferManager::CreateIndexBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const std::vector<VkCommandBuffer>& CommandBuffers, const VkCommandPool& CommandPool)
+void VulkanBufferManager::CreateIndexBuffers(const VkPhysicalDevice &PhysicalDevice, const VkQueue &TransferQueue, const std::vector<VkCommandBuffer> &CommandBuffers, const VkCommandPool &CommandPool)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
 
@@ -193,7 +174,7 @@ void VulkanBufferManager::CreateIndexBuffers(const VkPhysicalDevice& PhysicalDev
         VkDeviceMemory StagingBufferMemory;
         CreateBuffer(MemoryProperties, BufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, StagingBuffer, StagingBufferMemory);
 
-        void* Data;
+        void *Data;
         vkMapMemory(m_Device, StagingBufferMemory, 0u, BufferSize, 0u, &Data);
         std::memcpy(Data, m_Indices.data(), static_cast<std::size_t>(BufferSize));
         vkUnmapMemory(m_Device, StagingBufferMemory);
@@ -206,7 +187,7 @@ void VulkanBufferManager::CreateIndexBuffers(const VkPhysicalDevice& PhysicalDev
     }
 }
 
-void VulkanBufferManager::CreateBuffer(const VkPhysicalDeviceMemoryProperties& Properties, const VkDeviceSize& Size, const VkBufferUsageFlags& Usage, const VkMemoryPropertyFlags& Flags, VkBuffer& Buffer, VkDeviceMemory& BufferMemory) const
+void VulkanBufferManager::CreateBuffer(const VkPhysicalDeviceMemoryProperties &Properties, const VkDeviceSize &Size, const VkBufferUsageFlags &Usage, const VkMemoryPropertyFlags &Flags, VkBuffer &Buffer, VkDeviceMemory &BufferMemory) const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan buffer";
 
@@ -237,7 +218,7 @@ void VulkanBufferManager::CreateBuffer(const VkPhysicalDeviceMemoryProperties& P
     RENDERCORE_CHECK_VULKAN_RESULT(vkBindBufferMemory(m_Device, Buffer, BufferMemory, 0u));
 }
 
-void VulkanBufferManager::CopyBuffer(const VkBuffer& Source, const VkBuffer& Destination, const VkDeviceSize& Size, const VkQueue& TransferQueue, const std::vector<VkCommandBuffer>& CommandBuffers, const VkCommandPool& CommandPool) const
+void VulkanBufferManager::CopyBuffer(const VkBuffer &Source, const VkBuffer &Destination, const VkDeviceSize &Size, const VkQueue &TransferQueue, const std::vector<VkCommandBuffer> &CommandBuffers, const VkCommandPool &CommandPool) const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Copying Vulkan buffer";
 
@@ -261,8 +242,7 @@ void VulkanBufferManager::CopyBuffer(const VkBuffer& Source, const VkBuffer& Des
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
 
-
-    for (const VkCommandBuffer& CommandBufferIter : CommandBuffers)
+    for (const VkCommandBuffer &CommandBufferIter : CommandBuffers)
     {
         RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(CommandBuffers[0], &CommandBufferBeginInfo));
 
@@ -300,57 +280,55 @@ void VulkanBufferManager::Shutdown()
 
 bool VulkanBufferManager::IsInitialized() const
 {
-    return m_Device     != VK_NULL_HANDLE
-        && m_Surface    != VK_NULL_HANDLE
-        && m_SwapChain  != VK_NULL_HANDLE;
+    return m_Device != VK_NULL_HANDLE && m_Surface != VK_NULL_HANDLE && m_SwapChain != VK_NULL_HANDLE;
 }
 
-const VkSwapchainKHR& VulkanBufferManager::GetSwapChain() const
+const VkSwapchainKHR &VulkanBufferManager::GetSwapChain() const
 {
     return m_SwapChain;
 }
 
-const std::vector<VkImage>& VulkanBufferManager::GetSwapChainImages() const
+const std::vector<VkImage> &VulkanBufferManager::GetSwapChainImages() const
 {
     return m_SwapChainImages;
 }
 
-const std::vector<VkImageView>& VulkanBufferManager::GetSwapChainImageViews() const
+const std::vector<VkImageView> &VulkanBufferManager::GetSwapChainImageViews() const
 {
     return m_SwapChainImageViews;
 }
 
-const std::vector<VkFramebuffer>& VulkanBufferManager::GetFrameBuffers() const
+const std::vector<VkFramebuffer> &VulkanBufferManager::GetFrameBuffers() const
 {
     return m_FrameBuffers;
 }
 
-const std::vector<VkBuffer>& VulkanBufferManager::GetVertexBuffers() const
+const std::vector<VkBuffer> &VulkanBufferManager::GetVertexBuffers() const
 {
     return m_VertexBuffers;
 }
 
-const std::vector<VkDeviceMemory>& VulkanBufferManager::GetVertexBuffersMemory() const
+const std::vector<VkDeviceMemory> &VulkanBufferManager::GetVertexBuffersMemory() const
 {
     return m_VertexBuffersMemory;
 }
 
-const std::vector<VkBuffer>& VulkanBufferManager::GetIndexBuffers() const
+const std::vector<VkBuffer> &VulkanBufferManager::GetIndexBuffers() const
 {
     return m_IndexBuffers;
 }
 
-const std::vector<VkDeviceMemory>& VulkanBufferManager::GetIndexBuffersMemory() const
+const std::vector<VkDeviceMemory> &VulkanBufferManager::GetIndexBuffersMemory() const
 {
     return m_IndexBuffersMemory;
 }
 
-const std::vector<Vertex>& VulkanBufferManager::GetVertices() const
+const std::vector<Vertex> &VulkanBufferManager::GetVertices() const
 {
     return m_Vertices;
 }
 
-const std::vector<std::uint32_t>& VulkanBufferManager::GetIndices() const
+const std::vector<std::uint32_t> &VulkanBufferManager::GetIndices() const
 {
     return m_Indices;
 }
@@ -360,7 +338,7 @@ std::uint32_t VulkanBufferManager::GetIndexCount() const
     return static_cast<std::uint32_t>(m_Indices.size());
 }
 
-void VulkanBufferManager::CreateSwapChainImageViews(const VkFormat& ImageFormat)
+void VulkanBufferManager::CreateSwapChainImageViews(const VkFormat &ImageFormat)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan image views";
 
@@ -381,17 +359,9 @@ void VulkanBufferManager::CreateSwapChainImageViews(const VkFormat& ImageFormat)
                 .r = VK_COMPONENT_SWIZZLE_IDENTITY,
                 .g = VK_COMPONENT_SWIZZLE_IDENTITY,
                 .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                .a = VK_COMPONENT_SWIZZLE_IDENTITY
-            },
-            .subresourceRange = {
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .baseMipLevel = 0u,
-                .levelCount = 1u,
-                .baseArrayLayer = 0u,
-                .layerCount = 1u
-            }
-        };
-        
+                .a = VK_COMPONENT_SWIZZLE_IDENTITY},
+            .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0u, .levelCount = 1u, .baseArrayLayer = 0u, .layerCount = 1u}};
+
         const std::int32_t Index = std::distance(m_SwapChainImages.begin(), ImageIter);
         RENDERCORE_CHECK_VULKAN_RESULT(vkCreateImageView(m_Device, &ImageViewCreateInfo, nullptr, &m_SwapChainImageViews[Index]))
     }
@@ -412,7 +382,7 @@ void VulkanBufferManager::DestroyResources()
         m_SwapChain = VK_NULL_HANDLE;
     }
 
-    for (const VkImageView& ImageViewIter : m_SwapChainImageViews)
+    for (const VkImageView &ImageViewIter : m_SwapChainImageViews)
     {
         if (ImageViewIter != VK_NULL_HANDLE)
         {
@@ -422,7 +392,7 @@ void VulkanBufferManager::DestroyResources()
     m_SwapChainImageViews.clear();
     m_SwapChainImages.clear();
 
-    for (const VkFramebuffer& FrameBufferIter : m_FrameBuffers)
+    for (const VkFramebuffer &FrameBufferIter : m_FrameBuffers)
     {
         if (FrameBufferIter != VK_NULL_HANDLE)
         {
@@ -431,7 +401,7 @@ void VulkanBufferManager::DestroyResources()
     }
     m_FrameBuffers.clear();
 
-    for (const VkBuffer& VertexBufferIter : m_VertexBuffers)
+    for (const VkBuffer &VertexBufferIter : m_VertexBuffers)
     {
         if (VertexBufferIter != VK_NULL_HANDLE)
         {
@@ -440,7 +410,7 @@ void VulkanBufferManager::DestroyResources()
     }
     m_VertexBuffers.clear();
 
-    for (const VkDeviceMemory& VertexBufferMemoryIter : m_VertexBuffersMemory)
+    for (const VkDeviceMemory &VertexBufferMemoryIter : m_VertexBuffersMemory)
     {
         if (VertexBufferMemoryIter != VK_NULL_HANDLE)
         {
@@ -449,7 +419,7 @@ void VulkanBufferManager::DestroyResources()
     }
     m_VertexBuffersMemory.clear();
 
-    for (const VkBuffer& IndexBufferIter : m_IndexBuffers)
+    for (const VkBuffer &IndexBufferIter : m_IndexBuffers)
     {
         if (IndexBufferIter != VK_NULL_HANDLE)
         {
@@ -458,7 +428,7 @@ void VulkanBufferManager::DestroyResources()
     }
     m_IndexBuffers.clear();
 
-    for (const VkDeviceMemory& IndexBufferMemoryIter : m_IndexBuffersMemory)
+    for (const VkDeviceMemory &IndexBufferMemoryIter : m_IndexBuffersMemory)
     {
         if (IndexBufferMemoryIter != VK_NULL_HANDLE)
         {
@@ -468,7 +438,7 @@ void VulkanBufferManager::DestroyResources()
     m_IndexBuffersMemory.clear();
 }
 
-std::uint32_t VulkanBufferManager::FindMemoryType(const VkPhysicalDeviceMemoryProperties& Properties, const std::uint32_t& TypeFilter, const VkMemoryPropertyFlags& Flags) const
+std::uint32_t VulkanBufferManager::FindMemoryType(const VkPhysicalDeviceMemoryProperties &Properties, const std::uint32_t &TypeFilter, const VkMemoryPropertyFlags &Flags) const
 {
     for (std::uint32_t Iterator = 0u; Iterator < Properties.memoryTypeCount; ++Iterator)
     {

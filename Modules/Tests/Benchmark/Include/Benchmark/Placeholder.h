@@ -6,9 +6,9 @@
 
 #include <benchmark/benchmark.h>
 
-static void Placeholder(benchmark::State& state)
+static void Placeholder(benchmark::State &state)
 {
-    for (const auto& _ : state)
+    for (const auto &_ : state)
     {
         continue;
     }

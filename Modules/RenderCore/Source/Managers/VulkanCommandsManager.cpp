@@ -8,14 +8,8 @@
 
 using namespace RenderCore;
 
-VulkanCommandsManager::VulkanCommandsManager(const VkDevice& Device)
-	: m_Device(Device)
-	, m_CommandPool(VK_NULL_HANDLE)
-	, m_CommandBuffers({})
-	, m_ImageAvailableSemaphores({})
-	, m_RenderFinishedSemaphores({})
-	, m_Fences({})
-	, m_ProcessingUnitsCount(0u)
+VulkanCommandsManager::VulkanCommandsManager(const VkDevice &Device)
+	: m_Device(Device), m_CommandPool(VK_NULL_HANDLE), m_CommandBuffers({}), m_ImageAvailableSemaphores({}), m_RenderFinishedSemaphores({}), m_Fences({}), m_ProcessingUnitsCount(0u)
 {
 	BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan commands manager";
 }
@@ -31,7 +25,7 @@ VulkanCommandsManager::~VulkanCommandsManager()
 	Shutdown({});
 }
 
-void VulkanCommandsManager::Shutdown(const std::vector<VkQueue>& PendingQueues)
+void VulkanCommandsManager::Shutdown(const std::vector<VkQueue> &PendingQueues)
 {
 	if (!IsInitialized())
 	{
@@ -51,7 +45,7 @@ void VulkanCommandsManager::Shutdown(const std::vector<VkQueue>& PendingQueues)
 	DestroySynchronizationObjects();
 }
 
-void VulkanCommandsManager::CreateCommandPool(const std::vector<VkFramebuffer>& FrameBuffers, const std::uint32_t GraphicsFamilyQueueIndex)
+void VulkanCommandsManager::CreateCommandPool(const std::vector<VkFramebuffer> &FrameBuffers, const std::uint32_t GraphicsFamilyQueueIndex)
 {
 	BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan command pool";
 
@@ -63,17 +57,15 @@ void VulkanCommandsManager::CreateCommandPool(const std::vector<VkFramebuffer>& 
 	const VkCommandPoolCreateInfo CommandPoolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-		.queueFamilyIndex = GraphicsFamilyQueueIndex
-	};
+		.queueFamilyIndex = GraphicsFamilyQueueIndex};
 
 	RENDERCORE_CHECK_VULKAN_RESULT(vkCreateCommandPool(m_Device, &CommandPoolCreateInfo, nullptr, &m_CommandPool));
 
-	const VkCommandBufferAllocateInfo CommandBufferAllocateInfo {
+	const VkCommandBufferAllocateInfo CommandBufferAllocateInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 		.commandPool = m_CommandPool,
 		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-		.commandBufferCount = static_cast<std::uint32_t>(FrameBuffers.size())
-	};
+		.commandBufferCount = static_cast<std::uint32_t>(FrameBuffers.size())};
 
 	m_CommandBuffers.resize(FrameBuffers.size(), VK_NULL_HANDLE);
 	RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateCommandBuffers(m_Device, &CommandBufferAllocateInfo, m_CommandBuffers.data()));
@@ -89,13 +81,11 @@ void VulkanCommandsManager::CreateSynchronizationObjects()
 	}
 
 	const VkSemaphoreCreateInfo SemaphoreCreateInfo{
-		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
-	};
+		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
 	const VkFenceCreateInfo FenceCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-		.flags = VK_FENCE_CREATE_SIGNALED_BIT
-	};
+		.flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
 	m_ProcessingUnitsCount = static_cast<std::uint32_t>(m_CommandBuffers.size());
 
@@ -117,7 +107,7 @@ void VulkanCommandsManager::DestroySynchronizationObjects()
 
 	vkDeviceWaitIdle(m_Device);
 
-	for (const VkSemaphore& SemaphoreIter : m_ImageAvailableSemaphores)
+	for (const VkSemaphore &SemaphoreIter : m_ImageAvailableSemaphores)
 	{
 		if (SemaphoreIter != VK_NULL_HANDLE)
 		{
@@ -126,7 +116,7 @@ void VulkanCommandsManager::DestroySynchronizationObjects()
 	}
 	m_ImageAvailableSemaphores.clear();
 
-	for (const VkSemaphore& SemaphoreIter : m_RenderFinishedSemaphores)
+	for (const VkSemaphore &SemaphoreIter : m_RenderFinishedSemaphores)
 	{
 		if (SemaphoreIter != VK_NULL_HANDLE)
 		{
@@ -135,7 +125,7 @@ void VulkanCommandsManager::DestroySynchronizationObjects()
 	}
 	m_RenderFinishedSemaphores.clear();
 
-	for (const VkFence& FenceITer : m_Fences)
+	for (const VkFence &FenceITer : m_Fences)
 	{
 		if (FenceITer != VK_NULL_HANDLE)
 		{
@@ -147,7 +137,7 @@ void VulkanCommandsManager::DestroySynchronizationObjects()
 	m_ProcessingUnitsCount = 0u;
 }
 
-std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<VkSwapchainKHR>& SwapChains)
+std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<VkSwapchainKHR> &SwapChains)
 {
 	if (m_Device == VK_NULL_HANDLE)
 	{
@@ -208,7 +198,7 @@ std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<Vk
 	return ImageIndices;
 }
 
-void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass, const VkPipeline& Pipeline, const std::vector<VkViewport>& Viewports, const std::vector<VkRect2D>& Scissors, const VkExtent2D& Extent, const std::vector<VkFramebuffer>& FrameBuffers, const std::vector<VkBuffer>& VertexBuffers, const std::vector<VkBuffer>& IndexBuffers, const std::uint32_t IndexCount, const std::vector<VkDeviceSize>& Offsets)
+void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass &RenderPass, const VkPipeline &Pipeline, const std::vector<VkViewport> &Viewports, const std::vector<VkRect2D> &Scissors, const VkExtent2D &Extent, const std::vector<VkFramebuffer> &FrameBuffers, const std::vector<VkBuffer> &VertexBuffers, const std::vector<VkBuffer> &IndexBuffers, const std::uint32_t IndexCount, const std::vector<VkDeviceSize> &Offsets)
 {
 	if (Pipeline == VK_NULL_HANDLE)
 	{
@@ -217,17 +207,14 @@ void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass,
 
 	const VkCommandBufferBeginInfo CommandBufferBeginInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT
-	};
+		.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT};
 
 	const std::vector<VkClearValue> ClearValues{
 		VkClearValue{
-			.color = { 0.0f, 0.0f, 0.0f, 1.0f }
-		}
-	};
+			.color = {00.f, 00.f, 00.f, 10.f}}};
 
 	auto CommandBufferIter = m_CommandBuffers.begin();
-	for (const VkFramebuffer& FrameBufferIter : FrameBuffers)
+	for (const VkFramebuffer &FrameBufferIter : FrameBuffers)
 	{
 		if (CommandBufferIter == m_CommandBuffers.end())
 		{
@@ -242,22 +229,20 @@ void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass,
 			.renderPass = RenderPass,
 			.framebuffer = FrameBufferIter,
 			.renderArea = {
-				.offset = { 0, 0 },
-				.extent = Extent
-			},
+				.offset = {0, 0},
+				.extent = Extent},
 			.clearValueCount = static_cast<std::uint32_t>(ClearValues.size()),
-			.pClearValues = ClearValues.data()
-		};
+			.pClearValues = ClearValues.data()};
 
 		vkCmdBeginRenderPass(*CommandBufferIter, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindPipeline(*CommandBufferIter, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
 
 		vkCmdBindVertexBuffers(*CommandBufferIter, 0, 1, VertexBuffers.data(), Offsets.data());
 
-		for (const VkBuffer& IndexBufferIter : IndexBuffers)
+		for (const VkBuffer &IndexBufferIter : IndexBuffers)
 		{
-            vkCmdBindIndexBuffer(*CommandBufferIter, IndexBufferIter, 0, VK_INDEX_TYPE_UINT32);
-        }
+			vkCmdBindIndexBuffer(*CommandBufferIter, IndexBufferIter, 0, VK_INDEX_TYPE_UINT32);
+		}
 
 		vkCmdSetViewport(*CommandBufferIter, 0u, static_cast<std::uint32_t>(Viewports.size()), Viewports.data());
 		vkCmdSetScissor(*CommandBufferIter, 0u, static_cast<std::uint32_t>(Scissors.size()), Scissors.data());
@@ -274,7 +259,7 @@ void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass& RenderPass,
 	}
 }
 
-void VulkanCommandsManager::SubmitCommandBuffers(const VkQueue& GraphicsQueue)
+void VulkanCommandsManager::SubmitCommandBuffers(const VkQueue &GraphicsQueue)
 {
 	if (GraphicsQueue == VK_NULL_HANDLE)
 	{
@@ -283,7 +268,7 @@ void VulkanCommandsManager::SubmitCommandBuffers(const VkQueue& GraphicsQueue)
 
 	WaitAndResetFences();
 
-	const std::vector<VkPipelineStageFlags> WaitStages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	const std::vector<VkPipelineStageFlags> WaitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
 	const std::vector<VkSubmitInfo> SubmitInfo{
 		VkSubmitInfo{
@@ -294,11 +279,9 @@ void VulkanCommandsManager::SubmitCommandBuffers(const VkQueue& GraphicsQueue)
 			.commandBufferCount = static_cast<std::uint32_t>(m_CommandBuffers.size()),
 			.pCommandBuffers = m_CommandBuffers.data(),
 			.signalSemaphoreCount = static_cast<std::uint32_t>(m_RenderFinishedSemaphores.size()),
-			.pSignalSemaphores = m_RenderFinishedSemaphores.data()
-		}
-	};
+			.pSignalSemaphores = m_RenderFinishedSemaphores.data()}};
 
-	for (const VkFence& FenceIter : m_Fences)
+	for (const VkFence &FenceIter : m_Fences)
 	{
 		if (FenceIter == VK_NULL_HANDLE)
 		{
@@ -309,7 +292,7 @@ void VulkanCommandsManager::SubmitCommandBuffers(const VkQueue& GraphicsQueue)
 	}
 }
 
-void VulkanCommandsManager::PresentFrame(const VkQueue& PresentQueue, const std::vector<VkSwapchainKHR>& SwapChains, const std::vector<std::uint32_t>& ImageIndices)
+void VulkanCommandsManager::PresentFrame(const VkQueue &PresentQueue, const std::vector<VkSwapchainKHR> &SwapChains, const std::vector<std::uint32_t> &ImageIndices)
 {
 	if (PresentQueue == VK_NULL_HANDLE)
 	{
@@ -323,8 +306,7 @@ void VulkanCommandsManager::PresentFrame(const VkQueue& PresentQueue, const std:
 		.swapchainCount = static_cast<std::uint32_t>(SwapChains.size()),
 		.pSwapchains = SwapChains.data(),
 		.pImageIndices = ImageIndices.data(),
-		.pResults = nullptr
-	};
+		.pResults = nullptr};
 
 	RENDERCORE_CHECK_VULKAN_RESULT(vkQueuePresentKHR(PresentQueue, &PresentInfo));
 }
@@ -334,12 +316,12 @@ bool VulkanCommandsManager::IsInitialized() const
 	return m_CommandPool != VK_NULL_HANDLE;
 }
 
-const VkCommandPool& VulkanCommandsManager::GetCommandPool() const
+const VkCommandPool &VulkanCommandsManager::GetCommandPool() const
 {
 	return m_CommandPool;
 }
 
-const std::vector<VkCommandBuffer>& VulkanCommandsManager::GetCommandBuffers() const
+const std::vector<VkCommandBuffer> &VulkanCommandsManager::GetCommandBuffers() const
 {
 	return m_CommandBuffers;
 }

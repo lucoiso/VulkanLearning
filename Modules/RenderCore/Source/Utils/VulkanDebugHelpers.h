@@ -14,8 +14,8 @@ namespace RenderCore
 {
     static inline VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT MessageSeverity,
                                                                               [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT MessageType,
-                                                                              const VkDebugUtilsMessengerCallbackDataEXT* const CallbackData,
-                                                                              [[maybe_unused]] void* UserData)
+                                                                              const VkDebugUtilsMessengerCallbackDataEXT *const CallbackData,
+                                                                              [[maybe_unused]] void *UserData)
     {
 #ifdef NDEBUG
         if (MessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
@@ -28,9 +28,9 @@ namespace RenderCore
     }
 
     static inline VkResult CreateDebugUtilsMessenger(VkInstance Instance,
-                                                     const VkDebugUtilsMessengerCreateInfoEXT* const CreateInfo,
-                                                     const VkAllocationCallbacks* const Allocator,
-                                                     VkDebugUtilsMessengerEXT* const DebugMessenger)
+                                                     const VkDebugUtilsMessengerCreateInfoEXT *const CreateInfo,
+                                                     const VkAllocationCallbacks *const Allocator,
+                                                     VkDebugUtilsMessengerEXT *const DebugMessenger)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating debug messenger";
 
@@ -46,7 +46,7 @@ namespace RenderCore
 
     static inline void DestroyDebugUtilsMessenger(VkInstance Instance,
                                                   VkDebugUtilsMessengerEXT DebugMessenger,
-                                                  const VkAllocationCallbacks* const Allocator)
+                                                  const VkAllocationCallbacks *const Allocator)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying debug messenger";
 
@@ -56,7 +56,7 @@ namespace RenderCore
         }
     }
 
-    static inline void PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT& Info, void* const UserData = nullptr)
+    static inline void PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT &Info, void *const UserData = nullptr)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Populating debug info";
 
@@ -66,7 +66,7 @@ namespace RenderCore
                                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                                VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 
-        Info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT    |
+        Info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 

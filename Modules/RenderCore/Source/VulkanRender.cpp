@@ -25,20 +25,14 @@ using namespace RenderCore;
 class VulkanRender::Impl
 {
 public:
-    Impl(const Impl&) = delete;
-    Impl& operator=(const Impl&) = delete;
+    Impl(const Impl &) = delete;
+    Impl &operator=(const Impl &) = delete;
 
     Impl()
-        : m_DeviceManager(nullptr)
-        , m_PipelineManager(nullptr)
-        , m_BufferManager(nullptr)
-        , m_CommandsManager(nullptr)
-        , m_ShaderManager(nullptr)
-        , m_Instance(VK_NULL_HANDLE)
-        , m_Surface(VK_NULL_HANDLE)
-        , m_SharedDeviceProperties()
+        : m_DeviceManager(nullptr), m_PipelineManager(nullptr), m_BufferManager(nullptr), m_CommandsManager(nullptr), m_ShaderManager(nullptr), m_Instance(VK_NULL_HANDLE), m_Surface(VK_NULL_HANDLE), m_SharedDeviceProperties()
 #ifdef _DEBUG
-        , m_DebugMessenger(VK_NULL_HANDLE)
+          ,
+          m_DebugMessenger(VK_NULL_HANDLE)
 #endif
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render implementation";
@@ -48,14 +42,14 @@ public:
     {
         if (!IsInitialized())
         {
-           return;
+            return;
         }
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing vulkan render implementation";
         Shutdown();
     }
 
-    bool Initialize(GLFWwindow* const Window)
+    bool Initialize(GLFWwindow *const Window)
     {
         if (IsInitialized())
         {
@@ -72,10 +66,7 @@ public:
         CreateVulkanInstance();
         CreateVulkanSurface(Window);
 
-        return InitializeDeviceManagement(Window)
-            && InitializeBufferManagement(Window)
-            && InitializePipelineManagement(Window)
-            && InitializeCommandsManagement(Window);
+        return InitializeDeviceManagement(Window) && InitializeBufferManagement(Window) && InitializePipelineManagement(Window) && InitializeCommandsManagement(Window);
     }
 
     void Shutdown()
@@ -90,7 +81,7 @@ public:
         RENDERCORE_CHECK_VULKAN_RESULT(vkDeviceWaitIdle(m_DeviceManager->GetLogicalDevice()));
 
         m_ShaderManager->Shutdown();
-        m_CommandsManager->Shutdown({ m_DeviceManager->GetGraphicsQueue(), m_DeviceManager ->GetPresentationQueue()});
+        m_CommandsManager->Shutdown({m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetPresentationQueue()});
         m_BufferManager->Shutdown();
         m_PipelineManager->Shutdown();
         m_DeviceManager->Shutdown();
@@ -112,7 +103,7 @@ public:
         m_Instance = VK_NULL_HANDLE;
     }
 
-    void DrawFrame(GLFWwindow* const Window)
+    void DrawFrame(GLFWwindow *const Window)
     {
         if (!IsInitialized())
         {
@@ -124,7 +115,7 @@ public:
             throw std::runtime_error("GLFW Window is invalid");
         }
 
-        const std::vector<std::uint32_t> ImageIndices = m_CommandsManager->DrawFrame({ m_BufferManager->GetSwapChain() });
+        const std::vector<std::uint32_t> ImageIndices = m_CommandsManager->DrawFrame({m_BufferManager->GetSwapChain()});
         if (!m_SharedDeviceProperties.IsValid() || ImageIndices.empty())
         {
             m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
@@ -146,21 +137,15 @@ public:
         }
         else
         {
-            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_PipelineManager->GetViewports(), m_PipelineManager->GetScissors(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), m_BufferManager->GetIndexBuffers(), m_BufferManager->GetIndexCount(), { 0u });
+            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_PipelineManager->GetViewports(), m_PipelineManager->GetScissors(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), m_BufferManager->GetIndexBuffers(), m_BufferManager->GetIndexCount(), {0u});
             m_CommandsManager->SubmitCommandBuffers(m_DeviceManager->GetGraphicsQueue());
-            m_CommandsManager->PresentFrame(m_DeviceManager->GetPresentationQueue(), { m_BufferManager->GetSwapChain() }, ImageIndices);
+            m_CommandsManager->PresentFrame(m_DeviceManager->GetPresentationQueue(), {m_BufferManager->GetSwapChain()}, ImageIndices);
         }
     }
 
     bool IsInitialized() const
     {
-        return m_DeviceManager && m_DeviceManager->IsInitialized()
-            && m_PipelineManager && m_PipelineManager->IsInitialized()
-            && m_BufferManager && m_BufferManager->IsInitialized()
-            && m_CommandsManager && m_CommandsManager->IsInitialized()
-            && m_ShaderManager
-            && m_Instance != VK_NULL_HANDLE
-            && m_Surface != VK_NULL_HANDLE;
+        return m_DeviceManager && m_DeviceManager->IsInitialized() && m_PipelineManager && m_PipelineManager->IsInitialized() && m_BufferManager && m_BufferManager->IsInitialized() && m_CommandsManager && m_CommandsManager->IsInitialized() && m_ShaderManager && m_Instance != VK_NULL_HANDLE && m_Surface != VK_NULL_HANDLE;
     }
 
     bool SupportsValidationLayer() const
@@ -169,14 +154,13 @@ public:
         const std::vector<VkLayerProperties> AvailableLayers = GetAvailableValidationLayers();
 
         return std::find_if(AvailableLayers.begin(),
-            AvailableLayers.end(),
-            [RequiredLayers](const VkLayerProperties& Item)
-            {
-                return std::find(RequiredLayers.begin(),
-                RequiredLayers.end(),
-                Item.layerName) != RequiredLayers.end();
-            }
-        ) != AvailableLayers.end();
+                            AvailableLayers.end(),
+                            [RequiredLayers](const VkLayerProperties &Item)
+                            {
+                                return std::find(RequiredLayers.begin(),
+                                                 RequiredLayers.end(),
+                                                 Item.layerName) != RequiredLayers.end();
+                            }) != AvailableLayers.end();
     }
 
 private:
@@ -190,8 +174,7 @@ private:
             .applicationVersion = VK_MAKE_VERSION(1u, 0u, 0u),
             .pEngineName = "No Engine",
             .engineVersion = VK_MAKE_VERSION(1u, 0u, 0u),
-            .apiVersion = VK_API_VERSION_1_0
-        };
+            .apiVersion = VK_API_VERSION_1_0};
 
         VkInstanceCreateInfo CreateInfo{
             .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -200,7 +183,7 @@ private:
             .enabledLayerCount = 0u,
         };
 
-        std::vector<const char*> Extensions = GetGLFWExtensions();
+        std::vector<const char *> Extensions = GetGLFWExtensions();
 
 #ifdef _DEBUG
         const bool bSupportsValidationLayer = SupportsValidationLayer();
@@ -213,7 +196,7 @@ private:
             Extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Activating validation layers in vulkan instance";
-            for (const char* const& ValidationLayerIter : g_ValidationLayers)
+            for (const char *const &ValidationLayerIter : g_ValidationLayers)
             {
                 BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Including Layer: " << ValidationLayerIter;
             }
@@ -221,7 +204,7 @@ private:
             CreateInfo.enabledLayerCount = static_cast<std::uint32_t>(g_ValidationLayers.size());
             CreateInfo.ppEnabledLayerNames = g_ValidationLayers.data();
 
-            CreateInfo.pNext = reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&CreateDebugInfo);
+            CreateInfo.pNext = reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT *>(&CreateDebugInfo);
         }
 #endif
 
@@ -239,7 +222,7 @@ private:
 #endif
     }
 
-    void CreateVulkanSurface(GLFWwindow* const Window)
+    void CreateVulkanSurface(GLFWwindow *const Window)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan surface";
 
@@ -256,7 +239,7 @@ private:
         RENDERCORE_CHECK_VULKAN_RESULT(glfwCreateWindowSurface(m_Instance, Window, nullptr, &m_Surface));
     }
 
-    bool InitializeDeviceManagement(GLFWwindow* const Window)
+    bool InitializeDeviceManagement(GLFWwindow *const Window)
     {
         if (!Window)
         {
@@ -274,7 +257,7 @@ private:
         return m_DeviceManager != nullptr;
     }
 
-    bool InitializeBufferManagement(GLFWwindow* const Window)
+    bool InitializeBufferManagement(GLFWwindow *const Window)
     {
         if (m_BufferManager = std::make_unique<VulkanBufferManager>(m_DeviceManager->GetLogicalDevice(), m_Surface, m_DeviceManager->GetQueueFamilyIndices()))
         {
@@ -285,7 +268,7 @@ private:
         return m_BufferManager != nullptr;
     }
 
-    bool InitializePipelineManagement(GLFWwindow* const Window)
+    bool InitializePipelineManagement(GLFWwindow *const Window)
     {
         if (m_PipelineManager = std::make_unique<VulkanPipelineManager>(m_Instance, m_DeviceManager->GetLogicalDevice()))
         {
@@ -300,13 +283,13 @@ private:
             m_ShaderManager->Compile(DEBUG_SHADER_VERT, VertexShaderCode);
             const VkShaderModule VertexModule = m_ShaderManager->CreateModule(m_DeviceManager->GetLogicalDevice(), VertexShaderCode, EShLangVertex);
 
-            m_PipelineManager->CreateGraphicsPipeline({ m_ShaderManager->GetStageInfo(FragmentModule), m_ShaderManager->GetStageInfo(VertexModule) }, m_SharedDeviceProperties.PreferredExtent);
+            m_PipelineManager->CreateGraphicsPipeline({m_ShaderManager->GetStageInfo(FragmentModule), m_ShaderManager->GetStageInfo(VertexModule)}, m_SharedDeviceProperties.PreferredExtent);
         }
 
         return m_PipelineManager != nullptr;
     }
 
-    bool InitializeCommandsManagement(GLFWwindow* const Window)
+    bool InitializeCommandsManagement(GLFWwindow *const Window)
     {
         if (m_CommandsManager = std::make_unique<VulkanCommandsManager>(m_DeviceManager->GetLogicalDevice()))
         {
@@ -314,7 +297,7 @@ private:
             m_CommandsManager->CreateSynchronizationObjects();
             m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
             m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
-            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_PipelineManager->GetViewports(), m_PipelineManager->GetScissors(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), m_BufferManager->GetIndexBuffers(), m_BufferManager->GetIndexCount(), { 0u });
+            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_PipelineManager->GetViewports(), m_PipelineManager->GetScissors(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), m_BufferManager->GetIndexBuffers(), m_BufferManager->GetIndexCount(), {0u});
         }
 
         return m_CommandsManager != nullptr;
@@ -351,7 +334,7 @@ VulkanRender::~VulkanRender()
     Shutdown();
 }
 
-bool VulkanRender::Initialize(GLFWwindow* const Window)
+bool VulkanRender::Initialize(GLFWwindow *const Window)
 {
     if (IsInitialized())
     {
@@ -362,7 +345,7 @@ bool VulkanRender::Initialize(GLFWwindow* const Window)
     {
         return m_Impl->Initialize(Window);
     }
-    catch (const std::exception& Ex)
+    catch (const std::exception &Ex)
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
     }
@@ -381,13 +364,13 @@ void VulkanRender::Shutdown()
     {
         m_Impl->Shutdown();
     }
-    catch (const std::exception& Ex)
+    catch (const std::exception &Ex)
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
     }
 }
 
-void VulkanRender::DrawFrame(GLFWwindow* const Window)
+void VulkanRender::DrawFrame(GLFWwindow *const Window)
 {
     if (!IsInitialized())
     {
@@ -398,7 +381,7 @@ void VulkanRender::DrawFrame(GLFWwindow* const Window)
     {
         m_Impl->DrawFrame(Window);
     }
-    catch (const std::exception& Ex)
+    catch (const std::exception &Ex)
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
     }
@@ -406,5 +389,6 @@ void VulkanRender::DrawFrame(GLFWwindow* const Window)
 
 bool VulkanRender::IsInitialized() const
 {
-    return m_Impl && m_Impl->IsInitialized();;
+    return m_Impl && m_Impl->IsInitialized();
+    ;
 }

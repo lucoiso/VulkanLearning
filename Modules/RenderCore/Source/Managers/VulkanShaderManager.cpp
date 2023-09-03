@@ -13,7 +13,7 @@
 
 using namespace RenderCore;
 
-VulkanShaderManager::VulkanShaderManager(const VkDevice& Device)
+VulkanShaderManager::VulkanShaderManager(const VkDevice &Device)
     : m_Device(Device)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan shader compiler";
@@ -39,7 +39,7 @@ void VulkanShaderManager::Shutdown()
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan shader compiler";
 
-    for (auto& [ShaderModule, _] : m_StageInfos)
+    for (auto &[ShaderModule, _] : m_StageInfos)
     {
         if (ShaderModule != VK_NULL_HANDLE)
         {
@@ -49,7 +49,7 @@ void VulkanShaderManager::Shutdown()
     m_StageInfos.clear();
 }
 
-bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode)
+bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode)
 {
     EShLanguage Language = EShLangVertex;
     const std::filesystem::path Path(Source);
@@ -124,7 +124,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uin
             throw std::runtime_error("Failed to open SPIRV file: " + SPIRVPath);
         }
 
-        SPIRVFile << std::string(reinterpret_cast<const char*>(OutSPIRVCode.data()), OutSPIRVCode.size() * sizeof(uint32_t));
+        SPIRVFile << std::string(reinterpret_cast<const char *>(OutSPIRVCode.data()), OutSPIRVCode.size() * sizeof(uint32_t));
         SPIRVFile.close();
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compiled, generated SPIR-V shader file: " << SPIRVPath;
@@ -133,7 +133,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uin
     return bResult;
 }
 
-bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::uint32_t>& OutSPIRVCode)
+bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::uint32_t> &OutSPIRVCode)
 {
     std::filesystem::path Path(Source);
     if (!std::filesystem::exists(Path))
@@ -161,14 +161,13 @@ bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::u
     OutSPIRVCode.resize(FileSize / sizeof(uint32_t));
 
     File.seekg(0);
-    const std::istream& ReadResult = File.read(reinterpret_cast<char*>(OutSPIRVCode.data()), FileSize); /* Flawfinder: ignore */
+    const std::istream &ReadResult = File.read(reinterpret_cast<char *>(OutSPIRVCode.data()), FileSize); /* Flawfinder: ignore */
     File.close();
 
     return !ReadResult.fail();
 }
 
-
-VkShaderModule VulkanShaderManager::CreateModule(const VkDevice& Device, const std::vector<std::uint32_t>& SPIRVCode, EShLanguage Language)
+VkShaderModule VulkanShaderManager::CreateModule(const VkDevice &Device, const std::vector<std::uint32_t> &SPIRVCode, EShLanguage Language)
 {
     if (Device == VK_NULL_HANDLE)
     {
@@ -185,8 +184,7 @@ VkShaderModule VulkanShaderManager::CreateModule(const VkDevice& Device, const s
     const VkShaderModuleCreateInfo CreateInfo{
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         .codeSize = SPIRVCode.size() * sizeof(std::uint32_t),
-        .pCode = SPIRVCode.data()
-    };
+        .pCode = SPIRVCode.data()};
 
     VkShaderModule Output;
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateShaderModule(Device, &CreateInfo, nullptr, &Output));
@@ -196,18 +194,18 @@ VkShaderModule VulkanShaderManager::CreateModule(const VkDevice& Device, const s
     return Output;
 }
 
-VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(const VkShaderModule& Module)
+VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(const VkShaderModule &Module)
 {
     return m_StageInfos.at(Module);
 }
 
-bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Language, std::vector<std::uint32_t>& OutSPIRVCode)
+bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Language, std::vector<std::uint32_t> &OutSPIRVCode)
 {
     glslang::InitializeProcess();
 
     glslang::TShader Shader(Language);
 
-    const char* ShaderContent = Source.data();
+    const char *ShaderContent = Source.data();
     Shader.setStringsWithLengths(&ShaderContent, nullptr, 1);
 
     Shader.setEntryPoint(EntryPoint);
@@ -216,7 +214,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Lan
     Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
     Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
 
-    const TBuiltInResource* Resources = GetDefaultResources();
+    const TBuiltInResource *Resources = GetDefaultResources();
     const EShMessages MessageFlags = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
 
     if (!Shader.parse(Resources, 450, EProfile::ECoreProfile, false, true, MessageFlags))
@@ -240,7 +238,8 @@ bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Lan
         throw std::runtime_error(ErrMessage);
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n" << Source;
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n"
+                             << Source;
 
     spv::SpvBuildLogger Logger;
     glslang::GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
@@ -248,13 +247,14 @@ bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Lan
 
     if (const std::string_view GeneratedLogs = Logger.getAllMessages(); !GeneratedLogs.empty())
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compilation result log:\n" << GeneratedLogs;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compilation result log:\n"
+                                 << GeneratedLogs;
     }
 
     return !OutSPIRVCode.empty();
 }
 
-void VulkanShaderManager::StageInfo(const VkShaderModule& Module, EShLanguage Language)
+void VulkanShaderManager::StageInfo(const VkShaderModule &Module, EShLanguage Language)
 {
     if (Module == VK_NULL_HANDLE)
     {
@@ -265,8 +265,7 @@ void VulkanShaderManager::StageInfo(const VkShaderModule& Module, EShLanguage La
     VkPipelineShaderStageCreateInfo StageInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         .module = Module,
-        .pName = EntryPoint
-    };
+        .pName = EntryPoint};
 
     switch (Language)
     {

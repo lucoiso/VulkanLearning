@@ -108,9 +108,9 @@ namespace RenderCore
         Indices.clear();
 
         Vertices = {
-            Vertex{ .Position = { -0.5f, -0.5f }, .Color = { 1.0f, 0.0f, 0.0f } },
-            Vertex{ .Position = { 0.5f, -0.5f }, .Color = { 0.0f, 1.0f, 0.0f } },
-            Vertex{ .Position = { 0.0f, 0.5f }, .Color = { 0.0f, 0.0f, 1.0f } }
+            Vertex{ .Position = { -0.5f, -0.5f }, .Color = { 10.f, 00.f, 00.f } },
+            Vertex{ .Position = { 0.5f, -0.5f }, .Color = { 00.f, 10.f, 00.f } },
+            Vertex{ .Position = { 00.f, 0.5f }, .Color = { 00.f, 00.f, 10.f } }
         };
 
         Indices = { 0u, 1u, 2u };
@@ -124,19 +124,19 @@ namespace RenderCore
         Vertices = {
             Vertex {
                 .Position = { -0.5f, -0.5f, 0.f },
-                .Color = {1.0f, 0.0f, 0.0f }
+                .Color = {10.f, 00.f, 00.f }
             },
             Vertex {
                 .Position = { 0.5f, -0.5f, 0.f },
-                .Color = {0.0f, 1.0f, 0.0f}
+                .Color = {00.f, 10.f, 00.f}
             },
             Vertex {
                 .Position = { 0.5f, 0.5f, 0.f },
-                .Color = {0.0f, 0.0f, 1.0f}
+                .Color = {00.f, 00.f, 10.f}
             },
             Vertex {
                 .Position = { -0.5f, 0.5f, 0.f },
-                .Color = { 0.0f, 0.0f, 1.0f }
+                .Color = { 00.f, 00.f, 10.f }
             }
         };
 

@@ -14,12 +14,12 @@ namespace RenderCore
     class RENDERCOREMODULE_API Window
     {
         class Impl;
-        
+
     public:
         Window();
 
-        Window(const Window&) = delete;
-        Window& operator=(const Window&) = delete;
+        Window(const Window &) = delete;
+        Window &operator=(const Window &) = delete;
 
         ~Window();
 

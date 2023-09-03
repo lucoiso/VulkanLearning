@@ -17,8 +17,8 @@ using namespace RenderCore;
 class Window::Impl
 {
 public:
-    Impl(const Window&) = delete;
-    Impl& operator=(const Window&) = delete;
+    Impl(const Window &) = delete;
+    Impl &operator=(const Window &) = delete;
 
     Impl()
         : m_Window(nullptr)
@@ -113,7 +113,7 @@ public:
     }
 
 private:
-    GLFWwindow* m_Window;
+    GLFWwindow *m_Window;
     std::unique_ptr<VulkanRender> m_Render;
 };
 
@@ -143,7 +143,7 @@ bool Window::Initialize(const std::uint16_t Width, const std::uint16_t Height, c
     {
         return m_Impl && m_Impl->Initialize(Width, Height, Title);
     }
-    catch (const std::exception& Ex)
+    catch (const std::exception &Ex)
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
     }
@@ -162,7 +162,7 @@ void Window::Shutdown()
     {
         m_Impl->Shutdown();
     }
-    catch (const std::exception& Ex)
+    catch (const std::exception &Ex)
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
     }
@@ -195,7 +195,7 @@ void Window::PollEvents()
         m_Impl->PollEvents();
         m_Impl->DrawFrame();
     }
-    catch (const std::exception& Ex)
+    catch (const std::exception &Ex)
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
     }

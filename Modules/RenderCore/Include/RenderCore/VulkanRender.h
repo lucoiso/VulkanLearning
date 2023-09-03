@@ -18,15 +18,15 @@ namespace RenderCore
     public:
         VulkanRender();
 
-        VulkanRender(const VulkanRender&) = delete;
-        VulkanRender& operator=(const VulkanRender&) = delete;
+        VulkanRender(const VulkanRender &) = delete;
+        VulkanRender &operator=(const VulkanRender &) = delete;
 
         ~VulkanRender();
 
-        bool Initialize(GLFWwindow* const Window);
+        bool Initialize(GLFWwindow *const Window);
         void Shutdown();
 
-        void DrawFrame(GLFWwindow* const Window);
+        void DrawFrame(GLFWwindow *const Window);
 
         bool IsInitialized() const;
 

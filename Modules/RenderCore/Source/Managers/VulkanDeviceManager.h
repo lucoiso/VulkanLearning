@@ -19,24 +19,24 @@ namespace RenderCore
     {
     public:
         VulkanDeviceManager() = delete;
-        VulkanDeviceManager(const VulkanDeviceManager&) = delete;
-        VulkanDeviceManager& operator=(const VulkanDeviceManager&) = delete;
+        VulkanDeviceManager(const VulkanDeviceManager &) = delete;
+        VulkanDeviceManager &operator=(const VulkanDeviceManager &) = delete;
 
-        VulkanDeviceManager(const VkInstance& Instance, const VkSurfaceKHR& Surface);
+        VulkanDeviceManager(const VkInstance &Instance, const VkSurfaceKHR &Surface);
         ~VulkanDeviceManager();
 
-        void PickPhysicalDevice(const VkPhysicalDevice& PreferredDevice = VK_NULL_HANDLE);
+        void PickPhysicalDevice(const VkPhysicalDevice &PreferredDevice = VK_NULL_HANDLE);
         void CreateLogicalDevice();
 
         void Shutdown();
 
         bool IsInitialized() const;
 
-        [[nodiscard]] const VkPhysicalDevice& GetPhysicalDevice() const;
-        [[nodiscard]] const VkDevice& GetLogicalDevice() const;
-        [[nodiscard]] const VkQueue& GetGraphicsQueue() const;
-        [[nodiscard]] const VkQueue& GetPresentationQueue() const;
-        [[nodiscard]] const VkQueue& GetTransferQueue() const;
+        [[nodiscard]] const VkPhysicalDevice &GetPhysicalDevice() const;
+        [[nodiscard]] const VkDevice &GetLogicalDevice() const;
+        [[nodiscard]] const VkQueue &GetGraphicsQueue() const;
+        [[nodiscard]] const VkQueue &GetPresentationQueue() const;
+        [[nodiscard]] const VkQueue &GetTransferQueue() const;
 
         [[nodiscard]] std::vector<std::uint32_t> GetQueueFamilyIndices() const;
         [[nodiscard]] std::uint32_t GetGraphicsQueueFamilyIndex() const;
@@ -45,16 +45,16 @@ namespace RenderCore
 
         [[nodiscard]] std::vector<VkPhysicalDevice> GetAvailablePhysicalDevices() const;
         [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions() const;
-        [[nodiscard]] std::vector<const char*> GetAvailablePhysicalDeviceExtensionsNames() const;
+        [[nodiscard]] std::vector<const char *> GetAvailablePhysicalDeviceExtensionsNames() const;
         [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities() const;
         [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats() const;
         [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes() const;
 
-        [[nodiscard]] bool IsPhysicalDeviceSuitable(const VkPhysicalDevice& Device) const;
-        [[nodiscard]] DeviceProperties GetPreferredProperties(GLFWwindow* const Window);
+        [[nodiscard]] bool IsPhysicalDeviceSuitable(const VkPhysicalDevice &Device) const;
+        [[nodiscard]] DeviceProperties GetPreferredProperties(GLFWwindow *const Window);
 
     private:
-        bool GetQueueFamilyIndices(std::optional<std::uint32_t>& GraphicsQueueFamilyIndex, std::optional<std::uint32_t>& PresentationQueueFamilyIndex, std::optional<std::uint32_t>& TransferQueueFamilyIndex);
+        bool GetQueueFamilyIndices(std::optional<std::uint32_t> &GraphicsQueueFamilyIndex, std::optional<std::uint32_t> &PresentationQueueFamilyIndex, std::optional<std::uint32_t> &TransferQueueFamilyIndex);
 
 #ifdef _DEBUG
         void ListAvailablePhysicalDevices() const;
@@ -64,8 +64,8 @@ namespace RenderCore
         void ListAvailablePhysicalDeviceSurfacePresentationModes() const;
 #endif
 
-        const VkInstance& m_Instance;
-        const VkSurfaceKHR& m_Surface;
+        const VkInstance &m_Instance;
+        const VkSurfaceKHR &m_Surface;
 
         VkPhysicalDevice m_PhysicalDevice;
         VkDevice m_Device;

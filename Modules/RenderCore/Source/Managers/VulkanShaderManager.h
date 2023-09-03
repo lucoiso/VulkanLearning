@@ -15,29 +15,29 @@ struct GLFWwindow;
 
 namespace RenderCore
 {
-    constexpr const char* EntryPoint = "main";
+    constexpr const char *EntryPoint = "main";
 
     class VulkanShaderManager
     {
     public:
         VulkanShaderManager() = delete;
 
-        VulkanShaderManager(const VkDevice& Device);
+        VulkanShaderManager(const VkDevice &Device);
         ~VulkanShaderManager();
 
         void Shutdown();
 
-        bool Compile(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
-        bool Load(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
+        bool Compile(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode);
+        bool Load(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode);
 
-        VkShaderModule CreateModule(const VkDevice& Device, const std::vector<uint32_t>& SPIRVCode, EShLanguage Language);
-        VkPipelineShaderStageCreateInfo GetStageInfo(const VkShaderModule& Module);
+        VkShaderModule CreateModule(const VkDevice &Device, const std::vector<uint32_t> &SPIRVCode, EShLanguage Language);
+        VkPipelineShaderStageCreateInfo GetStageInfo(const VkShaderModule &Module);
 
     private:
-        bool Compile(const std::string_view Source, EShLanguage Language, std::vector<uint32_t>& OutSPIRVCode);
-        void StageInfo(const VkShaderModule& Module, EShLanguage Language);
+        bool Compile(const std::string_view Source, EShLanguage Language, std::vector<uint32_t> &OutSPIRVCode);
+        void StageInfo(const VkShaderModule &Module, EShLanguage Language);
 
-        const VkDevice& m_Device;
+        const VkDevice &m_Device;
         std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> m_StageInfos;
     };
 }

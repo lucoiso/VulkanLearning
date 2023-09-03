@@ -16,11 +16,8 @@
 
 using namespace RenderCore;
 
-VulkanDeviceManager::VulkanDeviceManager(const VkInstance& Instance, const VkSurfaceKHR& Surface)
-    : m_Instance(Instance)
-    , m_Surface(Surface)
-    , m_PhysicalDevice(VK_NULL_HANDLE)
-    , m_Device(VK_NULL_HANDLE)
+VulkanDeviceManager::VulkanDeviceManager(const VkInstance &Instance, const VkSurfaceKHR &Surface)
+    : m_Instance(Instance), m_Surface(Surface), m_PhysicalDevice(VK_NULL_HANDLE), m_Device(VK_NULL_HANDLE)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan device manager";
 }
@@ -36,7 +33,7 @@ VulkanDeviceManager::~VulkanDeviceManager()
     Shutdown();
 }
 
-void VulkanDeviceManager::PickPhysicalDevice(const VkPhysicalDevice& PreferredDevice)
+void VulkanDeviceManager::PickPhysicalDevice(const VkPhysicalDevice &PreferredDevice)
 {
     if (m_Instance == VK_NULL_HANDLE)
     {
@@ -50,8 +47,8 @@ void VulkanDeviceManager::PickPhysicalDevice(const VkPhysicalDevice& PreferredDe
         m_PhysicalDevice = PreferredDevice;
     }
     else
-    {    
-        for (const VkPhysicalDevice& DeviceIter : GetAvailablePhysicalDevices())
+    {
+        for (const VkPhysicalDevice &DeviceIter : GetAvailablePhysicalDevices())
         {
             if (m_PhysicalDevice == VK_NULL_HANDLE && IsPhysicalDeviceSuitable(DeviceIter))
             {
@@ -96,8 +93,8 @@ void VulkanDeviceManager::CreateLogicalDevice()
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    const std::vector<const char*> AvailableDevices = GetAvailablePhysicalDeviceExtensionsNames();
-    for (const char* const& RequiredDevicesIter : g_RequiredExtensions)
+    const std::vector<const char *> AvailableDevices = GetAvailablePhysicalDeviceExtensionsNames();
+    for (const char *const &RequiredDevicesIter : g_RequiredExtensions)
     {
         if (std::find(AvailableDevices.begin(), AvailableDevices.end(), RequiredDevicesIter) != AvailableDevices.end())
         {
@@ -109,21 +106,18 @@ void VulkanDeviceManager::CreateLogicalDevice()
     constexpr float QueuePriority = 1.f;
 
     const std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo{
-        VkDeviceQueueCreateInfo {
+        VkDeviceQueueCreateInfo{
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
             .queueFamilyIndex = m_GraphicsQueue.first,
             .queueCount = 1u,
-            .pQueuePriorities = &QueuePriority
-        }
-    };
+            .pQueuePriorities = &QueuePriority}};
 
     const VkDeviceCreateInfo DeviceCreateInfo{
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .queueCreateInfoCount = static_cast<std::uint32_t>(QueueCreateInfo.size()),
         .pQueueCreateInfos = QueueCreateInfo.data(),
         .enabledExtensionCount = static_cast<std::uint32_t>(g_RequiredExtensions.size()),
-        .ppEnabledExtensionNames = g_RequiredExtensions.data()
-    };
+        .ppEnabledExtensionNames = g_RequiredExtensions.data()};
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_Device));
 
@@ -146,7 +140,7 @@ void VulkanDeviceManager::CreateLogicalDevice()
     }
 }
 
-DeviceProperties VulkanDeviceManager::GetPreferredProperties(GLFWwindow* const Window)
+DeviceProperties VulkanDeviceManager::GetPreferredProperties(GLFWwindow *const Window)
 {
     DeviceProperties Output;
 
@@ -175,11 +169,10 @@ DeviceProperties VulkanDeviceManager::GetPreferredProperties(GLFWwindow* const W
 
     Output.PreferredFormat = SupportedFormats[0];
     if (const auto MatchingFormat = std::find_if(SupportedFormats.begin(), SupportedFormats.end(),
-        [](const VkSurfaceFormatKHR& Iter)
-        {
-            return Iter.format == VK_FORMAT_B8G8R8A8_SRGB && Iter.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-        }
-    );
+                                                 [](const VkSurfaceFormatKHR &Iter)
+                                                 {
+                                                     return Iter.format == VK_FORMAT_B8G8R8A8_SRGB && Iter.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+                                                 });
         MatchingFormat != SupportedFormats.end())
     {
         Output.PreferredFormat = *MatchingFormat;
@@ -187,11 +180,10 @@ DeviceProperties VulkanDeviceManager::GetPreferredProperties(GLFWwindow* const W
 
     Output.PreferredMode = VK_PRESENT_MODE_FIFO_KHR;
     if (const auto MatchingMode = std::find_if(SupportedPresentationModes.begin(), SupportedPresentationModes.end(),
-        [](const VkPresentModeKHR& Iter)
-        {
-            return Iter == VK_PRESENT_MODE_MAILBOX_KHR;
-        }
-    );
+                                               [](const VkPresentModeKHR &Iter)
+                                               {
+                                                   return Iter == VK_PRESENT_MODE_MAILBOX_KHR;
+                                               });
         MatchingMode != SupportedPresentationModes.end())
     {
         Output.PreferredMode = *MatchingMode;
@@ -220,41 +212,37 @@ void VulkanDeviceManager::Shutdown()
 
 bool VulkanDeviceManager::IsInitialized() const
 {
-    return m_PhysicalDevice != VK_NULL_HANDLE
-        && m_Device != VK_NULL_HANDLE
-        && m_GraphicsQueue.second != VK_NULL_HANDLE
-        && m_PresentationQueue.second != VK_NULL_HANDLE
-        && m_TransferQueue.second != VK_NULL_HANDLE;
+    return m_PhysicalDevice != VK_NULL_HANDLE && m_Device != VK_NULL_HANDLE && m_GraphicsQueue.second != VK_NULL_HANDLE && m_PresentationQueue.second != VK_NULL_HANDLE && m_TransferQueue.second != VK_NULL_HANDLE;
 }
 
-const VkPhysicalDevice& VulkanDeviceManager::GetPhysicalDevice() const
+const VkPhysicalDevice &VulkanDeviceManager::GetPhysicalDevice() const
 {
     return m_PhysicalDevice;
 }
 
-const VkDevice& VulkanDeviceManager::GetLogicalDevice() const
+const VkDevice &VulkanDeviceManager::GetLogicalDevice() const
 {
     return m_Device;
 }
 
-const VkQueue& VulkanDeviceManager::GetGraphicsQueue() const
+const VkQueue &VulkanDeviceManager::GetGraphicsQueue() const
 {
     return m_GraphicsQueue.second;
 }
 
-const VkQueue& VulkanDeviceManager::GetPresentationQueue() const
+const VkQueue &VulkanDeviceManager::GetPresentationQueue() const
 {
     return m_PresentationQueue.second;
 }
 
-const VkQueue& VulkanDeviceManager::GetTransferQueue() const
+const VkQueue &VulkanDeviceManager::GetTransferQueue() const
 {
     return m_TransferQueue.second;
 }
 
 std::vector<std::uint32_t> VulkanDeviceManager::GetQueueFamilyIndices() const
 {
-    std::vector<std::uint32_t> Output = { GetGraphicsQueueFamilyIndex(), GetPresentationQueueFamilyIndex(), GetTransferQueueFamilyIndex() };
+    std::vector<std::uint32_t> Output = {GetGraphicsQueueFamilyIndex(), GetPresentationQueueFamilyIndex(), GetTransferQueueFamilyIndex()};
     std::sort(Output.begin(), Output.end());
     Output.erase(std::unique(Output.begin(), Output.end()), Output.end());
 
@@ -308,19 +296,19 @@ std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDevi
     return Output;
 }
 
-std::vector<const char*> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensionsNames() const
+std::vector<const char *> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensionsNames() const
 {
     const std::vector<VkExtensionProperties> AvailableExtensions = GetAvailablePhysicalDeviceExtensions();
     std::set<std::string> RequiredExtensions(g_RequiredExtensions.begin(), g_RequiredExtensions.end());
 
-    for (const VkExtensionProperties& ExtensionsIter : AvailableExtensions)
+    for (const VkExtensionProperties &ExtensionsIter : AvailableExtensions)
     {
         RequiredExtensions.erase(ExtensionsIter.extensionName);
     }
 
-    std::vector<const char*> Output;
+    std::vector<const char *> Output;
     Output.reserve(RequiredExtensions.size());
-    for (const std::string& ExtensionIter : RequiredExtensions)
+    for (const std::string &ExtensionIter : RequiredExtensions)
     {
         Output.push_back(ExtensionIter.c_str());
     }
@@ -388,7 +376,7 @@ std::vector<VkPresentModeKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceSur
     return Output;
 }
 
-bool VulkanDeviceManager::IsPhysicalDeviceSuitable(const VkPhysicalDevice& Device) const
+bool VulkanDeviceManager::IsPhysicalDeviceSuitable(const VkPhysicalDevice &Device) const
 {
     if (Device == VK_NULL_HANDLE)
     {
@@ -406,7 +394,7 @@ bool VulkanDeviceManager::IsPhysicalDeviceSuitable(const VkPhysicalDevice& Devic
     return true;
 }
 
-bool VulkanDeviceManager::GetQueueFamilyIndices(std::optional<std::uint32_t>& GraphicsQueueFamilyIndex, std::optional<std::uint32_t>& PresentationQueueFamilyIndex, std::optional<std::uint32_t>& TransferQueueFamilyIndex)
+bool VulkanDeviceManager::GetQueueFamilyIndices(std::optional<std::uint32_t> &GraphicsQueueFamilyIndex, std::optional<std::uint32_t> &PresentationQueueFamilyIndex, std::optional<std::uint32_t> &TransferQueueFamilyIndex)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting queue family indices";
 
@@ -463,7 +451,7 @@ void VulkanDeviceManager::ListAvailablePhysicalDevices() const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical devices...";
 
-    for (const VkPhysicalDevice& DeviceIter : GetAvailablePhysicalDevices())
+    for (const VkPhysicalDevice &DeviceIter : GetAvailablePhysicalDevices())
     {
         VkPhysicalDeviceProperties DeviceProperties;
         vkGetPhysicalDeviceProperties(DeviceIter, &DeviceProperties);
@@ -480,7 +468,7 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceExtensions() const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device extensions...";
 
-    for (const VkExtensionProperties& ExtensionIter : GetAvailablePhysicalDeviceExtensions())
+    for (const VkExtensionProperties &ExtensionIter : GetAvailablePhysicalDeviceExtensions())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << ExtensionIter.extensionName;
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << ExtensionIter.specVersion << std::endl;
@@ -510,7 +498,7 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceSurfaceFormats() const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device surface formats...";
 
-    for (const VkSurfaceFormatKHR& FormatIter : GetAvailablePhysicalDeviceSurfaceFormats())
+    for (const VkSurfaceFormatKHR &FormatIter : GetAvailablePhysicalDeviceSurfaceFormats())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Format: " << FormatIter.format;
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Color Space: " << FormatIter.colorSpace;
@@ -521,7 +509,7 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceSurfacePresentationModes() 
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device presentation modes...";
 
-    for (const VkPresentModeKHR& FormatIter : GetAvailablePhysicalDeviceSurfacePresentationModes())
+    for (const VkPresentModeKHR &FormatIter : GetAvailablePhysicalDeviceSurfacePresentationModes())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Mode: " << PresentationModeToString(FormatIter);
     }
