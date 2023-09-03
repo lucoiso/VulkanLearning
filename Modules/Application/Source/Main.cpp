@@ -1,10 +1,11 @@
-// Copyright Notices: [...]
+// Author: Lucas Vilas-Boas
+// Year : 2023
+// Repo : https://github.com/lucoiso/VulkanLearning
 
 #include <RenderCore/Window.h>
-#include <iostream>
+#include <boost/log/trivial.hpp>
 #include <exception>
 #include <memory>
-#include <boost/log/trivial.hpp>
 
 int main(int Argc, char* Argv[])
 {

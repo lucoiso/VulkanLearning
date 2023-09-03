@@ -1,4 +1,6 @@
-# Copyright Notices: [...]
+# Author: Lucas Vilas-Boas
+# Year: 2023
+# Repo: https://github.com/lucoiso/VulkanLearning
 
 # Replace '\' with '\\'
 function(REPLACE_BACKSLASHES_IN_VARIABLE INPUT_VARIABLE)

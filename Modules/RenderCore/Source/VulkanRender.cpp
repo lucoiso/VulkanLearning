@@ -1,4 +1,6 @@
-// Copyright Notice: [...]
+// Author: Lucas Vilas-Boas
+// Year : 2023
+// Repo : https://github.com/lucoiso/VulkanLearning
 
 #include "VulkanRender.h"
 #include "Managers/VulkanDeviceManager.h"
@@ -316,7 +318,6 @@ private:
     }
 
 private:
-
     std::unique_ptr<VulkanDeviceManager> m_DeviceManager;
     std::unique_ptr<VulkanPipelineManager> m_PipelineManager;
     std::unique_ptr<VulkanBufferManager> m_BufferManager;
@@ -327,9 +328,9 @@ private:
     VkSurfaceKHR m_Surface;
     DeviceProperties m_SharedDeviceProperties;
 
-    #ifdef _DEBUG
+#ifdef _DEBUG
     VkDebugUtilsMessengerEXT m_DebugMessenger;
-    #endif
+#endif
 };
 
 VulkanRender::VulkanRender()

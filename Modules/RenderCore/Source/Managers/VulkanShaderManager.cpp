@@ -1,4 +1,6 @@
-// Copyright Notice: [...]
+// Author: Lucas Vilas-Boas
+// Year : 2023
+// Repo : https://github.com/lucoiso/VulkanLearning
 
 #include "Managers/VulkanShaderManager.h"
 #include "Utils/RenderCoreHelpers.h"

@@ -1,4 +1,6 @@
-# Copyright Notices: [...]
+# Author: Lucas Vilas-Boas
+# Year : 2023
+# Repo : https://github.com/lucoiso/VulkanLearning
 
 # ------------ Module Settings -------------
 set(BUILD_TESTING OFF)

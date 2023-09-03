@@ -1,4 +1,6 @@
-# Copyright Notices: [...]
+# Author: Lucas Vilas-Boas
+# Year: 2023
+# Repo: https://github.com/lucoiso/VulkanLearning
 
 # ------------ Project Settings ------------
 cmake_minimum_required(VERSION 3.22)

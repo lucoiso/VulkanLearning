@@ -1,4 +1,6 @@
-# Copyright Notices: [...]
+# Author: Lucas Vilas-Boas
+# Year: 2023
+# Repo: https://github.com/lucoiso/VulkanLearning
 
 from conan import ConanFile
 from conan.tools.cmake import cmake_layout
