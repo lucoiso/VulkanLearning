@@ -4,22 +4,36 @@
 
 #include "Managers/VulkanPipelineManager.h"
 #include "Types/VulkanVertex.h"
+#include "Types/VulkanUniformBufferObject.h"
 #include "Utils/RenderCoreHelpers.h"
 #include "Utils/VulkanConstants.h"
 #include <boost/log/trivial.hpp>
+#include "VulkanPipelineManager.h"
 
 using namespace RenderCore;
 
 VulkanPipelineManager::VulkanPipelineManager(const VkInstance &Instance, const VkDevice &Device)
-    : m_Instance(Instance), m_Device(Device), m_RenderPass(VK_NULL_HANDLE), m_Pipeline(VK_NULL_HANDLE), m_PipelineLayout(VK_NULL_HANDLE), m_PipelineCache(VK_NULL_HANDLE), m_DescriptorSetLayout(VK_NULL_HANDLE), m_Viewports{
-                                                                                                                                                                                                                      VkViewport{
-                                                                                                                                                                                                                          .x = 0.f,
-                                                                                                                                                                                                                          .y = 0.f,
-                                                                                                                                                                                                                          .width = 0.f,
-                                                                                                                                                                                                                          .height = 0.f,
-                                                                                                                                                                                                                          .minDepth = 0.f,
-                                                                                                                                                                                                                          .maxDepth = 1.f}},
-      m_Scissors{VkRect2D{.offset = {0, 0}, .extent = {0, 0}}}
+    : m_Instance(Instance)
+    , m_Device(Device)
+    , m_RenderPass(VK_NULL_HANDLE)
+    , m_Pipeline(VK_NULL_HANDLE)
+    , m_PipelineLayout(VK_NULL_HANDLE)
+    , m_PipelineCache(VK_NULL_HANDLE)
+    , m_DescriptorSetLayout(VK_NULL_HANDLE)
+    , m_DescriptorPool(VK_NULL_HANDLE)
+    , m_DescriptorSets({})
+    , m_Viewports{
+        VkViewport{
+            .x = 0.f,
+            .y = 0.f,
+            .width = 0.f,
+            .height = 0.f,
+            .minDepth = 0.f,
+            .maxDepth = 1.f}},
+      m_Scissors{
+        VkRect2D{
+            .offset = {0, 0}
+            , .extent = {0, 0}}}
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan pipelines manager";
 }
@@ -85,14 +99,16 @@ void VulkanPipelineManager::CreateRenderPass(const VkFormat &Format)
 void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &ShaderStages, const VkExtent2D &Extent)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan graphics pipeline";
-
+    
+    UpdateExtent(Extent);
+    
     const VkPipelineDynamicStateCreateInfo DynamicState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
         .dynamicStateCount = static_cast<uint32_t>(g_DynamicStates.size()),
         .pDynamicStates = g_DynamicStates.data()};
 
-    const auto BindingDescription = Vertex::GetBindingDescriptors();
-    const auto AttributeDescriptions = Vertex::GetAttributeDescriptions();
+    const auto BindingDescription = GetBindingDescriptors();
+    const auto AttributeDescriptions = GetAttributeDescriptions();
 
     const VkPipelineVertexInputStateCreateInfo VertexInputState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -114,7 +130,7 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         .cullMode = VK_CULL_MODE_BACK_BIT,
         .frontFace = VK_FRONT_FACE_CLOCKWISE,
         .depthBiasEnable = VK_FALSE,
-        .lineWidth = 10.f};
+        .lineWidth = 1.f};
 
     const std::vector<VkPipelineColorBlendAttachmentState> ColorBlendAttachmentStates{
         VkPipelineColorBlendAttachmentState{
@@ -143,42 +159,6 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         .depthBoundsTestEnable = VK_FALSE,
         .stencilTestEnable = VK_FALSE};
 
-    const std::vector<VkDescriptorSetLayoutBinding> LayoutBinding{
-        VkDescriptorSetLayoutBinding{
-            .binding = 0u,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = 1u,
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-            .pImmutableSamplers = nullptr}};
-
-    const VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutInfo{
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        .bindingCount = static_cast<std::uint32_t>(LayoutBinding.size()),
-        .pBindings = LayoutBinding.data()};
-
-    if (vkCreateDescriptorSetLayout(m_Device, &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create descriptor set layout");
-    }
-
-    const VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .setLayoutCount = 1u,
-        .pSetLayouts = &m_DescriptorSetLayout,
-        .pushConstantRangeCount = 0u};
-
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineLayout(m_Device, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
-
-    const VkPipelineCacheCreateInfo PipelineCacheCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
-
-    if (vkCreatePipelineCache(m_Device, &PipelineCacheCreateInfo, nullptr, &m_PipelineCache) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create vulkan pipeline cache");
-    }
-
-    UpdateExtent(Extent);
-
     const VkPipelineViewportStateCreateInfo ViewportState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         .viewportCount = static_cast<std::uint32_t>(m_Viewports.size()),
@@ -203,7 +183,82 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
             .renderPass = m_RenderPass,
             .subpass = 0u}};
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateGraphicsPipelines(m_Device, m_PipelineCache, GraphicsPipelineCreateInfo.size(), GraphicsPipelineCreateInfo.data(), nullptr, &m_Pipeline));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateGraphicsPipelines(m_Device, m_PipelineCache, static_cast<std::uint32_t>(GraphicsPipelineCreateInfo.size()), GraphicsPipelineCreateInfo.data(), nullptr, &m_Pipeline));
+}
+
+void VulkanPipelineManager::CreateDescriptorsAndPipelineCache(const std::vector<VkBuffer> &UniformBuffers)
+{
+    const VkDescriptorPoolSize DescriptorPoolSize{
+        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = g_MaxFramesInFlight};
+
+    const VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .maxSets = g_MaxFramesInFlight,
+        .poolSizeCount = 1u,
+        .pPoolSizes = &DescriptorPoolSize};
+
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorPool(m_Device, &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool));
+
+    const VkPipelineCacheCreateInfo PipelineCacheCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
+
+    const std::vector<VkDescriptorSetLayoutBinding> LayoutBinding{
+        VkDescriptorSetLayoutBinding{
+            .binding = 0u,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1u,
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+            .pImmutableSamplers = nullptr}};
+
+    const VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutInfo{
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .bindingCount = static_cast<std::uint32_t>(LayoutBinding.size()),
+        .pBindings = LayoutBinding.data()};
+
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorSetLayout(m_Device, &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout));
+    const std::vector<VkDescriptorSetLayout> DescriptorSetLayouts(g_MaxFramesInFlight, m_DescriptorSetLayout);
+
+    const VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        .setLayoutCount = g_MaxFramesInFlight,
+        .pSetLayouts = DescriptorSetLayouts.data(),
+        .pushConstantRangeCount = 0u};
+
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineLayout(m_Device, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineCache(m_Device, &PipelineCacheCreateInfo, nullptr, &m_PipelineCache));
+
+    const VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo{
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .descriptorPool = m_DescriptorPool,
+        .descriptorSetCount = g_MaxFramesInFlight,
+        .pSetLayouts = DescriptorSetLayouts.data()};
+        
+    m_DescriptorSets.resize(g_MaxFramesInFlight);
+    RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateDescriptorSets(m_Device, &DescriptorSetAllocateInfo, m_DescriptorSets.data()));
+
+    std::vector<VkWriteDescriptorSet> WriteDescriptorSets(g_MaxFramesInFlight);
+    for (auto Iterator = WriteDescriptorSets.begin(); Iterator != WriteDescriptorSets.end(); ++Iterator)
+    {
+        const std::uint32_t Index = std::distance(WriteDescriptorSets.begin(), Iterator);              
+
+        const VkDescriptorBufferInfo DescriptorBufferInfo{
+            .buffer = UniformBuffers[Index],
+            .offset = 0u,
+            .range = sizeof(UniformBufferObject)};
+
+        Iterator->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        Iterator->dstSet = m_DescriptorSets[Index];
+        Iterator->dstBinding = 0u;
+        Iterator->dstArrayElement = 0u;
+        Iterator->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        Iterator->descriptorCount = 1u;
+        Iterator->pBufferInfo = &DescriptorBufferInfo;
+        Iterator->pImageInfo = nullptr;
+        Iterator->pTexelBufferView = nullptr;        
+    }
+    
+    vkUpdateDescriptorSets(m_Device, static_cast<std::uint32_t>(WriteDescriptorSets.size()), WriteDescriptorSets.data(), 0u, nullptr);
 }
 
 void VulkanPipelineManager::UpdateExtent(const VkExtent2D &Extent)
@@ -246,6 +301,11 @@ void VulkanPipelineManager::Shutdown()
 
     vkDestroyDescriptorSetLayout(m_Device, m_DescriptorSetLayout, nullptr);
     m_DescriptorSetLayout = VK_NULL_HANDLE;
+
+    vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr);
+    m_DescriptorPool = VK_NULL_HANDLE;
+    
+    m_DescriptorSets.clear();
 }
 
 bool VulkanPipelineManager::IsInitialized() const
@@ -276,6 +336,15 @@ const VkPipelineCache &VulkanPipelineManager::GetPipelineCache() const
 const VkDescriptorSetLayout &VulkanPipelineManager::GetDescriptorSetLayout() const
 {
     return m_DescriptorSetLayout;
+}
+
+const VkDescriptorPool &VulkanPipelineManager::GetDescriptorPool() const
+{
+    return m_DescriptorPool;
+}
+const std::vector<VkDescriptorSet> &VulkanPipelineManager::GetDescriptorSets() const
+{
+    return m_DescriptorSets;
 }
 
 const std::vector<VkViewport> &VulkanPipelineManager::GetViewports() const

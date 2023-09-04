@@ -29,10 +29,16 @@ public:
     Impl &operator=(const Impl &) = delete;
 
     Impl()
-        : m_DeviceManager(nullptr), m_PipelineManager(nullptr), m_BufferManager(nullptr), m_CommandsManager(nullptr), m_ShaderManager(nullptr), m_Instance(VK_NULL_HANDLE), m_Surface(VK_NULL_HANDLE), m_SharedDeviceProperties()
+        : m_DeviceManager(nullptr)
+        , m_PipelineManager(nullptr)
+        , m_BufferManager(nullptr)
+        , m_CommandsManager(nullptr)
+        , m_ShaderManager(nullptr)
+        , m_Instance(VK_NULL_HANDLE)
+        , m_Surface(VK_NULL_HANDLE)
+        , m_SharedDeviceProperties()
 #ifdef _DEBUG
-          ,
-          m_DebugMessenger(VK_NULL_HANDLE)
+        , m_DebugMessenger(VK_NULL_HANDLE)
 #endif
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render implementation";
@@ -66,7 +72,7 @@ public:
         CreateVulkanInstance();
         CreateVulkanSurface(Window);
 
-        return InitializeDeviceManagement(Window) && InitializeBufferManagement(Window) && InitializePipelineManagement(Window) && InitializeCommandsManagement(Window);
+        return InitializeRenderCore(Window);
     }
 
     void Shutdown()
@@ -115,9 +121,11 @@ public:
             throw std::runtime_error("GLFW Window is invalid");
         }
 
-        const std::vector<std::uint32_t> ImageIndices = m_CommandsManager->DrawFrame({m_BufferManager->GetSwapChain()});
+        const std::unordered_map<VkSwapchainKHR, std::uint32_t> ImageIndices = m_CommandsManager->DrawFrame({m_BufferManager->GetSwapChain()});
         if (!m_SharedDeviceProperties.IsValid() || ImageIndices.empty())
         {
+            m_CommandsManager->DestroySynchronizationObjects();
+
             m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
             if (!m_SharedDeviceProperties.IsValid())
             {
@@ -130,16 +138,15 @@ public:
             m_CommandsManager->CreateSynchronizationObjects();
             m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
             m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
-            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
-            m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
 
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Buffers updated, starting to draw frames with new surface properties";
         }
         else
         {
-            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_PipelineManager->GetViewports(), m_PipelineManager->GetScissors(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), m_BufferManager->GetIndexBuffers(), m_BufferManager->GetIndexCount(), {0u});
+            m_BufferManager->UpdateUniformBuffers(m_CommandsManager->GetCurrentFrameIndex(), m_SharedDeviceProperties.PreferredExtent);
+            m_CommandsManager->RecordCommandBuffers(GetBufferRecordParameters(ImageIndices.at(m_BufferManager->GetSwapChain())));
             m_CommandsManager->SubmitCommandBuffers(m_DeviceManager->GetGraphicsQueue());
-            m_CommandsManager->PresentFrame(m_DeviceManager->GetPresentationQueue(), {m_BufferManager->GetSwapChain()}, ImageIndices);
+            m_CommandsManager->PresentFrame(m_DeviceManager->GetPresentationQueue(), ImageIndices);
         }
     }
 
@@ -239,13 +246,13 @@ private:
         RENDERCORE_CHECK_VULKAN_RESULT(glfwCreateWindowSurface(m_Instance, Window, nullptr, &m_Surface));
     }
 
-    bool InitializeDeviceManagement(GLFWwindow *const Window)
+    bool InitializeRenderCore(GLFWwindow *const Window)
     {
         if (!Window)
         {
             throw std::runtime_error("GLFW Window is invalid.");
         }
-
+        
         if (m_DeviceManager = std::make_unique<VulkanDeviceManager>(m_Instance, m_Surface))
         {
             m_DeviceManager->PickPhysicalDevice();
@@ -253,27 +260,38 @@ private:
 
             m_ShaderManager = std::make_unique<VulkanShaderManager>(m_DeviceManager->GetLogicalDevice());
         }
+        else
+        {
+            throw std::runtime_error("Failed to initialize device manager.");
+        }
 
-        return m_DeviceManager != nullptr;
-    }
-
-    bool InitializeBufferManagement(GLFWwindow *const Window)
-    {
         if (m_BufferManager = std::make_unique<VulkanBufferManager>(m_DeviceManager->GetLogicalDevice(), m_Surface, m_DeviceManager->GetQueueFamilyIndices()))
         {
             m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
             m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
         }
+        else
+        {
+            throw std::runtime_error("Failed to initialize buffer manager.");
+        }
 
-        return m_BufferManager != nullptr;
-    }
-
-    bool InitializePipelineManagement(GLFWwindow *const Window)
-    {
         if (m_PipelineManager = std::make_unique<VulkanPipelineManager>(m_Instance, m_DeviceManager->GetLogicalDevice()))
         {
             m_PipelineManager->CreateRenderPass(m_SharedDeviceProperties.PreferredFormat.format);
             m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
+        }
+        else
+        {
+            throw std::runtime_error("Failed to initialize pipeline manager.");
+        }
+
+        if (m_CommandsManager = std::make_unique<VulkanCommandsManager>(m_DeviceManager->GetLogicalDevice()))
+        {
+            m_CommandsManager->CreateCommandPool(m_BufferManager->GetFrameBuffers(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
+            m_CommandsManager->CreateSynchronizationObjects();
+            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
+            m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
+            m_BufferManager->CreateUniformBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
 
             std::vector<std::uint32_t> FragmentShaderCode;
             m_ShaderManager->Compile(DEBUG_SHADER_FRAG, FragmentShaderCode);
@@ -283,24 +301,33 @@ private:
             m_ShaderManager->Compile(DEBUG_SHADER_VERT, VertexShaderCode);
             const VkShaderModule VertexModule = m_ShaderManager->CreateModule(m_DeviceManager->GetLogicalDevice(), VertexShaderCode, EShLangVertex);
 
+            m_PipelineManager->CreateDescriptorsAndPipelineCache(m_BufferManager->GetUniformBuffers());
             m_PipelineManager->CreateGraphicsPipeline({m_ShaderManager->GetStageInfo(FragmentModule), m_ShaderManager->GetStageInfo(VertexModule)}, m_SharedDeviceProperties.PreferredExtent);
         }
-
-        return m_PipelineManager != nullptr;
-    }
-
-    bool InitializeCommandsManagement(GLFWwindow *const Window)
-    {
-        if (m_CommandsManager = std::make_unique<VulkanCommandsManager>(m_DeviceManager->GetLogicalDevice()))
+        else
         {
-            m_CommandsManager->CreateCommandPool(m_BufferManager->GetFrameBuffers(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
-            m_CommandsManager->CreateSynchronizationObjects();
-            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
-            m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
-            m_CommandsManager->RecordCommandBuffers(m_PipelineManager->GetRenderPass(), m_PipelineManager->GetPipeline(), m_PipelineManager->GetViewports(), m_PipelineManager->GetScissors(), m_SharedDeviceProperties.PreferredExtent, m_BufferManager->GetFrameBuffers(), m_BufferManager->GetVertexBuffers(), m_BufferManager->GetIndexBuffers(), m_BufferManager->GetIndexCount(), {0u});
+            throw std::runtime_error("Failed to initialize commands manager.");
         }
 
-        return m_CommandsManager != nullptr;
+        return true;
+    }
+
+    VulkanCommandsManager::BufferRecordParameters GetBufferRecordParameters(const std::uint32_t ImageIndex) const{
+        return {
+            .RenderPass = m_PipelineManager->GetRenderPass(),
+            .Pipeline = m_PipelineManager->GetPipeline(),
+            .Viewports = m_PipelineManager->GetViewports(),
+            .Scissors = m_PipelineManager->GetScissors(),
+            .Extent = m_SharedDeviceProperties.PreferredExtent,
+            .FrameBuffers = m_BufferManager->GetFrameBuffers(),
+            .VertexBuffers = m_BufferManager->GetVertexBuffers(),
+            .IndexBuffers = m_BufferManager->GetIndexBuffers(),
+            .PipelineLayout = m_PipelineManager->GetPipelineLayout(),
+            .DescriptorSets = m_PipelineManager->GetDescriptorSets(),
+            .IndexCount = m_BufferManager->GetIndexCount(),
+            .ImageIndex = ImageIndex,
+            .Offsets = {0u}
+        };
     }
 
 private:
@@ -341,16 +368,7 @@ bool VulkanRender::Initialize(GLFWwindow *const Window)
         return false;
     }
 
-    try
-    {
-        return m_Impl->Initialize(Window);
-    }
-    catch (const std::exception &Ex)
-    {
-        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
-    }
-
-    return false;
+    return m_Impl->Initialize(Window);
 }
 
 void VulkanRender::Shutdown()
@@ -360,14 +378,7 @@ void VulkanRender::Shutdown()
         return;
     }
 
-    try
-    {
-        m_Impl->Shutdown();
-    }
-    catch (const std::exception &Ex)
-    {
-        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
-    }
+    m_Impl->Shutdown();
 }
 
 void VulkanRender::DrawFrame(GLFWwindow *const Window)
@@ -377,18 +388,10 @@ void VulkanRender::DrawFrame(GLFWwindow *const Window)
         return;
     }
 
-    try
-    {
-        m_Impl->DrawFrame(Window);
-    }
-    catch (const std::exception &Ex)
-    {
-        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
-    }
+    m_Impl->DrawFrame(Window);
 }
 
 bool VulkanRender::IsInitialized() const
 {
     return m_Impl && m_Impl->IsInitialized();
-    ;
 }

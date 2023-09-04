@@ -22,6 +22,9 @@ class VulkanProjectRecipe(ConanFile):
         # https://conan.io/center/recipes/benchmark
         self.requires("benchmark/[~1.8]")
 
+        # https://conan.io/center/recipes/glm
+        self.requires("glm/cci.20230113")
+
     def build_requirements(self):
         self.tool_requires("cmake/3.22.6")
 

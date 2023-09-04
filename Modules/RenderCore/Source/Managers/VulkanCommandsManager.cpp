@@ -5,11 +5,19 @@
 #include "Managers/VulkanCommandsManager.h"
 #include "Utils/RenderCoreHelpers.h"
 #include <boost/log/trivial.hpp>
+#include "VulkanCommandsManager.h"
 
 using namespace RenderCore;
 
 VulkanCommandsManager::VulkanCommandsManager(const VkDevice &Device)
-	: m_Device(Device), m_CommandPool(VK_NULL_HANDLE), m_CommandBuffers({}), m_ImageAvailableSemaphores({}), m_RenderFinishedSemaphores({}), m_Fences({}), m_ProcessingUnitsCount(0u)
+	: m_Device(Device)
+	, m_CommandPool(VK_NULL_HANDLE)
+	, m_CommandBuffers({})
+	, m_ImageAvailableSemaphores({})
+	, m_RenderFinishedSemaphores({})
+	, m_Fences({})
+	, m_CurrentFrameIndex(0u)
+	, m_SynchronizationObjectsCreated(false)
 {
 	BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan commands manager";
 }
@@ -65,14 +73,19 @@ void VulkanCommandsManager::CreateCommandPool(const std::vector<VkFramebuffer> &
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 		.commandPool = m_CommandPool,
 		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-		.commandBufferCount = static_cast<std::uint32_t>(FrameBuffers.size())};
+		.commandBufferCount = g_MaxFramesInFlight};
 
-	m_CommandBuffers.resize(FrameBuffers.size(), VK_NULL_HANDLE);
+	m_CommandBuffers.resize(g_MaxFramesInFlight, VK_NULL_HANDLE);
 	RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateCommandBuffers(m_Device, &CommandBufferAllocateInfo, m_CommandBuffers.data()));
 }
 
 void VulkanCommandsManager::CreateSynchronizationObjects()
 {
+	if (m_SynchronizationObjectsCreated)
+	{
+		return;
+	}
+
 	BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan synchronization objects";
 
 	if (m_Device == VK_NULL_HANDLE)
@@ -87,22 +100,27 @@ void VulkanCommandsManager::CreateSynchronizationObjects()
 		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 		.flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
-	m_ProcessingUnitsCount = static_cast<std::uint32_t>(m_CommandBuffers.size());
+	m_ImageAvailableSemaphores.resize(g_MaxFramesInFlight, VK_NULL_HANDLE);
+	m_RenderFinishedSemaphores.resize(g_MaxFramesInFlight, VK_NULL_HANDLE);
+	m_Fences.resize(g_MaxFramesInFlight, VK_NULL_HANDLE);
 
-	m_ImageAvailableSemaphores.resize(m_ProcessingUnitsCount, VK_NULL_HANDLE);
-	m_RenderFinishedSemaphores.resize(m_ProcessingUnitsCount, VK_NULL_HANDLE);
-	m_Fences.resize(m_ProcessingUnitsCount, VK_NULL_HANDLE);
-
-	for (std::uint32_t Iterator = 0u; Iterator < m_ProcessingUnitsCount; ++Iterator)
+	for (std::uint32_t Iterator = 0u; Iterator < g_MaxFramesInFlight; ++Iterator)
 	{
 		RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSemaphore(m_Device, &SemaphoreCreateInfo, nullptr, &m_ImageAvailableSemaphores[Iterator]));
 		RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSemaphore(m_Device, &SemaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphores[Iterator]));
 		RENDERCORE_CHECK_VULKAN_RESULT(vkCreateFence(m_Device, &FenceCreateInfo, nullptr, &m_Fences[Iterator]));
 	}
+
+	m_SynchronizationObjectsCreated = true;
 }
 
 void VulkanCommandsManager::DestroySynchronizationObjects()
 {
+	if (!m_SynchronizationObjectsCreated)
+	{
+		return;
+	}
+
 	BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying Vulkan synchronization objects";
 
 	vkDeviceWaitIdle(m_Device);
@@ -134,43 +152,43 @@ void VulkanCommandsManager::DestroySynchronizationObjects()
 	}
 	m_Fences.clear();
 
-	m_ProcessingUnitsCount = 0u;
+	m_SynchronizationObjectsCreated = false;
 }
 
-std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<VkSwapchainKHR> &SwapChains)
+std::unordered_map<VkSwapchainKHR, std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<VkSwapchainKHR> &SwapChains)
 {
 	if (m_Device == VK_NULL_HANDLE)
 	{
 		throw std::runtime_error("Vulkan logical device is invalid.");
 	}
 
-	if (m_ProcessingUnitsCount == 0u)
+	if (!m_SynchronizationObjectsCreated)
 	{
-		return std::vector<std::uint32_t>();
+		return std::unordered_map<VkSwapchainKHR, std::uint32_t>();
 	}
 
-	WaitAndResetFences();
-
-	std::vector<std::uint32_t> ImageIndices;
-	for (std::uint32_t Iterator = 0u; Iterator < m_ProcessingUnitsCount; ++Iterator)
+	std::unordered_map<VkSwapchainKHR, std::uint32_t> ImageIndices;
+	for (const VkSwapchainKHR& SwapChainIter : SwapChains)
 	{
-		if (m_ImageAvailableSemaphores[Iterator] == VK_NULL_HANDLE)
+		if (SwapChainIter == VK_NULL_HANDLE)
+		{
+			throw std::runtime_error("Vulkan swap chain is invalid.");
+		}
+	
+		WaitAndResetFences(true);
+
+		if (m_ImageAvailableSemaphores[m_CurrentFrameIndex] == VK_NULL_HANDLE)
 		{
 			throw std::runtime_error("Vulkan semaphore: Image Available is invalid.");
 		}
 
-		if (m_Fences[Iterator] == VK_NULL_HANDLE)
+		if (m_Fences[m_CurrentFrameIndex] == VK_NULL_HANDLE)
 		{
 			throw std::runtime_error("Vulkan fence is invalid.");
 		}
 
-		if (SwapChains[Iterator] == VK_NULL_HANDLE)
-		{
-			throw std::runtime_error("Vulkan swap chain is invalid.");
-		}
-
-		ImageIndices.emplace_back(0u);
-		if (const VkResult OperationResult = vkAcquireNextImageKHR(m_Device, SwapChains[Iterator], Timeout, m_ImageAvailableSemaphores[Iterator], m_Fences[Iterator], &ImageIndices.back()); OperationResult != VK_SUCCESS)
+		ImageIndices.emplace(SwapChainIter, 0u);
+		if (const VkResult OperationResult = vkAcquireNextImageKHR(m_Device, SwapChainIter, Timeout, m_ImageAvailableSemaphores[m_CurrentFrameIndex], m_Fences[m_CurrentFrameIndex], &ImageIndices[SwapChainIter]); OperationResult != VK_SUCCESS)
 		{
 			if (OperationResult == VK_ERROR_OUT_OF_DATE_KHR || OperationResult == VK_SUBOPTIMAL_KHR)
 			{
@@ -183,10 +201,8 @@ std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<Vk
 					BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Failed to acquire next image: Vulkan swap chain is suboptimal";
 				}
 
-				WaitAndResetFences();
-				DestroySynchronizationObjects();
-
-				return std::vector<std::uint32_t>();
+				WaitAndResetFences(true);
+				return std::unordered_map<VkSwapchainKHR, std::uint32_t>();
 			}
 			else if (OperationResult != VK_SUBOPTIMAL_KHR)
 			{
@@ -198,9 +214,9 @@ std::vector<std::uint32_t> VulkanCommandsManager::DrawFrame(const std::vector<Vk
 	return ImageIndices;
 }
 
-void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass &RenderPass, const VkPipeline &Pipeline, const std::vector<VkViewport> &Viewports, const std::vector<VkRect2D> &Scissors, const VkExtent2D &Extent, const std::vector<VkFramebuffer> &FrameBuffers, const std::vector<VkBuffer> &VertexBuffers, const std::vector<VkBuffer> &IndexBuffers, const std::uint32_t IndexCount, const std::vector<VkDeviceSize> &Offsets)
+void VulkanCommandsManager::RecordCommandBuffers(const BufferRecordParameters &Parameters)
 {
-	if (Pipeline == VK_NULL_HANDLE)
+	if (Parameters.Pipeline == VK_NULL_HANDLE)
 	{
 		throw std::runtime_error("Vulkan graphics pipeline is invalid");
 	}
@@ -213,49 +229,40 @@ void VulkanCommandsManager::RecordCommandBuffers(const VkRenderPass &RenderPass,
 		VkClearValue{
 			.color = {00.f, 00.f, 00.f, 10.f}}};
 
-	auto CommandBufferIter = m_CommandBuffers.begin();
-	for (const VkFramebuffer &FrameBufferIter : FrameBuffers)
+	RENDERCORE_CHECK_VULKAN_RESULT(vkResetCommandBuffer(m_CommandBuffers[m_CurrentFrameIndex], VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
+	RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(m_CommandBuffers[m_CurrentFrameIndex], &CommandBufferBeginInfo));
+
+	const VkRenderPassBeginInfo RenderPassBeginInfo{
+		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+		.renderPass = Parameters.RenderPass,
+		.framebuffer = Parameters.FrameBuffers[Parameters.ImageIndex],
+		.renderArea = {
+			.offset = {0, 0},
+			.extent = Parameters.Extent},
+		.clearValueCount = static_cast<std::uint32_t>(ClearValues.size()),
+		.pClearValues = ClearValues.data()};
+
+	vkCmdBeginRenderPass(m_CommandBuffers[m_CurrentFrameIndex], &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBindPipeline(m_CommandBuffers[m_CurrentFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.Pipeline);
+
+	vkCmdBindVertexBuffers(m_CommandBuffers[m_CurrentFrameIndex], 0, 1, Parameters.VertexBuffers.data(), Parameters.Offsets.data());
+
+	for (const VkBuffer &IndexBufferIter : Parameters.IndexBuffers)
 	{
-		if (CommandBufferIter == m_CommandBuffers.end())
-		{
-			break;
-		}
+		vkCmdBindIndexBuffer(m_CommandBuffers[m_CurrentFrameIndex], IndexBufferIter, 0, VK_INDEX_TYPE_UINT32);
+	}
 
-		RENDERCORE_CHECK_VULKAN_RESULT(vkResetCommandBuffer(*CommandBufferIter, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
-		RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(*CommandBufferIter, &CommandBufferBeginInfo));
+	vkCmdSetViewport(m_CommandBuffers[m_CurrentFrameIndex], 0u, static_cast<std::uint32_t>(Parameters.Viewports.size()), Parameters.Viewports.data());
+	vkCmdSetScissor(m_CommandBuffers[m_CurrentFrameIndex], 0u, static_cast<std::uint32_t>(Parameters.Scissors.size()), Parameters.Scissors.data());
 
-		const VkRenderPassBeginInfo RenderPassBeginInfo{
-			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-			.renderPass = RenderPass,
-			.framebuffer = FrameBufferIter,
-			.renderArea = {
-				.offset = {0, 0},
-				.extent = Extent},
-			.clearValueCount = static_cast<std::uint32_t>(ClearValues.size()),
-			.pClearValues = ClearValues.data()};
+	vkCmdBindDescriptorSets(m_CommandBuffers[m_CurrentFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.PipelineLayout, 0u, 1u, &Parameters.DescriptorSets[m_CurrentFrameIndex], 0u, nullptr);
 
-		vkCmdBeginRenderPass(*CommandBufferIter, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdBindPipeline(*CommandBufferIter, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
+	vkCmdDrawIndexed(m_CommandBuffers[m_CurrentFrameIndex], Parameters.IndexCount, 1u, 0u, 0u, 0u);
+	vkCmdEndRenderPass(m_CommandBuffers[m_CurrentFrameIndex]);
 
-		vkCmdBindVertexBuffers(*CommandBufferIter, 0, 1, VertexBuffers.data(), Offsets.data());
-
-		for (const VkBuffer &IndexBufferIter : IndexBuffers)
-		{
-			vkCmdBindIndexBuffer(*CommandBufferIter, IndexBufferIter, 0, VK_INDEX_TYPE_UINT32);
-		}
-
-		vkCmdSetViewport(*CommandBufferIter, 0u, static_cast<std::uint32_t>(Viewports.size()), Viewports.data());
-		vkCmdSetScissor(*CommandBufferIter, 0u, static_cast<std::uint32_t>(Scissors.size()), Scissors.data());
-
-		vkCmdDrawIndexed(*CommandBufferIter, IndexCount, 1u, 0u, 0u, 0u);
-		vkCmdEndRenderPass(*CommandBufferIter);
-
-		if (vkEndCommandBuffer(*CommandBufferIter) != VK_SUCCESS)
-		{
-			throw std::runtime_error("Failed to record command buffer");
-		}
-
-		++CommandBufferIter;
+	if (vkEndCommandBuffer(m_CommandBuffers[m_CurrentFrameIndex]) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to record command buffer");
 	}
 }
 
@@ -266,51 +273,57 @@ void VulkanCommandsManager::SubmitCommandBuffers(const VkQueue &GraphicsQueue)
 		throw std::runtime_error("Vulkan graphics queue is invalid.");
 	}
 
-	WaitAndResetFences();
+	WaitAndResetFences(true);
 
-	const std::vector<VkPipelineStageFlags> WaitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+	constexpr VkPipelineStageFlags WaitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
 	const std::vector<VkSubmitInfo> SubmitInfo{
 		VkSubmitInfo{
 			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-			.waitSemaphoreCount = static_cast<std::uint32_t>(m_ImageAvailableSemaphores.size()),
-			.pWaitSemaphores = m_ImageAvailableSemaphores.data(),
-			.pWaitDstStageMask = WaitStages.data(),
-			.commandBufferCount = static_cast<std::uint32_t>(m_CommandBuffers.size()),
-			.pCommandBuffers = m_CommandBuffers.data(),
-			.signalSemaphoreCount = static_cast<std::uint32_t>(m_RenderFinishedSemaphores.size()),
-			.pSignalSemaphores = m_RenderFinishedSemaphores.data()}};
-
-	for (const VkFence &FenceIter : m_Fences)
-	{
-		if (FenceIter == VK_NULL_HANDLE)
-		{
-			throw std::runtime_error("Vulkan fence is invalid.");
-		}
-
-		RENDERCORE_CHECK_VULKAN_RESULT(vkQueueSubmit(GraphicsQueue, static_cast<std::uint32_t>(SubmitInfo.size()), SubmitInfo.data(), FenceIter));
-	}
+			.waitSemaphoreCount = 1u,
+			.pWaitSemaphores = &m_ImageAvailableSemaphores[m_CurrentFrameIndex],
+			.pWaitDstStageMask = WaitStages,
+			.commandBufferCount = 1u,
+			.pCommandBuffers = &m_CommandBuffers[m_CurrentFrameIndex],
+			.signalSemaphoreCount = 1u,
+			.pSignalSemaphores = &m_RenderFinishedSemaphores[m_CurrentFrameIndex]}};
+	
+	RENDERCORE_CHECK_VULKAN_RESULT(vkQueueSubmit(GraphicsQueue, static_cast<std::uint32_t>(SubmitInfo.size()), SubmitInfo.data(), m_Fences[m_CurrentFrameIndex]));
 }
 
-void VulkanCommandsManager::PresentFrame(const VkQueue &PresentQueue, const std::vector<VkSwapchainKHR> &SwapChains, const std::vector<std::uint32_t> &ImageIndices)
+void VulkanCommandsManager::PresentFrame(const VkQueue &PresentQueue, const std::unordered_map<VkSwapchainKHR, std::uint32_t> &ImageIndicesData)
 {
 	if (PresentQueue == VK_NULL_HANDLE)
 	{
 		throw std::runtime_error("Vulkan present queue is invalid.");
 	}
 
+	std::vector<VkSwapchainKHR> SwapChains;
+	std::vector<std::uint32_t> ImageIndices;
+	for (const auto &ImageIndicesIter : ImageIndicesData)
+	{
+		SwapChains.emplace_back(ImageIndicesIter.first);
+		ImageIndices.emplace_back(ImageIndicesIter.second);
+	}
+
 	const VkPresentInfoKHR PresentInfo{
 		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-		.waitSemaphoreCount = static_cast<std::uint32_t>(m_RenderFinishedSemaphores.size()),
-		.pWaitSemaphores = m_RenderFinishedSemaphores.data(),
+		.waitSemaphoreCount = 1u,
+		.pWaitSemaphores = &m_RenderFinishedSemaphores[m_CurrentFrameIndex],
 		.swapchainCount = static_cast<std::uint32_t>(SwapChains.size()),
 		.pSwapchains = SwapChains.data(),
 		.pImageIndices = ImageIndices.data(),
 		.pResults = nullptr};
 
 	RENDERCORE_CHECK_VULKAN_RESULT(vkQueuePresentKHR(PresentQueue, &PresentInfo));
+
+	m_CurrentFrameIndex = (m_CurrentFrameIndex + 1u) % g_MaxFramesInFlight;
 }
 
+std::uint32_t RenderCore::VulkanCommandsManager::GetCurrentFrameIndex() const
+{
+    return m_CurrentFrameIndex;
+}
 bool VulkanCommandsManager::IsInitialized() const
 {
 	return m_CommandPool != VK_NULL_HANDLE;
@@ -326,13 +339,21 @@ const std::vector<VkCommandBuffer> &VulkanCommandsManager::GetCommandBuffers() c
 	return m_CommandBuffers;
 }
 
-void VulkanCommandsManager::WaitAndResetFences()
+void VulkanCommandsManager::WaitAndResetFences(const bool bCurrentFrame)
 {
 	if (m_Fences.empty())
 	{
 		return;
 	}
 
-	RENDERCORE_CHECK_VULKAN_RESULT(vkWaitForFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data(), VK_TRUE, Timeout));
-	RENDERCORE_CHECK_VULKAN_RESULT(vkResetFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data()));
+	if (bCurrentFrame && m_Fences.size() > m_CurrentFrameIndex && m_Fences[m_CurrentFrameIndex] != VK_NULL_HANDLE)
+	{
+		RENDERCORE_CHECK_VULKAN_RESULT(vkWaitForFences(m_Device, 1u, &m_Fences[m_CurrentFrameIndex], VK_TRUE, Timeout));
+		RENDERCORE_CHECK_VULKAN_RESULT(vkResetFences(m_Device, 1u, &m_Fences[m_CurrentFrameIndex]));
+	}
+	else if (!bCurrentFrame)
+	{
+		RENDERCORE_CHECK_VULKAN_RESULT(vkWaitForFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data(), VK_TRUE, Timeout));
+		RENDERCORE_CHECK_VULKAN_RESULT(vkResetFences(m_Device, static_cast<std::uint32_t>(m_Fences.size()), m_Fences.data()));
+	}
 }

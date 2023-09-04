@@ -5,23 +5,36 @@
 #include "Managers/VulkanBufferManager.h"
 #include "Utils/RenderCoreHelpers.h"
 #include <boost/log/trivial.hpp>
+#include <chrono>
 
 using namespace RenderCore;
 
 VulkanBufferManager::VulkanBufferManager(const VkDevice &Device, const VkSurfaceKHR &Surface, const std::vector<std::uint32_t> &QueueFamilyIndices)
-    : m_Device(Device), m_Surface(Surface), m_QueueFamilyIndices(QueueFamilyIndices), m_SwapChain(VK_NULL_HANDLE), m_SwapChainImages({}), m_SwapChainImageViews({}), m_FrameBuffers({}), m_VertexBuffers({}), m_VertexBuffersMemory({}), m_IndexBuffers({}), m_IndexBuffersMemory({}), m_Vertices({Vertex{
-                                                                                                                                                                                                                                                                                                       .Position = {-1.f, -1.f, 0.f},
-                                                                                                                                                                                                                                                                                                       .Color = {10.f, 00.f, 00.f}},
-                                                                                                                                                                                                                                                                                                   Vertex{
-                                                                                                                                                                                                                                                                                                       .Position = {1.f, -1.f, 0.f},
-                                                                                                                                                                                                                                                                                                       .Color = {00.f, 10.f, 00.f}},
-                                                                                                                                                                                                                                                                                                   Vertex{
-                                                                                                                                                                                                                                                                                                       .Position = {1.f, 1.f, 0.f},
-                                                                                                                                                                                                                                                                                                       .Color = {00.f, 00.f, 10.f}},
-                                                                                                                                                                                                                                                                                                   Vertex{
-                                                                                                                                                                                                                                                                                                       .Position = {-1.f, 1.f, 0.f},
-                                                                                                                                                                                                                                                                                                       .Color = {00.f, 00.f, 10.f}}}),
-      m_Indices(
+    : m_Device(Device)
+    , m_Surface(Surface)
+    , m_QueueFamilyIndices(QueueFamilyIndices)
+    , m_SwapChain(VK_NULL_HANDLE)
+    , m_SwapChainImages({})
+    , m_SwapChainImageViews({})    
+    , m_FrameBuffers({})
+    , m_VertexBuffers({})    
+    , m_VertexBuffersMemory({})
+    , m_IndexBuffers({})
+    , m_IndexBuffersMemory({})
+    , m_Vertices({
+        Vertex{
+            .Position = glm::vec3(-1.f, -1.f, 0.f),
+            .Color = glm::vec4(10.f, 0.f, 0.f, 1.f)},
+        Vertex{
+            .Position = glm::vec3(1.f, -1.f, 0.f),
+            .Color = glm::vec4(0.f, 10.f, 0.f, 1.f)},
+        Vertex{
+            .Position = glm::vec3(1.f, 1.f, 0.f),
+            .Color = glm::vec4(0.f, 0.f, 10.f, 1.f)},
+        Vertex{
+            .Position = glm::vec3(-1.f, 1.f, 0.f),
+            .Color = glm::vec4(0.f, 0.f, 10.f, 1.f)}})
+    , m_Indices(
           {0u, 1u, 2u, 2u, 3u, 0u})
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan buffer manager";
@@ -187,10 +200,33 @@ void VulkanBufferManager::CreateIndexBuffers(const VkPhysicalDevice &PhysicalDev
     }
 }
 
+void VulkanBufferManager::CreateUniformBuffers(const VkPhysicalDevice &PhysicalDevice, const VkQueue &TransferQueue, const std::vector<VkCommandBuffer> &CommandBuffers, const VkCommandPool &CommandPool)
+{
+     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
+
+    if (m_Device == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan logical device is invalid.");
+    }
+
+    m_UniformBuffers.resize(g_MaxFramesInFlight, VK_NULL_HANDLE);
+    m_UniformBuffersMemory.resize(g_MaxFramesInFlight, VK_NULL_HANDLE);
+    m_UniformBuffersData.resize(g_MaxFramesInFlight, nullptr);
+
+    const VkDeviceSize BufferSize = sizeof(UniformBufferObject);
+
+    VkPhysicalDeviceMemoryProperties MemoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(PhysicalDevice, &MemoryProperties);
+
+    for (std::uint32_t Iterator = 0u; Iterator < g_MaxFramesInFlight; ++Iterator)
+    {
+        CreateBuffer(MemoryProperties, BufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_UniformBuffers[Iterator], m_UniformBuffersMemory[Iterator]);
+        vkMapMemory(m_Device, m_UniformBuffersMemory[Iterator], 0u, BufferSize, 0u, &m_UniformBuffersData[Iterator]);
+    }
+}
+
 void VulkanBufferManager::CreateBuffer(const VkPhysicalDeviceMemoryProperties &Properties, const VkDeviceSize &Size, const VkBufferUsageFlags &Usage, const VkMemoryPropertyFlags &Flags, VkBuffer &Buffer, VkDeviceMemory &BufferMemory) const
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan buffer";
-
     if (m_Device == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan logical device is invalid.");
@@ -220,8 +256,6 @@ void VulkanBufferManager::CreateBuffer(const VkPhysicalDeviceMemoryProperties &P
 
 void VulkanBufferManager::CopyBuffer(const VkBuffer &Source, const VkBuffer &Destination, const VkDeviceSize &Size, const VkQueue &TransferQueue, const std::vector<VkCommandBuffer> &CommandBuffers, const VkCommandPool &CommandPool) const
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Copying Vulkan buffer";
-
     if (m_Device == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan logical device is invalid.");
@@ -244,7 +278,7 @@ void VulkanBufferManager::CopyBuffer(const VkBuffer &Source, const VkBuffer &Des
 
     for (const VkCommandBuffer &CommandBufferIter : CommandBuffers)
     {
-        RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(CommandBuffers[0], &CommandBufferBeginInfo));
+        RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(CommandBufferIter, &CommandBufferBeginInfo));
 
         const VkBufferCopy BufferCopy{
             .srcOffset = 0u,
@@ -267,6 +301,26 @@ void VulkanBufferManager::CopyBuffer(const VkBuffer &Source, const VkBuffer &Des
     RENDERCORE_CHECK_VULKAN_RESULT(vkQueueWaitIdle(TransferQueue));
 }
 
+void VulkanBufferManager::UpdateUniformBuffers(const std::uint32_t Frame, const VkExtent2D &SwapChainExtent)
+{
+    if (Frame >= g_MaxFramesInFlight)
+    {
+        throw std::runtime_error("Vulkan image index is invalid.");
+    }
+
+    static auto StartTime = std::chrono::high_resolution_clock::now();
+
+    const auto CurrentTime = std::chrono::high_resolution_clock::now();
+    const float TimeFloat = std::chrono::duration<float, std::chrono::seconds::period>(CurrentTime - StartTime).count();
+
+    const UniformBufferObject UBO {
+        .Model = glm::rotate(glm::mat4(1.f), TimeFloat * glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f)),
+        .View = glm::lookAt(glm::vec3(2.f, 2.f, 2.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f)),
+        .Projection = glm::perspective(glm::radians(45.f), SwapChainExtent.width / (float) SwapChainExtent.height, 0.1f, 10.f)};
+
+    memcpy(m_UniformBuffersData[Frame], &UBO, sizeof(UBO));
+}
+
 void VulkanBufferManager::Shutdown()
 {
     if (!IsInitialized())
@@ -275,7 +329,61 @@ void VulkanBufferManager::Shutdown()
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Vulkan buffer manager";
-    DestroyResources();
+    DestroyResources();    
+
+    for (const VkBuffer &VertexBufferIter : m_VertexBuffers)
+    {
+        if (VertexBufferIter != VK_NULL_HANDLE)
+        {
+            vkDestroyBuffer(m_Device, VertexBufferIter, nullptr);
+        }
+    }
+    m_VertexBuffers.clear();
+
+    for (const VkDeviceMemory &VertexBufferMemoryIter : m_VertexBuffersMemory)
+    {
+        if (VertexBufferMemoryIter != VK_NULL_HANDLE)
+        {
+            vkFreeMemory(m_Device, VertexBufferMemoryIter, nullptr);
+        }
+    }
+    m_VertexBuffersMemory.clear();
+
+    for (const VkBuffer &IndexBufferIter : m_IndexBuffers)
+    {
+        if (IndexBufferIter != VK_NULL_HANDLE)
+        {
+            vkDestroyBuffer(m_Device, IndexBufferIter, nullptr);
+        }
+    }
+    m_IndexBuffers.clear();
+
+    for (const VkDeviceMemory &IndexBufferMemoryIter : m_IndexBuffersMemory)
+    {
+        if (IndexBufferMemoryIter != VK_NULL_HANDLE)
+        {
+            vkFreeMemory(m_Device, IndexBufferMemoryIter, nullptr);
+        }
+    }
+    m_IndexBuffersMemory.clear();
+
+    for (const VkBuffer &UniformBufferIter : m_UniformBuffers)
+    {
+        if (UniformBufferIter != VK_NULL_HANDLE)
+        {
+            vkDestroyBuffer(m_Device, UniformBufferIter, nullptr);
+        }
+    }
+    m_UniformBuffers.clear();
+
+    for (const VkDeviceMemory &UniformBufferMemoryIter : m_UniformBuffersMemory)
+    {
+        if (UniformBufferMemoryIter != VK_NULL_HANDLE)
+        {
+            vkFreeMemory(m_Device, UniformBufferMemoryIter, nullptr);
+        }
+    }
+    m_UniformBuffersMemory.clear();
 }
 
 bool VulkanBufferManager::IsInitialized() const
@@ -321,6 +429,21 @@ const std::vector<VkBuffer> &VulkanBufferManager::GetIndexBuffers() const
 const std::vector<VkDeviceMemory> &VulkanBufferManager::GetIndexBuffersMemory() const
 {
     return m_IndexBuffersMemory;
+}
+
+const std::vector<VkBuffer> &VulkanBufferManager::GetUniformBuffers() const
+{
+    return m_UniformBuffers;
+}
+
+const std::vector<VkDeviceMemory> &VulkanBufferManager::GetUniformBuffersMemory() const
+{
+    return m_UniformBuffersMemory;
+}
+
+const std::vector<void *> &VulkanBufferManager::GetUniformBuffersData() const
+{
+    return m_UniformBuffersData;
 }
 
 const std::vector<Vertex> &VulkanBufferManager::GetVertices() const
@@ -400,42 +523,6 @@ void VulkanBufferManager::DestroyResources()
         }
     }
     m_FrameBuffers.clear();
-
-    for (const VkBuffer &VertexBufferIter : m_VertexBuffers)
-    {
-        if (VertexBufferIter != VK_NULL_HANDLE)
-        {
-            vkDestroyBuffer(m_Device, VertexBufferIter, nullptr);
-        }
-    }
-    m_VertexBuffers.clear();
-
-    for (const VkDeviceMemory &VertexBufferMemoryIter : m_VertexBuffersMemory)
-    {
-        if (VertexBufferMemoryIter != VK_NULL_HANDLE)
-        {
-            vkFreeMemory(m_Device, VertexBufferMemoryIter, nullptr);
-        }
-    }
-    m_VertexBuffersMemory.clear();
-
-    for (const VkBuffer &IndexBufferIter : m_IndexBuffers)
-    {
-        if (IndexBufferIter != VK_NULL_HANDLE)
-        {
-            vkDestroyBuffer(m_Device, IndexBufferIter, nullptr);
-        }
-    }
-    m_IndexBuffers.clear();
-
-    for (const VkDeviceMemory &IndexBufferMemoryIter : m_IndexBuffersMemory)
-    {
-        if (IndexBufferMemoryIter != VK_NULL_HANDLE)
-        {
-            vkFreeMemory(m_Device, IndexBufferMemoryIter, nullptr);
-        }
-    }
-    m_IndexBuffersMemory.clear();
 }
 
 std::uint32_t VulkanBufferManager::FindMemoryType(const VkPhysicalDeviceMemoryProperties &Properties, const std::uint32_t &TypeFilter, const VkMemoryPropertyFlags &Flags) const

@@ -23,6 +23,7 @@ namespace RenderCore
 
         void CreateRenderPass(const VkFormat &Format);
         void CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &ShaderStages, const VkExtent2D &Extent);
+        void CreateDescriptorsAndPipelineCache(const std::vector<VkBuffer>& VkPhysicalDeviceUniformBufferStandardLayoutFeaturesKHR);
         void UpdateExtent(const VkExtent2D &Extent);
 
         void Shutdown();
@@ -33,6 +34,8 @@ namespace RenderCore
         [[nodiscard]] const VkPipelineLayout &GetPipelineLayout() const;
         [[nodiscard]] const VkPipelineCache &GetPipelineCache() const;
         [[nodiscard]] const VkDescriptorSetLayout &GetDescriptorSetLayout() const;
+        [[nodiscard]] const VkDescriptorPool &GetDescriptorPool() const;
+        [[nodiscard]] const std::vector<VkDescriptorSet> &GetDescriptorSets() const;
         [[nodiscard]] const std::vector<VkViewport> &GetViewports() const;
         [[nodiscard]] const std::vector<VkRect2D> &GetScissors() const;
 
@@ -45,6 +48,8 @@ namespace RenderCore
         VkPipelineLayout m_PipelineLayout;
         VkPipelineCache m_PipelineCache;
         VkDescriptorSetLayout m_DescriptorSetLayout;
+        VkDescriptorPool m_DescriptorPool;
+        std::vector<VkDescriptorSet> m_DescriptorSets;
         std::vector<VkViewport> m_Viewports;
         std::vector<VkRect2D> m_Scissors;
     };

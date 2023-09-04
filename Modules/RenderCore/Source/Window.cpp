@@ -139,16 +139,7 @@ bool Window::Initialize(const std::uint16_t Width, const std::uint16_t Height, c
         return false;
     }
 
-    try
-    {
-        return m_Impl && m_Impl->Initialize(Width, Height, Title);
-    }
-    catch (const std::exception &Ex)
-    {
-        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
-    }
-
-    return false;
+    return m_Impl && m_Impl->Initialize(Width, Height, Title);
 }
 
 void Window::Shutdown()
@@ -158,14 +149,7 @@ void Window::Shutdown()
         return;
     }
 
-    try
-    {
-        m_Impl->Shutdown();
-    }
-    catch (const std::exception &Ex)
-    {
-        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
-    }
+    m_Impl->Shutdown();
 }
 
 bool Window::IsInitialized() const
@@ -190,13 +174,6 @@ void Window::PollEvents()
         return;
     }
 
-    try
-    {
-        m_Impl->PollEvents();
-        m_Impl->DrawFrame();
-    }
-    catch (const std::exception &Ex)
-    {
-        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
-    }
+    m_Impl->PollEvents();
+    m_Impl->DrawFrame();
 }

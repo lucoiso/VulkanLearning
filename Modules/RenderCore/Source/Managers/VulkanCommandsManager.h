@@ -5,8 +5,10 @@
 #pragma once
 
 #include "RenderCoreModule.h"
+#include "Types/VulkanUniformBufferObject.h"
 #include <vulkan/vulkan.h>
 #include <vector>
+#include <unordered_map>
 
 namespace RenderCore
 {
@@ -28,17 +30,37 @@ namespace RenderCore
         void CreateSynchronizationObjects();
         void DestroySynchronizationObjects();
 
-        std::vector<std::uint32_t> DrawFrame(const std::vector<VkSwapchainKHR> &SwapChains);
-        void RecordCommandBuffers(const VkRenderPass &RenderPass, const VkPipeline &Pipeline, const std::vector<VkViewport> &Viewports, const std::vector<VkRect2D> &Scissors, const VkExtent2D &Extent, const std::vector<VkFramebuffer> &FrameBuffers, const std::vector<VkBuffer> &VertexBuffers, const std::vector<VkBuffer> &IndexBuffers, const std::uint32_t IndexCount, const std::vector<VkDeviceSize> &Offsets);
+        std::unordered_map<VkSwapchainKHR, std::uint32_t> DrawFrame(const std::vector<VkSwapchainKHR> &SwapChains);
+        
+        struct BufferRecordParameters
+        {
+            const VkRenderPass &RenderPass;
+            const VkPipeline &Pipeline;
+            const std::vector<VkViewport> &Viewports;
+            const std::vector<VkRect2D> &Scissors;
+            const VkExtent2D Extent;
+            const std::vector<VkFramebuffer> &FrameBuffers;
+            const std::vector<VkBuffer> &VertexBuffers;
+            const std::vector<VkBuffer> &IndexBuffers;
+            const VkPipelineLayout &PipelineLayout;
+            const std::vector<VkDescriptorSet> &DescriptorSets;
+            const std::uint32_t IndexCount;
+            const std::uint32_t ImageIndex;
+            const std::vector<VkDeviceSize> Offsets;
+        };
+
+        void RecordCommandBuffers(const BufferRecordParameters &Parameters);
         void SubmitCommandBuffers(const VkQueue &GraphicsQueue);
-        void PresentFrame(const VkQueue &PresentQueue, const std::vector<VkSwapchainKHR> &SwapChains, const std::vector<std::uint32_t> &ImageIndices);
+        void PresentFrame(const VkQueue &PresentQueue, const std::unordered_map<VkSwapchainKHR, std::uint32_t> &ImageIndicesData);
+
+        std::uint32_t GetCurrentFrameIndex() const;
 
         bool IsInitialized() const;
         [[nodiscard]] const VkCommandPool &GetCommandPool() const;
         [[nodiscard]] const std::vector<VkCommandBuffer> &GetCommandBuffers() const;
 
     private:
-        void WaitAndResetFences();
+        void WaitAndResetFences(const bool bCurrentFrame = false);
 
         const VkDevice &m_Device;
         VkCommandPool m_CommandPool;
@@ -46,7 +68,7 @@ namespace RenderCore
         std::vector<VkSemaphore> m_ImageAvailableSemaphores;
         std::vector<VkSemaphore> m_RenderFinishedSemaphores;
         std::vector<VkFence> m_Fences;
-
-        std::uint32_t m_ProcessingUnitsCount;
+        std::uint32_t m_CurrentFrameIndex;
+        bool m_SynchronizationObjectsCreated;
     };
 }

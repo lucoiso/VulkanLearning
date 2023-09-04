@@ -6,6 +6,7 @@
 
 #include "RenderCoreModule.h"
 #include "Types/VulkanVertex.h"
+#include "Types/VulkanUniformBufferObject.h"
 #include <vulkan/vulkan.h>
 #include <vector>
 
@@ -27,9 +28,12 @@ namespace RenderCore
         void CreateFrameBuffers(const VkRenderPass& RenderPass, const VkExtent2D& Extent);
         void CreateVertexBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const std::vector<VkCommandBuffer>& CommandBuffers, const VkCommandPool& CommandPool);
         void CreateIndexBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const std::vector<VkCommandBuffer>& CommandBuffers, const VkCommandPool& CommandPool);
-
+        void CreateUniformBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const std::vector<VkCommandBuffer>& CommandBuffers, const VkCommandPool& CommandPool);
+        
         void CreateBuffer(const VkPhysicalDeviceMemoryProperties& Properties, const VkDeviceSize& Size, const VkBufferUsageFlags& Usage, const VkMemoryPropertyFlags& Flags, VkBuffer& Buffer, VkDeviceMemory& BufferMemory) const;
         void CopyBuffer(const VkBuffer& Source, const VkBuffer& Destination, const VkDeviceSize& Size, const VkQueue& TransferQueue, const std::vector<VkCommandBuffer>& CommandBuffers, const VkCommandPool& CommandPool) const;
+
+        void UpdateUniformBuffers(const std::uint32_t Frame, const VkExtent2D &SwapChainExtent);
 
         void Shutdown();
 
@@ -42,6 +46,9 @@ namespace RenderCore
         [[nodiscard]] const std::vector<VkDeviceMemory>& GetVertexBuffersMemory() const;
         [[nodiscard]] const std::vector<VkBuffer>& GetIndexBuffers() const;
         [[nodiscard]] const std::vector<VkDeviceMemory>& GetIndexBuffersMemory() const;
+        [[nodiscard]] const std::vector<VkBuffer>& GetUniformBuffers() const;
+        [[nodiscard]] const std::vector<VkDeviceMemory>& GetUniformBuffersMemory() const;
+        [[nodiscard]] const std::vector<void*>& GetUniformBuffersData() const;
         [[nodiscard]] const std::vector<Vertex>& GetVertices() const;
         [[nodiscard]] const std::vector<std::uint32_t>& GetIndices() const;
         [[nodiscard]] std::uint32_t GetIndexCount() const;
@@ -64,6 +71,9 @@ namespace RenderCore
         std::vector<VkDeviceMemory> m_VertexBuffersMemory;
         std::vector<VkBuffer> m_IndexBuffers;
         std::vector<VkDeviceMemory> m_IndexBuffersMemory;
+        std::vector<VkBuffer> m_UniformBuffers;
+        std::vector<VkDeviceMemory> m_UniformBuffersMemory;
+        std::vector<void*> m_UniformBuffersData;
         std::vector<Vertex> m_Vertices;
         std::vector<std::uint32_t> m_Indices;
     };

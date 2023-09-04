@@ -20,13 +20,15 @@ set(HEADER_FILES
     # Public Headers
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/VulkanRender.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Window.h
-
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Types/VulkanVertex.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Types/VulkanUniformBufferObject.h
+    
     # Private Headers
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/RenderCoreHelpers.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanDebugHelpers.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanEnumConverter.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanConstants.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/DeviceProperties.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/VulkanVertex.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanShaderManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanCommandsManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanPipelineManager.h
@@ -46,6 +48,7 @@ target_compile_definitions(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 
 find_package(glfw3 REQUIRED)
 find_package(Vulkan REQUIRED)
+find_package(glm REQUIRED)
 find_package(Boost REQUIRED CONFIG COMPONENTS log)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE
@@ -55,6 +58,7 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE
     glslang
     glslang-default-resource-limits
     SPIRV
+    glm::glm
 )
 
 target_include_directories(${LIBRARY_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})

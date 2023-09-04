@@ -13,11 +13,15 @@
 #define GLFW_INCLUDE_VULKAN
 #endif
 #include <GLFW/glfw3.h>
+#include "VulkanDeviceManager.h"
 
 using namespace RenderCore;
 
 VulkanDeviceManager::VulkanDeviceManager(const VkInstance &Instance, const VkSurfaceKHR &Surface)
-    : m_Instance(Instance), m_Surface(Surface), m_PhysicalDevice(VK_NULL_HANDLE), m_Device(VK_NULL_HANDLE)
+    : m_Instance(Instance)
+    , m_Surface(Surface)
+    , m_PhysicalDevice(VK_NULL_HANDLE)
+    , m_Device(VK_NULL_HANDLE)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan device manager";
 }
@@ -376,6 +380,19 @@ std::vector<VkPresentModeKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceSur
     return Output;
 }
 
+VkDeviceSize VulkanDeviceManager::GetMinUniformBufferOffsetAlignment() const
+{
+    if (m_PhysicalDevice == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan physical device is invalid.");
+    }
+
+    VkPhysicalDeviceProperties DeviceProperties;
+    vkGetPhysicalDeviceProperties(m_PhysicalDevice, &DeviceProperties);
+
+    return DeviceProperties.limits.minUniformBufferOffsetAlignment;
+}
+
 bool VulkanDeviceManager::IsPhysicalDeviceSuitable(const VkPhysicalDevice &Device) const
 {
     if (Device == VK_NULL_HANDLE)
@@ -501,7 +518,7 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceSurfaceFormats() const
     for (const VkSurfaceFormatKHR &FormatIter : GetAvailablePhysicalDeviceSurfaceFormats())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Format: " << FormatIter.format;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Color Space: " << FormatIter.colorSpace;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Color Space: " << FormatIter.colorSpace << std::endl;
     }
 }
 

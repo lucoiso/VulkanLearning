@@ -21,18 +21,18 @@
 
 namespace RenderCore
 {
-    static inline std::vector<const char*> GetGLFWExtensions()
+    static inline std::vector<const char *> GetGLFWExtensions()
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting GLFW extensions";
 
         std::uint32_t GLFWExtensionsCount = 0u;
-        const char** const GLFWExtensions = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
+        const char **const GLFWExtensions = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
 
-        const std::vector<const char*> Output(GLFWExtensions, GLFWExtensions + GLFWExtensionsCount);
+        const std::vector<const char *> Output(GLFWExtensions, GLFWExtensions + GLFWExtensionsCount);
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found extensions:";
 
-        for (const char* const& ExtensionIter : Output)
+        for (const char *const &ExtensionIter : Output)
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: " << ExtensionIter;
         }
@@ -40,7 +40,7 @@ namespace RenderCore
         return Output;
     }
 
-    static inline VkExtent2D GetWindowExtent(GLFWwindow* const Window, const VkSurfaceCapabilitiesKHR& Capabilities)
+    static inline VkExtent2D GetWindowExtent(GLFWwindow *const Window, const VkSurfaceCapabilitiesKHR &Capabilities)
     {
         std::int32_t Width = 0u;
         std::int32_t Height = 0u;
@@ -48,8 +48,7 @@ namespace RenderCore
 
         VkExtent2D ActualExtent{
             .width = static_cast<std::uint32_t>(Width),
-            .height = static_cast<std::uint32_t>(Height)
-        };
+            .height = static_cast<std::uint32_t>(Height)};
 
         ActualExtent.width = std::clamp(ActualExtent.width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
         ActualExtent.height = std::clamp(ActualExtent.height, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
@@ -90,7 +89,7 @@ namespace RenderCore
             throw std::runtime_error("Failed to get Vulkan Layers properties.");
         }
 
-        for (const VkLayerProperties& LayerIter : Output)
+        for (const VkLayerProperties &LayerIter : Output)
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Name: " << LayerIter.layerName;
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Description: " << LayerIter.description;
@@ -102,48 +101,66 @@ namespace RenderCore
 #endif
     }
 
-    constexpr void CreateTriangle(std::vector<Vertex>& Vertices, std::vector<std::uint32_t>& Indices)
+    constexpr std::array<VkVertexInputBindingDescription, 1> GetBindingDescriptors()
+    {
+        return {
+            VkVertexInputBindingDescription{
+                .binding = 0u,
+                .stride = sizeof(Vertex),
+                .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
+    }
+
+    constexpr std::array<VkVertexInputAttributeDescription, 2> GetAttributeDescriptions()
+    {
+        return {
+            VkVertexInputAttributeDescription{
+                .location = 0u,
+                .binding = 0u,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
+                .offset = offsetof(Vertex, Position)},
+            VkVertexInputAttributeDescription{
+                .location = 1u,
+                .binding = 0u,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
+                .offset = offsetof(Vertex, Color)}};
+    }
+
+    constexpr void CreateTriangle(std::vector<Vertex> &Vertices, std::vector<std::uint32_t> &Indices)
     {
         Vertices.clear();
         Indices.clear();
 
         Vertices = {
-            Vertex{ .Position = { -0.5f, -0.5f }, .Color = { 10.f, 00.f, 00.f } },
-            Vertex{ .Position = { 0.5f, -0.5f }, .Color = { 00.f, 10.f, 00.f } },
-            Vertex{ .Position = { 00.f, 0.5f }, .Color = { 00.f, 00.f, 10.f } }
-        };
+            Vertex{.Position = glm::vec3(-0.5f, -0.5f, 0.f), .Color = glm::vec4(10.f, 0.f, 0.f, 1.f)},
+            Vertex{.Position = glm::vec3(0.5f, -0.5f, 0.f), .Color = glm::vec4(0.f, 10.f, 0.f, 1.f)},
+            Vertex{.Position = glm::vec3(0.f, 0.5f, 0.f), .Color = glm::vec4(0.f, 0.f, 10.f, 1.f)}};
 
-        Indices = { 0u, 1u, 2u };
+        Indices = {0u, 1u, 2u};
     }
 
-    constexpr void CreateSquare(std::vector<Vertex>& Vertices, std::vector<std::uint32_t>& Indices)
+    constexpr void CreateSquare(std::vector<Vertex> &Vertices, std::vector<std::uint32_t> &Indices)
     {
         Vertices.clear();
         Indices.clear();
 
         Vertices = {
-            Vertex {
-                .Position = { -0.5f, -0.5f, 0.f },
-                .Color = {10.f, 00.f, 00.f }
-            },
-            Vertex {
-                .Position = { 0.5f, -0.5f, 0.f },
-                .Color = {00.f, 10.f, 00.f}
-            },
-            Vertex {
-                .Position = { 0.5f, 0.5f, 0.f },
-                .Color = {00.f, 00.f, 10.f}
-            },
-            Vertex {
-                .Position = { -0.5f, 0.5f, 0.f },
-                .Color = { 00.f, 00.f, 10.f }
-            }
-        };
+            Vertex{
+                .Position = glm::vec3(-0.5f, -0.5f, 0.f),
+                .Color = glm::vec4(10.f, 0.f, 0.f, 1.f)},
+            Vertex{
+                .Position = glm::vec3(0.5f, -0.5f, 0.f),
+                .Color = glm::vec4(0.f, 10.f, 0.f, 1.f)},
+            Vertex{
+                .Position = glm::vec3(0.5f, 0.5f, 0.f),
+                .Color = glm::vec4(0.f, 0.f, 10.f, 1.f)},
+            Vertex{
+                .Position = glm::vec3(-0.5f, 0.5f, 0.f),
+                .Color = glm::vec4(0.f, 0.f, 10.f, 1.f)}};
 
-        Indices = { 0u, 1u, 2u, 2u, 3u, 0u };
+        Indices = {0u, 1u, 2u, 2u, 3u, 0u};
     }
 
-    constexpr void CreateCircle(std::vector<Vertex>& Vertices, std::vector<std::uint32_t>& Indices)
+    constexpr void CreateCircle(std::vector<Vertex> &Vertices, std::vector<std::uint32_t> &Indices)
     {
         Vertices.clear();
         Indices.clear();
@@ -164,7 +181,8 @@ namespace RenderCore
             const float GreenChannel = std::clamp(Y + 0.5f, 0.f, 1.f);
             const float BlueChannel = std::clamp(X + 0.5f, 0.f, 1.f);
 
-            Vertices.emplace_back(Vertex{ .Position = { X, Y, 0.f }, .Color = { RedChannel, GreenChannel, BlueChannel } });
+            Vertices.push_back(
+                Vertex{.Position = glm::vec3(X, Y, 0.f), .Color = glm::vec4(RedChannel, GreenChannel, BlueChannel, 1.f)});
 
             Indices.emplace_back(0u);
             Indices.emplace_back(Iterator + 1u);
@@ -173,10 +191,10 @@ namespace RenderCore
     }
 }
 
-#define RENDERCORE_CHECK_VULKAN_RESULT(INPUT_OPERATION) \
-if (const VkResult OperationResult = INPUT_OPERATION; OperationResult != VK_SUCCESS) \
-{ \
-    throw std::runtime_error("Vulkan operation failed with result: " + std::string(ResultToString(OperationResult))); \
-}
+#define RENDERCORE_CHECK_VULKAN_RESULT(INPUT_OPERATION)                                                                   \
+    if (const VkResult OperationResult = INPUT_OPERATION; OperationResult != VK_SUCCESS)                                  \
+    {                                                                                                                     \
+        throw std::runtime_error("Vulkan operation failed with result: " + std::string(ResultToString(OperationResult))); \
+    }
 
 #endif

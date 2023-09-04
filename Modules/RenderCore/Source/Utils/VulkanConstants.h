@@ -24,6 +24,8 @@ namespace RenderCore
         VK_DYNAMIC_STATE_VIEWPORT,
         VK_DYNAMIC_STATE_SCISSOR
     };
+
+    constexpr std::uint32_t g_MaxFramesInFlight = 2u;
 }
 
 #endif

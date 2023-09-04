@@ -49,6 +49,7 @@ namespace RenderCore
         [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities() const;
         [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats() const;
         [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes() const;
+        [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment() const;
 
         [[nodiscard]] bool IsPhysicalDeviceSuitable(const VkPhysicalDevice &Device) const;
         [[nodiscard]] DeviceProperties GetPreferredProperties(GLFWwindow *const Window);
