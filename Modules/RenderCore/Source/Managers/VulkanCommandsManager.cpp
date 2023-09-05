@@ -48,8 +48,8 @@ void VulkanCommandsManager::Shutdown(const std::vector<VkQueue> &PendingQueues)
 	{
 		if (CommandPoolIter.first == m_GraphicsProcessingFamilyQueueIndex)
 		{
-		vkFreeCommandBuffers(m_Device, CommandPoolIter.second, static_cast<std::uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());
-		m_CommandBuffers.clear();
+			vkFreeCommandBuffers(m_Device, CommandPoolIter.second, static_cast<std::uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());
+			m_CommandBuffers.clear();
 		}
 
 		vkDestroyCommandPool(m_Device, CommandPoolIter.second, nullptr);
