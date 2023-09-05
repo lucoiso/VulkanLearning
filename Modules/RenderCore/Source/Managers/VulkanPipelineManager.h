@@ -22,9 +22,10 @@ namespace RenderCore
         ~VulkanPipelineManager();
 
         void CreateRenderPass(const VkFormat &Format);
-        void CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &ShaderStages, const VkExtent2D &Extent);
-        void CreateDescriptorsAndPipelineCache(const std::vector<VkBuffer>& VkPhysicalDeviceUniformBufferStandardLayoutFeaturesKHR);
-        void UpdateExtent(const VkExtent2D &Extent);
+        void CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &ShaderStages);
+        void CreateDescriptorSetLayout();
+        void CreateDescriptorPool();
+        void CreateDescriptorSets(const std::vector<VkBuffer> &UniformBuffers);
 
         void Shutdown();
 
@@ -36,8 +37,6 @@ namespace RenderCore
         [[nodiscard]] const VkDescriptorSetLayout &GetDescriptorSetLayout() const;
         [[nodiscard]] const VkDescriptorPool &GetDescriptorPool() const;
         [[nodiscard]] const std::vector<VkDescriptorSet> &GetDescriptorSets() const;
-        [[nodiscard]] const std::vector<VkViewport> &GetViewports() const;
-        [[nodiscard]] const std::vector<VkRect2D> &GetScissors() const;
 
     private:
         const VkInstance &m_Instance;
@@ -47,10 +46,8 @@ namespace RenderCore
         VkPipeline m_Pipeline;
         VkPipelineLayout m_PipelineLayout;
         VkPipelineCache m_PipelineCache;
-        VkDescriptorSetLayout m_DescriptorSetLayout;
         VkDescriptorPool m_DescriptorPool;
+        VkDescriptorSetLayout m_DescriptorSetLayout;
         std::vector<VkDescriptorSet> m_DescriptorSets;
-        std::vector<VkViewport> m_Viewports;
-        std::vector<VkRect2D> m_Scissors;
     };
 }

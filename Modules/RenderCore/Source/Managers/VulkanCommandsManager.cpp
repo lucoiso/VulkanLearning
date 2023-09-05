@@ -11,7 +11,7 @@ using namespace RenderCore;
 
 VulkanCommandsManager::VulkanCommandsManager(const VkDevice &Device)
 	: m_Device(Device)
-	, m_CommandPool(VK_NULL_HANDLE)
+	, m_CommandPools({})
 	, m_CommandBuffers({})
 	, m_ImageAvailableSemaphores({})
 	, m_RenderFinishedSemaphores({})
@@ -44,16 +44,22 @@ void VulkanCommandsManager::Shutdown(const std::vector<VkQueue> &PendingQueues)
 
 	WaitAndResetFences();
 
-	vkFreeCommandBuffers(m_Device, m_CommandPool, static_cast<std::uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());
-	m_CommandBuffers.clear();
+	for (const auto& CommandPoolIter : m_CommandPools)
+	{
+		if (CommandPoolIter.first == m_GraphicsProcessingFamilyQueueIndex)
+		{
+		vkFreeCommandBuffers(m_Device, CommandPoolIter.second, static_cast<std::uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());
+		m_CommandBuffers.clear();
+		}
 
-	vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
-	m_CommandPool = VK_NULL_HANDLE;
+		vkDestroyCommandPool(m_Device, CommandPoolIter.second, nullptr);
+	}
+	m_CommandPools.clear();
 
 	DestroySynchronizationObjects();
 }
 
-void VulkanCommandsManager::CreateCommandPool(const std::vector<VkFramebuffer> &FrameBuffers, const std::uint32_t GraphicsFamilyQueueIndex)
+void VulkanCommandsManager::CreateCommandPool(const std::uint32_t FamilyQueueIndex, const bool bIsGraphicsIndex)
 {
 	BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan command pool";
 
@@ -65,17 +71,31 @@ void VulkanCommandsManager::CreateCommandPool(const std::vector<VkFramebuffer> &
 	const VkCommandPoolCreateInfo CommandPoolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-		.queueFamilyIndex = GraphicsFamilyQueueIndex};
+		.queueFamilyIndex = FamilyQueueIndex};
 
-	RENDERCORE_CHECK_VULKAN_RESULT(vkCreateCommandPool(m_Device, &CommandPoolCreateInfo, nullptr, &m_CommandPool));
+	VkCommandPool CommandPool = VK_NULL_HANDLE;
+	RENDERCORE_CHECK_VULKAN_RESULT(vkCreateCommandPool(m_Device, &CommandPoolCreateInfo, nullptr, &CommandPool));
+
+	m_CommandPools.emplace(FamilyQueueIndex, CommandPool);
+
+	if (bIsGraphicsIndex)
+	{
+		m_GraphicsProcessingFamilyQueueIndex = FamilyQueueIndex;
+	}
+}
+
+void VulkanCommandsManager::CreateCommandBuffers()
+{
+	BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan command buffers";
+
+	m_CommandBuffers.resize(g_MaxFramesInFlight, VK_NULL_HANDLE);
 
 	const VkCommandBufferAllocateInfo CommandBufferAllocateInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-		.commandPool = m_CommandPool,
+		.commandPool = m_CommandPools.at(m_GraphicsProcessingFamilyQueueIndex),
 		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-		.commandBufferCount = g_MaxFramesInFlight};
+		.commandBufferCount = static_cast<std::uint32_t>(m_CommandBuffers.size())};
 
-	m_CommandBuffers.resize(g_MaxFramesInFlight, VK_NULL_HANDLE);
 	RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateCommandBuffers(m_Device, &CommandBufferAllocateInfo, m_CommandBuffers.data()));
 }
 
@@ -210,6 +230,8 @@ std::unordered_map<VkSwapchainKHR, std::uint32_t> VulkanCommandsManager::DrawFra
 			}
 		}
 	}
+			
+	RENDERCORE_CHECK_VULKAN_RESULT(vkResetCommandBuffer(m_CommandBuffers[m_CurrentFrameIndex], 0u));
 
 	return ImageIndices;
 }
@@ -223,13 +245,12 @@ void VulkanCommandsManager::RecordCommandBuffers(const BufferRecordParameters &P
 
 	const VkCommandBufferBeginInfo CommandBufferBeginInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT};
+		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
 	const std::vector<VkClearValue> ClearValues{
 		VkClearValue{
-			.color = {00.f, 00.f, 00.f, 10.f}}};
+			.color = {0.f, 0.f, 0.f, 1.f}}};
 
-	RENDERCORE_CHECK_VULKAN_RESULT(vkResetCommandBuffer(m_CommandBuffers[m_CurrentFrameIndex], VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
 	RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(m_CommandBuffers[m_CurrentFrameIndex], &CommandBufferBeginInfo));
 
 	const VkRenderPassBeginInfo RenderPassBeginInfo{
@@ -245,25 +266,36 @@ void VulkanCommandsManager::RecordCommandBuffers(const BufferRecordParameters &P
 	vkCmdBeginRenderPass(m_CommandBuffers[m_CurrentFrameIndex], &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 	vkCmdBindPipeline(m_CommandBuffers[m_CurrentFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.Pipeline);
 
-	vkCmdBindVertexBuffers(m_CommandBuffers[m_CurrentFrameIndex], 0, 1, Parameters.VertexBuffers.data(), Parameters.Offsets.data());
+	vkCmdBindVertexBuffers(m_CommandBuffers[m_CurrentFrameIndex], 0u, 1u, Parameters.VertexBuffers.data(), Parameters.Offsets.data());
 
 	for (const VkBuffer &IndexBufferIter : Parameters.IndexBuffers)
 	{
-		vkCmdBindIndexBuffer(m_CommandBuffers[m_CurrentFrameIndex], IndexBufferIter, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(m_CommandBuffers[m_CurrentFrameIndex], IndexBufferIter, 0u, VK_INDEX_TYPE_UINT16);
 	}
 
-	vkCmdSetViewport(m_CommandBuffers[m_CurrentFrameIndex], 0u, static_cast<std::uint32_t>(Parameters.Viewports.size()), Parameters.Viewports.data());
-	vkCmdSetScissor(m_CommandBuffers[m_CurrentFrameIndex], 0u, static_cast<std::uint32_t>(Parameters.Scissors.size()), Parameters.Scissors.data());
+	const VkViewport Viewport{
+		.x = 0.f,
+		.y = 0.f,
+		.width = static_cast<float>(Parameters.Extent.width),
+		.height = static_cast<float>(Parameters.Extent.height),
+		.minDepth = 0.f,
+		.maxDepth = 1.f
+	};
+
+	vkCmdSetViewport(m_CommandBuffers[m_CurrentFrameIndex], 0u, 1u, &Viewport);
+
+	const VkRect2D Scissor{
+		.offset = {0, 0},
+		.extent = Parameters.Extent};
+
+	vkCmdSetScissor(m_CommandBuffers[m_CurrentFrameIndex], 0u, 1u, &Scissor);
 
 	vkCmdBindDescriptorSets(m_CommandBuffers[m_CurrentFrameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.PipelineLayout, 0u, 1u, &Parameters.DescriptorSets[m_CurrentFrameIndex], 0u, nullptr);
 
 	vkCmdDrawIndexed(m_CommandBuffers[m_CurrentFrameIndex], Parameters.IndexCount, 1u, 0u, 0u, 0u);
 	vkCmdEndRenderPass(m_CommandBuffers[m_CurrentFrameIndex]);
 
-	if (vkEndCommandBuffer(m_CommandBuffers[m_CurrentFrameIndex]) != VK_SUCCESS)
-	{
-		throw std::runtime_error("Failed to record command buffer");
-	}
+	RENDERCORE_CHECK_VULKAN_RESULT(vkEndCommandBuffer(m_CommandBuffers[m_CurrentFrameIndex]));
 }
 
 void VulkanCommandsManager::SubmitCommandBuffers(const VkQueue &GraphicsQueue)
@@ -324,14 +356,15 @@ std::uint32_t RenderCore::VulkanCommandsManager::GetCurrentFrameIndex() const
 {
     return m_CurrentFrameIndex;
 }
+
 bool VulkanCommandsManager::IsInitialized() const
 {
-	return m_CommandPool != VK_NULL_HANDLE;
+	return !m_CommandPools.empty();
 }
 
-const VkCommandPool &VulkanCommandsManager::GetCommandPool() const
+const VkCommandPool &VulkanCommandsManager::GetCommandPool(const std::uint32_t FamilyIndex) const
 {
-	return m_CommandPool;
+	return m_CommandPools.at(FamilyIndex);
 }
 
 const std::vector<VkCommandBuffer> &VulkanCommandsManager::GetCommandBuffers() const

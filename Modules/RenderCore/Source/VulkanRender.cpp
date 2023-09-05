@@ -121,7 +121,7 @@ public:
             throw std::runtime_error("GLFW Window is invalid");
         }
 
-        const std::unordered_map<VkSwapchainKHR, std::uint32_t> ImageIndices = m_CommandsManager->DrawFrame({m_BufferManager->GetSwapChain()});
+        const std::unordered_map<VkSwapchainKHR, std::uint32_t> ImageIndices = m_CommandsManager->DrawFrame({ m_BufferManager->GetSwapChain() });
         if (!m_SharedDeviceProperties.IsValid() || ImageIndices.empty())
         {
             m_CommandsManager->DestroySynchronizationObjects();
@@ -134,7 +134,6 @@ public:
 
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing device properties & capabilities...";
 
-            m_PipelineManager->UpdateExtent(m_SharedDeviceProperties.PreferredExtent);
             m_CommandsManager->CreateSynchronizationObjects();
             m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
             m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
@@ -278,21 +277,6 @@ private:
         if (m_PipelineManager = std::make_unique<VulkanPipelineManager>(m_Instance, m_DeviceManager->GetLogicalDevice()))
         {
             m_PipelineManager->CreateRenderPass(m_SharedDeviceProperties.PreferredFormat.format);
-            m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
-        }
-        else
-        {
-            throw std::runtime_error("Failed to initialize pipeline manager.");
-        }
-
-        if (m_CommandsManager = std::make_unique<VulkanCommandsManager>(m_DeviceManager->GetLogicalDevice()))
-        {
-            m_CommandsManager->CreateCommandPool(m_BufferManager->GetFrameBuffers(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
-            m_CommandsManager->CreateSynchronizationObjects();
-            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
-            m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
-            m_BufferManager->CreateUniformBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandBuffers(), m_CommandsManager->GetCommandPool());
-
             std::vector<std::uint32_t> FragmentShaderCode;
             m_ShaderManager->Compile(DEBUG_SHADER_FRAG, FragmentShaderCode);
             const VkShaderModule FragmentModule = m_ShaderManager->CreateModule(m_DeviceManager->GetLogicalDevice(), FragmentShaderCode, EShLangFragment);
@@ -301,8 +285,30 @@ private:
             m_ShaderManager->Compile(DEBUG_SHADER_VERT, VertexShaderCode);
             const VkShaderModule VertexModule = m_ShaderManager->CreateModule(m_DeviceManager->GetLogicalDevice(), VertexShaderCode, EShLangVertex);
 
-            m_PipelineManager->CreateDescriptorsAndPipelineCache(m_BufferManager->GetUniformBuffers());
-            m_PipelineManager->CreateGraphicsPipeline({m_ShaderManager->GetStageInfo(FragmentModule), m_ShaderManager->GetStageInfo(VertexModule)}, m_SharedDeviceProperties.PreferredExtent);
+            m_PipelineManager->CreateDescriptorSetLayout();
+            m_PipelineManager->CreateGraphicsPipeline({m_ShaderManager->GetStageInfo(FragmentModule), m_ShaderManager->GetStageInfo(VertexModule)});
+
+            m_ShaderManager->FreeModule(FragmentModule);
+            m_ShaderManager->FreeModule(VertexModule);
+        }
+        else
+        {
+            throw std::runtime_error("Failed to initialize pipeline manager.");
+        }
+
+        if (m_CommandsManager = std::make_unique<VulkanCommandsManager>(m_DeviceManager->GetLogicalDevice()))
+        {            
+            m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
+            m_CommandsManager->CreateCommandPool(m_DeviceManager->GetGraphicsQueueFamilyIndex(), true);
+            m_CommandsManager->CreateCommandPool(m_DeviceManager->GetPresentationQueueFamilyIndex(), false);
+            m_CommandsManager->CreateCommandPool(m_DeviceManager->GetTransferQueueFamilyIndex(), false);
+            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandPool(m_DeviceManager->GetTransferQueueFamilyIndex()));
+            m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandPool(m_DeviceManager->GetTransferQueueFamilyIndex()));
+            m_BufferManager->CreateUniformBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->GetCommandPool(m_DeviceManager->GetTransferQueueFamilyIndex()));
+            m_PipelineManager->CreateDescriptorPool();
+            m_PipelineManager->CreateDescriptorSets(m_BufferManager->GetUniformBuffers());
+            m_CommandsManager->CreateCommandBuffers();
+            m_CommandsManager->CreateSynchronizationObjects();
         }
         else
         {
@@ -316,8 +322,6 @@ private:
         return {
             .RenderPass = m_PipelineManager->GetRenderPass(),
             .Pipeline = m_PipelineManager->GetPipeline(),
-            .Viewports = m_PipelineManager->GetViewports(),
-            .Scissors = m_PipelineManager->GetScissors(),
             .Extent = m_SharedDeviceProperties.PreferredExtent,
             .FrameBuffers = m_BufferManager->GetFrameBuffers(),
             .VertexBuffers = m_BufferManager->GetVertexBuffers(),

@@ -86,6 +86,14 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "*.ipp": "cpp",
-        "coroutine": "cpp"
+        "coroutine": "cpp",
+        "bitset": "cpp",
+        "cfenv": "cpp",
+        "csignal": "cpp",
+        "cwctype": "cpp",
+        "memory_resource": "cpp",
+        "random": "cpp",
+        "stdfloat": "cpp",
+        "valarray": "cpp"
     }
 }

@@ -7,6 +7,7 @@
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
 #include <boost/log/trivial.hpp>
+#include <stdexcept>
 #include <set>
 
 #ifndef GLFW_INCLUDE_VULKAN
@@ -107,14 +108,43 @@ void VulkanDeviceManager::CreateLogicalDevice()
         }
     }
 
-    constexpr float QueuePriority = 1.f;
+    std::unordered_map<std::uint32_t, std::uint32_t> QueueFamilyIndices;
+    QueueFamilyIndices.emplace(m_GraphicsQueue.first, 1u);
+    if (QueueFamilyIndices.find(m_PresentationQueue.first) == QueueFamilyIndices.end())
+    {
+        QueueFamilyIndices.emplace(m_PresentationQueue.first, 1u);
+    }
+    else
+    {
+        ++QueueFamilyIndices[m_PresentationQueue.first];
+    }
 
-    const std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo{
-        VkDeviceQueueCreateInfo{
+    if (QueueFamilyIndices.find(m_TransferQueue.first) == QueueFamilyIndices.end())
+    {        
+        QueueFamilyIndices.emplace(m_TransferQueue.first, 1u);
+    }
+    else
+    {
+        ++QueueFamilyIndices[m_TransferQueue.first];
+    }
+
+    std::unordered_map<std::uint32_t, std::vector<float>> QueuePriorities;
+    for (const auto &QueueFamilyIndex : QueueFamilyIndices)
+    {
+        QueuePriorities.emplace(QueueFamilyIndex.second, std::vector<float>(QueueFamilyIndex.second, 1.0f));
+    }
+
+    std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo;
+    QueueCreateInfo.reserve(QueueFamilyIndices.size());
+
+    for (const auto &QueueFamilyIndex : QueueFamilyIndices)
+    {
+        QueueCreateInfo.push_back({
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-            .queueFamilyIndex = m_GraphicsQueue.first,
-            .queueCount = 1u,
-            .pQueuePriorities = &QueuePriority}};
+            .queueFamilyIndex = QueueFamilyIndex.first,
+            .queueCount = QueueFamilyIndex.second,
+            .pQueuePriorities = QueuePriorities.at(QueueFamilyIndex.second).data()});
+    }
 
     const VkDeviceCreateInfo DeviceCreateInfo{
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
@@ -125,19 +155,19 @@ void VulkanDeviceManager::CreateLogicalDevice()
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_Device));
 
-    if (vkGetDeviceQueue(m_Device, GetGraphicsQueueFamilyIndex(), 0u, &m_GraphicsQueue.second);
+    if (vkGetDeviceQueue(m_Device, m_GraphicsQueue.first, 0u, &m_GraphicsQueue.second);
         m_GraphicsQueue.second == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Failed to get graphics queue.");
     }
 
-    if (vkGetDeviceQueue(m_Device, GetPresentationQueueFamilyIndex(), 0u, &m_PresentationQueue.second);
+    if (vkGetDeviceQueue(m_Device, m_PresentationQueue.first, 0u, &m_PresentationQueue.second);
         m_PresentationQueue.second == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Failed to get presentation queue.");
     }
 
-    if (vkGetDeviceQueue(m_Device, GetTransferQueueFamilyIndex(), 0u, &m_TransferQueue.second);
+    if (vkGetDeviceQueue(m_Device, m_TransferQueue.first, 0u, &m_TransferQueue.second);
         m_TransferQueue.second == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Failed to get transfer queue.");
@@ -437,13 +467,11 @@ bool VulkanDeviceManager::GetQueueFamilyIndices(std::optional<std::uint32_t> &Gr
         {
             GraphicsQueueFamilyIndex = Iterator;
         }
-
-        if (!TransferQueueFamilyIndex.has_value() && QueueFamilies[Iterator].queueFlags & VK_QUEUE_TRANSFER_BIT)
+        else if (!TransferQueueFamilyIndex.has_value() && QueueFamilies[Iterator].queueFlags & VK_QUEUE_TRANSFER_BIT)
         {
             TransferQueueFamilyIndex = Iterator;
         }
-
-        if (!PresentationQueueFamilyIndex.has_value())
+        else if (!PresentationQueueFamilyIndex.has_value())
         {
             VkBool32 PresentationSupport = false;
             RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDevice, Iterator, m_Surface, &PresentationSupport));

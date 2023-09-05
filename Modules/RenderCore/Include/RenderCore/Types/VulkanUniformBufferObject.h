@@ -14,8 +14,8 @@ namespace RenderCore
 {
     struct RENDERCOREMODULE_API UniformBufferObject
     {
-        glm::mat4 Model;
-        glm::mat4 View;
-        glm::mat4 Projection;
+        alignas(16) glm::mat4 Model;
+        alignas(16) glm::mat4 View;
+        alignas(16) glm::mat4 Projection;
     };
 }

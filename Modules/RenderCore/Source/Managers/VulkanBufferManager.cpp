@@ -23,22 +23,26 @@ VulkanBufferManager::VulkanBufferManager(const VkDevice &Device, const VkSurface
     , m_IndexBuffersMemory({})
     , m_Vertices({
         Vertex{
-            .Position = glm::vec3(-1.f, -1.f, 0.f),
-            .Color = glm::vec4(10.f, 0.f, 0.f, 1.f)},
+            .Position = glm::vec2(-0.5f, -0.5f),
+            .Color = glm::vec3(1.f, 0.f, 0.f)},
         Vertex{
-            .Position = glm::vec3(1.f, -1.f, 0.f),
-            .Color = glm::vec4(0.f, 10.f, 0.f, 1.f)},
+            .Position = glm::vec2(0.5f, -0.5f),
+            .Color = glm::vec3(0.f, 1.f, 0.f)},
         Vertex{
-            .Position = glm::vec3(1.f, 1.f, 0.f),
-            .Color = glm::vec4(0.f, 0.f, 10.f, 1.f)},
+            .Position = glm::vec2(0.5f, 0.5f),
+            .Color = glm::vec3(0.f, 0.f, 1.f)},
         Vertex{
-            .Position = glm::vec3(-1.f, 1.f, 0.f),
-            .Color = glm::vec4(0.f, 0.f, 10.f, 1.f)}})
+            .Position = glm::vec2(-0.5f, 0.5f),
+            .Color = glm::vec3(1.f, 1.f, 1.f)}})
     , m_Indices(
           {0u, 1u, 2u, 2u, 3u, 0u})
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan buffer manager";
-    CreateCircle(m_Vertices, m_Indices);
+    
+    CreateTriangle(m_Vertices, m_Indices);
+    // CreateSquare(m_Vertices, m_Indices);
+    // CreateCircle(m_Vertices, m_Indices);
+    // CreateSphere(m_Vertices, m_Indices);
 }
 
 VulkanBufferManager::~VulkanBufferManager()
@@ -70,6 +74,8 @@ void VulkanBufferManager::CreateSwapChain(const VkSurfaceFormatKHR &PreferredFor
         throw std::runtime_error("Vulkan surface is invalid.");
     }
 
+    const std::uint32_t QueueFamilyIndicesCount = static_cast<std::uint32_t>(m_QueueFamilyIndices.size());
+
     const VkSwapchainCreateInfoKHR SwapChainCreateInfo{
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .surface = m_Surface,
@@ -79,14 +85,13 @@ void VulkanBufferManager::CreateSwapChain(const VkSurfaceFormatKHR &PreferredFor
         .imageExtent = PreferredExtent,
         .imageArrayLayers = 1u,
         .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-        .imageSharingMode = m_QueueFamilyIndices.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = static_cast<std::uint32_t>(m_QueueFamilyIndices.size()),
+        .imageSharingMode = QueueFamilyIndicesCount > 1u ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = QueueFamilyIndicesCount,
         .pQueueFamilyIndices = m_QueueFamilyIndices.data(),
         .preTransform = Capabilities.currentTransform,
         .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         .presentMode = PreferredMode,
         .clipped = VK_TRUE,
-        .oldSwapchain = VK_NULL_HANDLE,
     };
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSwapchainKHR(m_Device, &SwapChainCreateInfo, nullptr, &m_SwapChain));
@@ -128,7 +133,7 @@ void VulkanBufferManager::CreateFrameBuffers(const VkRenderPass &RenderPass, con
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateFramebuffer(m_Device, &FrameBufferCreateInfo, nullptr, m_FrameBuffers.data()));
 }
 
-void VulkanBufferManager::CreateVertexBuffers(const VkPhysicalDevice &PhysicalDevice, const VkQueue &TransferQueue, const std::vector<VkCommandBuffer> &CommandBuffers, const VkCommandPool &CommandPool)
+void VulkanBufferManager::CreateVertexBuffers(const VkPhysicalDevice &PhysicalDevice, const VkQueue &TransferQueue, const VkCommandPool &CommandPool)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan vertex buffers";
 
@@ -157,14 +162,14 @@ void VulkanBufferManager::CreateVertexBuffers(const VkPhysicalDevice &PhysicalDe
         vkUnmapMemory(m_Device, StagingBufferMemory);
 
         CreateBuffer(MemoryProperties, BufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_VertexBuffers[Iterator], m_VertexBuffersMemory[Iterator]);
-        CopyBuffer(StagingBuffer, m_VertexBuffers[Iterator], BufferSize, TransferQueue, CommandBuffers, CommandPool);
+        CopyBuffer(StagingBuffer, m_VertexBuffers[Iterator], BufferSize, TransferQueue, CommandPool);
 
         vkDestroyBuffer(m_Device, StagingBuffer, nullptr);
         vkFreeMemory(m_Device, StagingBufferMemory, nullptr);
     }
 }
 
-void VulkanBufferManager::CreateIndexBuffers(const VkPhysicalDevice &PhysicalDevice, const VkQueue &TransferQueue, const std::vector<VkCommandBuffer> &CommandBuffers, const VkCommandPool &CommandPool)
+void VulkanBufferManager::CreateIndexBuffers(const VkPhysicalDevice &PhysicalDevice, const VkQueue &TransferQueue, const VkCommandPool &CommandPool)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
 
@@ -176,7 +181,7 @@ void VulkanBufferManager::CreateIndexBuffers(const VkPhysicalDevice &PhysicalDev
     m_IndexBuffers.resize(m_SwapChainImages.size(), VK_NULL_HANDLE);
     m_IndexBuffersMemory.resize(m_SwapChainImages.size(), VK_NULL_HANDLE);
 
-    const VkDeviceSize BufferSize = m_Indices.size() * sizeof(std::uint32_t);
+    const VkDeviceSize BufferSize = m_Indices.size() * sizeof(std::uint16_t);
 
     VkPhysicalDeviceMemoryProperties MemoryProperties;
     vkGetPhysicalDeviceMemoryProperties(PhysicalDevice, &MemoryProperties);
@@ -193,14 +198,14 @@ void VulkanBufferManager::CreateIndexBuffers(const VkPhysicalDevice &PhysicalDev
         vkUnmapMemory(m_Device, StagingBufferMemory);
 
         CreateBuffer(MemoryProperties, BufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_IndexBuffers[Iterator], m_IndexBuffersMemory[Iterator]);
-        CopyBuffer(StagingBuffer, m_IndexBuffers[Iterator], BufferSize, TransferQueue, CommandBuffers, CommandPool);
+        CopyBuffer(StagingBuffer, m_IndexBuffers[Iterator], BufferSize, TransferQueue, CommandPool);
 
         vkDestroyBuffer(m_Device, StagingBuffer, nullptr);
         vkFreeMemory(m_Device, StagingBufferMemory, nullptr);
     }
 }
 
-void VulkanBufferManager::CreateUniformBuffers(const VkPhysicalDevice &PhysicalDevice, const VkQueue &TransferQueue, const std::vector<VkCommandBuffer> &CommandBuffers, const VkCommandPool &CommandPool)
+void VulkanBufferManager::CreateUniformBuffers(const VkPhysicalDevice &PhysicalDevice, const VkQueue &TransferQueue, const VkCommandPool &CommandPool)
 {
      BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
 
@@ -254,16 +259,11 @@ void VulkanBufferManager::CreateBuffer(const VkPhysicalDeviceMemoryProperties &P
     RENDERCORE_CHECK_VULKAN_RESULT(vkBindBufferMemory(m_Device, Buffer, BufferMemory, 0u));
 }
 
-void VulkanBufferManager::CopyBuffer(const VkBuffer &Source, const VkBuffer &Destination, const VkDeviceSize &Size, const VkQueue &TransferQueue, const std::vector<VkCommandBuffer> &CommandBuffers, const VkCommandPool &CommandPool) const
+void VulkanBufferManager::CopyBuffer(const VkBuffer &Source, const VkBuffer &Destination, const VkDeviceSize &Size, const VkQueue &TransferQueue, const VkCommandPool &CommandPool) const
 {
     if (m_Device == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan logical device is invalid.");
-    }
-
-    if (CommandBuffers.empty())
-    {
-        throw std::runtime_error("Vulkan command buffers are empty.");
     }
 
     if (CommandPool == VK_NULL_HANDLE)
@@ -276,25 +276,29 @@ void VulkanBufferManager::CopyBuffer(const VkBuffer &Source, const VkBuffer &Des
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
 
-    for (const VkCommandBuffer &CommandBufferIter : CommandBuffers)
-    {
-        RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(CommandBufferIter, &CommandBufferBeginInfo));
+    const VkCommandBufferAllocateInfo CommandBufferAllocateInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = CommandPool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = 1u,
+    };
 
-        const VkBufferCopy BufferCopy{
-            .srcOffset = 0u,
-            .dstOffset = 0u,
-            .size = Size,
-        };
+    VkCommandBuffer CommandBuffer;
+    vkAllocateCommandBuffers(m_Device, &CommandBufferAllocateInfo, &CommandBuffer);
 
-        vkCmdCopyBuffer(CommandBufferIter, Source, Destination, 1u, &BufferCopy);
+    RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
 
-        RENDERCORE_CHECK_VULKAN_RESULT(vkEndCommandBuffer(CommandBufferIter));
-    }
+    const VkBufferCopy BufferCopy{
+        .size = Size,
+    };
+
+    vkCmdCopyBuffer(CommandBuffer, Source, Destination, 1u, &BufferCopy);    
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEndCommandBuffer(CommandBuffer));
 
     const VkSubmitInfo SubmitInfo{
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .commandBufferCount = static_cast<std::uint32_t>(CommandBuffers.size()),
-        .pCommandBuffers = CommandBuffers.data(),
+        .commandBufferCount = 1u,
+        .pCommandBuffers = &CommandBuffer,
     };
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkQueueSubmit(TransferQueue, 1u, &SubmitInfo, VK_NULL_HANDLE));
@@ -306,19 +310,20 @@ void VulkanBufferManager::UpdateUniformBuffers(const std::uint32_t Frame, const 
     if (Frame >= g_MaxFramesInFlight)
     {
         throw std::runtime_error("Vulkan image index is invalid.");
-    }
+    }    
 
     static auto StartTime = std::chrono::high_resolution_clock::now();
 
     const auto CurrentTime = std::chrono::high_resolution_clock::now();
-    const float TimeFloat = std::chrono::duration<float, std::chrono::seconds::period>(CurrentTime - StartTime).count();
+    float Time = std::chrono::duration<float, std::chrono::seconds::period>(CurrentTime - StartTime).count();
 
-    const UniformBufferObject UBO {
-        .Model = glm::rotate(glm::mat4(1.f), TimeFloat * glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f)),
-        .View = glm::lookAt(glm::vec3(2.f, 2.f, 2.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f)),
-        .Projection = glm::perspective(glm::radians(45.f), SwapChainExtent.width / (float) SwapChainExtent.height, 0.1f, 10.f)};
+    UniformBufferObject BufferObject{};
+    BufferObject.Model = glm::rotate(glm::mat4(1.f), Time * glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
+    BufferObject.View = glm::lookAt(glm::vec3(2.f, 2.f, 2.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f));
+    BufferObject.Projection = glm::perspective(glm::radians(45.0f), SwapChainExtent.width / (float)SwapChainExtent.height, 0.1f, 10.f);
+    BufferObject.Projection[1][1] *= -1;
 
-    memcpy(m_UniformBuffersData[Frame], &UBO, sizeof(UBO));
+    memcpy(m_UniformBuffersData[Frame], &BufferObject, sizeof(BufferObject));
 }
 
 void VulkanBufferManager::Shutdown()
@@ -451,7 +456,7 @@ const std::vector<Vertex> &VulkanBufferManager::GetVertices() const
     return m_Vertices;
 }
 
-const std::vector<std::uint32_t> &VulkanBufferManager::GetIndices() const
+const std::vector<std::uint16_t> &VulkanBufferManager::GetIndices() const
 {
     return m_Indices;
 }
@@ -483,7 +488,12 @@ void VulkanBufferManager::CreateSwapChainImageViews(const VkFormat &ImageFormat)
                 .g = VK_COMPONENT_SWIZZLE_IDENTITY,
                 .b = VK_COMPONENT_SWIZZLE_IDENTITY,
                 .a = VK_COMPONENT_SWIZZLE_IDENTITY},
-            .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0u, .levelCount = 1u, .baseArrayLayer = 0u, .layerCount = 1u}};
+            .subresourceRange = {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0u,
+                .levelCount = 1u,
+                .baseArrayLayer = 0u,
+                .layerCount = 1u}};
 
         const std::int32_t Index = std::distance(m_SwapChainImages.begin(), ImageIter);
         RENDERCORE_CHECK_VULKAN_RESULT(vkCreateImageView(m_Device, &ImageViewCreateInfo, nullptr, &m_SwapChainImageViews[Index]))

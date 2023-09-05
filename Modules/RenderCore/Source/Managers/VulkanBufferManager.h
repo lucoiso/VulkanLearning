@@ -26,12 +26,12 @@ namespace RenderCore
 
         void CreateSwapChain(const VkSurfaceFormatKHR& PreferredFormat, const VkPresentModeKHR& PreferredMode, const VkExtent2D& PreferredExtent, const VkSurfaceCapabilitiesKHR& Capabilities);
         void CreateFrameBuffers(const VkRenderPass& RenderPass, const VkExtent2D& Extent);
-        void CreateVertexBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const std::vector<VkCommandBuffer>& CommandBuffers, const VkCommandPool& CommandPool);
-        void CreateIndexBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const std::vector<VkCommandBuffer>& CommandBuffers, const VkCommandPool& CommandPool);
-        void CreateUniformBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const std::vector<VkCommandBuffer>& CommandBuffers, const VkCommandPool& CommandPool);
+        void CreateVertexBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const VkCommandPool& CommandPool);
+        void CreateIndexBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const VkCommandPool& CommandPool);
+        void CreateUniformBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const VkCommandPool& CommandPool);
         
         void CreateBuffer(const VkPhysicalDeviceMemoryProperties& Properties, const VkDeviceSize& Size, const VkBufferUsageFlags& Usage, const VkMemoryPropertyFlags& Flags, VkBuffer& Buffer, VkDeviceMemory& BufferMemory) const;
-        void CopyBuffer(const VkBuffer& Source, const VkBuffer& Destination, const VkDeviceSize& Size, const VkQueue& TransferQueue, const std::vector<VkCommandBuffer>& CommandBuffers, const VkCommandPool& CommandPool) const;
+        void CopyBuffer(const VkBuffer& Source, const VkBuffer& Destination, const VkDeviceSize& Size, const VkQueue& TransferQueue, const VkCommandPool& CommandPool) const;
 
         void UpdateUniformBuffers(const std::uint32_t Frame, const VkExtent2D &SwapChainExtent);
 
@@ -50,7 +50,7 @@ namespace RenderCore
         [[nodiscard]] const std::vector<VkDeviceMemory>& GetUniformBuffersMemory() const;
         [[nodiscard]] const std::vector<void*>& GetUniformBuffersData() const;
         [[nodiscard]] const std::vector<Vertex>& GetVertices() const;
-        [[nodiscard]] const std::vector<std::uint32_t>& GetIndices() const;
+        [[nodiscard]] const std::vector<std::uint16_t>& GetIndices() const;
         [[nodiscard]] std::uint32_t GetIndexCount() const;
 
     private:
@@ -75,6 +75,6 @@ namespace RenderCore
         std::vector<VkDeviceMemory> m_UniformBuffersMemory;
         std::vector<void*> m_UniformBuffersData;
         std::vector<Vertex> m_Vertices;
-        std::vector<std::uint32_t> m_Indices;
+        std::vector<std::uint16_t> m_Indices;
     };
 }

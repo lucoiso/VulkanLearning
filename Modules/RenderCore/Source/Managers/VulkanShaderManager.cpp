@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <fstream>
 #include <format>
+#include "VulkanShaderManager.h"
 
 using namespace RenderCore;
 
@@ -197,6 +198,19 @@ VkShaderModule VulkanShaderManager::CreateModule(const VkDevice &Device, const s
 VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(const VkShaderModule &Module)
 {
     return m_StageInfos.at(Module);
+}
+
+void VulkanShaderManager::FreeModule(const VkShaderModule &Module)
+{
+    if (Module == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Invalid shader module");
+    }
+
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing shader module";
+
+    vkDestroyShaderModule(m_Device, Module, nullptr);
+    m_StageInfos.erase(Module);
 }
 
 bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Language, std::vector<std::uint32_t> &OutSPIRVCode)
