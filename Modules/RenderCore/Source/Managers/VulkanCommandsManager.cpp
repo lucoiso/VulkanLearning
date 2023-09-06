@@ -219,9 +219,9 @@ std::unordered_map<VkSwapchainKHR, std::uint32_t> VulkanCommandsManager::DrawFra
 				else if (OperationResult == VK_SUBOPTIMAL_KHR)
 				{
 					BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Failed to acquire next image: Vulkan swap chain is suboptimal";
+					WaitAndResetFences(true);
 				}
 
-				WaitAndResetFences(true);
 				return std::unordered_map<VkSwapchainKHR, std::uint32_t>();
 			}
 			else if (OperationResult != VK_SUBOPTIMAL_KHR)
@@ -347,7 +347,13 @@ void VulkanCommandsManager::PresentFrame(const VkQueue &PresentQueue, const std:
 		.pImageIndices = ImageIndices.data(),
 		.pResults = nullptr};
 
-	RENDERCORE_CHECK_VULKAN_RESULT(vkQueuePresentKHR(PresentQueue, &PresentInfo));
+	if (const VkResult OperationResult = vkQueuePresentKHR(PresentQueue, &PresentInfo); OperationResult != VK_SUCCESS)
+	{
+		if (OperationResult != VK_ERROR_OUT_OF_DATE_KHR && OperationResult != VK_SUBOPTIMAL_KHR)
+		{
+			throw std::runtime_error("Vulkan operation failed with result: " + std::string(ResultToString(OperationResult)));
+		}
+	}
 
 	m_CurrentFrameIndex = (m_CurrentFrameIndex + 1u) % g_MaxFramesInFlight;
 }
