@@ -121,16 +121,19 @@ void VulkanBufferManager::CreateFrameBuffers(const VkRenderPass &RenderPass, con
 
     m_FrameBuffers.resize(m_SwapChainImageViews.size(), VK_NULL_HANDLE);
 
-    const VkFramebufferCreateInfo FrameBufferCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-        .renderPass = RenderPass,
-        .attachmentCount = static_cast<std::uint32_t>(m_SwapChainImageViews.size()),
-        .pAttachments = m_SwapChainImageViews.data(),
-        .width = Extent.width,
-        .height = Extent.height,
-        .layers = 1u};
+    for (std::uint32_t Iterator = 0u; Iterator < static_cast<std::uint32_t>(m_FrameBuffers.size()); ++Iterator)
+    {
+        const VkFramebufferCreateInfo FrameBufferCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            .renderPass = RenderPass,
+            .attachmentCount = 1u,
+            .pAttachments = &m_SwapChainImageViews[Iterator],
+            .width = Extent.width,
+            .height = Extent.height,
+            .layers = 1u};
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateFramebuffer(m_Device, &FrameBufferCreateInfo, nullptr, m_FrameBuffers.data()));
+        RENDERCORE_CHECK_VULKAN_RESULT(vkCreateFramebuffer(m_Device, &FrameBufferCreateInfo, nullptr, &m_FrameBuffers[Iterator]));
+    }
 }
 
 void VulkanBufferManager::CreateVertexBuffers(const VkPhysicalDevice &PhysicalDevice, const VkQueue &TransferQueue, const VkCommandPool &CommandPool)

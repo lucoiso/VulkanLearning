@@ -41,45 +41,41 @@ void VulkanPipelineManager::CreateRenderPass(const VkFormat &Format)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render pass";
 
-    const std::vector<VkAttachmentDescription> ColorAttachmentDescriptions{
-        VkAttachmentDescription{
-            .format = Format,
-            .samples = VK_SAMPLE_COUNT_1_BIT,
-            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR}};
+    const VkAttachmentDescription ColorAttachmentDescription{
+        .format = Format,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
 
-    const std::vector<VkAttachmentReference> ColorAttachmentReferences{
-        VkAttachmentReference{
-            .attachment = 0u,
-            .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}};
+    const VkAttachmentReference ColorAttachmentReference{
+        .attachment = 0u,
+        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
-    const std::vector<VkSubpassDescription> SubpassDescriptions{
-        VkSubpassDescription{
-            .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-            .colorAttachmentCount = static_cast<std::uint32_t>(ColorAttachmentReferences.size()),
-            .pColorAttachments = ColorAttachmentReferences.data()}};
+    const VkSubpassDescription SubpassDescription{
+        .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+        .colorAttachmentCount = 1u,
+        .pColorAttachments = &ColorAttachmentReference};
 
-    const std::vector<VkSubpassDependency> SubpassDependencies{
-        VkSubpassDependency{
-            .srcSubpass = VK_SUBPASS_EXTERNAL,
-            .dstSubpass = 0u,
-            .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            .srcAccessMask = 0u,
-            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT}};
+    const VkSubpassDependency SubpassDependency{
+        .srcSubpass = VK_SUBPASS_EXTERNAL,
+        .dstSubpass = 0u,
+        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .srcAccessMask = 0u,
+        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT};
 
     const VkRenderPassCreateInfo RenderPassCreateInfo{
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-        .attachmentCount = static_cast<std::uint32_t>(ColorAttachmentDescriptions.size()),
-        .pAttachments = ColorAttachmentDescriptions.data(),
-        .subpassCount = static_cast<std::uint32_t>(SubpassDescriptions.size()),
-        .pSubpasses = SubpassDescriptions.data(),
-        .dependencyCount = static_cast<std::uint32_t>(SubpassDependencies.size()),
-        .pDependencies = SubpassDependencies.data()};
+        .attachmentCount = 1u,
+        .pAttachments = &ColorAttachmentDescription,
+        .subpassCount = 1u,
+        .pSubpasses = &SubpassDescription,
+        .dependencyCount = 1u,
+        .pDependencies = &SubpassDependency};
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateRenderPass(m_Device, &RenderPassCreateInfo, nullptr, &m_RenderPass));
 }
