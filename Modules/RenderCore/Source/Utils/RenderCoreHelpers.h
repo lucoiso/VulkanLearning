@@ -153,7 +153,7 @@ namespace RenderCore
                 .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
     }
 
-    constexpr std::array<VkVertexInputAttributeDescription, 2> GetAttributeDescriptions()
+    constexpr std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions()
     {
         return {
             VkVertexInputAttributeDescription{
@@ -165,7 +165,12 @@ namespace RenderCore
                 .location = 1u,
                 .binding = 0u,
                 .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(Vertex, Color)}};
+                .offset = offsetof(Vertex, Color)},
+            VkVertexInputAttributeDescription{
+                .location = 2u,
+                .binding = 0u,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
+                .offset = offsetof(Vertex, TextureCoordinates)}};
     }
 
     constexpr void CreateTriangle(std::vector<Vertex> &Vertices, std::vector<std::uint16_t> &Indices)
@@ -174,9 +179,18 @@ namespace RenderCore
         Indices.clear();
 
         Vertices = {
-            Vertex{.Position = glm::vec2(-0.5f, -0.5f), .Color = glm::vec3(1.f, 0.f, 0.f)},
-            Vertex{.Position = glm::vec2(0.5f, -0.5f), .Color = glm::vec3(0.f, 1.f, 0.f)},
-            Vertex{.Position = glm::vec2(0.f, 0.5f), .Color = glm::vec3(0.f, 0.f, 1.f)}};
+            Vertex{
+                .Position = glm::vec2(0.f, -0.5f),
+                .Color = glm::vec3(1.f, 0.f, 0.f),
+                .TextureCoordinates = glm::vec2(0.5f, 0.f)},
+            Vertex{
+                .Position = glm::vec2(0.5f, 0.5f),
+                .Color = glm::vec3(0.f, 1.f, 0.f),
+                .TextureCoordinates = glm::vec2(1.f, 1.f)},
+            Vertex{
+                .Position = glm::vec2(-0.5f, 0.5f),
+                .Color = glm::vec3(0.f, 0.f, 1.f),
+                .TextureCoordinates = glm::vec2(0.f, 1.f)}};
 
         Indices = {0u, 1u, 2u};
     }
@@ -189,97 +203,22 @@ namespace RenderCore
         Vertices = {
             Vertex{
                 .Position = glm::vec2(-0.5f, -0.5f),
-                .Color = glm::vec3(1.f, 0.f, 0.f)},
+                .Color = glm::vec3(1.f, 0.f, 0.f),
+                .TextureCoordinates = glm::vec2(1.f, 0.f)},
             Vertex{
                 .Position = glm::vec2(0.5f, -0.5f),
-                .Color = glm::vec3(0.f, 1.f, 0.f)},
+                .Color = glm::vec3(0.f, 1.f, 0.f),
+                .TextureCoordinates = glm::vec2(0.f, 0.f)},
             Vertex{
                 .Position = glm::vec2(0.5f, 0.5f),
-                .Color = glm::vec3(0.f, 0.f, 1.f)},
+                .Color = glm::vec3(0.f, 0.f, 1.f),
+                .TextureCoordinates = glm::vec2(0.f, 1.f)},
             Vertex{
                 .Position = glm::vec2(-0.5f, 0.5f),
-                .Color = glm::vec3(0.f, 0.f, 1.f)}};
+                .Color = glm::vec3(0.f, 0.f, 1.f),
+                .TextureCoordinates = glm::vec2(1.f, 1.f)}};
 
         Indices = {0u, 1u, 2u, 2u, 3u, 0u};
-    }
-
-    constexpr void CreateCircle(std::vector<Vertex> &Vertices, std::vector<std::uint16_t> &Indices)
-    {
-        Vertices.clear();
-        Indices.clear();
-
-        constexpr std::uint32_t CircleResolution = 100u;
-        constexpr float CircleRadius = 0.5f;
-
-        Vertices.reserve(CircleResolution + 1u);
-        Indices.reserve(CircleResolution * 3u);
-
-        for (std::uint32_t Iterator = 0u; Iterator < CircleResolution; ++Iterator)
-        {
-            const float Angle = 2.f * std::numbers::pi * Iterator / CircleResolution;
-            const float X = CircleRadius * std::cos(Angle);
-            const float Y = CircleRadius * std::sin(Angle);
-
-            const float RedChannel = std::clamp(1.f - X, 0.f, 1.f);
-            const float GreenChannel = std::clamp(Y + 0.5f, 0.f, 1.f);
-            const float BlueChannel = std::clamp(X + 0.5f, 0.f, 1.f);
-
-            Vertices.push_back(
-                Vertex{.Position = glm::vec2(X, Y), .Color = glm::vec3(RedChannel, GreenChannel, BlueChannel)});
-
-            Indices.emplace_back(0u);
-            Indices.emplace_back(Iterator + 1u);
-            Indices.emplace_back(Iterator + 2u);
-        }
-    }
-
-    constexpr void CreateSphere(std::vector<Vertex> &Vertices, std::vector<std::uint16_t> &Indices)
-    {
-        const std::uint32_t Stacks = 20;
-        const std::uint32_t Slices = 40;
-        const float Radius = 1.0f;
-
-        for (std::uint32_t Iterator1 = 0; Iterator1 <= Stacks; ++Iterator1)
-        {
-            const float Phi = std::numbers::pi * static_cast<float>(Iterator1) / static_cast<float>(Stacks);
-            for (std::uint32_t Iterator2 = 0; Iterator2 <= Slices; ++Iterator2)
-            {
-                const float Theta = 2.f * std::numbers::pi * static_cast<float>(Iterator2) / static_cast<float>(Slices);
-                const float X = std::sin(Phi) * std::cos(Theta);
-                const float Y = std::sin(Phi) * std::sin(Theta);
-                const float Z = std::cos(Phi);
-
-                Vertex Vertex;
-                Vertex.Position = glm::vec3(X * Radius, Y * Radius, Z * Radius);
-
-                // Variando as cores para cada vértice
-                Vertex.Color = glm::vec3(
-                    std::abs(X),
-                    std::abs(Y),
-                    std::abs(Z)
-                );
-
-                Vertices.push_back(Vertex);
-            }
-        }
-
-        for (std::uint32_t Iterator1 = 0; Iterator1 < Stacks; ++Iterator1)
-        {
-            for (std::uint32_t Iterator2 = 0; Iterator2 < Slices; ++Iterator2)
-            {
-                const std::uint32_t First = Iterator1 * (Slices + 1u) + Iterator2;
-                const std::uint32_t Second = First + 1u;
-                const std::uint32_t Third = (Iterator1 + 1u) * (Slices + 1u) + Iterator2;
-                const std::uint32_t Fourth = Third + 1u;
-
-                Indices.push_back(First);
-                Indices.push_back(Second);
-                Indices.push_back(Third);
-                Indices.push_back(Second);
-                Indices.push_back(Fourth);
-                Indices.push_back(Third);
-            }
-        }
     }
 }
 #endif

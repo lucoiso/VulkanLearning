@@ -32,27 +32,26 @@ namespace RenderCore
         void CreateSynchronizationObjects();
         void DestroySynchronizationObjects();
 
-        std::unordered_map<VkSwapchainKHR, std::uint32_t> DrawFrame(const std::vector<VkSwapchainKHR> &SwapChains);
+        std::int32_t DrawFrame(const VkSwapchainKHR &SwapChains);
         
         struct BufferRecordParameters
         {
-            const VkRenderPass &RenderPass;
-            const VkPipeline &Pipeline;
+            const VkRenderPass RenderPass;
+            const VkPipeline Pipeline;
             const VkExtent2D Extent;
-            const std::vector<VkFramebuffer> &FrameBuffers;
-            const std::vector<VkBuffer> &VertexBuffers;
-            const std::vector<VkBuffer> &IndexBuffers;
-            const VkPipelineLayout &PipelineLayout;
-            const std::vector<VkDescriptorSet> &DescriptorSets;
+            const std::vector<VkFramebuffer> FrameBuffers;
+            const std::vector<VkBuffer> VertexBuffers;
+            const std::vector<VkBuffer> IndexBuffers;
+            const VkPipelineLayout PipelineLayout;
+            const std::vector<VkDescriptorSet> DescriptorSets;
             const std::uint32_t IndexCount;
             const std::uint32_t ImageIndex;
             const std::vector<VkDeviceSize> Offsets;
-            const VkImage &Image;
         };
 
         void RecordCommandBuffers(const BufferRecordParameters &Parameters);
-        void SubmitCommandBuffers(const VkQueue &GraphicsQueue);
-        void PresentFrame(const VkQueue &PresentQueue, const std::unordered_map<VkSwapchainKHR, std::uint32_t> &ImageIndicesData);
+        void SubmitCommandBuffers(const VkQueue &Queue);
+        void PresentFrame(const VkQueue &Queue, const VkSwapchainKHR &SwapChain, const std::uint32_t ImageIndice);
 
         std::uint32_t GetCurrentFrameIndex() const;
 
@@ -60,15 +59,15 @@ namespace RenderCore
 
     private:
         void CreateGraphicsCommandPool();
-        void AllocateCommandBuffers();
-        void WaitAndResetFences(const bool bCurrentFrame = false);
+        void AllocateCommandBuffer();
+        void WaitAndResetFences();
 
         const VkDevice &m_Device;
-        VkCommandPool m_GraphicsCommandPool;
-        std::vector<VkCommandBuffer> m_CommandBuffers;
-        std::vector<VkSemaphore> m_ImageAvailableSemaphores;
-        std::vector<VkSemaphore> m_RenderFinishedSemaphores;
-        std::vector<VkFence> m_Fences;
+        VkCommandPool m_CommandPool;
+        VkCommandBuffer m_CommandBuffer;
+        VkSemaphore m_ImageAvailableSemaphore;
+        VkSemaphore m_RenderFinishedSemaphore;
+        VkFence m_Fence;
         std::uint32_t m_CurrentFrameIndex;
         bool m_SynchronizationObjectsCreated;
         std::optional<std::uint32_t> m_GraphicsProcessingFamilyQueueIndex;

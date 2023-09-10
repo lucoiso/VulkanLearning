@@ -61,7 +61,7 @@ namespace RenderCore
 
     constexpr std::uint32_t g_MaxFramesInFlight = 2u;
 
-    constexpr std::uint32_t g_BufferMemoryAllocationSize = 262144;
+    constexpr std::uint32_t g_BufferMemoryAllocationSize = 65536u;
 }
 
 #endif

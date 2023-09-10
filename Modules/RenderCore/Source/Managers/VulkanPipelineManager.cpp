@@ -8,7 +8,6 @@
 #include "Utils/RenderCoreHelpers.h"
 #include "Utils/VulkanConstants.h"
 #include <boost/log/trivial.hpp>
-#include "VulkanPipelineManager.h"
 
 using namespace RenderCore;
 
@@ -169,17 +168,24 @@ void VulkanPipelineManager::CreateDescriptorSetLayout()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
 
-    const VkDescriptorSetLayoutBinding LayoutBinding{
-        .binding = 0u,
-        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .descriptorCount = 1u,
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-        .pImmutableSamplers = nullptr};
+    const std::vector<VkDescriptorSetLayoutBinding> LayoutBindings{
+        VkDescriptorSetLayoutBinding{
+            .binding = 0u,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1u,
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+            .pImmutableSamplers = nullptr},        
+        VkDescriptorSetLayoutBinding{
+            .binding = 1u,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount = 1u,
+            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .pImmutableSamplers = nullptr}};
 
     const VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutInfo{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        .bindingCount = 1u,
-        .pBindings = &LayoutBinding};
+        .bindingCount = static_cast<std::uint32_t>(LayoutBindings.size()),
+        .pBindings = LayoutBindings.data()};
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorSetLayout(m_Device, &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout));
 }
@@ -188,20 +194,24 @@ void VulkanPipelineManager::CreateDescriptorPool()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor pool";
 
-    const VkDescriptorPoolSize DescriptorPoolSize{
-        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .descriptorCount = g_MaxFramesInFlight};
+    const std::vector<VkDescriptorPoolSize> DescriptorPoolSizes{
+        VkDescriptorPoolSize{
+            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = g_MaxFramesInFlight},
+        VkDescriptorPoolSize{
+            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount = g_MaxFramesInFlight}};
 
     const VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         .maxSets = g_MaxFramesInFlight,
-        .poolSizeCount = 1u,
-        .pPoolSizes = &DescriptorPoolSize};
+        .poolSizeCount = static_cast<std::uint32_t>(DescriptorPoolSizes.size()),
+        .pPoolSizes = DescriptorPoolSizes.data()};
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorPool(m_Device, &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool));
 }
 
-void VulkanPipelineManager::CreateDescriptorSets(const std::vector<VkBuffer> &UniformBuffers)
+void VulkanPipelineManager::CreateDescriptorSets(const std::vector<VkBuffer> &UniformBuffers, const VkImageView &TextureView, const VkSampler &TextureSampler)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor sets";
 
@@ -216,29 +226,42 @@ void VulkanPipelineManager::CreateDescriptorSets(const std::vector<VkBuffer> &Un
     m_DescriptorSets.resize(g_MaxFramesInFlight);
     RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateDescriptorSets(m_Device, &DescriptorSetAllocateInfo, m_DescriptorSets.data()));
 
-    std::vector<VkWriteDescriptorSet> WriteDescriptorSets(g_MaxFramesInFlight);
-
-    for (auto Iterator = WriteDescriptorSets.begin(); Iterator != WriteDescriptorSets.end(); ++Iterator)
+    for (std::uint32_t Iterator = 0u; Iterator < g_MaxFramesInFlight; ++Iterator)
     {
-        const std::uint32_t Index = static_cast<std::uint32_t>(std::distance(WriteDescriptorSets.begin(), Iterator));              
-
         const VkDescriptorBufferInfo DescriptorBufferInfo{
-            .buffer = UniformBuffers[Index],
+            .buffer = UniformBuffers[Iterator],
             .offset = 0u,
             .range = sizeof(UniformBufferObject)};
 
-        Iterator->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        Iterator->dstSet = m_DescriptorSets[Index];
-        Iterator->dstBinding = 0u;
-        Iterator->dstArrayElement = 0u;
-        Iterator->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        Iterator->descriptorCount = 1u;
-        Iterator->pBufferInfo = &DescriptorBufferInfo;
-        Iterator->pImageInfo = nullptr;
-        Iterator->pTexelBufferView = nullptr;
-    }
+        const VkDescriptorImageInfo DescriptorImageInfo{
+            .sampler = TextureSampler,
+            .imageView = TextureView,
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+
+        const std::array<VkWriteDescriptorSet, 2u> WriteDescriptors {
+            VkWriteDescriptorSet {
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet = m_DescriptorSets[Iterator],
+                .dstBinding = 0u,
+                .dstArrayElement = 0u,
+                .descriptorCount = 1u,
+                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .pImageInfo = nullptr,
+                .pBufferInfo = &DescriptorBufferInfo,
+                .pTexelBufferView = nullptr},
+            VkWriteDescriptorSet {
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet = m_DescriptorSets[Iterator],
+                .dstBinding = 1u,
+                .dstArrayElement = 0u,
+                .descriptorCount = 1u,
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .pImageInfo = &DescriptorImageInfo,
+                .pBufferInfo = nullptr,
+                .pTexelBufferView = nullptr}};            
     
-    vkUpdateDescriptorSets(m_Device, static_cast<std::uint32_t>(WriteDescriptorSets.size()), WriteDescriptorSets.data(), 0u, nullptr);
+        vkUpdateDescriptorSets(m_Device, static_cast<std::uint32_t>(WriteDescriptors.size()), WriteDescriptors.data(), 0u, nullptr);
+    }
 }
 
 void VulkanPipelineManager::Shutdown()

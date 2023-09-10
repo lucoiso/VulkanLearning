@@ -14,7 +14,6 @@
 #define GLFW_INCLUDE_VULKAN
 #endif
 #include <GLFW/glfw3.h>
-#include "VulkanDeviceManager.h"
 
 using namespace RenderCore;
 
@@ -163,6 +162,10 @@ void VulkanDeviceManager::CreateLogicalDevice()
             .pQueuePriorities = QueuePriorities.at(QueueFamilyIndex.second).data()});
     }
 
+    const VkPhysicalDeviceFeatures DeviceFeatures{
+        .samplerAnisotropy = VK_TRUE
+    };
+
     const VkDeviceCreateInfo DeviceCreateInfo{
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .queueCreateInfoCount = static_cast<std::uint32_t>(QueueCreateInfo.size()),
@@ -170,7 +173,8 @@ void VulkanDeviceManager::CreateLogicalDevice()
         .enabledLayerCount = static_cast<std::uint32_t>(Layers.size()),
         .ppEnabledLayerNames = Layers.data(),
         .enabledExtensionCount = static_cast<std::uint32_t>(Extensions.size()),
-        .ppEnabledExtensionNames = Extensions.data()};
+        .ppEnabledExtensionNames = Extensions.data(),
+        .pEnabledFeatures = &DeviceFeatures};
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_Device));
 
@@ -491,13 +495,11 @@ bool VulkanDeviceManager::IsPhysicalDeviceSuitable(const VkPhysicalDevice &Devic
 
     VkPhysicalDeviceProperties DeviceProperties;
     vkGetPhysicalDeviceProperties(Device, &DeviceProperties);
+    
+    VkPhysicalDeviceFeatures SupportedFeatures;
+    vkGetPhysicalDeviceFeatures(Device, &SupportedFeatures);
 
-    if (DeviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-    {
-        return false;
-    }
-
-    return true;
+    return DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && SupportedFeatures.samplerAnisotropy;
 }
 
 bool VulkanDeviceManager::GetQueueFamilyIndices(std::optional<std::uint32_t> &GraphicsQueueFamilyIndex, std::optional<std::uint32_t> &PresentationQueueFamilyIndex, std::optional<std::uint32_t> &TransferQueueFamilyIndex)

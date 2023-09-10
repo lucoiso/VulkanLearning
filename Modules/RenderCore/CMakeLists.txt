@@ -49,12 +49,16 @@ target_compile_definitions(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
 find_package(Boost REQUIRED CONFIG COMPONENTS log)
+find_package(stb REQUIRED)
+find_package(assimp REQUIRED)
 find_package(Vulkan REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE
     glfw
-    Boost::log
     glm::glm
+    Boost::log
+    stb::stb
+    assimp::assimp
     ${Vulkan_LIBRARIES}
     glslang
     glslang-default-resource-limits
@@ -64,10 +68,11 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE
 
 target_include_directories(${LIBRARY_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
 
-# Testing only - Debugging Shaders
+# Testing only - Debug Files
 target_compile_definitions(${LIBRARY_NAME} PRIVATE 
     DEBUG_SHADER_VERT="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.vert"
     DEBUG_SHADER_FRAG="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.frag"
+    DEBUG_RESOURCE_IMAGE="${CMAKE_CURRENT_SOURCE_DIR}/Resources/DevilDollynho.png"
 )
 
 target_compile_definitions(${LIBRARY_NAME} PUBLIC

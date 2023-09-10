@@ -131,10 +131,11 @@ public:
             throw std::runtime_error("GLFW Window is invalid");
         }
 
-        const std::unordered_map<VkSwapchainKHR, std::uint32_t> ImageIndices = m_CommandsManager->DrawFrame({ m_BufferManager->GetSwapChain() });
-        if (!m_SharedDeviceProperties.IsValid() || ImageIndices.empty())
+        const std::int32_t ImageIndice = m_CommandsManager->DrawFrame(m_BufferManager->GetSwapChain());
+        if (!m_SharedDeviceProperties.IsValid() || ImageIndice < 0)
         {
             m_CommandsManager->DestroySynchronizationObjects();
+            m_BufferManager->DestroyResources();
 
             m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
             if (!m_SharedDeviceProperties.IsValid())
@@ -155,10 +156,10 @@ public:
         {
             m_BufferManager->UpdateUniformBuffers(m_CommandsManager->GetCurrentFrameIndex(), m_SharedDeviceProperties.PreferredExtent);
 
-            const std::uint32_t ImageIndex = ImageIndices.at(m_BufferManager->GetSwapChain());
-            m_CommandsManager->RecordCommandBuffers(GetBufferRecordParameters(ImageIndex, m_BufferManager->GetSwapChainImages()[ImageIndex]));
+            const VulkanCommandsManager::BufferRecordParameters Parameters = GetBufferRecordParameters(ImageIndice);
+            m_CommandsManager->RecordCommandBuffers(Parameters);
             m_CommandsManager->SubmitCommandBuffers(m_DeviceManager->GetGraphicsQueue());
-            m_CommandsManager->PresentFrame(m_DeviceManager->GetPresentationQueue(), ImageIndices);
+            m_CommandsManager->PresentFrame(m_DeviceManager->GetGraphicsQueue(), m_BufferManager->GetSwapChain(), ImageIndice);
         }
     }
 
@@ -302,14 +303,24 @@ private:
         }
 
         if (m_CommandsManager = std::make_unique<VulkanCommandsManager>(m_DeviceManager->GetLogicalDevice()))
-        {            
+        {
             m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
             m_CommandsManager->SetGraphicsProcessingFamilyQueueIndex(m_DeviceManager->GetGraphicsQueueFamilyIndex());            
-            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->CreateCommandPool(m_DeviceManager->GetTransferQueueFamilyIndex()));
-            m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue(), m_CommandsManager->CreateCommandPool(m_DeviceManager->GetTransferQueueFamilyIndex()));
-            m_BufferManager->CreateUniformBuffers(m_DeviceManager->GetPhysicalDevice(), m_DeviceManager->GetTransferQueue());
+            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetTransferQueue(), m_CommandsManager->CreateCommandPool(m_DeviceManager->GetTransferQueueFamilyIndex()));
+            m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetTransferQueue(), m_CommandsManager->CreateCommandPool(m_DeviceManager->GetTransferQueueFamilyIndex()));
+            m_BufferManager->CreateUniformBuffers(m_DeviceManager->GetTransferQueue());
+
+            const std::array<VkCommandPool, 3u> CommandPools = {
+                m_CommandsManager->CreateCommandPool(m_DeviceManager->GetGraphicsQueueFamilyIndex()),
+                m_CommandsManager->CreateCommandPool(m_DeviceManager->GetGraphicsQueueFamilyIndex()),
+                m_CommandsManager->CreateCommandPool(m_DeviceManager->GetGraphicsQueueFamilyIndex())};
+
+            VkImageView TextureView = VK_NULL_HANDLE;
+            VkSampler TextureSampler = VK_NULL_HANDLE;
+            m_BufferManager->CreateTextureImage(DEBUG_RESOURCE_IMAGE, m_DeviceManager->GetGraphicsQueue(), CommandPools, TextureView, TextureSampler);
+
             m_PipelineManager->CreateDescriptorPool();
-            m_PipelineManager->CreateDescriptorSets(m_BufferManager->GetUniformBuffers());
+            m_PipelineManager->CreateDescriptorSets(m_BufferManager->GetUniformBuffers(), TextureView, TextureSampler);
             m_CommandsManager->CreateSynchronizationObjects();
         }
         else
@@ -320,7 +331,7 @@ private:
         return true;
     }
 
-    VulkanCommandsManager::BufferRecordParameters GetBufferRecordParameters(const std::uint32_t ImageIndex, const VkImage& Image) const{
+    VulkanCommandsManager::BufferRecordParameters GetBufferRecordParameters(const std::uint32_t ImageIndex) const{
         return {
             .RenderPass = m_PipelineManager->GetRenderPass(),
             .Pipeline = m_PipelineManager->GetPipeline(),
@@ -332,8 +343,7 @@ private:
             .DescriptorSets = m_PipelineManager->GetDescriptorSets(),
             .IndexCount = m_BufferManager->GetIndexCount(),
             .ImageIndex = ImageIndex,
-            .Offsets = {0u},
-            .Image = Image,
+            .Offsets = {0u}
         };
     }
 

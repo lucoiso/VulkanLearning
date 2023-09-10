@@ -25,7 +25,7 @@ namespace RenderCore
         void CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &ShaderStages);
         void CreateDescriptorSetLayout();
         void CreateDescriptorPool();
-        void CreateDescriptorSets(const std::vector<VkBuffer> &UniformBuffers);
+        void CreateDescriptorSets(const std::vector<VkBuffer> &UniformBuffers, const VkImageView &TextureView, const VkSampler &TextureSampler);
 
         void Shutdown();
 

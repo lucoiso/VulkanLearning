@@ -10,6 +10,8 @@
 #include <vulkan/vulkan_core.h>
 #include <vector>
 #include <memory>
+#include <string_view>
+#include <array>
 
 struct GLFWwindow;
 
@@ -30,11 +32,13 @@ namespace RenderCore
         void CreateMemoryAllocator(const VkInstance& Instance, const VkDevice& LogicalDevice, const VkPhysicalDevice& PhysicalDevice);
         void CreateSwapChain(const VkSurfaceFormatKHR& PreferredFormat, const VkPresentModeKHR& PreferredMode, const VkExtent2D& PreferredExtent, const VkSurfaceCapabilitiesKHR& Capabilities);
         void CreateFrameBuffers(const VkRenderPass& RenderPass, const VkExtent2D& Extent);
-        void CreateVertexBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const VkCommandPool& CommandPool);
-        void CreateIndexBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue, const VkCommandPool& CommandPool);
-        void CreateUniformBuffers(const VkPhysicalDevice& PhysicalDevice, const VkQueue& TransferQueue);
+        void CreateVertexBuffers(const VkQueue& Queue, const VkCommandPool& CommandPool);
+        void CreateIndexBuffers(const VkQueue& Queue, const VkCommandPool& CommandPool);
+        void CreateUniformBuffers(const VkQueue& Queue);
         void UpdateUniformBuffers(const std::uint32_t Frame, const VkExtent2D &SwapChainExtent);
+        void CreateTextureImage(const std::string_view Path, const VkQueue &Queue, const std::array<VkCommandPool, 3u> &CommandPools, VkImageView& ImageView, VkSampler& Sampler);
 
+        void DestroyResources();
         void Shutdown();
 
         bool IsInitialized() const;

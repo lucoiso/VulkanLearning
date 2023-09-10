@@ -244,7 +244,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Lan
     Shader.setSourceEntryPoint(EntryPoint);
     Shader.setEnvInput(glslang::EShSourceGlsl, Language, glslang::EShClientVulkan, 1);
     Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
-    Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_6);
+    Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
 
     const TBuiltInResource *Resources = GetDefaultResources();
     const EShMessages MessageFlags = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
