@@ -25,6 +25,12 @@ class VulkanProjectRecipe(ConanFile):
         # https://conan.io/center/recipes/glm
         self.requires("glm/cci.20230113")
 
+        # https://conan.io/center/recipes/stb
+        self.requires("stb/cci.20220909")
+
+        # https://conan.io/center/recipes/assimp
+        self.requires("assimp/[~5.2]")
+
     def build_requirements(self):
         self.tool_requires("cmake/[>=3.22]")
 

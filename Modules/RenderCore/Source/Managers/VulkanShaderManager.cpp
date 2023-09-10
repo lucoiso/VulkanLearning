@@ -5,12 +5,11 @@
 #include "Managers/VulkanShaderManager.h"
 #include "Utils/RenderCoreHelpers.h"
 #include <boost/log/trivial.hpp>
-#include <glslang/SPIRV/GlslangToSpv.h>
+#include <SPIRV/GlslangToSpv.h>
 #include <glslang/Public/ResourceLimits.h>
 #include <filesystem>
 #include <fstream>
 #include <format>
-#include "VulkanShaderManager.h"
 
 using namespace RenderCore;
 
