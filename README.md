@@ -1,5 +1,4 @@
 [![VulkanLearning CMake Workflow](https://github.com/lucoiso/VulkanLearning/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/lucoiso/VulkanLearning/actions/workflows/cmake-single-platform.yml)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/121e8e09a8b84b6d854fc12fff70ae38)](https://app.codacy.com/gh/lucoiso/VulkanLearning/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 # Dependencies
 1.  Python 3.11 
@@ -8,7 +7,8 @@
 4.  Visual Studio 2022 Build Tools for C++ 
 5.  Windows 10/11 
 6.  x64 Arch 
-7.  Vulkan SDK 
+7.  Vulkan SDK
+8.  Git
 
 # Setup
 -   Run these commands:  

@@ -47,22 +47,31 @@ target_include_directories(${LIBRARY_NAME} PRIVATE
 target_compile_definitions(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 
 find_package(glfw3 REQUIRED)
-find_package(Vulkan REQUIRED)
 find_package(glm REQUIRED)
 find_package(Boost REQUIRED CONFIG COMPONENTS log)
+find_package(Vulkan REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE
     glfw
-    ${Vulkan_LIBRARIES}
     Boost::log
+    glm::glm
+    ${Vulkan_LIBRARIES}
     glslang
     glslang-default-resource-limits
     SPIRV
-    glm::glm
+    GPUOpen::VulkanMemoryAllocator
 )
 
 target_include_directories(${LIBRARY_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
 
 # Testing only - Debugging Shaders
-target_compile_definitions(${LIBRARY_NAME} PRIVATE DEBUG_SHADER_VERT="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.vert")
-target_compile_definitions(${LIBRARY_NAME} PRIVATE DEBUG_SHADER_FRAG="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.frag")
+target_compile_definitions(${LIBRARY_NAME} PRIVATE 
+    DEBUG_SHADER_VERT="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.vert"
+    DEBUG_SHADER_FRAG="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.frag"
+)
+
+target_compile_definitions(${LIBRARY_NAME} PUBLIC
+    WIN32_LEAN_AND_MEAN
+    VK_USE_PLATFORM_WIN32_KHR
+    NOMINMAX
+)

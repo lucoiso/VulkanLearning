@@ -5,7 +5,7 @@
 #pragma once
 
 #include "RenderCoreModule.h"
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 #include <glslang/Public/ShaderLang.h>
 #include <vector>
 #include <string_view>
@@ -29,11 +29,13 @@ namespace RenderCore
 
         bool Compile(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode);
         bool Load(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode);
+        
+        bool CompileOrLoadIfExists(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode);
 
         VkShaderModule CreateModule(const VkDevice &Device, const std::vector<uint32_t> &SPIRVCode, EShLanguage Language);
         VkPipelineShaderStageCreateInfo GetStageInfo(const VkShaderModule &Module);
 
-        void FreeModule(const VkShaderModule &Module);
+        void FreeStagedModules(const std::vector<VkPipelineShaderStageCreateInfo> &StagedModules);
 
     private:
         bool Compile(const std::string_view Source, EShLanguage Language, std::vector<uint32_t> &OutSPIRVCode);

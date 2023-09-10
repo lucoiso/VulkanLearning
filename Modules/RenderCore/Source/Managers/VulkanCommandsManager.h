@@ -6,9 +6,10 @@
 
 #include "RenderCoreModule.h"
 #include "Types/VulkanUniformBufferObject.h"
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 #include <vector>
 #include <unordered_map>
+#include <optional>
 
 namespace RenderCore
 {
@@ -26,8 +27,8 @@ namespace RenderCore
 
         void Shutdown(const std::vector<VkQueue> &PendingQueues);
 
-        void CreateCommandPool(const std::uint32_t FamilyQueueIndex, const bool bIsGraphicsIndex);
-        void CreateCommandBuffers();
+        void SetGraphicsProcessingFamilyQueueIndex(const std::uint32_t FamilyQueueIndex);
+        [[nodiscard]] VkCommandPool CreateCommandPool(const std::uint32_t FamilyQueueIndex);
         void CreateSynchronizationObjects();
         void DestroySynchronizationObjects();
 
@@ -46,6 +47,7 @@ namespace RenderCore
             const std::uint32_t IndexCount;
             const std::uint32_t ImageIndex;
             const std::vector<VkDeviceSize> Offsets;
+            const VkImage &Image;
         };
 
         void RecordCommandBuffers(const BufferRecordParameters &Parameters);
@@ -55,20 +57,20 @@ namespace RenderCore
         std::uint32_t GetCurrentFrameIndex() const;
 
         bool IsInitialized() const;
-        [[nodiscard]] const VkCommandPool &GetCommandPool(const std::uint32_t FamilyIndex) const;
-        [[nodiscard]] const std::vector<VkCommandBuffer> &GetCommandBuffers() const;
 
     private:
+        void CreateGraphicsCommandPool();
+        void AllocateCommandBuffers();
         void WaitAndResetFences(const bool bCurrentFrame = false);
 
         const VkDevice &m_Device;
-        std::unordered_map<std::uint32_t, VkCommandPool> m_CommandPools;
+        VkCommandPool m_GraphicsCommandPool;
         std::vector<VkCommandBuffer> m_CommandBuffers;
         std::vector<VkSemaphore> m_ImageAvailableSemaphores;
         std::vector<VkSemaphore> m_RenderFinishedSemaphores;
         std::vector<VkFence> m_Fences;
         std::uint32_t m_CurrentFrameIndex;
-        std::uint32_t m_GraphicsProcessingFamilyQueueIndex;
         bool m_SynchronizationObjectsCreated;
+        std::optional<std::uint32_t> m_GraphicsProcessingFamilyQueueIndex;
     };
 }

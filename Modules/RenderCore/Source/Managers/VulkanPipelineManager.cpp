@@ -66,7 +66,7 @@ void VulkanPipelineManager::CreateRenderPass(const VkFormat &Format)
         .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         .srcAccessMask = 0u,
-        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT};
+        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT};
 
     const VkRenderPassCreateInfo RenderPassCreateInfo{
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
@@ -206,6 +206,7 @@ void VulkanPipelineManager::CreateDescriptorSets(const std::vector<VkBuffer> &Un
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor sets";
 
     const std::vector<VkDescriptorSetLayout> m_DescriptorSetLayouts(g_MaxFramesInFlight, m_DescriptorSetLayout);
+    
     const VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
         .descriptorPool = m_DescriptorPool,
@@ -219,7 +220,7 @@ void VulkanPipelineManager::CreateDescriptorSets(const std::vector<VkBuffer> &Un
 
     for (auto Iterator = WriteDescriptorSets.begin(); Iterator != WriteDescriptorSets.end(); ++Iterator)
     {
-        const std::uint32_t Index = std::distance(WriteDescriptorSets.begin(), Iterator);              
+        const std::uint32_t Index = static_cast<std::uint32_t>(std::distance(WriteDescriptorSets.begin(), Iterator));              
 
         const VkDescriptorBufferInfo DescriptorBufferInfo{
             .buffer = UniformBuffers[Index],

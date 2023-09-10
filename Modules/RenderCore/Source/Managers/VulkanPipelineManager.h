@@ -5,7 +5,7 @@
 #pragma once
 
 #include "RenderCoreModule.h"
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 #include <memory>
 #include <vector>
 

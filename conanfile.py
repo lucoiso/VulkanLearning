@@ -26,7 +26,7 @@ class VulkanProjectRecipe(ConanFile):
         self.requires("glm/cci.20230113")
 
     def build_requirements(self):
-        self.tool_requires("cmake/3.22.6")
+        self.tool_requires("cmake/[>=3.22]")
 
     def layout(self):
         cmake_layout(self)

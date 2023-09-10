@@ -11,7 +11,7 @@
 #include "Utils/VulkanEnumConverter.h"
 #include "Types/VulkanVertex.h"
 #include <boost/log/trivial.hpp>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 #include <numbers>
 
 #ifndef GLFW_INCLUDE_VULKAN
@@ -21,6 +21,12 @@
 
 namespace RenderCore
 {
+#define RENDERCORE_CHECK_VULKAN_RESULT(INPUT_OPERATION)                                                                   \
+    if (const VkResult OperationResult = INPUT_OPERATION; OperationResult != VK_SUCCESS)                                  \
+    {                                                                                                                     \
+        throw std::runtime_error("Vulkan operation failed with result: " + std::string(ResultToString(OperationResult))); \
+    }
+
     static inline std::vector<const char *> GetGLFWExtensions()
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting GLFW extensions";
@@ -56,50 +62,87 @@ namespace RenderCore
         return ActualExtent;
     }
 
-    static inline std::vector<VkLayerProperties> GetAvailableValidationLayers()
+    static inline std::vector<VkLayerProperties> GetAvailableInstanceLayers()
     {
-#ifdef NDEBUG
-        return {};
-#else
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting available validation layers";
-
-        std::vector<VkLayerProperties> Output;
-
-        if (g_ValidationLayers.empty())
-        {
-            return Output;
-        }
-
         std::uint32_t LayersCount = 0u;
-        if (vkEnumerateInstanceLayerProperties(&LayersCount, nullptr) != VK_SUCCESS)
+        RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceLayerProperties(&LayersCount, nullptr));
+        
+        std::vector<VkLayerProperties> Output;
+        Output.reserve(LayersCount);
+        RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceLayerProperties(&LayersCount, Output.data()));
+
+        return Output;
+    }
+
+    static inline std::vector<const char*> GetAvailableInstanceLayersNames()
+    {
+        const std::vector<VkLayerProperties> AvailableInstanceLayers = GetAvailableInstanceLayers();
+        
+        std::vector<const char*> Output;
+        Output.reserve(Output.size());
+        for (const VkLayerProperties &LayerIter : AvailableInstanceLayers)
         {
-            throw std::runtime_error("Failed to enumerate Vulkan Layers.");
+            Output.push_back(LayerIter.layerName);
         }
 
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found " << LayersCount << " validation layers";
+        return Output;
+    }
 
-        if (LayersCount == 0u)
-        {
-            return Output;
-        }
+#ifdef _DEBUG
+    static inline void ListAvailableInstanceLayers()
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available instance layers...";
 
-        Output.resize(LayersCount);
-        if (vkEnumerateInstanceLayerProperties(&LayersCount, Output.data()) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to get Vulkan Layers properties.");
-        }
-
-        for (const VkLayerProperties &LayerIter : Output)
+        const std::vector<VkLayerProperties> AvailableInstanceLayers = GetAvailableInstanceLayers();
+        for (const VkLayerProperties &LayerIter : AvailableInstanceLayers)
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Name: " << LayerIter.layerName;
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Description: " << LayerIter.description;
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Spec Version: " << LayerIter.specVersion;
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Implementation Version: " << LayerIter.implementationVersion << std::endl;
         }
+    }
+#endif
+
+    static inline std::vector<VkExtensionProperties> GetAvailableLayerExtensions(const char *LayerName)
+    {
+        std::uint32_t ExtensionCount = 0u;
+        RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(LayerName, &ExtensionCount, nullptr));
+        
+        std::vector<VkExtensionProperties> Output;
+        Output.reserve(ExtensionCount);
+        RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(LayerName, &ExtensionCount, Output.data()));
 
         return Output;
-#endif
     }
+
+    static inline std::vector<const char*> GetAvailableLayerExtensionsNames(const char *LayerName)
+    {
+        const std::vector<VkExtensionProperties> AvailableLayerExtensions = GetAvailableLayerExtensions(LayerName);
+        
+        std::vector<const char*> Output;
+        Output.reserve(Output.size());
+        for (const VkExtensionProperties &ExtensionIter : AvailableLayerExtensions)
+        {
+            Output.push_back(ExtensionIter.extensionName);
+        }
+
+        return Output;
+    }
+
+#ifdef _DEBUG
+    static inline void ListAvailableInstanceLayerExtensions(const char *LayerName)
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available layer '" << LayerName << "' extensions...";
+
+        const std::vector<VkExtensionProperties> AvailableLayerExtensions = GetAvailableLayerExtensions(LayerName);
+        for (const VkExtensionProperties &ExtensionIter : AvailableLayerExtensions)
+        {
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Name: " << ExtensionIter.extensionName;
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Spec Version: " << ExtensionIter.specVersion << std::endl;
+        }
+    }
+#endif
 
     constexpr std::array<VkVertexInputBindingDescription, 1> GetBindingDescriptors()
     {
@@ -237,12 +280,6 @@ namespace RenderCore
                 Indices.push_back(Third);
             }
         }
-    }
-
-#define RENDERCORE_CHECK_VULKAN_RESULT(INPUT_OPERATION)                                                                   \
-    if (const VkResult OperationResult = INPUT_OPERATION; OperationResult != VK_SUCCESS)                                  \
-    {                                                                                                                     \
-        throw std::runtime_error("Vulkan operation failed with result: " + std::string(ResultToString(OperationResult))); \
     }
 }
 #endif

@@ -6,7 +6,7 @@
 
 #include "RenderCoreModule.h"
 #include "Types/DeviceProperties.h"
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 #include <vector>
 #include <string>
 #include <optional>
@@ -45,7 +45,10 @@ namespace RenderCore
 
         [[nodiscard]] std::vector<VkPhysicalDevice> GetAvailablePhysicalDevices() const;
         [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions() const;
+        [[nodiscard]] std::vector<VkLayerProperties> GetAvailablePhysicalDeviceLayers() const;
+        [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(const char *LayerName) const;
         [[nodiscard]] std::vector<const char *> GetAvailablePhysicalDeviceExtensionsNames() const;
+        [[nodiscard]] std::vector<const char *> GetAvailablePhysicalDeviceLayersNames() const;
         [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities() const;
         [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats() const;
         [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes() const;
@@ -60,6 +63,8 @@ namespace RenderCore
 #ifdef _DEBUG
         void ListAvailablePhysicalDevices() const;
         void ListAvailablePhysicalDeviceExtensions() const;
+        void ListAvailablePhysicalDeviceLayers() const;
+        void ListAvailablePhysicalDeviceLayerExtensions(const char *LayerName) const;
         void ListAvailablePhysicalDeviceSurfaceCapabilities() const;
         void ListAvailablePhysicalDeviceSurfaceFormats() const;
         void ListAvailablePhysicalDeviceSurfacePresentationModes() const;

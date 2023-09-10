@@ -5,7 +5,7 @@
 #include "Managers/VulkanShaderManager.h"
 #include "Utils/RenderCoreHelpers.h"
 #include <boost/log/trivial.hpp>
-#include <SPIRV/GlslangToSpv.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
 #include <glslang/Public/ResourceLimits.h>
 #include <filesystem>
 #include <fstream>
@@ -168,6 +168,20 @@ bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::u
     return !ReadResult.fail();
 }
 
+bool VulkanShaderManager::CompileOrLoadIfExists(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode)
+{
+    if (const std::string CompiledShaderPath = std::format("{}.spv", Source); std::filesystem::exists(CompiledShaderPath))
+    {
+        return Load(CompiledShaderPath, OutSPIRVCode);
+    }
+    else
+    {
+        return Compile(Source, OutSPIRVCode);
+    }
+
+    return false;
+}
+
 VkShaderModule VulkanShaderManager::CreateModule(const VkDevice &Device, const std::vector<std::uint32_t> &SPIRVCode, EShLanguage Language)
 {
     if (Device == VK_NULL_HANDLE)
@@ -200,17 +214,22 @@ VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(const VkShader
     return m_StageInfos.at(Module);
 }
 
-void VulkanShaderManager::FreeModule(const VkShaderModule &Module)
+void VulkanShaderManager::FreeStagedModules(const std::vector<VkPipelineShaderStageCreateInfo> &StagedModules)
 {
-    if (Module == VK_NULL_HANDLE)
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
+
+    for (const VkPipelineShaderStageCreateInfo& StageInfoIter : StagedModules)
     {
-        throw std::runtime_error("Invalid shader module");
+        if (StageInfoIter.module != VK_NULL_HANDLE)
+        {
+            vkDestroyShaderModule(m_Device, StageInfoIter.module, nullptr);
+        }
+
+        if (m_StageInfos.contains(StageInfoIter.module))
+        {
+            m_StageInfos.erase(StageInfoIter.module);
+        }
     }
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing shader module";
-
-    vkDestroyShaderModule(m_Device, Module, nullptr);
-    m_StageInfos.erase(Module);
 }
 
 bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Language, std::vector<std::uint32_t> &OutSPIRVCode)
@@ -226,7 +245,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Lan
     Shader.setSourceEntryPoint(EntryPoint);
     Shader.setEnvInput(glslang::EShSourceGlsl, Language, glslang::EShClientVulkan, 1);
     Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
-    Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
+    Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_6);
 
     const TBuiltInResource *Resources = GetDefaultResources();
     const EShMessages MessageFlags = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);

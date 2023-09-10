@@ -59,7 +59,7 @@ public:
             throw std::runtime_error("Failed to create GLFW Window");
         }
 
-        if (m_Render = std::make_unique<RenderCore::VulkanRender>())
+        if (m_Render = std::make_unique<VulkanRender>())
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Window initialized";
             return m_Render->Initialize(m_Window);

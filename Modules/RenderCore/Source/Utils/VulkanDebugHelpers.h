@@ -7,19 +7,19 @@
 
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include "Utils/VulkanConstants.h"
+#include <vulkan/vulkan_core.h>
 #include <boost/log/trivial.hpp>
 
 namespace RenderCore
 {
+#ifdef _DEBUG
     static inline VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT MessageSeverity,
                                                                               [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT MessageType,
                                                                               const VkDebugUtilsMessengerCallbackDataEXT *const CallbackData,
                                                                               [[maybe_unused]] void *UserData)
     {
-#ifdef NDEBUG
         if (MessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-#endif
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Message: " << CallbackData->pMessage;
         }
@@ -56,6 +56,19 @@ namespace RenderCore
         }
     }
 
+    static inline VkValidationFeaturesEXT GetInstanceValidationFeatures()
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting validation features";
+        
+        const VkValidationFeaturesEXT InstanceValidationFeatures {
+            .sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
+            .enabledValidationFeatureCount = static_cast<uint32_t>(g_EnabledInstanceValidationFeatures.size()),
+            .pEnabledValidationFeatures = g_EnabledInstanceValidationFeatures.data()
+        };
+
+        return InstanceValidationFeatures;
+    }
+
     static inline void PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT &Info, void *const UserData = nullptr)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Populating debug info";
@@ -63,16 +76,19 @@ namespace RenderCore
         Info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 
         Info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
                                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                                VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 
         Info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+                           VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT;
 
         Info.pfnUserCallback = ValidationLayerDebugCallback;
         Info.pUserData = UserData;
     }
+#endif
 }
 
 #endif

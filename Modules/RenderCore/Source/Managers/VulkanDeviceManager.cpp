@@ -70,7 +70,19 @@ void VulkanDeviceManager::PickPhysicalDevice(const VkPhysicalDevice &PreferredDe
 
 #ifdef _DEBUG
     ListAvailablePhysicalDevices();
-    ListAvailablePhysicalDeviceExtensions();
+    // ListAvailablePhysicalDeviceExtensions();
+    ListAvailablePhysicalDeviceLayers();
+    
+    for (const char *const &RequiredLayerIter : g_RequiredDeviceLayers)
+    {
+        ListAvailablePhysicalDeviceLayerExtensions(RequiredLayerIter);
+    }
+    
+    for (const char *const &DebugLayerIter : g_DebugDeviceLayers)
+    {
+        ListAvailablePhysicalDeviceLayerExtensions(DebugLayerIter);
+    }
+
     ListAvailablePhysicalDeviceSurfaceCapabilities();
     ListAvailablePhysicalDeviceSurfaceFormats();
     ListAvailablePhysicalDeviceSurfacePresentationModes();
@@ -98,19 +110,24 @@ void VulkanDeviceManager::CreateLogicalDevice()
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    const std::vector<const char *> AvailableDevices = GetAvailablePhysicalDeviceExtensionsNames();
-    for (const char *const &RequiredDevicesIter : g_RequiredExtensions)
+    std::vector<const char *> Layers(g_RequiredDeviceLayers.begin(), g_RequiredDeviceLayers.end());
+    std::vector<const char *> Extensions(g_RequiredDeviceExtensions.begin(), g_RequiredDeviceExtensions.end());
+    
+#ifdef _DEBUG
+    for (const char *const &DebugLayerIter : g_DebugDeviceLayers)
     {
-        if (std::find(AvailableDevices.begin(), AvailableDevices.end(), RequiredDevicesIter) != AvailableDevices.end())
-        {
-            const std::string ErrMessage = "Device does not supports the required extension: " + std::string(RequiredDevicesIter) + ".";
-            throw std::runtime_error(ErrMessage);
-        }
+        Layers.push_back(DebugLayerIter);
     }
+
+    for (const char *const &DebugExtensionIter : g_DebugDeviceExtensions)
+    {
+        Extensions.push_back(DebugExtensionIter);
+    }
+#endif
 
     std::unordered_map<std::uint32_t, std::uint32_t> QueueFamilyIndices;
     QueueFamilyIndices.emplace(m_GraphicsQueue.first, 1u);
-    if (QueueFamilyIndices.find(m_PresentationQueue.first) == QueueFamilyIndices.end())
+    if (!QueueFamilyIndices.contains(m_PresentationQueue.first))
     {
         QueueFamilyIndices.emplace(m_PresentationQueue.first, 1u);
     }
@@ -119,7 +136,7 @@ void VulkanDeviceManager::CreateLogicalDevice()
         ++QueueFamilyIndices[m_PresentationQueue.first];
     }
 
-    if (QueueFamilyIndices.find(m_TransferQueue.first) == QueueFamilyIndices.end())
+    if (!QueueFamilyIndices.contains(m_TransferQueue.first))
     {        
         QueueFamilyIndices.emplace(m_TransferQueue.first, 1u);
     }
@@ -150,8 +167,10 @@ void VulkanDeviceManager::CreateLogicalDevice()
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .queueCreateInfoCount = static_cast<std::uint32_t>(QueueCreateInfo.size()),
         .pQueueCreateInfos = QueueCreateInfo.data(),
-        .enabledExtensionCount = static_cast<std::uint32_t>(g_RequiredExtensions.size()),
-        .ppEnabledExtensionNames = g_RequiredExtensions.data()};
+        .enabledLayerCount = static_cast<std::uint32_t>(Layers.size()),
+        .ppEnabledLayerNames = Layers.data(),
+        .enabledExtensionCount = static_cast<std::uint32_t>(Extensions.size()),
+        .ppEnabledExtensionNames = Extensions.data()};
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_Device));
 
@@ -330,21 +349,61 @@ std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDevi
     return Output;
 }
 
+std::vector<VkLayerProperties> VulkanDeviceManager::GetAvailablePhysicalDeviceLayers() const
+{
+    if (m_PhysicalDevice == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan physical device is invalid.");
+    }
+
+    std::uint32_t LayersCount;
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceLayerProperties(m_PhysicalDevice, &LayersCount, nullptr));
+
+    std::vector<VkLayerProperties> Output(LayersCount);
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceLayerProperties(m_PhysicalDevice, &LayersCount, Output.data()));
+
+    return Output;
+}
+
+std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDeviceLayerExtensions(const char *LayerName) const
+{
+    if (m_PhysicalDevice == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan physical device is invalid.");
+    }
+
+    std::uint32_t ExtensionsCount;
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, LayerName, &ExtensionsCount, nullptr));
+
+    std::vector<VkExtensionProperties> Output(ExtensionsCount);
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, LayerName, &ExtensionsCount, Output.data()));
+
+    return Output;
+}
+
 std::vector<const char *> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensionsNames() const
 {
     const std::vector<VkExtensionProperties> AvailableExtensions = GetAvailablePhysicalDeviceExtensions();
-    std::set<std::string> RequiredExtensions(g_RequiredExtensions.begin(), g_RequiredExtensions.end());
-
-    for (const VkExtensionProperties &ExtensionsIter : AvailableExtensions)
+    
+    std::vector<const char *> Output;
+    Output.reserve(AvailableExtensions.size());
+    for (const VkExtensionProperties &ExtensionIter : AvailableExtensions)
     {
-        RequiredExtensions.erase(ExtensionsIter.extensionName);
+        Output.push_back(ExtensionIter.extensionName);
     }
 
+    return Output;
+}
+
+std::vector<const char *> VulkanDeviceManager::GetAvailablePhysicalDeviceLayersNames() const
+{
+    const std::vector<VkLayerProperties> AvailableLayers = GetAvailablePhysicalDeviceLayers();
+
     std::vector<const char *> Output;
-    Output.reserve(RequiredExtensions.size());
-    for (const std::string &ExtensionIter : RequiredExtensions)
+    Output.reserve(AvailableLayers.size());
+    for (const VkLayerProperties &LayerIter : AvailableLayers)
     {
-        Output.push_back(ExtensionIter.c_str());
+        Output.push_back(LayerIter.layerName);
     }
 
     return Output;
@@ -520,13 +579,36 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceExtensions() const
     }
 }
 
+void VulkanDeviceManager::ListAvailablePhysicalDeviceLayers() const
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device layers...";
+
+    for (const VkLayerProperties &LayerIter : GetAvailablePhysicalDeviceLayers())
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << LayerIter.layerName;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << LayerIter.specVersion;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Implementation Version: " << LayerIter.implementationVersion;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Description: " << LayerIter.description << std::endl;
+    }
+}
+
+void VulkanDeviceManager::ListAvailablePhysicalDeviceLayerExtensions(const char *LayerName) const
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device layer '" << LayerName << "' extensions...";
+
+    for (const VkExtensionProperties &ExtensionIter : GetAvailablePhysicalDeviceLayerExtensions(LayerName))
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << ExtensionIter.extensionName;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << ExtensionIter.specVersion << std::endl;
+    }
+}
+
 void VulkanDeviceManager::ListAvailablePhysicalDeviceSurfaceCapabilities() const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device surface capabilities...";
 
     const VkSurfaceCapabilitiesKHR SurfaceCapabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing vulkan physical device surface capabilities...";
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min Image Count: " << SurfaceCapabilities.minImageCount;
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max Image Count: " << SurfaceCapabilities.maxImageCount;
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Current Extent: (" << SurfaceCapabilities.currentExtent.width << ", " << SurfaceCapabilities.currentExtent.height << ")";
@@ -545,8 +627,8 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceSurfaceFormats() const
 
     for (const VkSurfaceFormatKHR &FormatIter : GetAvailablePhysicalDeviceSurfaceFormats())
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Format: " << FormatIter.format;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Color Space: " << FormatIter.colorSpace << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Format: " << SurfaceFormatToString(FormatIter.format);
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Color Space: " << ColorSpaceModeToString(FormatIter.colorSpace) << std::endl;
     }
 }
 
