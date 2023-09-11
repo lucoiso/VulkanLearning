@@ -132,11 +132,12 @@ public:
         }
 
         const std::uint32_t QueueFamilyIndicesCount = static_cast<std::uint32_t>(m_QueueFamilyIndices.size());
-
+        const std::uint32_t MinImageCount = Capabilities.minImageCount < 3u && Capabilities.maxImageCount >= 3u ? 3u : Capabilities.minImageCount;
+        
         const VkSwapchainCreateInfoKHR SwapChainCreateInfo{
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface = m_Surface,
-            .minImageCount = Capabilities.minImageCount,
+            .minImageCount = MinImageCount,
             .imageFormat = PreferredFormat.format,
             .imageColorSpace = PreferredFormat.colorSpace,
             .imageExtent = PreferredExtent,
@@ -193,7 +194,7 @@ public:
         }
     }
 
-    void CreateVertexBuffers(const VkQueue &Queue, const VkCommandPool &CommandPool)
+    void CreateVertexBuffers(const VkQueue &Queue, const std::uint32_t QueueFamilyIndex)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan vertex buffers";
 
@@ -222,13 +223,13 @@ public:
             vmaUnmapMemory(m_Allocator, StagingBufferMemory);
 
             CreateBuffer(MemoryProperties, BufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_VertexBuffers[Iterator], m_VertexBuffersMemory[Iterator]);
-            CopyBuffer(StagingBuffer, m_VertexBuffers[Iterator], BufferSize, Queue, CommandPool);
+            CopyBuffer(StagingBuffer, m_VertexBuffers[Iterator], BufferSize, Queue, QueueFamilyIndex);
 
             vmaDestroyBuffer(m_Allocator, StagingBuffer, StagingBufferMemory);
         }
     }
 
-    void CreateIndexBuffers(const VkQueue &Queue, const VkCommandPool &CommandPool)
+    void CreateIndexBuffers(const VkQueue &Queue, const std::uint32_t QueueFamilyIndex)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
 
@@ -257,13 +258,13 @@ public:
             vmaUnmapMemory(m_Allocator, StagingBufferMemory);
 
             CreateBuffer(MemoryProperties, BufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_IndexBuffers[Iterator], m_IndexBuffersMemory[Iterator]);
-            CopyBuffer(StagingBuffer, m_IndexBuffers[Iterator], BufferSize, Queue, CommandPool);
+            CopyBuffer(StagingBuffer, m_IndexBuffers[Iterator], BufferSize, Queue, QueueFamilyIndex);
 
             vmaDestroyBuffer(m_Allocator, StagingBuffer, StagingBufferMemory);
         }
     }
 
-    void CreateUniformBuffers(const VkQueue &Queue)
+    void CreateUniformBuffers()
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
 
@@ -309,7 +310,7 @@ public:
         std::memcpy(m_UniformBuffersData[Frame], &BufferObject, sizeof(BufferObject));
     }
 
-    void CreateTextureImage(const std::string_view Path, const VkQueue &Queue, const std::array<VkCommandPool, 3u> &CommandPools, VkImageView& ImageView, VkSampler& Sampler)
+    void CreateTextureImage(const std::string_view Path, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex, VkImageView& ImageView, VkSampler& Sampler)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan texture image";
         
@@ -350,9 +351,9 @@ public:
         m_TextureImages.emplace_back(VK_NULL_HANDLE);
         m_TextureImagesMemory.emplace_back(VK_NULL_HANDLE);
         CreateImage(VK_FORMAT_B8G8R8A8_SRGB, {.width = static_cast<std::uint32_t>(Width), .height = static_cast<std::uint32_t>(Height)}, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_TextureImages.back(), m_TextureImagesMemory.back());
-        MoveImageLayout(m_TextureImages.back(), VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, Queue, CommandPools[0]);
-        CopyBufferToImage(StagingBuffer, m_TextureImages.back(), {.width = static_cast<std::uint32_t>(Width), .height = static_cast<std::uint32_t>(Height)}, Queue, CommandPools[1]);
-        MoveImageLayout(m_TextureImages.back(), VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, Queue, CommandPools[2]);
+        MoveImageLayout(m_TextureImages.back(), VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, Queue, QueueFamilyIndex);
+        CopyBufferToImage(StagingBuffer, m_TextureImages.back(), {.width = static_cast<std::uint32_t>(Width), .height = static_cast<std::uint32_t>(Height)}, Queue, QueueFamilyIndex);
+        MoveImageLayout(m_TextureImages.back(), VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, Queue, QueueFamilyIndex);
 
         CreateTextureImageView();
         CreateTextureSampler();
@@ -571,10 +572,11 @@ private:
         RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateBuffer(m_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &Buffer, &Allocation, &MemoryAllocationInfo));
     }
 
-    void CopyBuffer(const VkBuffer &Source, const VkBuffer &Destination, const VkDeviceSize &Size, const VkQueue &Queue, const VkCommandPool &CommandPool) const
+    void CopyBuffer(const VkBuffer &Source, const VkBuffer &Destination, const VkDeviceSize &Size, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex) const
     {
-        VkCommandBuffer CommandBuffer;
-        InitializeSingleCommandQueue(CommandPool, CommandBuffer);
+        VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
+        VkCommandPool CommandPool = VK_NULL_HANDLE;
+        InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
         {
             const VkBufferCopy BufferCopy{
                 .size = Size,
@@ -676,10 +678,11 @@ private:
         RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSampler(m_Device, &SamplerCreateInfo, nullptr, &m_TextureSamplers.back()));
     }
 
-    void CopyBufferToImage(const VkBuffer &Source, const VkImage &Destination, const VkExtent2D &Extent, const VkQueue &Queue, const VkCommandPool &CommandPool) const
+    void CopyBufferToImage(const VkBuffer &Source, const VkImage &Destination, const VkExtent2D &Extent, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex) const
     {
-        VkCommandBuffer CommandBuffer;
-        InitializeSingleCommandQueue(CommandPool, CommandBuffer);
+        VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
+        VkCommandPool CommandPool = VK_NULL_HANDLE;
+        InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
         {
             const VkBufferImageCopy BufferImageCopy{
                 .bufferOffset = 0u,
@@ -698,10 +701,11 @@ private:
         FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
     }
 
-    void MoveImageLayout(const VkImage &Image, const VkFormat &Format, const VkImageLayout &OldLayout, const VkImageLayout &NewLayout, const VkQueue &Queue, const VkCommandPool &CommandPool)
+    void MoveImageLayout(const VkImage &Image, const VkFormat &Format, const VkImageLayout &OldLayout, const VkImageLayout &NewLayout, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex)
     {
-        VkCommandBuffer CommandBuffer;
-        InitializeSingleCommandQueue(CommandPool, CommandBuffer);
+        VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
+        VkCommandPool CommandPool = VK_NULL_HANDLE;
+        InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
         {
             VkPipelineStageFlags SourceStage;
             VkPipelineStageFlags DestinationStage;
@@ -746,17 +750,19 @@ private:
         FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
     }
 
-    void InitializeSingleCommandQueue(const VkCommandPool &CommandPool, VkCommandBuffer &CommandBuffer) const
+    void InitializeSingleCommandQueue(VkCommandPool &CommandPool, VkCommandBuffer &CommandBuffer, const std::uint32_t QueueFamilyIndex) const
     {
         if (m_Device == VK_NULL_HANDLE)
         {
             throw std::runtime_error("Vulkan logical device is invalid.");
         }
 
-        if (CommandPool == VK_NULL_HANDLE)
-        {
-            throw std::runtime_error("Vulkan command pool is invalid.");
-        }
+        const VkCommandPoolCreateInfo CommandPoolCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+            .queueFamilyIndex = QueueFamilyIndex};
+
+        RENDERCORE_CHECK_VULKAN_RESULT(vkCreateCommandPool(m_Device, &CommandPoolCreateInfo, nullptr, &CommandPool));
 
         const VkCommandBufferBeginInfo CommandBufferBeginInfo{
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -875,19 +881,19 @@ void VulkanBufferManager::CreateFrameBuffers(const VkRenderPass &RenderPass, con
     m_Impl->CreateFrameBuffers(RenderPass, Extent);
 }
 
-void VulkanBufferManager::CreateVertexBuffers(const VkQueue &Queue, const VkCommandPool& CommandPool)
+void VulkanBufferManager::CreateVertexBuffers(const VkQueue &Queue, const std::uint32_t QueueFamilyIndex)
 {
-    m_Impl->CreateVertexBuffers(Queue, CommandPool);
+    m_Impl->CreateVertexBuffers(Queue, QueueFamilyIndex);
 }
 
-void VulkanBufferManager::CreateIndexBuffers(const VkQueue &Queue, const VkCommandPool& CommandPool)
+void VulkanBufferManager::CreateIndexBuffers(const VkQueue &Queue, const std::uint32_t QueueFamilyIndex)
 {
-    m_Impl->CreateIndexBuffers(Queue, CommandPool);
+    m_Impl->CreateIndexBuffers(Queue, QueueFamilyIndex);
 }
 
-void VulkanBufferManager::CreateUniformBuffers(const VkQueue &Queue)
+void VulkanBufferManager::CreateUniformBuffers()
 {
-    m_Impl->CreateUniformBuffers(Queue);
+    m_Impl->CreateUniformBuffers();
 }
 
 void VulkanBufferManager::UpdateUniformBuffers(const std::uint32_t Frame, const VkExtent2D &SwapChainExtent)
@@ -895,9 +901,9 @@ void VulkanBufferManager::UpdateUniformBuffers(const std::uint32_t Frame, const 
     m_Impl->UpdateUniformBuffers(Frame, SwapChainExtent);
 }
 
-void VulkanBufferManager::CreateTextureImage(const std::string_view Path, const VkQueue &Queue, const std::array<VkCommandPool, 3u> &CommandPools, VkImageView& ImageView, VkSampler& Sampler)
+void VulkanBufferManager::CreateTextureImage(const std::string_view Path, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex, VkImageView& ImageView, VkSampler& Sampler)
 {
-    m_Impl->CreateTextureImage(Path, Queue, CommandPools, ImageView, Sampler);
+    m_Impl->CreateTextureImage(Path, Queue, QueueFamilyIndex, ImageView, Sampler);
 }
 
 void VulkanBufferManager::DestroyResources()

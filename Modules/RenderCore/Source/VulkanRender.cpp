@@ -306,18 +306,13 @@ private:
         {
             m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
             m_CommandsManager->SetGraphicsProcessingFamilyQueueIndex(m_DeviceManager->GetGraphicsQueueFamilyIndex());            
-            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetTransferQueue(), m_CommandsManager->CreateCommandPool(m_DeviceManager->GetTransferQueueFamilyIndex()));
-            m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetTransferQueue(), m_CommandsManager->CreateCommandPool(m_DeviceManager->GetTransferQueueFamilyIndex()));
-            m_BufferManager->CreateUniformBuffers(m_DeviceManager->GetTransferQueue());
-
-            const std::array<VkCommandPool, 3u> CommandPools = {
-                m_CommandsManager->CreateCommandPool(m_DeviceManager->GetGraphicsQueueFamilyIndex()),
-                m_CommandsManager->CreateCommandPool(m_DeviceManager->GetGraphicsQueueFamilyIndex()),
-                m_CommandsManager->CreateCommandPool(m_DeviceManager->GetGraphicsQueueFamilyIndex())};
+            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetTransferQueue(), m_DeviceManager->GetTransferQueueFamilyIndex());
+            m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetTransferQueue(), m_DeviceManager->GetTransferQueueFamilyIndex());
+            m_BufferManager->CreateUniformBuffers();
 
             VkImageView TextureView = VK_NULL_HANDLE;
             VkSampler TextureSampler = VK_NULL_HANDLE;
-            m_BufferManager->CreateTextureImage(DEBUG_RESOURCE_IMAGE, m_DeviceManager->GetGraphicsQueue(), CommandPools, TextureView, TextureSampler);
+            m_BufferManager->CreateTextureImage(DEBUG_RESOURCE_IMAGE, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex(), TextureView, TextureSampler);
 
             m_PipelineManager->CreateDescriptorPool();
             m_PipelineManager->CreateDescriptorSets(m_BufferManager->GetUniformBuffers(), TextureView, TextureSampler);

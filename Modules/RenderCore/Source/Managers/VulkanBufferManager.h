@@ -32,11 +32,11 @@ namespace RenderCore
         void CreateMemoryAllocator(const VkInstance& Instance, const VkDevice& LogicalDevice, const VkPhysicalDevice& PhysicalDevice);
         void CreateSwapChain(const VkSurfaceFormatKHR& PreferredFormat, const VkPresentModeKHR& PreferredMode, const VkExtent2D& PreferredExtent, const VkSurfaceCapabilitiesKHR& Capabilities);
         void CreateFrameBuffers(const VkRenderPass& RenderPass, const VkExtent2D& Extent);
-        void CreateVertexBuffers(const VkQueue& Queue, const VkCommandPool& CommandPool);
-        void CreateIndexBuffers(const VkQueue& Queue, const VkCommandPool& CommandPool);
-        void CreateUniformBuffers(const VkQueue& Queue);
+        void CreateVertexBuffers(const VkQueue& Queue, const std::uint32_t QueueFamilyIndex);
+        void CreateIndexBuffers(const VkQueue& Queue, const std::uint32_t QueueFamilyIndex);
+        void CreateUniformBuffers();
         void UpdateUniformBuffers(const std::uint32_t Frame, const VkExtent2D &SwapChainExtent);
-        void CreateTextureImage(const std::string_view Path, const VkQueue &Queue, const std::array<VkCommandPool, 3u> &CommandPools, VkImageView& ImageView, VkSampler& Sampler);
+        void CreateTextureImage(const std::string_view Path, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex, VkImageView& ImageView, VkSampler& Sampler);
 
         void DestroyResources();
         void Shutdown();
