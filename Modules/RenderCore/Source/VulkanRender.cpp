@@ -148,6 +148,7 @@ public:
 
             m_CommandsManager->CreateSynchronizationObjects();
             m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
+            m_BufferManager->CreateDepthResources(m_SharedDeviceProperties.PreferredDepthFormat, m_SharedDeviceProperties.PreferredExtent, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
             m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
 
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Buffers updated, starting to draw frames with new surface properties";
@@ -269,6 +270,7 @@ private:
             m_BufferManager->CreateMemoryAllocator(m_Instance, m_DeviceManager->GetLogicalDevice(), m_DeviceManager->GetPhysicalDevice());
             m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
             m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
+            m_BufferManager->CreateDepthResources(m_SharedDeviceProperties.PreferredDepthFormat, m_SharedDeviceProperties.PreferredExtent, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
         }
         else
         {
@@ -277,7 +279,7 @@ private:
 
         if (m_PipelineManager = std::make_unique<VulkanPipelineManager>(m_Instance, m_DeviceManager->GetLogicalDevice()))
         {
-            m_PipelineManager->CreateRenderPass(m_SharedDeviceProperties.PreferredFormat.format);
+            m_PipelineManager->CreateRenderPass(m_SharedDeviceProperties.PreferredFormat.format, m_SharedDeviceProperties.PreferredDepthFormat);
             std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
 
             if (std::vector<std::uint32_t> FragmentShaderCode; m_ShaderManager->CompileOrLoadIfExists(DEBUG_SHADER_FRAG, FragmentShaderCode))

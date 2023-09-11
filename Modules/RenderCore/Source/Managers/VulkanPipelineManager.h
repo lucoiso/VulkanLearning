@@ -21,7 +21,7 @@ namespace RenderCore
         VulkanPipelineManager(const VkInstance &Instance, const VkDevice &Device);
         ~VulkanPipelineManager();
 
-        void CreateRenderPass(const VkFormat &Format);
+        void CreateRenderPass(const VkFormat &Format, const VkFormat &DepthFormat);
         void CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &ShaderStages);
         void CreateDescriptorSetLayout();
         void CreateDescriptorPool();

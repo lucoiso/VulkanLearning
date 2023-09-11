@@ -37,6 +37,7 @@ namespace RenderCore
         void CreateUniformBuffers();
         void UpdateUniformBuffers(const std::uint32_t Frame, const VkExtent2D &SwapChainExtent);
         void CreateTextureImage(const std::string_view Path, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex, VkImageView& ImageView, VkSampler& Sampler);
+        void CreateDepthResources(const VkFormat &Format, const VkExtent2D &Extent, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex);
 
         void DestroyResources();
         void Shutdown();

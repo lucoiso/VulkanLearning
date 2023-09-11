@@ -72,7 +72,7 @@ target_include_directories(${LIBRARY_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
 target_compile_definitions(${LIBRARY_NAME} PRIVATE 
     DEBUG_SHADER_VERT="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.vert"
     DEBUG_SHADER_FRAG="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.frag"
-    DEBUG_RESOURCE_IMAGE="${CMAKE_CURRENT_SOURCE_DIR}/Resources/DevilDollynho.png"
+    DEBUG_RESOURCE_IMAGE="${CMAKE_CURRENT_SOURCE_DIR}/Resources/VukanImage.jpeg"
 )
 
 target_compile_definitions(${LIBRARY_NAME} PUBLIC

@@ -36,7 +36,7 @@ VulkanPipelineManager::~VulkanPipelineManager()
     Shutdown();
 }
 
-void VulkanPipelineManager::CreateRenderPass(const VkFormat &Format)
+void VulkanPipelineManager::CreateRenderPass(const VkFormat &Format, const VkFormat &DepthFormat)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render pass";
 
@@ -54,23 +54,42 @@ void VulkanPipelineManager::CreateRenderPass(const VkFormat &Format)
         .attachment = 0u,
         .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
+    const VkAttachmentDescription DepthAttachmentDescription{
+        .format = DepthFormat,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+
+    const VkAttachmentReference DepthAttachmentReference{
+        .attachment = 1u,
+        .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+
     const VkSubpassDescription SubpassDescription{
         .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
         .colorAttachmentCount = 1u,
-        .pColorAttachments = &ColorAttachmentReference};
+        .pColorAttachments = &ColorAttachmentReference,
+        .pDepthStencilAttachment = &DepthAttachmentReference};
 
     const VkSubpassDependency SubpassDependency{
         .srcSubpass = VK_SUBPASS_EXTERNAL,
         .dstSubpass = 0u,
-        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
         .srcAccessMask = 0u,
-        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT};
+        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
+
+    const std::array<VkAttachmentDescription, 2u> AttachmentDescriptions{
+        ColorAttachmentDescription,
+        DepthAttachmentDescription};
 
     const VkRenderPassCreateInfo RenderPassCreateInfo{
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-        .attachmentCount = 1u,
-        .pAttachments = &ColorAttachmentDescription,
+        .attachmentCount = static_cast<std::uint32_t>(AttachmentDescriptions.size()),
+        .pAttachments = AttachmentDescriptions.data(),
         .subpassCount = 1u,
         .pSubpasses = &SubpassDescription,
         .dependencyCount = 1u,
@@ -145,6 +164,18 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineLayout(m_Device, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
     
+    const VkPipelineDepthStencilStateCreateInfo DepthStencilState{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+        .depthTestEnable = VK_TRUE,
+        .depthWriteEnable = VK_TRUE,
+        .depthCompareOp = VK_COMPARE_OP_LESS,
+        .depthBoundsTestEnable = VK_FALSE,
+        .stencilTestEnable = VK_FALSE,
+        .front = VkStencilOpState{},
+        .back = VkStencilOpState{},
+        .minDepthBounds = 0.f,
+        .maxDepthBounds = 1.f};
+
     const VkGraphicsPipelineCreateInfo GraphicsPipelineCreateInfo{
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .stageCount = static_cast<std::uint32_t>(ShaderStages.size()),
@@ -154,6 +185,7 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         .pViewportState = &ViewportState,
         .pRasterizationState = &RasterizationState,
         .pMultisampleState = &MultisampleState,
+        .pDepthStencilState = &DepthStencilState,
         .pColorBlendState = &ColorBlendState,
         .pDynamicState = &DynamicState,
         .layout = m_PipelineLayout,

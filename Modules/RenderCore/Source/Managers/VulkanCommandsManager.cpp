@@ -216,8 +216,9 @@ void VulkanCommandsManager::RecordCommandBuffers(const BufferRecordParameters &P
 
 	RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(m_CommandBuffer, &CommandBufferBeginInfo));
 
-	const VkClearValue ClearValue{
-		.color = {0.f, 0.f, 0.f, 1.f}};
+	const std::array<VkClearValue, 2> ClearValues{
+		VkClearValue{.color = {0.0f, 0.0f, 0.0f, 1.0f}},
+		VkClearValue{.depthStencil = {1.0f, 0u}}};
 
 	const VkRenderPassBeginInfo RenderPassBeginInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -226,8 +227,8 @@ void VulkanCommandsManager::RecordCommandBuffers(const BufferRecordParameters &P
 		.renderArea = {
 			.offset = {0, 0},
 			.extent = Parameters.Extent},
-		.clearValueCount = 1u,
-		.pClearValues = &ClearValue};
+		.clearValueCount = static_cast<std::uint32_t>(ClearValues.size()),
+		.pClearValues = ClearValues.data()};
 
 	vkCmdBeginRenderPass(m_CommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 	vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.Pipeline);

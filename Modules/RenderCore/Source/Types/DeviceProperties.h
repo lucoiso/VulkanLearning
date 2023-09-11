@@ -11,6 +11,7 @@ namespace RenderCore
     struct DeviceProperties
     {
         VkSurfaceFormatKHR PreferredFormat;
+        VkFormat PreferredDepthFormat;
         VkPresentModeKHR PreferredMode;
         VkExtent2D PreferredExtent;
         VkSurfaceCapabilitiesKHR Capabilities;

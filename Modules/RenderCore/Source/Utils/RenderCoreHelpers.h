@@ -173,48 +173,48 @@ namespace RenderCore
                 .offset = offsetof(Vertex, TextureCoordinates)}};
     }
 
-    constexpr void CreateTriangle(std::vector<Vertex> &Vertices, std::vector<std::uint16_t> &Indices)
+    constexpr void CreateTriangle(std::vector<Vertex> &Vertices, std::vector<std::uint16_t> &Indices, const float Z = 0.f)
     {
         Vertices.clear();
         Indices.clear();
 
         Vertices = {
             Vertex{
-                .Position = glm::vec2(0.f, -0.5f),
+                .Position = glm::vec3(0.f, -0.5f, Z),
                 .Color = glm::vec3(1.f, 0.f, 0.f),
                 .TextureCoordinates = glm::vec2(0.5f, 0.f)},
             Vertex{
-                .Position = glm::vec2(0.5f, 0.5f),
+                .Position = glm::vec3(0.5f, 0.5f, Z),
                 .Color = glm::vec3(0.f, 1.f, 0.f),
                 .TextureCoordinates = glm::vec2(1.f, 1.f)},
             Vertex{
-                .Position = glm::vec2(-0.5f, 0.5f),
+                .Position = glm::vec3(-0.5f, 0.5f, Z),
                 .Color = glm::vec3(0.f, 0.f, 1.f),
                 .TextureCoordinates = glm::vec2(0.f, 1.f)}};
 
         Indices = {0u, 1u, 2u};
     }
 
-    constexpr void CreateSquare(std::vector<Vertex> &Vertices, std::vector<std::uint16_t> &Indices)
+    constexpr void CreateSquare(std::vector<Vertex> &Vertices, std::vector<std::uint16_t> &Indices, const float Z = 0.f)
     {
         Vertices.clear();
         Indices.clear();
 
         Vertices = {
             Vertex{
-                .Position = glm::vec2(-0.5f, -0.5f),
+                .Position = glm::vec3(-0.5f, -0.5f, Z),
                 .Color = glm::vec3(1.f, 0.f, 0.f),
                 .TextureCoordinates = glm::vec2(1.f, 0.f)},
             Vertex{
-                .Position = glm::vec2(0.5f, -0.5f),
+                .Position = glm::vec3(0.5f, -0.5f, Z),
                 .Color = glm::vec3(0.f, 1.f, 0.f),
                 .TextureCoordinates = glm::vec2(0.f, 0.f)},
             Vertex{
-                .Position = glm::vec2(0.5f, 0.5f),
+                .Position = glm::vec3(0.5f, 0.5f, Z),
                 .Color = glm::vec3(0.f, 0.f, 1.f),
                 .TextureCoordinates = glm::vec2(0.f, 1.f)},
             Vertex{
-                .Position = glm::vec2(-0.5f, 0.5f),
+                .Position = glm::vec3(-0.5f, 0.5f, Z),
                 .Color = glm::vec3(0.f, 0.f, 1.f),
                 .TextureCoordinates = glm::vec2(1.f, 1.f)}};
 

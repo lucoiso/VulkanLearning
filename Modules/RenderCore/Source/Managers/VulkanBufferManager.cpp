@@ -21,7 +21,6 @@
 #define GLFW_INCLUDE_VULKAN
 #endif
 #include <GLFW/glfw3.h>
-#include "VulkanBufferManager.h"
 
 using namespace RenderCore;
 
@@ -44,6 +43,9 @@ public:
         , m_TextureImagesMemory({})
         , m_TextureImageViews({})
         , m_TextureSamplers({})
+        , m_DepthImage(VK_NULL_HANDLE)
+        , m_DepthImageMemory(VK_NULL_HANDLE)
+        , m_DepthImageView(VK_NULL_HANDLE)
         , m_FrameBuffers({})
         , m_VertexBuffers({})
         , m_VertexBuffersMemory({})
@@ -52,32 +54,24 @@ public:
         , m_UniformBuffers({})
         , m_UniformBuffersMemory({})
         , m_UniformBuffersData({})
-        , m_Vertices({
-            Vertex{
-                .Position = glm::vec2(-1.f, -1.f),
-                .Color = glm::vec3(1.f, 0.f, 0.f),
-                .TextureCoordinates = glm::vec2(1.f, 0.f)},
-            Vertex{
-                .Position = glm::vec2(1.f, -1.f),
-                .Color = glm::vec3(0.f, 1.f, 0.f),
-                .TextureCoordinates = glm::vec2(0.f, 0.f)},
-            Vertex{
-                .Position = glm::vec2(1.f, 1.f),
-                .Color = glm::vec3(0.f, 0.f, 1.f),
-                .TextureCoordinates = glm::vec2(0.f, 1.f)},
-            Vertex{
-                .Position = glm::vec2(-1.f, 1.f),
-                .Color = glm::vec3(1.f, 1.f, 1.f),
-                .TextureCoordinates = glm::vec2(1.f, 1.f)}})
-        , m_Indices(
-            {0u, 1u, 2u, 2u, 3u, 0u})
+        , m_Vertices({})
+        , m_Indices({})
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan buffer manager";
 
-        // CreateTriangle(m_Vertices, m_Indices);
-        CreateSquare(m_Vertices, m_Indices);
-        // CreateCircle(m_Vertices, m_Indices);
-        // CreateSphere(m_Vertices, m_Indices);
+        CreateSquare(m_Vertices, m_Indices, 0.f);
+
+        std::vector<Vertex> TriangleVertices;
+        std::vector<std::uint16_t> TriangleIndices;
+        CreateTriangle(TriangleVertices, TriangleIndices, 0.5f);
+
+        for (std::uint16_t &IndexIter : TriangleIndices)
+        {
+            IndexIter += static_cast<std::uint16_t>(m_Vertices.size());
+        }
+
+        m_Vertices.insert(m_Vertices.end(), TriangleVertices.begin(), TriangleVertices.end());
+        m_Indices.insert(m_Indices.end(), TriangleIndices.begin(), TriangleIndices.end());
     }
 
     ~Impl()
@@ -181,11 +175,15 @@ public:
 
         for (std::uint32_t Iterator = 0u; Iterator < static_cast<std::uint32_t>(m_FrameBuffers.size()); ++Iterator)
         {
+            const std::array<VkImageView, 2u> Attachments{
+                m_SwapChainImageViews[Iterator],
+                m_DepthImageView};
+
             const VkFramebufferCreateInfo FrameBufferCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .renderPass = RenderPass,
-                .attachmentCount = 1u,
-                .pAttachments = &m_SwapChainImageViews[Iterator],
+                .attachmentCount = static_cast<std::uint32_t>(Attachments.size()),
+                .pAttachments = Attachments.data(),
                 .width = Extent.width,
                 .height = Extent.height,
                 .layers = 1u};
@@ -350,10 +348,10 @@ public:
 
         m_TextureImages.emplace_back(VK_NULL_HANDLE);
         m_TextureImagesMemory.emplace_back(VK_NULL_HANDLE);
-        CreateImage(VK_FORMAT_B8G8R8A8_SRGB, {.width = static_cast<std::uint32_t>(Width), .height = static_cast<std::uint32_t>(Height)}, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_TextureImages.back(), m_TextureImagesMemory.back());
-        MoveImageLayout(m_TextureImages.back(), VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, Queue, QueueFamilyIndex);
+        CreateImage(VK_FORMAT_R8G8B8A8_SRGB, {.width = static_cast<std::uint32_t>(Width), .height = static_cast<std::uint32_t>(Height)}, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_TextureImages.back(), m_TextureImagesMemory.back());
+        MoveImageLayout(m_TextureImages.back(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, Queue, QueueFamilyIndex);
         CopyBufferToImage(StagingBuffer, m_TextureImages.back(), {.width = static_cast<std::uint32_t>(Width), .height = static_cast<std::uint32_t>(Height)}, Queue, QueueFamilyIndex);
-        MoveImageLayout(m_TextureImages.back(), VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, Queue, QueueFamilyIndex);
+        MoveImageLayout(m_TextureImages.back(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, Queue, QueueFamilyIndex);
 
         CreateTextureImageView();
         CreateTextureSampler();
@@ -362,6 +360,15 @@ public:
         Sampler = m_TextureSamplers.back();
         
         vmaDestroyBuffer(m_Allocator, StagingBuffer, StagingBufferMemory);
+    }
+
+    void CreateDepthResources(const VkFormat &Format, const VkExtent2D &Extent, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex)
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan depth resources";
+
+        CreateImage(Format, Extent, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DepthImage, m_DepthImageMemory);
+        CreateImageView(m_DepthImage, Format, VK_IMAGE_ASPECT_DEPTH_BIT, m_DepthImageView);
+        MoveImageLayout(m_DepthImage, Format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, Queue, QueueFamilyIndex);
     }
 
     void Shutdown()
@@ -437,6 +444,19 @@ public:
         {
             vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
             m_SwapChain = VK_NULL_HANDLE;
+        }
+
+        if (m_DepthImage != VK_NULL_HANDLE)
+        {
+            vmaDestroyImage(m_Allocator, m_DepthImage, m_DepthImageMemory);
+            m_DepthImage = VK_NULL_HANDLE;
+            m_DepthImageMemory = VK_NULL_HANDLE;
+        }
+
+        if (m_DepthImageView != VK_NULL_HANDLE)
+        {
+            vkDestroyImageView(m_Device, m_DepthImageView, nullptr);
+            m_DepthImageView = VK_NULL_HANDLE;
         }
 
         for (const VkImageView &ImageViewIter : m_SwapChainImageViews)
@@ -722,7 +742,17 @@ private:
                     .baseMipLevel = 0u,
                     .levelCount = 1u,
                     .baseArrayLayer = 0u,
-                    .layerCount = 1u}};                    
+                    .layerCount = 1u}};
+
+            if (NewLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+            {
+                Barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+                if (Format == VK_FORMAT_D32_SFLOAT_S8_UINT || Format == VK_FORMAT_D24_UNORM_S8_UINT)
+                {
+                    Barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+                }
+            }
 
             if (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
             {
@@ -739,6 +769,14 @@ private:
 
                 SourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
                 DestinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            }
+            else if (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+            {
+                Barrier.srcAccessMask = 0;
+                Barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+                SourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                DestinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
             }
             else
             {
@@ -817,7 +855,7 @@ private:
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan texture image views";
 
         m_TextureImageViews.emplace_back(VK_NULL_HANDLE);
-        CreateImageView(m_TextureImages.back(), VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, m_TextureImageViews.back());
+        CreateImageView(m_TextureImages.back(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, m_TextureImageViews.back());
     }
 
     void CreateSwapChainImageViews(const VkFormat &ImageFormat)
@@ -840,18 +878,28 @@ private:
     VkSwapchainKHR m_SwapChain;
     std::vector<VkImage> m_SwapChainImages;
     std::vector<VkImageView> m_SwapChainImageViews;
+
     std::vector<VkImage> m_TextureImages;
     std::vector<VmaAllocation> m_TextureImagesMemory;
     std::vector<VkImageView> m_TextureImageViews;
     std::vector<VkSampler> m_TextureSamplers;
+
+    VkImage m_DepthImage;
+    VmaAllocation m_DepthImageMemory;
+    VkImageView m_DepthImageView;
+
     std::vector<VkFramebuffer> m_FrameBuffers;
+
     std::vector<VkBuffer> m_VertexBuffers;
     std::vector<VmaAllocation> m_VertexBuffersMemory;
+
     std::vector<VkBuffer> m_IndexBuffers;
     std::vector<VmaAllocation> m_IndexBuffersMemory;
+
     std::vector<VkBuffer> m_UniformBuffers;
     std::vector<VmaAllocation> m_UniformBuffersMemory;
     std::vector<void *> m_UniformBuffersData;
+
     std::vector<Vertex> m_Vertices;
     std::vector<std::uint16_t> m_Indices;
 };
@@ -904,6 +952,11 @@ void VulkanBufferManager::UpdateUniformBuffers(const std::uint32_t Frame, const 
 void VulkanBufferManager::CreateTextureImage(const std::string_view Path, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex, VkImageView& ImageView, VkSampler& Sampler)
 {
     m_Impl->CreateTextureImage(Path, Queue, QueueFamilyIndex, ImageView, Sampler);
+}
+
+void VulkanBufferManager::CreateDepthResources(const VkFormat &Format, const VkExtent2D &Extent, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex)
+{
+    m_Impl->CreateDepthResources(Format, Extent, Queue, QueueFamilyIndex);
 }
 
 void VulkanBufferManager::DestroyResources()

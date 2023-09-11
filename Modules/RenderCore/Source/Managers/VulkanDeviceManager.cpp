@@ -246,6 +246,24 @@ DeviceProperties VulkanDeviceManager::GetPreferredProperties(GLFWwindow *const W
         Output.PreferredMode = *MatchingMode;
     }
 
+    // find preferred depth format
+    const std::vector<VkFormat> PreferredDepthFormats = {
+        VK_FORMAT_D32_SFLOAT,
+        VK_FORMAT_D32_SFLOAT_S8_UINT,
+        VK_FORMAT_D24_UNORM_S8_UINT};
+
+    for (const VkFormat &FormatIter : PreferredDepthFormats)
+    {
+        VkFormatProperties FormatProperties;
+        vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, FormatIter, &FormatProperties);
+
+        if (FormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+        {
+            Output.PreferredDepthFormat = FormatIter;
+            break;
+        }
+    }
+
     return Output;
 }
 
