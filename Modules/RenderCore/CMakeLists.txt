@@ -68,11 +68,11 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE
 
 target_include_directories(${LIBRARY_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
 
-# Testing only - Debug Files
 target_compile_definitions(${LIBRARY_NAME} PRIVATE 
     DEBUG_SHADER_VERT="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.vert"
     DEBUG_SHADER_FRAG="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.frag"
-    DEBUG_RESOURCE_IMAGE="${CMAKE_CURRENT_SOURCE_DIR}/Resources/VukanImage.jpeg"
+    DEBUG_MODEL_OBJ="${CMAKE_CURRENT_SOURCE_DIR}/Resources/viking_room.obj"
+    DEBUG_MODEL_TEX="${CMAKE_CURRENT_SOURCE_DIR}/Resources/viking_room.png"
 )
 
 target_compile_definitions(${LIBRARY_NAME} PUBLIC

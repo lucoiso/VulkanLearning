@@ -38,6 +38,7 @@ namespace RenderCore
         void UpdateUniformBuffers(const std::uint32_t Frame, const VkExtent2D &SwapChainExtent);
         void CreateTextureImage(const std::string_view Path, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex, VkImageView& ImageView, VkSampler& Sampler);
         void CreateDepthResources(const VkFormat &Format, const VkExtent2D &Extent, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex);
+        void LoadScene(const std::string_view Path);
 
         void DestroyResources();
         void Shutdown();
@@ -51,8 +52,8 @@ namespace RenderCore
         [[nodiscard]] const std::vector<VkBuffer>& GetUniformBuffers() const;
         [[nodiscard]] const std::vector<void*>& GetUniformBuffersData() const;
         [[nodiscard]] const std::vector<Vertex>& GetVertices() const;
-        [[nodiscard]] const std::vector<std::uint16_t>& GetIndices() const;
-        [[nodiscard]] std::uint32_t GetIndexCount() const;
+        [[nodiscard]] const std::vector<std::uint32_t>& GetIndices() const;
+        [[nodiscard]] std::uint32_t GetIndicesCount() const;
 
     private:
         std::unique_ptr<Impl> m_Impl;

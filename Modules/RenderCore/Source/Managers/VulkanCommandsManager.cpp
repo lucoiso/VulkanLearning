@@ -237,7 +237,7 @@ void VulkanCommandsManager::RecordCommandBuffers(const BufferRecordParameters &P
 
 	for (const VkBuffer &IndexBufferIter : Parameters.IndexBuffers)
 	{
-		vkCmdBindIndexBuffer(m_CommandBuffer, IndexBufferIter, 0u, VK_INDEX_TYPE_UINT16);
+		vkCmdBindIndexBuffer(m_CommandBuffer, IndexBufferIter, 0u, VK_INDEX_TYPE_UINT32);
 	}
 
 	const VkViewport Viewport{

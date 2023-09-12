@@ -267,6 +267,7 @@ private:
 
         if (m_BufferManager = std::make_unique<VulkanBufferManager>(m_DeviceManager->GetLogicalDevice(), m_Surface, m_DeviceManager->GetQueueFamilyIndices()))
         {
+            m_BufferManager->LoadScene(DEBUG_MODEL_OBJ);
             m_BufferManager->CreateMemoryAllocator(m_Instance, m_DeviceManager->GetLogicalDevice(), m_DeviceManager->GetPhysicalDevice());
             m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
             m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
@@ -314,7 +315,7 @@ private:
 
             VkImageView TextureView = VK_NULL_HANDLE;
             VkSampler TextureSampler = VK_NULL_HANDLE;
-            m_BufferManager->CreateTextureImage(DEBUG_RESOURCE_IMAGE, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex(), TextureView, TextureSampler);
+            m_BufferManager->CreateTextureImage(DEBUG_MODEL_TEX, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex(), TextureView, TextureSampler);
 
             m_PipelineManager->CreateDescriptorPool();
             m_PipelineManager->CreateDescriptorSets(m_BufferManager->GetUniformBuffers(), TextureView, TextureSampler);
@@ -338,7 +339,7 @@ private:
             .IndexBuffers = m_BufferManager->GetIndexBuffers(),
             .PipelineLayout = m_PipelineManager->GetPipelineLayout(),
             .DescriptorSets = m_PipelineManager->GetDescriptorSets(),
-            .IndexCount = m_BufferManager->GetIndexCount(),
+            .IndexCount = m_BufferManager->GetIndicesCount(),
             .ImageIndex = ImageIndex,
             .Offsets = {0u}
         };

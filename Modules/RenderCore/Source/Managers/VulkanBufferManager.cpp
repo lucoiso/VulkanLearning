@@ -6,6 +6,10 @@
 #include "Utils/RenderCoreHelpers.h"
 #include <boost/log/trivial.hpp>
 #include <chrono>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include <assimp/mesh.h>
 
 #ifndef VMA_IMPLEMENTATION
 #define VMA_IMPLEMENTATION
@@ -58,20 +62,6 @@ public:
         , m_Indices({})
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan buffer manager";
-
-        CreateSquare(m_Vertices, m_Indices, 0.f);
-
-        std::vector<Vertex> TriangleVertices;
-        std::vector<std::uint16_t> TriangleIndices;
-        CreateTriangle(TriangleVertices, TriangleIndices, 0.5f);
-
-        for (std::uint16_t &IndexIter : TriangleIndices)
-        {
-            IndexIter += static_cast<std::uint16_t>(m_Vertices.size());
-        }
-
-        m_Vertices.insert(m_Vertices.end(), TriangleVertices.begin(), TriangleVertices.end());
-        m_Indices.insert(m_Indices.end(), TriangleIndices.begin(), TriangleIndices.end());
     }
 
     ~Impl()
@@ -239,7 +229,7 @@ public:
         m_IndexBuffers.resize(m_SwapChainImages.size(), VK_NULL_HANDLE);
         m_IndexBuffersMemory.resize(m_SwapChainImages.size(), VK_NULL_HANDLE);
 
-        const VkDeviceSize BufferSize = m_Indices.size() * sizeof(std::uint16_t);
+        const VkDeviceSize BufferSize = m_Indices.size() * sizeof(std::uint32_t);
 
         VkPhysicalDeviceMemoryProperties MemoryProperties;
         vkGetPhysicalDeviceMemoryProperties(m_Allocator->GetPhysicalDevice(), &MemoryProperties);
@@ -369,6 +359,43 @@ public:
         CreateImage(Format, Extent, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DepthImage, m_DepthImageMemory);
         CreateImageView(m_DepthImage, Format, VK_IMAGE_ASPECT_DEPTH_BIT, m_DepthImageView);
         MoveImageLayout(m_DepthImage, Format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, Queue, QueueFamilyIndex);
+    }
+
+    void LoadScene(const std::string_view Path)
+    {
+        Assimp::Importer Importer;
+        const aiScene *const Scene = Importer.ReadFile(Path.data(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType);
+
+        if (!Scene || Scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !Scene->mRootNode)
+        {
+            throw std::runtime_error("Assimp error: " + std::string(Importer.GetErrorString()));
+        }
+
+        const std::vector<aiMesh*> Meshes(Scene->mMeshes, Scene->mMeshes + Scene->mNumMeshes);
+        for (const aiMesh *MeshIter : Meshes)
+        {
+            for (std::uint32_t Iterator = 0u; Iterator < MeshIter->mNumVertices; ++Iterator)
+            {
+                const aiVector3D &Position = MeshIter->mVertices[Iterator];
+                const aiVector3D &Normal = MeshIter->mNormals[Iterator];
+                const aiVector3D &TextureCoord = MeshIter->mTextureCoords[0][Iterator];
+
+                m_Vertices.emplace_back(Vertex{
+                    .Position = glm::vec3(Position.x, Position.y, Position.z),
+                    .Normal = glm::vec3(Normal.x, Normal.y, Normal.z),
+                    .Color = glm::vec3(1.f, 1.f, 1.f),
+                    .TextureCoordinate = glm::vec2(TextureCoord.x, TextureCoord.y)});
+            }
+
+            for (std::uint32_t Iterator = 0u; Iterator < MeshIter->mNumFaces; ++Iterator)
+            {
+                const aiFace &Face = MeshIter->mFaces[Iterator];
+                for (std::uint32_t FaceIterator = 0u; FaceIterator < Face.mNumIndices; ++FaceIterator)
+                {
+                    m_Indices.emplace_back(Face.mIndices[FaceIterator]);
+                }
+            }
+        }
     }
 
     void Shutdown()
@@ -539,12 +566,12 @@ public:
         return m_Vertices;
     }
 
-    const std::vector<std::uint16_t> &GetIndices() const
+    const std::vector<std::uint32_t> &GetIndices() const
     {
         return m_Indices;
     }
 
-    std::uint32_t GetIndexCount() const
+    std::uint32_t GetIndicesCount() const
     {
         return static_cast<std::uint32_t>(m_Indices.size());
     }
@@ -901,7 +928,7 @@ private:
     std::vector<void *> m_UniformBuffersData;
 
     std::vector<Vertex> m_Vertices;
-    std::vector<std::uint16_t> m_Indices;
+    std::vector<std::uint32_t> m_Indices;
 };
 
 VulkanBufferManager::VulkanBufferManager(const VkDevice &Device, const VkSurfaceKHR &Surface, const std::vector<std::uint32_t> &QueueFamilyIndices)
@@ -959,6 +986,11 @@ void VulkanBufferManager::CreateDepthResources(const VkFormat &Format, const VkE
     m_Impl->CreateDepthResources(Format, Extent, Queue, QueueFamilyIndex);
 }
 
+void VulkanBufferManager::LoadScene(const std::string_view Path)
+{
+    m_Impl->LoadScene(Path);
+}
+
 void VulkanBufferManager::DestroyResources()
 {
     m_Impl->DestroyResources();
@@ -1014,12 +1046,12 @@ const std::vector<Vertex> &VulkanBufferManager::GetVertices() const
     return m_Impl->GetVertices();
 }
 
-const std::vector<std::uint16_t> &VulkanBufferManager::GetIndices() const
+const std::vector<std::uint32_t> &VulkanBufferManager::GetIndices() const
 {
     return m_Impl->GetIndices();
 }
 
-std::uint32_t VulkanBufferManager::GetIndexCount() const
+std::uint32_t VulkanBufferManager::GetIndicesCount() const
 {
-    return m_Impl->GetIndexCount();
+    return m_Impl->GetIndicesCount();
 }
