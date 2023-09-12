@@ -1,5 +1,7 @@
 [![VulkanLearning CMake Workflow](https://github.com/lucoiso/VulkanLearning/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/lucoiso/VulkanLearning/actions/workflows/cmake-single-platform.yml)
 
+![image](https://github.com/lucoiso/VulkanLearning/assets/77353979/9a63384b-6add-4d37-ae2c-bcde3fe271e8)
+
 # Dependencies
 1.  Python 3.11 
 2.  Conan 2.0 
