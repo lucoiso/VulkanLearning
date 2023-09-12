@@ -35,6 +35,9 @@ namespace RenderCore
         VkShaderModule CreateModule(const VkDevice &Device, const std::vector<uint32_t> &SPIRVCode, EShLanguage Language);
         VkPipelineShaderStageCreateInfo GetStageInfo(const VkShaderModule &Module);
 
+        std::vector<VkShaderModule> GetShaderModules() const;
+        std::vector<VkPipelineShaderStageCreateInfo> GetStageInfos() const;
+
         void FreeStagedModules(const std::vector<VkPipelineShaderStageCreateInfo> &StagedModules);
 
     private:

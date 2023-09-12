@@ -33,6 +33,7 @@ public:
         , m_Instance(VK_NULL_HANDLE)
         , m_Surface(VK_NULL_HANDLE)
         , m_SharedDeviceProperties()
+        , bIsSceneLoaded(false)
 #ifdef _DEBUG
         , m_DebugMessenger(VK_NULL_HANDLE)
 #endif
@@ -97,7 +98,7 @@ public:
         RENDERCORE_CHECK_VULKAN_RESULT(vkDeviceWaitIdle(m_DeviceManager->GetLogicalDevice()));
 
         m_ShaderManager->Shutdown();
-        m_CommandsManager->Shutdown({m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetPresentationQueue()});
+        m_CommandsManager->Shutdown({m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetPresentationQueue(), m_DeviceManager->GetTransferQueue()});
         m_BufferManager->Shutdown();
         m_PipelineManager->Shutdown();
         m_DeviceManager->Shutdown();
@@ -134,8 +135,7 @@ public:
         const std::int32_t ImageIndice = m_CommandsManager->DrawFrame(m_BufferManager->GetSwapChain());
         if (!m_SharedDeviceProperties.IsValid() || ImageIndice < 0)
         {
-            m_CommandsManager->DestroySynchronizationObjects();
-            m_BufferManager->DestroyResources();
+            UnloadScene();
 
             m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
             if (!m_SharedDeviceProperties.IsValid())
@@ -146,10 +146,7 @@ public:
 
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing device properties & capabilities...";
 
-            m_CommandsManager->CreateSynchronizationObjects();
-            m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
-            m_BufferManager->CreateDepthResources(m_SharedDeviceProperties.PreferredDepthFormat, m_SharedDeviceProperties.PreferredExtent, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
-            m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
+            LoadScene();
 
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Buffers updated, starting to draw frames with new surface properties";
         }
@@ -166,7 +163,13 @@ public:
 
     bool IsInitialized() const
     {
-        return m_DeviceManager && m_DeviceManager->IsInitialized() && m_PipelineManager && m_PipelineManager->IsInitialized() && m_BufferManager && m_BufferManager->IsInitialized() && m_CommandsManager && m_CommandsManager->IsInitialized() && m_ShaderManager && m_Instance != VK_NULL_HANDLE && m_Surface != VK_NULL_HANDLE;
+        return m_DeviceManager && m_DeviceManager->IsInitialized()
+            && m_BufferManager && m_BufferManager->IsInitialized()
+            && m_PipelineManager && m_PipelineManager->IsInitialized()
+            && m_CommandsManager && m_CommandsManager->IsInitialized()
+            && m_ShaderManager
+            && m_Instance != VK_NULL_HANDLE
+            && m_Surface != VK_NULL_HANDLE;
     }
 
 private:
@@ -252,81 +255,135 @@ private:
         {
             throw std::runtime_error("GLFW Window is invalid.");
         }
-        
-        if (m_DeviceManager = std::make_unique<VulkanDeviceManager>(m_Instance, m_Surface))
-        {
-            m_DeviceManager->PickPhysicalDevice();
-            m_DeviceManager->CreateLogicalDevice();
 
+        InitializeDeviceManagement();
+        m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
+
+        InitializeBufferManagement();
+        InitializePipelineManagement();
+        InitializeCommandsManagement();
+
+        LoadScene();
+
+        return IsInitialized();
+    }
+
+    void InitializeDeviceManagement()
+    {
+        if (!m_DeviceManager)
+        {
+            m_DeviceManager = std::make_unique<VulkanDeviceManager>(m_Instance, m_Surface);
+        }
+
+        m_DeviceManager->PickPhysicalDevice();
+        m_DeviceManager->CreateLogicalDevice();
+    }
+
+    void InitializeBufferManagement()
+    {
+        if (!m_BufferManager)
+        {
+            m_BufferManager = std::make_unique<VulkanBufferManager>(m_DeviceManager->GetLogicalDevice(), m_Surface, m_DeviceManager->GetQueueFamilyIndices());
+        }
+
+        m_BufferManager->LoadScene(DEBUG_MODEL_OBJ);
+        m_BufferManager->CreateMemoryAllocator(m_Instance, m_DeviceManager->GetLogicalDevice(), m_DeviceManager->GetPhysicalDevice());
+        m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
+        m_BufferManager->CreateDepthResources(m_SharedDeviceProperties.PreferredDepthFormat, m_SharedDeviceProperties.PreferredExtent, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
+    }
+
+    void InitializePipelineManagement()
+    {   
+        if (!m_PipelineManager)
+        {
+            m_PipelineManager = std::make_unique<VulkanPipelineManager>(m_Instance, m_DeviceManager->GetLogicalDevice());
+        }
+
+        if (!m_ShaderManager)
+        {
             m_ShaderManager = std::make_unique<VulkanShaderManager>(m_DeviceManager->GetLogicalDevice());
         }
-        else
+
+        CompileShaders();
+
+        m_PipelineManager->CreateRenderPass(m_SharedDeviceProperties.PreferredFormat.format, m_SharedDeviceProperties.PreferredDepthFormat);        
+        m_PipelineManager->CreateDescriptorSetLayout();
+        m_PipelineManager->CreateGraphicsPipeline(m_ShaderManager->GetStageInfos());
+    }
+
+    void InitializeCommandsManagement()
+    {
+        if (!m_CommandsManager)
         {
-            throw std::runtime_error("Failed to initialize device manager.");
+            m_CommandsManager = std::make_unique<VulkanCommandsManager>(m_DeviceManager->GetLogicalDevice());
         }
 
-        if (m_BufferManager = std::make_unique<VulkanBufferManager>(m_DeviceManager->GetLogicalDevice(), m_Surface, m_DeviceManager->GetQueueFamilyIndices()))
-        {
-            m_BufferManager->LoadScene(DEBUG_MODEL_OBJ);
-            m_BufferManager->CreateMemoryAllocator(m_Instance, m_DeviceManager->GetLogicalDevice(), m_DeviceManager->GetPhysicalDevice());
-            m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
-            m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
-            m_BufferManager->CreateDepthResources(m_SharedDeviceProperties.PreferredDepthFormat, m_SharedDeviceProperties.PreferredExtent, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
-        }
-        else
-        {
-            throw std::runtime_error("Failed to initialize buffer manager.");
-        }
+        m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
+        m_CommandsManager->SetGraphicsProcessingFamilyQueueIndex(m_DeviceManager->GetGraphicsQueueFamilyIndex());
+        m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetTransferQueue(), m_DeviceManager->GetTransferQueueFamilyIndex());
+        m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetTransferQueue(), m_DeviceManager->GetTransferQueueFamilyIndex());
+        m_BufferManager->CreateUniformBuffers();
 
-        if (m_PipelineManager = std::make_unique<VulkanPipelineManager>(m_Instance, m_DeviceManager->GetLogicalDevice()))
-        {
-            m_PipelineManager->CreateRenderPass(m_SharedDeviceProperties.PreferredFormat.format, m_SharedDeviceProperties.PreferredDepthFormat);
-            std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
+        VkImageView TextureView = VK_NULL_HANDLE;
+        VkSampler TextureSampler = VK_NULL_HANDLE;
+        m_BufferManager->CreateTextureImage(DEBUG_MODEL_TEX, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex(), TextureView, TextureSampler);
 
-            if (std::vector<std::uint32_t> FragmentShaderCode; m_ShaderManager->CompileOrLoadIfExists(DEBUG_SHADER_FRAG, FragmentShaderCode))
+        m_PipelineManager->CreateDescriptorPool();
+        m_PipelineManager->CreateDescriptorSets(m_BufferManager->GetUniformBuffers(), TextureView, TextureSampler);
+        m_CommandsManager->CreateSynchronizationObjects();
+    }
+
+    void CompileShaders()
+    {
+        constexpr std::array<const char*, 1u> FragmentShaders = { DEBUG_SHADER_FRAG };
+        constexpr std::array<const char*, 1u> VertexShaders = { DEBUG_SHADER_VERT };
+        std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
+
+        for (const char* const &FragmentShaderIter : FragmentShaders)
+        {
+            if (std::vector<std::uint32_t> FragmentShaderCode; m_ShaderManager->CompileOrLoadIfExists(FragmentShaderIter, FragmentShaderCode))
             {
                 const VkShaderModule FragmentModule = m_ShaderManager->CreateModule(m_DeviceManager->GetLogicalDevice(), FragmentShaderCode, EShLangFragment);
                 ShaderStages.push_back(m_ShaderManager->GetStageInfo(FragmentModule));
             }
+        }
 
-            if (std::vector<std::uint32_t> VertexShaderCode; m_ShaderManager->CompileOrLoadIfExists(DEBUG_SHADER_VERT, VertexShaderCode))
+        for (const char* const &VertexShaderIter : VertexShaders)
+        {
+            if (std::vector<std::uint32_t> VertexShaderCode; m_ShaderManager->CompileOrLoadIfExists(VertexShaderIter, VertexShaderCode))
             {
                 const VkShaderModule VertexModule = m_ShaderManager->CreateModule(m_DeviceManager->GetLogicalDevice(), VertexShaderCode, EShLangVertex);
                 ShaderStages.push_back(m_ShaderManager->GetStageInfo(VertexModule));
             }
-
-            m_PipelineManager->CreateDescriptorSetLayout();
-            m_PipelineManager->CreateGraphicsPipeline(ShaderStages);
-
-            m_ShaderManager->FreeStagedModules(ShaderStages);
         }
-        else
+    }
+
+    void UnloadScene()
+    {
+        if (bIsSceneLoaded)
         {
-            throw std::runtime_error("Failed to initialize pipeline manager.");
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading scene";
+
+            m_BufferManager->DestroyResources();
+            m_CommandsManager->DestroySynchronizationObjects();
+
+            bIsSceneLoaded = false;
         }
+    }
 
-        if (m_CommandsManager = std::make_unique<VulkanCommandsManager>(m_DeviceManager->GetLogicalDevice()))
+    void LoadScene()
+    {
+        if (!bIsSceneLoaded)
         {
-            m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
-            m_CommandsManager->SetGraphicsProcessingFamilyQueueIndex(m_DeviceManager->GetGraphicsQueueFamilyIndex());            
-            m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetTransferQueue(), m_DeviceManager->GetTransferQueueFamilyIndex());
-            m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetTransferQueue(), m_DeviceManager->GetTransferQueueFamilyIndex());
-            m_BufferManager->CreateUniformBuffers();
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene";
 
-            VkImageView TextureView = VK_NULL_HANDLE;
-            VkSampler TextureSampler = VK_NULL_HANDLE;
-            m_BufferManager->CreateTextureImage(DEBUG_MODEL_TEX, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex(), TextureView, TextureSampler);
-
-            m_PipelineManager->CreateDescriptorPool();
-            m_PipelineManager->CreateDescriptorSets(m_BufferManager->GetUniformBuffers(), TextureView, TextureSampler);
             m_CommandsManager->CreateSynchronizationObjects();
-        }
-        else
-        {
-            throw std::runtime_error("Failed to initialize commands manager.");
-        }
+            m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
+            m_BufferManager->CreateDepthResources(m_SharedDeviceProperties.PreferredDepthFormat, m_SharedDeviceProperties.PreferredExtent, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
+            m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
 
-        return true;
+            bIsSceneLoaded = true;
+        }
     }
 
     VulkanCommandsManager::BufferRecordParameters GetBufferRecordParameters(const std::uint32_t ImageIndex) const{
@@ -355,6 +412,7 @@ private:
     VkInstance m_Instance;
     VkSurfaceKHR m_Surface;
     DeviceProperties m_SharedDeviceProperties;
+    bool bIsSceneLoaded;
 
 #ifdef _DEBUG
     VkDebugUtilsMessengerEXT m_DebugMessenger;

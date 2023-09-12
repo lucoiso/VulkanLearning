@@ -32,11 +32,6 @@ VulkanShaderManager::~VulkanShaderManager()
 
 void VulkanShaderManager::Shutdown()
 {
-    if (m_Device == VK_NULL_HANDLE || m_StageInfos.empty())
-    {
-        return;
-    }
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan shader compiler";
 
     for (auto &[ShaderModule, _] : m_StageInfos)
@@ -211,6 +206,32 @@ VkShaderModule VulkanShaderManager::CreateModule(const VkDevice &Device, const s
 VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(const VkShaderModule &Module)
 {
     return m_StageInfos.at(Module);
+}
+
+std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
+{
+    std::vector<VkShaderModule> Output;
+    Output.reserve(m_StageInfos.size());
+
+    for (const auto &[ShaderModule, _] : m_StageInfos)
+    {
+        Output.push_back(ShaderModule);
+    }
+
+    return Output;
+}
+
+std::vector<VkPipelineShaderStageCreateInfo> VulkanShaderManager::GetStageInfos() const
+{
+    std::vector<VkPipelineShaderStageCreateInfo> Output;
+    Output.reserve(m_StageInfos.size());
+
+    for (const auto &[_, StageInfo] : m_StageInfos)
+    {
+        Output.push_back(StageInfo);
+    }
+
+    return Output;
 }
 
 void VulkanShaderManager::FreeStagedModules(const std::vector<VkPipelineShaderStageCreateInfo> &StagedModules)

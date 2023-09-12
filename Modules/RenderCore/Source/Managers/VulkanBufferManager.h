@@ -45,12 +45,11 @@ namespace RenderCore
 
         bool IsInitialized() const;
         [[nodiscard]] const VkSwapchainKHR& GetSwapChain() const;
-        [[nodiscard]] const std::vector<VkImage>& GetSwapChainImages() const;
+        [[nodiscard]] const std::vector<VkImage> GetSwapChainImages() const;
         [[nodiscard]] const std::vector<VkFramebuffer>& GetFrameBuffers() const;
-        [[nodiscard]] const std::vector<VkBuffer>& GetVertexBuffers() const;
-        [[nodiscard]] const std::vector<VkBuffer>& GetIndexBuffers() const;
-        [[nodiscard]] const std::vector<VkBuffer>& GetUniformBuffers() const;
-        [[nodiscard]] const std::vector<void*>& GetUniformBuffersData() const;
+        [[nodiscard]] const std::vector<VkBuffer> GetVertexBuffers() const;
+        [[nodiscard]] const std::vector<VkBuffer> GetIndexBuffers() const;
+        [[nodiscard]] const std::vector<VkBuffer> GetUniformBuffers() const;
         [[nodiscard]] const std::vector<Vertex>& GetVertices() const;
         [[nodiscard]] const std::vector<std::uint32_t>& GetIndices() const;
         [[nodiscard]] std::uint32_t GetIndicesCount() const;

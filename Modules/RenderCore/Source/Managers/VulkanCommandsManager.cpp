@@ -125,6 +125,18 @@ void VulkanCommandsManager::DestroySynchronizationObjects()
 
 	vkDeviceWaitIdle(m_Device);
 
+	if (m_CommandBuffer != VK_NULL_HANDLE)
+	{
+		vkFreeCommandBuffers(m_Device, m_CommandPool, 1u, &m_CommandBuffer);
+		m_CommandBuffer = VK_NULL_HANDLE;
+	}
+
+	if (m_CommandPool != VK_NULL_HANDLE)
+	{
+		vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
+		m_CommandPool = VK_NULL_HANDLE;
+	}
+
 	if (m_ImageAvailableSemaphore != VK_NULL_HANDLE)
 	{
 		vkDestroySemaphore(m_Device, m_ImageAvailableSemaphore, nullptr);
