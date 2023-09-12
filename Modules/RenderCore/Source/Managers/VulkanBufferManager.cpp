@@ -37,12 +37,12 @@ class VulkanBufferManager::Impl
         VkSampler Sampler;
         VmaAllocation Allocation;
 
-        inline bool IsValid() const noexcept
+        bool IsValid() const noexcept
         {
             return Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE;
         }
 
-        inline void DestroyResources(const VkDevice& Device, const VmaAllocator& Allocator) noexcept
+        void DestroyResources(const VkDevice& Device, const VmaAllocator& Allocator) noexcept
         {
             if (Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
             {
@@ -62,7 +62,7 @@ class VulkanBufferManager::Impl
             Invalidate();
         }
 
-        inline void Invalidate() noexcept
+        void Invalidate() noexcept
         {
             Image = VK_NULL_HANDLE;
             View = VK_NULL_HANDLE;
@@ -77,12 +77,12 @@ class VulkanBufferManager::Impl
         VmaAllocation Allocation;
         void* Data;
 
-        inline bool IsValid() const noexcept
+        bool IsValid() const noexcept
         {
             return Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE && Data != nullptr;
         }
 
-        inline void DestroyResources(const VmaAllocator& Allocator) noexcept
+        void DestroyResources(const VmaAllocator& Allocator) noexcept
         {
             if (Data)
             {
@@ -97,7 +97,7 @@ class VulkanBufferManager::Impl
             Invalidate();
         }
 
-        inline void Invalidate() noexcept
+        void Invalidate() noexcept
         {
             Buffer = VK_NULL_HANDLE;
             Allocation = VK_NULL_HANDLE;
