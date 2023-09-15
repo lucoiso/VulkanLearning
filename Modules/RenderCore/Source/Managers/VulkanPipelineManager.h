@@ -28,6 +28,7 @@ namespace RenderCore
         void CreateDescriptorSets(const std::vector<VkBuffer> &UniformBuffers, const VkImageView &TextureView, const VkSampler &TextureSampler);
 
         void Shutdown();
+        void DestroyResources();
 
         bool IsInitialized() const;
         [[nodiscard]] const VkRenderPass &GetRenderPass() const;

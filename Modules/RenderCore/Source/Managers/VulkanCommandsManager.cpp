@@ -232,24 +232,39 @@ void VulkanCommandsManager::RecordCommandBuffers(const BufferRecordParameters &P
 		VkClearValue{.color = {0.0f, 0.0f, 0.0f, 1.0f}},
 		VkClearValue{.depthStencil = {1.0f, 0u}}};
 
-	const VkRenderPassBeginInfo RenderPassBeginInfo{
-		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-		.renderPass = Parameters.RenderPass,
-		.framebuffer = Parameters.FrameBuffers[Parameters.ImageIndex],
-		.renderArea = {
-			.offset = {0, 0},
-			.extent = Parameters.Extent},
-		.clearValueCount = static_cast<std::uint32_t>(ClearValues.size()),
-		.pClearValues = ClearValues.data()};
-
-	vkCmdBeginRenderPass(m_CommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-	vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.Pipeline);
-
-	vkCmdBindVertexBuffers(m_CommandBuffer, 0u, 1u, Parameters.VertexBuffers.data(), Parameters.Offsets.data());
-
-	for (const VkBuffer &IndexBufferIter : Parameters.IndexBuffers)
+	bool bActiveRenderPass = false;
+	if (Parameters.RenderPass != VK_NULL_HANDLE && !Parameters.FrameBuffers.empty())
 	{
-		vkCmdBindIndexBuffer(m_CommandBuffer, IndexBufferIter, 0u, VK_INDEX_TYPE_UINT32);
+		const VkRenderPassBeginInfo RenderPassBeginInfo{
+			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+			.renderPass = Parameters.RenderPass,
+			.framebuffer = Parameters.FrameBuffers[Parameters.ImageIndex],
+			.renderArea = {
+				.offset = {0, 0},
+				.extent = Parameters.Extent},
+			.clearValueCount = static_cast<std::uint32_t>(ClearValues.size()),
+			.pClearValues = ClearValues.data()};
+
+		vkCmdBeginRenderPass(m_CommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		bActiveRenderPass = true;
+	}
+
+	if (Parameters.Pipeline != VK_NULL_HANDLE)
+	{
+		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.Pipeline);
+	}
+
+	if (!Parameters.VertexBuffers.empty())
+	{
+		vkCmdBindVertexBuffers(m_CommandBuffer, 0u, 1u, Parameters.VertexBuffers.data(), Parameters.Offsets.data());
+	}
+
+	if (!Parameters.IndexBuffers.empty())
+	{
+		for (const VkBuffer &IndexBufferIter : Parameters.IndexBuffers)
+		{
+			vkCmdBindIndexBuffer(m_CommandBuffer, IndexBufferIter, 0u, VK_INDEX_TYPE_UINT32);
+		}
 	}
 
 	const VkViewport Viewport{
@@ -269,10 +284,16 @@ void VulkanCommandsManager::RecordCommandBuffers(const BufferRecordParameters &P
 
 	vkCmdSetScissor(m_CommandBuffer, 0u, 1u, &Scissor);
 
-	vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.PipelineLayout, 0u, 1u, &Parameters.DescriptorSets[m_CurrentFrameIndex], 0u, nullptr);
+	if (!Parameters.DescriptorSets.empty())
+	{
+		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.PipelineLayout, 0u, 1u, &Parameters.DescriptorSets[m_CurrentFrameIndex], 0u, nullptr);
+	}
 
-	vkCmdDrawIndexed(m_CommandBuffer, Parameters.IndexCount, 1u, 0u, 0u, 0u);
-	vkCmdEndRenderPass(m_CommandBuffer);
+	if (bActiveRenderPass)
+	{
+		vkCmdDrawIndexed(m_CommandBuffer, Parameters.IndexCount, 1u, 0u, 0u, 0u);
+		vkCmdEndRenderPass(m_CommandBuffer);
+	}
 
 	RENDERCORE_CHECK_VULKAN_RESULT(vkEndCommandBuffer(m_CommandBuffer));
 }

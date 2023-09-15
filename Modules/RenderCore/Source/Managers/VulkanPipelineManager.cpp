@@ -8,6 +8,7 @@
 #include "Utils/RenderCoreHelpers.h"
 #include "Utils/VulkanConstants.h"
 #include <boost/log/trivial.hpp>
+#include "VulkanPipelineManager.h"
 
 using namespace RenderCore;
 
@@ -305,8 +306,7 @@ void VulkanPipelineManager::Shutdown()
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan pipelines";
 
-    vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);
-    m_RenderPass = VK_NULL_HANDLE;
+    DestroyResources();
 
     vkDestroyPipeline(m_Device, m_Pipeline, nullptr);
     m_Pipeline = VK_NULL_HANDLE;
@@ -316,6 +316,14 @@ void VulkanPipelineManager::Shutdown()
 
     vkDestroyPipelineCache(m_Device, m_PipelineCache, nullptr);
     m_PipelineCache = VK_NULL_HANDLE;
+}
+
+void VulkanPipelineManager::DestroyResources()
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan pipelines resources";
+
+    vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);
+    m_RenderPass = VK_NULL_HANDLE;
 
     vkDestroyDescriptorSetLayout(m_Device, m_DescriptorSetLayout, nullptr);
     m_DescriptorSetLayout = VK_NULL_HANDLE;

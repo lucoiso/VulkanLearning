@@ -6,6 +6,7 @@
 
 #include "RenderCoreModule.h"
 #include <memory>
+#include <string_view>
 
 struct GLFWwindow;
 
@@ -29,6 +30,9 @@ namespace RenderCore
         void DrawFrame(GLFWwindow *const Window);
 
         bool IsInitialized() const;
+
+        void LoadScene(const std::string_view ModelPath, const std::string_view TexturePath);
+        void UnloadScene();
 
     private:
         std::unique_ptr<Impl> m_Impl;

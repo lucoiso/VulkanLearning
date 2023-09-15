@@ -188,7 +188,7 @@ VkShaderModule VulkanShaderManager::CreateModule(const VkDevice &Device, const s
         throw std::runtime_error("Invalid SPIRV code");
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating shader module";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating shader module...";
 
     const VkShaderModuleCreateInfo CreateInfo{
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -314,7 +314,8 @@ void VulkanShaderManager::StageInfo(const VkShaderModule &Module, EShLanguage La
         throw std::runtime_error("Invalid shader module");
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Staging shader info";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Staging shader info...";
+    
     VkPipelineShaderStageCreateInfo StageInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         .module = Module,

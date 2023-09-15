@@ -68,7 +68,9 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE
 
 target_include_directories(${LIBRARY_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
 
-target_compile_definitions(${LIBRARY_NAME} PRIVATE 
+target_compile_definitions(${LIBRARY_NAME} PRIVATE
+    PLACEHOLDER_IMAGE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/Resources/Placeholder.jpg"
+
     DEBUG_SHADER_VERT="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.vert"
     DEBUG_SHADER_FRAG="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.frag"
     DEBUG_MODEL_OBJ="${CMAKE_CURRENT_SOURCE_DIR}/Resources/viking_room.obj"

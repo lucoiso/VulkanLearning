@@ -40,7 +40,7 @@ namespace RenderCore
         void CreateDepthResources(const VkFormat &Format, const VkExtent2D &Extent, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex);
         void LoadScene(const std::string_view Path);
 
-        void DestroyResources();
+        void DestroyResources(const bool bClearScene);
         void Shutdown();
 
         bool IsInitialized() const;

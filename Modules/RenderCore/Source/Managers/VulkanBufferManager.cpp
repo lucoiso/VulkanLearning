@@ -167,7 +167,7 @@ public:
 
         if (IsInitialized() && m_SwapChain != VK_NULL_HANDLE)
         {
-            DestroyResources();
+            DestroyResources(false);
         }
 
         if (m_Device == VK_NULL_HANDLE)
@@ -255,6 +255,11 @@ public:
 
     void CreateVertexBuffers(const VkQueue &Queue, const std::uint32_t QueueFamilyIndex)
     {
+        if (m_Vertices.empty())
+        {
+            return;
+        }
+
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan vertex buffers";
 
         if (m_Allocator == VK_NULL_HANDLE)
@@ -289,6 +294,11 @@ public:
 
     void CreateIndexBuffers(const VkQueue &Queue, const std::uint32_t QueueFamilyIndex)
     {
+        if (m_Indices.empty())
+        {
+            return;
+        }
+
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
 
         if (m_Allocator == VK_NULL_HANDLE)
@@ -438,6 +448,8 @@ public:
         {
             throw std::runtime_error("Assimp error: " + std::string(Importer.GetErrorString()));
         }
+        
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded model from path: '" << Path << "'";
 
         const std::vector<aiMesh*> Meshes(Scene->mMeshes, Scene->mMeshes + Scene->mNumMeshes);
         for (const aiMesh *MeshIter : Meshes)
@@ -475,40 +487,13 @@ public:
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Vulkan buffer manager";
 
-        DestroyResources();
-
-        for (VulkanImageAllocation& ImageIter : m_TextureImages)
-        {
-            ImageIter.DestroyResources(m_Device, m_Allocator);
-        }
-        m_TextureImages.clear();
-
-        for (VulkanBufferAllocation& BufferIter : m_VertexBuffers)
-        {
-            BufferIter.DestroyResources(m_Allocator);
-        }
-        m_VertexBuffers.clear();
-
-        for (VulkanBufferAllocation& BufferIter : m_IndexBuffers)
-        {
-            BufferIter.DestroyResources(m_Allocator);
-        }
-        m_IndexBuffers.clear();
-
-        for (VulkanBufferAllocation& BufferIter : m_UniformBuffers)
-        {
-            BufferIter.DestroyResources(m_Allocator);
-        }
-        m_UniformBuffers.clear();
-
-        m_Vertices.clear();
-        m_Indices.clear();
+        DestroyResources(true);
 
         vmaDestroyAllocator(m_Allocator);
         m_Allocator = VK_NULL_HANDLE;
     }
 
-    void DestroyResources()
+    void DestroyResources(const bool bClearScene)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying Vulkan buffer manager resources";
 
@@ -517,8 +502,6 @@ public:
             vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
             m_SwapChain = VK_NULL_HANDLE;
         }
-
-        m_DepthImage.DestroyResources(m_Device, m_Allocator);
 
         for (VulkanImageAllocation &ImageViewIter : m_SwapChainImages)
         {
@@ -534,6 +517,38 @@ public:
             }
         }
         m_FrameBuffers.clear();
+        
+        m_DepthImage.DestroyResources(m_Device, m_Allocator);
+
+        if (bClearScene)
+        {
+            for (VulkanImageAllocation& ImageIter : m_TextureImages)
+            {
+                ImageIter.DestroyResources(m_Device, m_Allocator);
+            }
+            m_TextureImages.clear();
+
+            for (VulkanBufferAllocation& BufferIter : m_VertexBuffers)
+            {
+                BufferIter.DestroyResources(m_Allocator);
+            }
+            m_VertexBuffers.clear();
+
+            for (VulkanBufferAllocation& BufferIter : m_IndexBuffers)
+            {
+                BufferIter.DestroyResources(m_Allocator);
+            }
+            m_IndexBuffers.clear();
+
+            for (VulkanBufferAllocation& BufferIter : m_UniformBuffers)
+            {
+                BufferIter.DestroyResources(m_Allocator);
+            }
+            m_UniformBuffers.clear();
+
+            m_Vertices.clear();
+            m_Indices.clear();
+        }
     }
 
     bool IsInitialized() const
@@ -1009,9 +1024,9 @@ void VulkanBufferManager::LoadScene(const std::string_view Path)
     m_Impl->LoadScene(Path);
 }
 
-void VulkanBufferManager::DestroyResources()
+void VulkanBufferManager::DestroyResources(const bool bClearScene)
 {
-    m_Impl->DestroyResources();
+    m_Impl->DestroyResources(bClearScene);
 }
 
 void VulkanBufferManager::Shutdown()

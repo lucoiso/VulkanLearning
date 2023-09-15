@@ -15,6 +15,7 @@
 #include <boost/bind/bind.hpp>
 #include <set>
 #include <thread>
+#include <filesystem>
 
 using namespace RenderCore;
 
@@ -33,7 +34,10 @@ public:
         , m_Instance(VK_NULL_HANDLE)
         , m_Surface(VK_NULL_HANDLE)
         , m_SharedDeviceProperties()
-        , bIsSceneLoaded(false)
+        , m_DefaultShadersStageInfos({})
+        , bIsSceneDirty(true)
+        , bIsSwapChainInvalidated(true)
+        , bHasLoadedScene(false)
 #ifdef _DEBUG
         , m_DebugMessenger(VK_NULL_HANDLE)
 #endif
@@ -132,10 +136,15 @@ public:
             throw std::runtime_error("GLFW Window is invalid");
         }
 
-        const std::int32_t ImageIndice = m_CommandsManager->DrawFrame(m_BufferManager->GetSwapChain());
+        const std::int32_t ImageIndice = bIsSceneDirty || bIsSwapChainInvalidated ? -1 : m_CommandsManager->DrawFrame(m_BufferManager->GetSwapChain());
         if (!m_SharedDeviceProperties.IsValid() || ImageIndice < 0)
         {
-            UnloadScene();
+            if (!bIsSwapChainInvalidated)
+            {
+                m_CommandsManager->DestroySynchronizationObjects();
+                m_BufferManager->DestroyResources(false);
+                bIsSwapChainInvalidated = true;
+            }
 
             m_SharedDeviceProperties = m_DeviceManager->GetPreferredProperties(Window);
             if (!m_SharedDeviceProperties.IsValid())
@@ -145,8 +154,12 @@ public:
             }
 
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing device properties & capabilities...";
-
-            LoadScene();
+            
+            m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
+            bIsSwapChainInvalidated = false;
+            m_BufferManager->CreateDepthResources(m_SharedDeviceProperties.PreferredDepthFormat, m_SharedDeviceProperties.PreferredExtent, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
+            m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
+            m_CommandsManager->CreateSynchronizationObjects();
 
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Buffers updated, starting to draw frames with new surface properties";
         }
@@ -165,11 +178,72 @@ public:
     {
         return m_DeviceManager && m_DeviceManager->IsInitialized()
             && m_BufferManager && m_BufferManager->IsInitialized()
-            && m_PipelineManager && m_PipelineManager->IsInitialized()
             && m_CommandsManager && m_CommandsManager->IsInitialized()
             && m_ShaderManager
             && m_Instance != VK_NULL_HANDLE
             && m_Surface != VK_NULL_HANDLE;
+    }
+
+    void LoadScene(const std::string_view ModelPath, const std::string_view TexturePath)
+    {
+        if (!IsInitialized() || bHasLoadedScene)
+        {
+            return;
+        }
+
+        if (!std::filesystem::exists(ModelPath))
+        {
+            throw std::runtime_error("Model path is invalid");
+        }
+
+        if (!std::filesystem::exists(TexturePath))
+        {
+            throw std::runtime_error("Texture path is invalid");
+        }
+
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
+
+        m_BufferManager->LoadScene(ModelPath);
+        m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
+        bIsSwapChainInvalidated = false;
+        m_BufferManager->CreateDepthResources(m_SharedDeviceProperties.PreferredDepthFormat, m_SharedDeviceProperties.PreferredExtent, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
+        
+        m_PipelineManager->CreateRenderPass(m_SharedDeviceProperties.PreferredFormat.format, m_SharedDeviceProperties.PreferredDepthFormat);
+        m_PipelineManager->CreateDescriptorSetLayout();
+        m_PipelineManager->CreateGraphicsPipeline(m_DefaultShadersStageInfos);
+
+        m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
+        m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetTransferQueue(), m_DeviceManager->GetTransferQueueFamilyIndex());
+        m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetTransferQueue(), m_DeviceManager->GetTransferQueueFamilyIndex());
+        m_BufferManager->CreateUniformBuffers();
+
+        VkImageView TextureView = VK_NULL_HANDLE;
+        VkSampler TextureSampler = VK_NULL_HANDLE;
+        m_BufferManager->CreateTextureImage(TexturePath, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex(), TextureView, TextureSampler);
+    
+        m_PipelineManager->CreateDescriptorPool();
+        m_PipelineManager->CreateDescriptorSets(m_BufferManager->GetUniformBuffers(), TextureView, TextureSampler);
+
+        m_CommandsManager->CreateSynchronizationObjects();
+
+        bIsSceneDirty = false;
+        bHasLoadedScene = true;
+    }
+
+    void UnloadScene()
+    {
+        if (!IsInitialized() || !bHasLoadedScene)
+        {
+            return;
+        }
+
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading scene...";
+
+        m_CommandsManager->DestroySynchronizationObjects();
+        m_BufferManager->DestroyResources(true);
+        m_PipelineManager->DestroyResources();
+
+        bHasLoadedScene = false;
     }
 
 private:
@@ -263,8 +337,6 @@ private:
         InitializePipelineManagement();
         InitializeCommandsManagement();
 
-        LoadScene();
-
         return IsInitialized();
     }
 
@@ -286,10 +358,7 @@ private:
             m_BufferManager = std::make_unique<VulkanBufferManager>(m_DeviceManager->GetLogicalDevice(), m_Surface, m_DeviceManager->GetQueueFamilyIndices());
         }
 
-        m_BufferManager->LoadScene(DEBUG_MODEL_OBJ);
         m_BufferManager->CreateMemoryAllocator(m_Instance, m_DeviceManager->GetLogicalDevice(), m_DeviceManager->GetPhysicalDevice());
-        m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
-        m_BufferManager->CreateDepthResources(m_SharedDeviceProperties.PreferredDepthFormat, m_SharedDeviceProperties.PreferredExtent, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
     }
 
     void InitializePipelineManagement()
@@ -304,11 +373,7 @@ private:
             m_ShaderManager = std::make_unique<VulkanShaderManager>(m_DeviceManager->GetLogicalDevice());
         }
 
-        CompileShaders();
-
-        m_PipelineManager->CreateRenderPass(m_SharedDeviceProperties.PreferredFormat.format, m_SharedDeviceProperties.PreferredDepthFormat);        
-        m_PipelineManager->CreateDescriptorSetLayout();
-        m_PipelineManager->CreateGraphicsPipeline(m_ShaderManager->GetStageInfos());
+        m_DefaultShadersStageInfos = CompileDefaultShaders();
     }
 
     void InitializeCommandsManagement()
@@ -318,22 +383,10 @@ private:
             m_CommandsManager = std::make_unique<VulkanCommandsManager>(m_DeviceManager->GetLogicalDevice());
         }
 
-        m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
         m_CommandsManager->SetGraphicsProcessingFamilyQueueIndex(m_DeviceManager->GetGraphicsQueueFamilyIndex());
-        m_BufferManager->CreateVertexBuffers(m_DeviceManager->GetTransferQueue(), m_DeviceManager->GetTransferQueueFamilyIndex());
-        m_BufferManager->CreateIndexBuffers(m_DeviceManager->GetTransferQueue(), m_DeviceManager->GetTransferQueueFamilyIndex());
-        m_BufferManager->CreateUniformBuffers();
-
-        VkImageView TextureView = VK_NULL_HANDLE;
-        VkSampler TextureSampler = VK_NULL_HANDLE;
-        m_BufferManager->CreateTextureImage(DEBUG_MODEL_TEX, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex(), TextureView, TextureSampler);
-
-        m_PipelineManager->CreateDescriptorPool();
-        m_PipelineManager->CreateDescriptorSets(m_BufferManager->GetUniformBuffers(), TextureView, TextureSampler);
-        m_CommandsManager->CreateSynchronizationObjects();
     }
 
-    void CompileShaders()
+    std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders()
     {
         constexpr std::array<const char*, 1u> FragmentShaders = { DEBUG_SHADER_FRAG };
         constexpr std::array<const char*, 1u> VertexShaders = { DEBUG_SHADER_VERT };
@@ -356,34 +409,8 @@ private:
                 ShaderStages.push_back(m_ShaderManager->GetStageInfo(VertexModule));
             }
         }
-    }
 
-    void UnloadScene()
-    {
-        if (bIsSceneLoaded)
-        {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading scene";
-
-            m_BufferManager->DestroyResources();
-            m_CommandsManager->DestroySynchronizationObjects();
-
-            bIsSceneLoaded = false;
-        }
-    }
-
-    void LoadScene()
-    {
-        if (!bIsSceneLoaded)
-        {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene";
-
-            m_CommandsManager->CreateSynchronizationObjects();
-            m_BufferManager->CreateSwapChain(m_SharedDeviceProperties.PreferredFormat, m_SharedDeviceProperties.PreferredMode, m_SharedDeviceProperties.PreferredExtent, m_SharedDeviceProperties.Capabilities);
-            m_BufferManager->CreateDepthResources(m_SharedDeviceProperties.PreferredDepthFormat, m_SharedDeviceProperties.PreferredExtent, m_DeviceManager->GetGraphicsQueue(), m_DeviceManager->GetGraphicsQueueFamilyIndex());
-            m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass(), m_SharedDeviceProperties.PreferredExtent);
-
-            bIsSceneLoaded = true;
-        }
+        return ShaderStages;
     }
 
     VulkanCommandsManager::BufferRecordParameters GetBufferRecordParameters(const std::uint32_t ImageIndex) const{
@@ -412,7 +439,10 @@ private:
     VkInstance m_Instance;
     VkSurfaceKHR m_Surface;
     DeviceProperties m_SharedDeviceProperties;
-    bool bIsSceneLoaded;
+    std::vector<VkPipelineShaderStageCreateInfo> m_DefaultShadersStageInfos;
+    bool bIsSceneDirty;
+    bool bIsSwapChainInvalidated;
+    bool bHasLoadedScene;
 
 #ifdef _DEBUG
     VkDebugUtilsMessengerEXT m_DebugMessenger;
@@ -467,4 +497,24 @@ void VulkanRender::DrawFrame(GLFWwindow *const Window)
 bool VulkanRender::IsInitialized() const
 {
     return m_Impl && m_Impl->IsInitialized();
+}
+
+void VulkanRender::LoadScene(const std::string_view ModelPath, const std::string_view TexturePath)
+{
+    if (!IsInitialized())
+    {
+        return;
+    }
+
+    m_Impl->LoadScene(ModelPath, TexturePath);
+}
+
+void VulkanRender::UnloadScene()
+{
+    if (!IsInitialized())
+    {
+        return;
+    }
+
+    m_Impl->UnloadScene();
 }
