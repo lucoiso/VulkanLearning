@@ -5,10 +5,12 @@
 #pragma once
 
 #include "RenderCoreModule.h"
+#include "Types/RenderStateFlags.h"
 #include "Types/BufferRecordParameters.h"
 #include <memory>
 #include <string_view>
 #include <vector>
+#include <optional>
 
 struct GLFWwindow;
 
@@ -24,11 +26,12 @@ namespace RenderCore
 
         ~VulkanRender();
 
-        bool Initialize(GLFWwindow *const Window);
+        void Initialize(GLFWwindow *const Window);
         void Shutdown();
 
         void DrawFrame(GLFWwindow *const Window);
 
+        std::optional<std::int32_t> TryRequestDrawImage(GLFWwindow *const Window) const;
         bool IsInitialized() const;
 
         void LoadScene(const std::string_view ModelPath, const std::string_view TexturePath);
@@ -37,7 +40,7 @@ namespace RenderCore
     private:
         void CreateVulkanInstance();
         void CreateVulkanSurface(GLFWwindow *const Window);
-        bool InitializeRenderCore(GLFWwindow *const Window);
+        void InitializeRenderCore(GLFWwindow *const Window);
         std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders();
         VulkanBufferRecordParameters GetBufferRecordParameters(const std::uint32_t ImageIndex, const std::uint64_t ObjectID) const;
 
@@ -49,9 +52,7 @@ namespace RenderCore
 
         VkInstance m_Instance;
         VkSurfaceKHR m_Surface;
-        bool bIsSceneDirty;
-        bool bIsSwapChainInvalidated;
-        bool bHasLoadedScene;
+        mutable VulkanRenderStateFlags StateFlags;
 
     #ifdef _DEBUG
         VkDebugUtilsMessengerEXT m_DebugMessenger;

@@ -62,7 +62,8 @@ public:
         if (m_Render = std::make_unique<VulkanRender>())
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Window initialized";
-            if (m_Render->Initialize(m_Window))
+
+            if (m_Render->Initialize(m_Window); m_Render->IsInitialized())
             {
                 m_Render->LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
                 return true;

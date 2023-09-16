@@ -177,5 +177,29 @@ namespace RenderCore
                 .format = VK_FORMAT_R32G32B32_SFLOAT,
                 .offset = offsetof(Vertex, TextureCoordinate)}};
     }
+
+    template<typename T>
+    constexpr void AddFlags(T &Lhs, const T Rhs)
+    {
+        Lhs = static_cast<T>(static_cast<std::uint8_t>(Lhs) | static_cast<std::uint8_t>(Rhs));
+    }
+
+    template<typename T>
+    constexpr void RemoveFlags(T &Lhs, const T Rhs)
+    {
+        Lhs = static_cast<T>(static_cast<std::uint8_t>(Lhs) & ~static_cast<std::uint8_t>(Rhs));
+    }
+    
+    template<typename T>
+    constexpr bool HasFlag(const T Lhs, const T Rhs)
+    {
+        return (Lhs & Rhs) == Rhs;
+    }
+    
+    template<typename T>
+    constexpr bool HasAnyFlag(const T Lhs)
+    {
+        return static_cast<std::uint8_t>(Lhs) != 0u;
+    }
 }
 #endif

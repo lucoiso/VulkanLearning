@@ -30,7 +30,7 @@ namespace RenderCore
         ~VulkanBufferManager();
 
         void CreateMemoryAllocator();
-        void CreateSwapChain();
+        void CreateSwapChain(const bool bRecreate);
         void CreateFrameBuffers(const VkRenderPass& RenderPass);
         void CreateDepthResources();
 

@@ -33,6 +33,7 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/ObjectData.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/TextureData.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/BufferRecordParameters.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/RenderStateFlags.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRender.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanRenderSubsystem.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanShaderManager.h

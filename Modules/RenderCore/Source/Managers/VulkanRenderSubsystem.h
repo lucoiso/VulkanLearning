@@ -47,10 +47,10 @@ namespace RenderCore
         [[nodiscard]] const std::vector<std::uint32_t> GetQueueFamilyIndices_u32() const;
         [[nodiscard]] const VkQueue &GetQueueFromID(const uint8_t ID) const;
         [[nodiscard]] const VkQueue &GetQueueFromType(const VulkanQueueType Type) const;
-        [[nodiscard]] const std::uint8_t &GetQueueFamilyIndexFromID(const uint8_t ID) const;
-        [[nodiscard]] const std::uint8_t &GetQueueFamilyIndexFromType(const VulkanQueueType Type) const;
-        [[nodiscard]] const VulkanQueueType &GetQueueTypeFromID(const uint8_t ID) const;
-        [[nodiscard]] const std::uint8_t &GetFrameIndex() const;
+        [[nodiscard]] const std::uint8_t GetQueueFamilyIndexFromID(const uint8_t ID) const;
+        [[nodiscard]] const std::uint8_t GetQueueFamilyIndexFromType(const VulkanQueueType Type) const;
+        [[nodiscard]] const VulkanQueueType GetQueueTypeFromID(const uint8_t ID) const;
+        [[nodiscard]] const std::uint8_t GetFrameIndex() const;
         [[nodiscard]] const std::vector<VkPipelineShaderStageCreateInfo> &GetDefaultShadersStageInfos() const;
 
     private:

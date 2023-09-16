@@ -28,9 +28,7 @@ VulkanRender::VulkanRender()
     m_ShaderManager(std::make_unique<VulkanShaderManager>()),
     m_Instance(VK_NULL_HANDLE),
     m_Surface(VK_NULL_HANDLE),
-    bIsSceneDirty(true),
-    bIsSwapChainInvalidated(true),
-    bHasLoadedScene(false)
+    StateFlags(VulkanRenderStateFlags::NONE)
 #ifdef _DEBUG
     , m_DebugMessenger(VK_NULL_HANDLE)
 #endif
@@ -49,11 +47,11 @@ VulkanRender::~VulkanRender()
     Shutdown();
 }
 
-bool VulkanRender::Initialize(GLFWwindow *const Window)
+void VulkanRender::Initialize(GLFWwindow *const Window)
 {
     if (IsInitialized())
     {
-        return false;
+        return;
     }
 
     if (!Window)
@@ -79,8 +77,7 @@ bool VulkanRender::Initialize(GLFWwindow *const Window)
 
     CreateVulkanInstance();
     CreateVulkanSurface(Window);
-
-    return InitializeRenderCore(Window);
+    InitializeRenderCore(Window);
 }
 
 void VulkanRender::Shutdown()
@@ -89,6 +86,9 @@ void VulkanRender::Shutdown()
     {
         return;
     }
+
+    RemoveFlags(StateFlags, VulkanRenderStateFlags::INITIALIZED);
+    AddFlags(StateFlags, VulkanRenderStateFlags::SHUTDOWN);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan render";
 
@@ -129,67 +129,89 @@ void VulkanRender::DrawFrame(GLFWwindow *const Window)
         throw std::runtime_error("GLFW Window is invalid");
     }
 
-    if (!VulkanRenderSubsystem::Get()->SetDeviceProperties(m_DeviceManager->GetPreferredProperties(Window)))
-    {
-        // TODO: Add bit flag: Invalid Device Properties
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        return;
-    }
-    else
-    {
-        // TODO: Remove bit flag: Invalid Device Properties
-    }
+    const std::optional<std::int32_t> ImageIndice = TryRequestDrawImage(Window);
+    const bool HasInvalidFlags = HasFlag(StateFlags, VulkanRenderStateFlags::INVALID_PROPERTIES) || HasFlag(StateFlags, VulkanRenderStateFlags::INVALID_RESOURCES);
 
-    // TODO: Check bit flags: Scene Dirty, Swap Chain Invalidated and Invalid Device Properties
-
-    const std::int32_t ImageIndice = m_CommandsManager->DrawFrame(m_BufferManager->GetSwapChain());
-
-    if (!VulkanRenderSubsystem::Get()->GetDeviceProperties().IsValid() || ImageIndice < 0)
+    if (!ImageIndice.has_value() || HasFlag(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH) || HasInvalidFlags)
     {
-        if (!bIsSwapChainInvalidated)
+        RemoveFlags(StateFlags, VulkanRenderStateFlags::RENDERING);
+
+        if (!HasFlag(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH) && HasInvalidFlags)
         {
             m_CommandsManager->DestroySynchronizationObjects();
             m_BufferManager->DestroyResources(false);
-            bIsSwapChainInvalidated = true;
-        }
-        else
-        {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing device properties & capabilities...";
 
-            m_BufferManager->CreateSwapChain();
-            bIsSwapChainInvalidated = false;
+            AddFlags(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH);
+        }
+        else if (HasFlag(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH) && !HasInvalidFlags)
+        {
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
+            m_BufferManager->CreateSwapChain(true);
             m_BufferManager->CreateDepthResources();
             m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass());
             m_CommandsManager->CreateSynchronizationObjects();
-
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Buffers updated, starting to draw frames with new surface properties";
+
+            RemoveFlags(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH);
         }
     }
-    else
+    else if (!HasInvalidFlags && HasFlag(StateFlags, VulkanRenderStateFlags::SCENE_LOADED))
     {
+        const std::int32_t IndiceToProcess = ImageIndice.value();
         m_BufferManager->UpdateUniformBuffers();
 
-        const VulkanBufferRecordParameters Parameters = GetBufferRecordParameters(ImageIndice, 0u);
+        const VulkanBufferRecordParameters Parameters = GetBufferRecordParameters(IndiceToProcess, 0u);
         m_CommandsManager->RecordCommandBuffers(Parameters);
 
         const VkQueue &GraphicsQueue = VulkanRenderSubsystem::Get()->GetQueueFromType(VulkanQueueType::Graphics);
         m_CommandsManager->SubmitCommandBuffers(GraphicsQueue);
-        m_CommandsManager->PresentFrame(GraphicsQueue, m_BufferManager->GetSwapChain(), ImageIndice);
+        m_CommandsManager->PresentFrame(GraphicsQueue, m_BufferManager->GetSwapChain(), IndiceToProcess);
+
+        AddFlags(StateFlags, VulkanRenderStateFlags::RENDERING);
+        RemoveFlags(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH);
     }
+}
+
+std::optional<std::int32_t> VulkanRender::TryRequestDrawImage(GLFWwindow *const Window) const
+{
+    if (!VulkanRenderSubsystem::Get()->SetDeviceProperties(m_DeviceManager->GetPreferredProperties(Window)))
+    {
+        RemoveFlags(StateFlags, VulkanRenderStateFlags::RENDERING);
+        AddFlags(StateFlags, VulkanRenderStateFlags::INVALID_PROPERTIES);
+        
+        constexpr std::uint64_t DelayMs = 250u;
+        std::this_thread::sleep_for(std::chrono::milliseconds(DelayMs));
+
+        return std::optional<std::int32_t>();
+    }
+    else
+    {
+        RemoveFlags(StateFlags, VulkanRenderStateFlags::INVALID_PROPERTIES);
+    }
+
+    const std::optional<std::int32_t> Output = m_CommandsManager->DrawFrame(m_BufferManager->GetSwapChain());
+
+    if (!Output.has_value())
+    {
+        RemoveFlags(StateFlags, VulkanRenderStateFlags::RENDERING);
+        AddFlags(StateFlags, VulkanRenderStateFlags::INVALID_RESOURCES);
+    }
+    else
+    {
+        RemoveFlags(StateFlags, VulkanRenderStateFlags::INVALID_RESOURCES);
+    }
+
+    return Output;
 }
 
 bool VulkanRender::IsInitialized() const
 {
-    return m_DeviceManager && m_DeviceManager->IsInitialized()
-        && m_BufferManager && m_BufferManager->IsInitialized()
-        && m_ShaderManager
-        && m_Instance != VK_NULL_HANDLE
-        && m_Surface != VK_NULL_HANDLE;
+    return HasFlag(StateFlags, VulkanRenderStateFlags::INITIALIZED);
 }
 
 void VulkanRender::LoadScene(const std::string_view ModelPath, const std::string_view TexturePath)
 {
-    if (!IsInitialized() || bHasLoadedScene)
+    if (!IsInitialized())
     {
         return;
     }
@@ -209,8 +231,7 @@ void VulkanRender::LoadScene(const std::string_view ModelPath, const std::string
     const std::uint64_t ObjectID = m_BufferManager->LoadObject(ModelPath);
     m_BufferManager->LoadTexture(TexturePath, ObjectID);
 
-    m_BufferManager->CreateSwapChain();
-    bIsSwapChainInvalidated = false;
+    m_BufferManager->CreateSwapChain(false);
     m_BufferManager->CreateDepthResources();
 
     m_PipelineManager->CreateRenderPass();
@@ -231,13 +252,12 @@ void VulkanRender::LoadScene(const std::string_view ModelPath, const std::string
 
     m_CommandsManager->CreateSynchronizationObjects();
 
-    bIsSceneDirty = false;
-    bHasLoadedScene = true;
+    AddFlags(StateFlags, VulkanRenderStateFlags::SCENE_LOADED);
 }
 
 void VulkanRender::UnloadScene()
 {
-    if (!IsInitialized() || !bHasLoadedScene)
+    if (!IsInitialized())
     {
         return;
     }
@@ -248,7 +268,7 @@ void VulkanRender::UnloadScene()
     m_BufferManager->DestroyResources(true);
     m_PipelineManager->DestroyResources();
 
-    bHasLoadedScene = false;
+    RemoveFlags(StateFlags, VulkanRenderStateFlags::SCENE_LOADED);
 }
 
 void VulkanRender::CreateVulkanInstance()
@@ -328,7 +348,7 @@ void VulkanRender::CreateVulkanSurface(GLFWwindow *const Window)
     VulkanRenderSubsystem::Get()->SetSurface(m_Surface);
 }
 
-bool VulkanRender::InitializeRenderCore(GLFWwindow *const Window)
+void VulkanRender::InitializeRenderCore(GLFWwindow *const Window)
 {
     if (!Window)
     {
@@ -341,8 +361,8 @@ bool VulkanRender::InitializeRenderCore(GLFWwindow *const Window)
 
     m_BufferManager->CreateMemoryAllocator();
     VulkanRenderSubsystem::Get()->SetDefaultShadersStageInfos(CompileDefaultShaders());
-
-    return IsInitialized();
+    
+    AddFlags(StateFlags, VulkanRenderStateFlags::INITIALIZED);
 }
 
 std::vector<VkPipelineShaderStageCreateInfo> VulkanRender::CompileDefaultShaders()

@@ -49,12 +49,12 @@ void VulkanCommandsManager::Shutdown()
 	DestroySynchronizationObjects();
 }
 
-VkCommandPool VulkanCommandsManager::CreateCommandPool(const std::uint32_t FamilyQueueIndex)
+VkCommandPool VulkanCommandsManager::CreateCommandPool(const std::uint8_t FamilyQueueIndex)
 {
 	const VkCommandPoolCreateInfo CommandPoolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-		.queueFamilyIndex = FamilyQueueIndex};
+		.queueFamilyIndex = static_cast<std::uint32_t>(FamilyQueueIndex)};
 
 	VkCommandPool Output = VK_NULL_HANDLE;
 	RENDERCORE_CHECK_VULKAN_RESULT(vkCreateCommandPool(VulkanRenderSubsystem::Get()->GetDevice(), &CommandPoolCreateInfo, nullptr, &Output));
@@ -133,7 +133,7 @@ void VulkanCommandsManager::DestroySynchronizationObjects()
 	m_SynchronizationObjectsCreated = false;
 }
 
-std::int32_t VulkanCommandsManager::DrawFrame(const VkSwapchainKHR &SwapChain)
+std::optional<std::int32_t> VulkanCommandsManager::DrawFrame(const VkSwapchainKHR &SwapChain)
 {
 	if (!m_SynchronizationObjectsCreated)
 	{
@@ -173,7 +173,7 @@ std::int32_t VulkanCommandsManager::DrawFrame(const VkSwapchainKHR &SwapChain)
 				WaitAndResetFences();
 			}
 
-			return -1;
+			return std::optional<std::int32_t>();
 		}
 		else if (OperationResult != VK_SUBOPTIMAL_KHR)
 		{

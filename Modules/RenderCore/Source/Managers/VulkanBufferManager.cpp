@@ -59,6 +59,11 @@ class VulkanBufferManager::Impl
             {
                 vkDestroyImageView(VulkanLogicalDevice, View, nullptr);
                 View = VK_NULL_HANDLE;
+
+                if (Image != VK_NULL_HANDLE)
+                {
+                    Image = VK_NULL_HANDLE;
+                }
             }
 
             if (Sampler != VK_NULL_HANDLE)
@@ -197,11 +202,11 @@ public:
         RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateAllocator(&AllocatorInfo, &m_Allocator));
     }
 
-    void CreateSwapChain()
+    void CreateSwapChain(const bool bRecreate)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain";
 
-        if (IsInitialized() && m_SwapChain != VK_NULL_HANDLE)
+        if (bRecreate)
         {
             DestroyResources(false);
         }
@@ -252,7 +257,11 @@ public:
 
         CreateVertexBuffers();
         CreateIndexBuffers();
-        CreateUniformBuffers();
+
+        if (!bRecreate)
+        {
+            CreateUniformBuffers();
+        }
     }
 
     void CreateFrameBuffers(const VkRenderPass &RenderPass)
@@ -303,7 +312,7 @@ public:
         }
 
         const VkQueue &TransferQueue = VulkanRenderSubsystem::Get()->GetQueueFromType(VulkanQueueType::Transfer);
-        const std::uint32_t &TransferQueueFamilyIndex = VulkanRenderSubsystem::Get()->GetQueueFamilyIndexFromType(VulkanQueueType::Transfer);
+        const std::uint8_t TransferQueueFamilyIndex = VulkanRenderSubsystem::Get()->GetQueueFamilyIndexFromType(VulkanQueueType::Transfer);
 
         constexpr VkBufferUsageFlags SourceUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
@@ -354,7 +363,7 @@ public:
         }
 
         const VkQueue &TransferQueue = VulkanRenderSubsystem::Get()->GetQueueFromType(VulkanQueueType::Transfer);
-        const std::uint32_t &TransferQueueFamilyIndex = VulkanRenderSubsystem::Get()->GetQueueFamilyIndexFromType(VulkanQueueType::Transfer);
+        const std::uint8_t TransferQueueFamilyIndex = VulkanRenderSubsystem::Get()->GetQueueFamilyIndexFromType(VulkanQueueType::Transfer);
 
         constexpr VkBufferUsageFlags SourceUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
@@ -421,7 +430,7 @@ public:
 
     void UpdateUniformBuffers()
     {
-        const std::uint8_t &Frame = VulkanRenderSubsystem::Get()->GetFrameIndex();
+        const std::uint8_t Frame = VulkanRenderSubsystem::Get()->GetFrameIndex();
         const VkExtent2D &SwapChainExtent = VulkanRenderSubsystem::Get()->GetDeviceProperties().Extent;
 
         if (Frame >= g_MaxFramesInFlight)
@@ -458,7 +467,7 @@ public:
         const VulkanDeviceProperties &Properties = VulkanRenderSubsystem::Get()->GetDeviceProperties();
 
         const VkQueue &GraphicsQueue = VulkanRenderSubsystem::Get()->GetQueueFromType(VulkanQueueType::Graphics);
-        const std::uint32_t &GraphicsQueueFamilyIndex = VulkanRenderSubsystem::Get()->GetQueueFamilyIndexFromType(VulkanQueueType::Graphics);
+        const std::uint8_t GraphicsQueueFamilyIndex = VulkanRenderSubsystem::Get()->GetQueueFamilyIndexFromType(VulkanQueueType::Graphics);
 
         CreateImage(Properties.DepthFormat, Properties.Extent, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DepthImage.Image, m_DepthImage.Allocation);
         CreateImageView(m_DepthImage.Image, Properties.DepthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, m_DepthImage.View);
@@ -583,7 +592,7 @@ public:
             .height = static_cast<std::uint32_t>(Height)};
 
         const VkQueue &GraphicsQueue = VulkanRenderSubsystem::Get()->GetQueueFromType(VulkanQueueType::Graphics);
-        const std::uint32_t &GraphicsQueueFamilyIndex = VulkanRenderSubsystem::Get()->GetQueueFamilyIndexFromType(VulkanQueueType::Graphics);
+        const std::uint8_t GraphicsQueueFamilyIndex = VulkanRenderSubsystem::Get()->GetQueueFamilyIndexFromType(VulkanQueueType::Graphics);
 
         constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
         constexpr VkImageUsageFlags Usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -636,11 +645,12 @@ public:
         }
         m_SwapChainImages.clear();
 
-        for (const VkFramebuffer &FrameBufferIter : m_FrameBuffers)
+        for (VkFramebuffer &FrameBufferIter : m_FrameBuffers)
         {
             if (FrameBufferIter != VK_NULL_HANDLE)
             {
                 vkDestroyFramebuffer(VulkanLogicalDevice, FrameBufferIter, nullptr);
+                FrameBufferIter = VK_NULL_HANDLE;
             }
         }
         m_FrameBuffers.clear();
@@ -778,7 +788,7 @@ private:
         RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateBuffer(m_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &Buffer, &Allocation, &MemoryAllocationInfo));
     }
 
-    void CopyBuffer(const VkBuffer &Source, const VkBuffer &Destination, const VkDeviceSize &Size, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex) const
+    void CopyBuffer(const VkBuffer &Source, const VkBuffer &Destination, const VkDeviceSize &Size, const VkQueue &Queue, const std::uint8_t QueueFamilyIndex) const
     {
         VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
         VkCommandPool CommandPool = VK_NULL_HANDLE;
@@ -896,7 +906,7 @@ private:
         FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
     }
 
-    void MoveImageLayout(const VkImage &Image, const VkFormat &Format, const VkImageLayout &OldLayout, const VkImageLayout &NewLayout, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex)
+    void MoveImageLayout(const VkImage &Image, const VkFormat &Format, const VkImageLayout &OldLayout, const VkImageLayout &NewLayout, const VkQueue &Queue, const std::uint8_t QueueFamilyIndex)
     {
         VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
         VkCommandPool CommandPool = VK_NULL_HANDLE;
@@ -963,14 +973,14 @@ private:
         FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
     }
 
-    void InitializeSingleCommandQueue(VkCommandPool &CommandPool, VkCommandBuffer &CommandBuffer, const std::uint32_t QueueFamilyIndex) const
+    void InitializeSingleCommandQueue(VkCommandPool &CommandPool, VkCommandBuffer &CommandBuffer, const std::uint8_t QueueFamilyIndex) const
     {
         const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
 
         const VkCommandPoolCreateInfo CommandPoolCreateInfo{
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-            .queueFamilyIndex = QueueFamilyIndex};
+            .queueFamilyIndex = static_cast<std::uint32_t>(QueueFamilyIndex)};
 
         RENDERCORE_CHECK_VULKAN_RESULT(vkCreateCommandPool(VulkanLogicalDevice, &CommandPoolCreateInfo, nullptr, &CommandPool));
 
@@ -1057,9 +1067,9 @@ void VulkanBufferManager::CreateMemoryAllocator()
     m_Impl->CreateMemoryAllocator();
 }
 
-void VulkanBufferManager::CreateSwapChain()
+void VulkanBufferManager::CreateSwapChain(const bool bRecreate)
 {
-    m_Impl->CreateSwapChain();
+    m_Impl->CreateSwapChain(bRecreate);
 }
 
 void VulkanBufferManager::CreateDepthResources()

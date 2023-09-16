@@ -147,12 +147,12 @@ const VkQueue &VulkanRenderSubsystem::GetQueueFromType(const VulkanQueueType Typ
     return m_Queues.at(0u).Handle;
 }
 
-const std::uint8_t &VulkanRenderSubsystem::GetQueueFamilyIndexFromID(const uint8_t ID) const
+const std::uint8_t VulkanRenderSubsystem::GetQueueFamilyIndexFromID(const uint8_t ID) const
 {
     return m_Queues.at(ID).FamilyIndex;
 }
 
-const std::uint8_t &VulkanRenderSubsystem::GetQueueFamilyIndexFromType(const VulkanQueueType Type) const
+const std::uint8_t VulkanRenderSubsystem::GetQueueFamilyIndexFromType(const VulkanQueueType Type) const
 {
     for (const auto &[_, Queue] : m_Queues)
     {
@@ -165,12 +165,12 @@ const std::uint8_t &VulkanRenderSubsystem::GetQueueFamilyIndexFromType(const Vul
     return m_Queues.at(0u).FamilyIndex;
 }
 
-const VulkanQueueType &VulkanRenderSubsystem::GetQueueTypeFromID(const uint8_t ID) const
+const VulkanQueueType VulkanRenderSubsystem::GetQueueTypeFromID(const uint8_t ID) const
 {
     return m_Queues.at(ID).Type;
 }
 
-const std::uint8_t &VulkanRenderSubsystem::GetFrameIndex() const
+const std::uint8_t VulkanRenderSubsystem::GetFrameIndex() const
 {
     return m_FrameIndex;
 }

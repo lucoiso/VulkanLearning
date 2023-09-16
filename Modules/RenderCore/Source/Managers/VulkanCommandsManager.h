@@ -27,12 +27,12 @@ namespace RenderCore
 
         void Shutdown();
 
-        [[nodiscard]] VkCommandPool CreateCommandPool(const std::uint32_t FamilyQueueIndex);
+        [[nodiscard]] VkCommandPool CreateCommandPool(const std::uint8_t FamilyQueueIndex);
 
         void CreateSynchronizationObjects();
         void DestroySynchronizationObjects();
 
-        std::int32_t DrawFrame(const VkSwapchainKHR &SwapChain);
+        std::optional<std::int32_t> DrawFrame(const VkSwapchainKHR &SwapChain);
 
         void RecordCommandBuffers(const VulkanBufferRecordParameters &Parameters);
         void SubmitCommandBuffers(const VkQueue &Queue);
