@@ -85,7 +85,7 @@ public:
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Window";
 
-        m_Render->Shutdown();
+        m_Render.reset();
 
         glfwDestroyWindow(m_Window);
         glfwTerminate();

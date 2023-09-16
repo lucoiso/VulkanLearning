@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/VulkanLearning
 
 #include "Managers/VulkanShaderManager.h"
+#include "Managers/VulkanRenderSubsystem.h"
 #include "Utils/RenderCoreHelpers.h"
 #include <boost/log/trivial.hpp>
 #include <SPIRV/GlslangToSpv.h>
@@ -13,15 +14,14 @@
 
 using namespace RenderCore;
 
-VulkanShaderManager::VulkanShaderManager(const VkDevice &Device)
-    : m_Device(Device)
+VulkanShaderManager::VulkanShaderManager()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan shader compiler";
 }
 
 VulkanShaderManager::~VulkanShaderManager()
 {
-    if (m_Device == VK_NULL_HANDLE || m_StageInfos.empty())
+    if (m_StageInfos.empty())
     {
         return;
     }
@@ -34,11 +34,13 @@ void VulkanShaderManager::Shutdown()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan shader compiler";
 
+    const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
+
     for (auto &[ShaderModule, _] : m_StageInfos)
     {
         if (ShaderModule != VK_NULL_HANDLE)
         {
-            vkDestroyShaderModule(m_Device, ShaderModule, nullptr);
+            vkDestroyShaderModule(VulkanLogicalDevice, ShaderModule, nullptr);
         }
     }
     m_StageInfos.clear();
@@ -238,11 +240,13 @@ void VulkanShaderManager::FreeStagedModules(const std::vector<VkPipelineShaderSt
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
 
+    const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
+
     for (const VkPipelineShaderStageCreateInfo& StageInfoIter : StagedModules)
     {
         if (StageInfoIter.module != VK_NULL_HANDLE)
         {
-            vkDestroyShaderModule(m_Device, StageInfoIter.module, nullptr);
+            vkDestroyShaderModule(VulkanLogicalDevice, StageInfoIter.module, nullptr);
         }
 
         if (m_StageInfos.contains(StageInfoIter.module))

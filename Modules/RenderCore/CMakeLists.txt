@@ -9,6 +9,7 @@ set(LIBRARY_NAME RenderCore)
 set(SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRender.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Window.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanRenderSubsystem.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanShaderManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanCommandsManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanPipelineManager.cpp
@@ -18,7 +19,6 @@ set(SOURCE_FILES
 
 set(HEADER_FILES
     # Public Headers
-    ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/VulkanRender.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Window.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Types/VulkanVertex.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Types/VulkanUniformBufferObject.h
@@ -29,6 +29,12 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanEnumConverter.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanConstants.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/DeviceProperties.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/QueueType.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/ObjectData.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/TextureData.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/BufferRecordParameters.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRender.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanRenderSubsystem.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanShaderManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanCommandsManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanPipelineManager.h
