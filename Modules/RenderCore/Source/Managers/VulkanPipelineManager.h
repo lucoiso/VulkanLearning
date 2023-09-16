@@ -5,6 +5,7 @@
 #pragma once
 
 #include "RenderCoreModule.h"
+#include "Types/ObjectData.h"
 #include <vulkan/vulkan_core.h>
 #include <memory>
 #include <vector>
@@ -14,23 +15,21 @@ namespace RenderCore
     class VulkanPipelineManager
     {
     public:
-        VulkanPipelineManager() = delete;
         VulkanPipelineManager(const VulkanPipelineManager &) = delete;
         VulkanPipelineManager &operator=(const VulkanPipelineManager &) = delete;
 
-        VulkanPipelineManager(const VkInstance &Instance, const VkDevice &Device);
+        VulkanPipelineManager();
         ~VulkanPipelineManager();
 
-        void CreateRenderPass(const VkFormat &Format, const VkFormat &DepthFormat);
+        void CreateRenderPass();
         void CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &ShaderStages);
         void CreateDescriptorSetLayout();
         void CreateDescriptorPool();
-        void CreateDescriptorSets(const std::vector<VkBuffer> &UniformBuffers, const VkImageView &TextureView, const VkSampler &TextureSampler);
+        void CreateDescriptorSets(const std::vector<VulkanObjectData> &ObjectsData);
 
         void Shutdown();
         void DestroyResources();
-
-        bool IsInitialized() const;
+        
         [[nodiscard]] const VkRenderPass &GetRenderPass() const;
         [[nodiscard]] const VkPipeline &GetPipeline() const;
         [[nodiscard]] const VkPipelineLayout &GetPipelineLayout() const;
@@ -40,9 +39,6 @@ namespace RenderCore
         [[nodiscard]] const std::vector<VkDescriptorSet> &GetDescriptorSets() const;
 
     private:
-        const VkInstance &m_Instance;
-        const VkDevice &m_Device;
-
         VkRenderPass m_RenderPass;
         VkPipeline m_Pipeline;
         VkPipelineLayout m_PipelineLayout;

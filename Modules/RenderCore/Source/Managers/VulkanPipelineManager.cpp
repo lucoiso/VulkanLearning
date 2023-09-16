@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/VulkanLearning
 
 #include "Managers/VulkanPipelineManager.h"
+#include "Managers/VulkanRenderSubsystem.h"
 #include "Types/VulkanVertex.h"
 #include "Types/VulkanUniformBufferObject.h"
 #include "Utils/RenderCoreHelpers.h"
@@ -12,10 +13,8 @@
 
 using namespace RenderCore;
 
-VulkanPipelineManager::VulkanPipelineManager(const VkInstance &Instance, const VkDevice &Device)
-    : m_Instance(Instance)
-    , m_Device(Device)
-    , m_RenderPass(VK_NULL_HANDLE)
+VulkanPipelineManager::VulkanPipelineManager()
+    : m_RenderPass(VK_NULL_HANDLE)
     , m_Pipeline(VK_NULL_HANDLE)
     , m_PipelineLayout(VK_NULL_HANDLE)
     , m_PipelineCache(VK_NULL_HANDLE)
@@ -28,21 +27,18 @@ VulkanPipelineManager::VulkanPipelineManager(const VkInstance &Instance, const V
 
 VulkanPipelineManager::~VulkanPipelineManager()
 {
-    if (!IsInitialized())
-    {
-        return;
-    }
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing vulkan pipelines manager";
     Shutdown();
 }
 
-void VulkanPipelineManager::CreateRenderPass(const VkFormat &Format, const VkFormat &DepthFormat)
+void VulkanPipelineManager::CreateRenderPass()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render pass";
 
+    const VulkanDeviceProperties &DeviceProperties = VulkanRenderSubsystem::Get()->GetDeviceProperties();
+
     const VkAttachmentDescription ColorAttachmentDescription{
-        .format = Format,
+        .format = DeviceProperties.Format.format,
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -56,7 +52,7 @@ void VulkanPipelineManager::CreateRenderPass(const VkFormat &Format, const VkFor
         .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
     const VkAttachmentDescription DepthAttachmentDescription{
-        .format = DepthFormat,
+        .format = DeviceProperties.DepthFormat,
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -96,7 +92,7 @@ void VulkanPipelineManager::CreateRenderPass(const VkFormat &Format, const VkFor
         .dependencyCount = 1u,
         .pDependencies = &SubpassDependency};
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateRenderPass(m_Device, &RenderPassCreateInfo, nullptr, &m_RenderPass));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateRenderPass(VulkanRenderSubsystem::Get()->GetDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass));
 }
 
 void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &ShaderStages)
@@ -163,7 +159,9 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         .setLayoutCount = 1u,
         .pSetLayouts = &m_DescriptorSetLayout};
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineLayout(m_Device, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
+    const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
+
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineLayout(VulkanLogicalDevice, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
     
     const VkPipelineDepthStencilStateCreateInfo DepthStencilState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
@@ -194,7 +192,7 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         .subpass = 0u,
         .basePipelineHandle = VK_NULL_HANDLE};
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1u, &GraphicsPipelineCreateInfo, nullptr, &m_Pipeline));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateGraphicsPipelines(VulkanLogicalDevice, VK_NULL_HANDLE, 1u, &GraphicsPipelineCreateInfo, nullptr, &m_Pipeline));
 }
 
 void VulkanPipelineManager::CreateDescriptorSetLayout()
@@ -220,7 +218,7 @@ void VulkanPipelineManager::CreateDescriptorSetLayout()
         .bindingCount = static_cast<std::uint32_t>(LayoutBindings.size()),
         .pBindings = LayoutBindings.data()};
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorSetLayout(m_Device, &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorSetLayout(VulkanRenderSubsystem::Get()->GetDevice(), &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout));
 }
 
 void VulkanPipelineManager::CreateDescriptorPool()
@@ -241,12 +239,14 @@ void VulkanPipelineManager::CreateDescriptorPool()
         .poolSizeCount = static_cast<std::uint32_t>(DescriptorPoolSizes.size()),
         .pPoolSizes = DescriptorPoolSizes.data()};
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorPool(m_Device, &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorPool(VulkanRenderSubsystem::Get()->GetDevice(), &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool));
 }
 
-void VulkanPipelineManager::CreateDescriptorSets(const std::vector<VkBuffer> &UniformBuffers, const VkImageView &TextureView, const VkSampler &TextureSampler)
+void VulkanPipelineManager::CreateDescriptorSets(const std::vector<VulkanObjectData> &ObjectsData)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor sets";
+
+    const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
 
     const std::vector<VkDescriptorSetLayout> m_DescriptorSetLayouts(g_MaxFramesInFlight, m_DescriptorSetLayout);
     
@@ -257,64 +257,87 @@ void VulkanPipelineManager::CreateDescriptorSets(const std::vector<VkBuffer> &Un
         .pSetLayouts = m_DescriptorSetLayouts.data()};
         
     m_DescriptorSets.resize(g_MaxFramesInFlight);
-    RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateDescriptorSets(m_Device, &DescriptorSetAllocateInfo, m_DescriptorSets.data()));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, m_DescriptorSets.data()));
 
     for (std::uint32_t Iterator = 0u; Iterator < g_MaxFramesInFlight; ++Iterator)
     {
-        const VkDescriptorBufferInfo DescriptorBufferInfo{
-            .buffer = UniformBuffers[Iterator],
-            .offset = 0u,
-            .range = sizeof(UniformBufferObject)};
+        std::vector<VkDescriptorBufferInfo> UniformBuffers{};
+        for (const VulkanObjectData &ObjectDataIter : ObjectsData)
+        {
+            if (ObjectDataIter.UniformBuffers.empty())
+            {
+                continue;
+            }
 
-        const VkDescriptorImageInfo DescriptorImageInfo{
-            .sampler = TextureSampler,
-            .imageView = TextureView,
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+            UniformBuffers.push_back(VkDescriptorBufferInfo{
+                .buffer = ObjectDataIter.UniformBuffers[Iterator],
+                .offset = 0u,
+                .range = sizeof(UniformBufferObject)});
+        }
+        
+        std::vector<VkDescriptorImageInfo> ImageInfos{};
+        for (const VulkanObjectData &ObjectDataIter : ObjectsData)
+        {
+            for (const VulkanTextureData &TextureDataIter : ObjectDataIter.TextureDatas)
+            {
+                ImageInfos.push_back(VkDescriptorImageInfo{
+                    .sampler = TextureDataIter.Sampler,
+                    .imageView = TextureDataIter.ImageView,
+                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+            }
+        }
 
-        const std::array<VkWriteDescriptorSet, 2u> WriteDescriptors {
-            VkWriteDescriptorSet {
+        std::vector<VkWriteDescriptorSet> WriteDescriptors {};
+        if (!UniformBuffers.empty())
+        {
+            WriteDescriptors.push_back(VkWriteDescriptorSet{
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .dstSet = m_DescriptorSets[Iterator],
                 .dstBinding = 0u,
                 .dstArrayElement = 0u,
-                .descriptorCount = 1u,
+                .descriptorCount = static_cast<std::uint32_t>(UniformBuffers.size()),
                 .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                 .pImageInfo = nullptr,
-                .pBufferInfo = &DescriptorBufferInfo,
-                .pTexelBufferView = nullptr},
-            VkWriteDescriptorSet {
+                .pBufferInfo = UniformBuffers.data(),
+                .pTexelBufferView = nullptr});
+        }
+
+        if (!ImageInfos.empty())
+        {
+            WriteDescriptors.push_back(VkWriteDescriptorSet{
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .dstSet = m_DescriptorSets[Iterator],
                 .dstBinding = 1u,
                 .dstArrayElement = 0u,
-                .descriptorCount = 1u,
+                .descriptorCount = static_cast<std::uint32_t>(ImageInfos.size()),
                 .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .pImageInfo = &DescriptorImageInfo,
+                .pImageInfo = ImageInfos.data(),
                 .pBufferInfo = nullptr,
-                .pTexelBufferView = nullptr}};            
+                .pTexelBufferView = nullptr});
+        }        
     
-        vkUpdateDescriptorSets(m_Device, static_cast<std::uint32_t>(WriteDescriptors.size()), WriteDescriptors.data(), 0u, nullptr);
+        if (!WriteDescriptors.empty())
+        {
+            vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(WriteDescriptors.size()), WriteDescriptors.data(), 0u, nullptr);
+        }
     }
 }
 
 void VulkanPipelineManager::Shutdown()
 {
-    if (!IsInitialized())
-    {
-        return;
-    }
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan pipelines";
 
     DestroyResources();
 
-    vkDestroyPipeline(m_Device, m_Pipeline, nullptr);
+    const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
+
+    vkDestroyPipeline(VulkanLogicalDevice, m_Pipeline, nullptr);
     m_Pipeline = VK_NULL_HANDLE;
 
-    vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
+    vkDestroyPipelineLayout(VulkanLogicalDevice, m_PipelineLayout, nullptr);
     m_PipelineLayout = VK_NULL_HANDLE;
 
-    vkDestroyPipelineCache(m_Device, m_PipelineCache, nullptr);
+    vkDestroyPipelineCache(VulkanLogicalDevice, m_PipelineCache, nullptr);
     m_PipelineCache = VK_NULL_HANDLE;
 }
 
@@ -322,21 +345,18 @@ void VulkanPipelineManager::DestroyResources()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan pipelines resources";
 
-    vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);
+    const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
+
+    vkDestroyRenderPass(VulkanLogicalDevice, m_RenderPass, nullptr);
     m_RenderPass = VK_NULL_HANDLE;
 
-    vkDestroyDescriptorSetLayout(m_Device, m_DescriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(VulkanLogicalDevice, m_DescriptorSetLayout, nullptr);
     m_DescriptorSetLayout = VK_NULL_HANDLE;
 
-    vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr);
+    vkDestroyDescriptorPool(VulkanLogicalDevice, m_DescriptorPool, nullptr);
     m_DescriptorPool = VK_NULL_HANDLE;
     
     m_DescriptorSets.clear();
-}
-
-bool VulkanPipelineManager::IsInitialized() const
-{
-    return m_RenderPass != VK_NULL_HANDLE && m_Pipeline != VK_NULL_HANDLE && m_PipelineLayout != VK_NULL_HANDLE;
 }
 
 const VkRenderPass &VulkanPipelineManager::GetRenderPass() const

@@ -7,6 +7,7 @@
 #include "RenderCoreModule.h"
 #include "Types/VulkanVertex.h"
 #include "Types/VulkanUniformBufferObject.h"
+#include "Types/TextureData.h"
 #include <vulkan/vulkan_core.h>
 #include <vector>
 #include <memory>
@@ -22,23 +23,21 @@ namespace RenderCore
         class Impl;
 
     public:
-        VulkanBufferManager() = delete;
         VulkanBufferManager(const VulkanBufferManager&) = delete;
         VulkanBufferManager& operator=(const VulkanBufferManager&) = delete;
 
-        VulkanBufferManager(const VkDevice& Device, const VkSurfaceKHR& Surface, const std::vector<std::uint32_t>& QueueFamilyIndices);
+        VulkanBufferManager();
         ~VulkanBufferManager();
 
-        void CreateMemoryAllocator(const VkInstance& Instance, const VkDevice& LogicalDevice, const VkPhysicalDevice& PhysicalDevice);
-        void CreateSwapChain(const VkSurfaceFormatKHR& PreferredFormat, const VkPresentModeKHR& PreferredMode, const VkExtent2D& PreferredExtent, const VkSurfaceCapabilitiesKHR& Capabilities);
-        void CreateFrameBuffers(const VkRenderPass& RenderPass, const VkExtent2D& Extent);
-        void CreateVertexBuffers(const VkQueue& Queue, const std::uint32_t QueueFamilyIndex);
-        void CreateIndexBuffers(const VkQueue& Queue, const std::uint32_t QueueFamilyIndex);
-        void CreateUniformBuffers();
-        void UpdateUniformBuffers(const std::uint32_t Frame, const VkExtent2D &SwapChainExtent);
-        void CreateTextureImage(const std::string_view Path, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex, VkImageView& ImageView, VkSampler& Sampler);
-        void CreateDepthResources(const VkFormat &Format, const VkExtent2D &Extent, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex);
-        void LoadScene(const std::string_view Path);
+        void CreateMemoryAllocator();
+        void CreateSwapChain(const bool bRecreate);
+        void CreateFrameBuffers(const VkRenderPass& RenderPass);
+        void CreateDepthResources();
+
+        std::uint64_t LoadObject(const std::string_view Path);
+        void LoadTexture(const std::string_view Path, const std::uint64_t ObjectID);
+
+        void UpdateUniformBuffers();
 
         void DestroyResources(const bool bClearScene);
         void Shutdown();
@@ -46,13 +45,14 @@ namespace RenderCore
         bool IsInitialized() const;
         [[nodiscard]] const VkSwapchainKHR& GetSwapChain() const;
         [[nodiscard]] const std::vector<VkImage> GetSwapChainImages() const;
-        [[nodiscard]] const std::vector<VkFramebuffer>& GetFrameBuffers() const;
-        [[nodiscard]] const std::vector<VkBuffer> GetVertexBuffers() const;
-        [[nodiscard]] const std::vector<VkBuffer> GetIndexBuffers() const;
-        [[nodiscard]] const std::vector<VkBuffer> GetUniformBuffers() const;
-        [[nodiscard]] const std::vector<Vertex>& GetVertices() const;
-        [[nodiscard]] const std::vector<std::uint32_t>& GetIndices() const;
-        [[nodiscard]] std::uint32_t GetIndicesCount() const;
+        [[nodiscard]] const std::vector<VkFramebuffer> &GetFrameBuffers() const;
+        [[nodiscard]] const std::vector<VkBuffer> GetVertexBuffers(const std::uint64_t ObjectID = 0u) const;
+        [[nodiscard]] const std::vector<VkBuffer> GetIndexBuffers(const std::uint64_t ObjectID = 0u) const;
+        [[nodiscard]] const std::vector<VkBuffer> GetUniformBuffers(const std::uint64_t ObjectID = 0u) const;
+        [[nodiscard]] const std::vector<Vertex> GetVertices(const std::uint64_t ObjectID = 0u) const;
+        [[nodiscard]] const std::vector<std::uint32_t> GetIndices(const std::uint64_t ObjectID = 0u) const;
+        [[nodiscard]] const std::uint32_t GetIndicesCount(const std::uint64_t ObjectID = 0u) const;
+        const bool GetObjectTexture(const std::uint64_t ObjectID, std::vector<VulkanTextureData> &TextureData) const;
 
     private:
         std::unique_ptr<Impl> m_Impl;

@@ -20,9 +20,7 @@ namespace RenderCore
     class VulkanShaderManager
     {
     public:
-        VulkanShaderManager() = delete;
-
-        VulkanShaderManager(const VkDevice &Device);
+        VulkanShaderManager();
         ~VulkanShaderManager();
 
         void Shutdown();
@@ -44,7 +42,6 @@ namespace RenderCore
         bool Compile(const std::string_view Source, EShLanguage Language, std::vector<uint32_t> &OutSPIRVCode);
         void StageInfo(const VkShaderModule &Module, EShLanguage Language);
 
-        const VkDevice &m_Device;
         std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> m_StageInfos;
     };
 }

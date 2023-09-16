@@ -8,14 +8,14 @@
 
 namespace RenderCore
 {
-    struct DeviceProperties
+    struct VulkanDeviceProperties
     {
-        VkSurfaceFormatKHR PreferredFormat;
-        VkFormat PreferredDepthFormat;
-        VkPresentModeKHR PreferredMode;
-        VkExtent2D PreferredExtent;
+        VkSurfaceFormatKHR Format;
+        VkFormat DepthFormat;
+        VkPresentModeKHR Mode;
+        VkExtent2D Extent;
         VkSurfaceCapabilitiesKHR Capabilities;
 
-        inline bool IsValid() const { return PreferredExtent.height != 0u && PreferredExtent.width != 0u; }
+        inline bool IsValid() const { return Extent.height != 0u && Extent.width != 0u; }
     };
 }
