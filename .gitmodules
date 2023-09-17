@@ -1,9 +1,3 @@
 [submodule "Modules/cpp-submodules"]
 	path = Modules/cpp-submodules
 	url = https://github.com/lucoiso/cpp-submodules.git
-[submodule "Modules/ThirdParty/vulkan-glslang"]
-	path = Modules/ThirdParty/vulkan-glslang
-	url = https://github.com/KhronosGroup/glslang.git
-[submodule "Modules/ThirdParty/VulkanMemoryAllocator"]
-	path = Modules/ThirdParty/VulkanMemoryAllocator
-	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator

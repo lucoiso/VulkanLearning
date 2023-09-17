@@ -1,0 +1,17 @@
+{
+    "name": "vulkan-project",
+    "version-string": "0.0.1",
+    "dependencies": [
+        "qt5-base",
+        "boost-log",
+        "boost-json",
+        "boost-test",
+        "benchmark",
+        "glm",
+        "stb",
+        "assimp",
+        "vulkan-headers",
+        "vulkan-memory-allocator",
+        "glslang"
+    ]
+}

@@ -3,35 +3,25 @@
 // Repo : https://github.com/lucoiso/VulkanLearning
 
 #include <RenderCore/Window.h>
-#include <boost/log/trivial.hpp>
-#include <exception>
+#include <QApplication>
 #include <memory>
+#include <boost/log/trivial.hpp>
 
 int main(int Argc, char *Argv[])
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing application";
 
-    try
+    QApplication Application(Argc, Argv);
+    Application.setApplicationName("Vulkan Project");
+    Application.setApplicationVersion("0.0.1");
+    Application.setOrganizationName("Lucas Vilas-Boas");
+
+    const std::unique_ptr<RenderCore::Window> Window = std::make_unique<RenderCore::Window>();
+
+    if (Window->Initialize(600u, 600u, "Vulkan Project"))
     {
-        if (const std::unique_ptr<RenderCore::Window> Window = std::make_unique<RenderCore::Window>();
-            Window && Window->Initialize(600u, 600u, "Vulkan Project"))
-        {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Starting polling events & drawing frames";
-            {
-                while (Window->IsOpen())
-                {
-                    Window->PollEvents();
-                }
-            }
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Window closed. Starting to freeing up resources";
-        }
-    }
-    catch (const std::exception &Ex)
-    {
-        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
-        return EXIT_FAILURE;
+        return Application.exec();
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down application";
-    return EXIT_SUCCESS;
+    return EXIT_FAILURE;
 }

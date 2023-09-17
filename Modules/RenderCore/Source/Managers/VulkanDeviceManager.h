@@ -6,7 +6,8 @@
 
 #include "RenderCoreModule.h"
 #include "Types/DeviceProperties.h"
-#include <vulkan/vulkan_core.h>
+#include <QWindow>
+#include <vulkan/vulkan.h>
 #include <vector>
 #include <string>
 #include <optional>
@@ -43,7 +44,7 @@ namespace RenderCore
         [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment() const;
 
         [[nodiscard]] bool IsPhysicalDeviceSuitable(const VkPhysicalDevice &Device) const;
-        [[nodiscard]] VulkanDeviceProperties GetPreferredProperties(GLFWwindow *const Window);
+        [[nodiscard]] VulkanDeviceProperties GetPreferredProperties(const QWindow *const Window);
 
     private:
         bool GetQueueFamilyIndices(std::optional<std::uint8_t> &GraphicsQueueFamilyIndex, std::optional<std::uint8_t> &PresentationQueueFamilyIndex, std::optional<std::uint8_t> &TransferQueueFamilyIndex);

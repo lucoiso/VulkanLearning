@@ -17,7 +17,7 @@ set(INCLUDE_FILES
 add_executable(${LIBRARY_NAME} ${SOURCE_FILES} ${INCLUDE_FILES})
 target_include_directories(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME})
 
-find_package(benchmark REQUIRED CONFIG COMPONENTS benchmark_main)
+find_package(benchmark CONFIG REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE
     benchmark::benchmark_main

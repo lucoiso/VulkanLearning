@@ -94,6 +94,16 @@
         "memory_resource": "cpp",
         "random": "cpp",
         "stdfloat": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "qwindow": "cpp",
+        "future": "cpp",
+        "queue": "cpp",
+        "regex": "cpp",
+        "any": "cpp",
+        "cinttypes": "cpp",
+        "codecvt": "cpp",
+        "csetjmp": "cpp",
+        "execution": "cpp",
+        "scoped_allocator": "cpp"
     }
 }

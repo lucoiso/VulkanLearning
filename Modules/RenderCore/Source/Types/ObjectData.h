@@ -5,7 +5,7 @@
 #pragma once
 
 #include "Types/TextureData.h"
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan.h>
 #include <vector>
 
 namespace RenderCore

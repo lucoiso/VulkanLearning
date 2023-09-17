@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan.h>
 #include <cstdint>
 
 namespace RenderCore

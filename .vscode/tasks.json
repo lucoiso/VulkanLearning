@@ -2,9 +2,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Conan Install: Debug",
+            "label": "CMake Configure: Release",
             "type": "shell",
-            "command": "conan install . --build=missing -pr Profiles/Windows_x64_Debug",
+            "command": "cmake -B build --preset Release",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -12,9 +12,9 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "Conan Install: Release",
+            "label": "CMake Configure: Debug",
             "type": "shell",
-            "command": "conan install . --build=missing -pr Profiles/Windows_x64_Release",
+            "command": "cmake -B build --preset Debug",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -22,20 +22,11 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "CMake Build: Debug",
+            "label": "VCPKG Install",
             "type": "shell",
-            "command": "cmake -DCMAKE_BUILD_TYPE=Debug ; cmake --build --preset conan-debug",
+            "command": "vcpkg install --allow-unsupported --clean-after-build --triplet x64-windows",
             "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": "$msCompile"
-        },
-        {
-            "label": "CMake Build: Debug with Sanitizer",
-            "type": "shell",
-            "command": "cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=\"-fsanitize=address\" ; cmake --build --preset conan-debug",
-            "group": {
+                
                 "kind": "build",
                 "isDefault": true
             },
@@ -44,7 +35,18 @@
         {
             "label": "CMake Build: Release",
             "type": "shell",
-            "command": "cmake -DCMAKE_BUILD_TYPE=Release ; cmake --build --preset conan-release",
+            "command": "cmake --build build --preset Release",
+            "group": {
+
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "CMake Build: Debug",
+            "type": "shell",
+            "command": "cmake --build build --preset Debug",
             "group": {
                 "kind": "build",
                 "isDefault": true

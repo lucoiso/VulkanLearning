@@ -9,7 +9,6 @@
 #include "Utils/RenderCoreHelpers.h"
 #include "Utils/VulkanConstants.h"
 #include <boost/log/trivial.hpp>
-#include "VulkanPipelineManager.h"
 
 using namespace RenderCore;
 
@@ -39,7 +38,7 @@ void VulkanPipelineManager::CreateRenderPass()
 
     const VkAttachmentDescription ColorAttachmentDescription{
         .format = DeviceProperties.Format.format,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .samples = g_MSAASamples,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
@@ -53,7 +52,7 @@ void VulkanPipelineManager::CreateRenderPass()
 
     const VkAttachmentDescription DepthAttachmentDescription{
         .format = DeviceProperties.DepthFormat,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .samples = g_MSAASamples,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
         .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
@@ -93,6 +92,22 @@ void VulkanPipelineManager::CreateRenderPass()
         .pDependencies = &SubpassDependency};
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateRenderPass(VulkanRenderSubsystem::Get()->GetDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass));
+    VulkanRenderSubsystem::Get()->SetRenderPass(m_RenderPass);
+}
+
+void VulkanPipelineManager::CreateDefaultRenderPass()
+{
+    const VkRenderPassCreateInfo RenderPassCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+        .attachmentCount = 0u,
+        .pAttachments = nullptr,
+        .subpassCount = 0u,
+        .pSubpasses = nullptr,
+        .dependencyCount = 0u,
+        .pDependencies = nullptr};
+
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateRenderPass(VulkanRenderSubsystem::Get()->GetDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass));
+    VulkanRenderSubsystem::Get()->SetRenderPass(m_RenderPass);
 }
 
 void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &ShaderStages)
@@ -133,7 +148,7 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
 
     const VkPipelineMultisampleStateCreateInfo MultisampleState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+        .rasterizationSamples = g_MSAASamples,
         .sampleShadingEnable = VK_FALSE,
     };
 
@@ -162,6 +177,12 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
     const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineLayout(VulkanLogicalDevice, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
+
+    const VkPipelineCacheCreateInfo PipelineCacheCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
+
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineCache(VulkanLogicalDevice, &PipelineCacheCreateInfo, nullptr, &m_PipelineCache));
+    VulkanRenderSubsystem::Get()->SetPipelineCache(m_PipelineCache);
     
     const VkPipelineDepthStencilStateCreateInfo DepthStencilState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
@@ -240,6 +261,7 @@ void VulkanPipelineManager::CreateDescriptorPool()
         .pPoolSizes = DescriptorPoolSizes.data()};
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorPool(VulkanRenderSubsystem::Get()->GetDevice(), &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool));
+    VulkanRenderSubsystem::Get()->SetDescriptorPool(m_DescriptorPool);
 }
 
 void VulkanPipelineManager::CreateDescriptorSets(const std::vector<VulkanObjectData> &ObjectsData)
@@ -331,14 +353,23 @@ void VulkanPipelineManager::Shutdown()
 
     const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
 
-    vkDestroyPipeline(VulkanLogicalDevice, m_Pipeline, nullptr);
-    m_Pipeline = VK_NULL_HANDLE;
+    if (m_Pipeline != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(VulkanLogicalDevice, m_Pipeline, nullptr);
+        m_Pipeline = VK_NULL_HANDLE;
+    }
 
-    vkDestroyPipelineLayout(VulkanLogicalDevice, m_PipelineLayout, nullptr);
-    m_PipelineLayout = VK_NULL_HANDLE;
+    if (m_PipelineLayout != VK_NULL_HANDLE)
+    {
+        vkDestroyPipelineLayout(VulkanLogicalDevice, m_PipelineLayout, nullptr);
+        m_PipelineLayout = VK_NULL_HANDLE;
+    }
 
-    vkDestroyPipelineCache(VulkanLogicalDevice, m_PipelineCache, nullptr);
-    m_PipelineCache = VK_NULL_HANDLE;
+    if (m_PipelineCache != VK_NULL_HANDLE)
+    {
+        vkDestroyPipelineCache(VulkanLogicalDevice, m_PipelineCache, nullptr);
+        m_PipelineCache = VK_NULL_HANDLE;
+    }
 }
 
 void VulkanPipelineManager::DestroyResources()
@@ -347,14 +378,23 @@ void VulkanPipelineManager::DestroyResources()
 
     const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
 
-    vkDestroyRenderPass(VulkanLogicalDevice, m_RenderPass, nullptr);
-    m_RenderPass = VK_NULL_HANDLE;
+    if (m_RenderPass != VK_NULL_HANDLE)
+    {
+        vkDestroyRenderPass(VulkanLogicalDevice, m_RenderPass, nullptr);
+        m_RenderPass = VK_NULL_HANDLE;
+    }
 
-    vkDestroyDescriptorSetLayout(VulkanLogicalDevice, m_DescriptorSetLayout, nullptr);
-    m_DescriptorSetLayout = VK_NULL_HANDLE;
+    if (m_DescriptorSetLayout != VK_NULL_HANDLE)
+    {
+        vkDestroyDescriptorSetLayout(VulkanLogicalDevice, m_DescriptorSetLayout, nullptr);
+        m_DescriptorSetLayout = VK_NULL_HANDLE;
+    }
 
-    vkDestroyDescriptorPool(VulkanLogicalDevice, m_DescriptorPool, nullptr);
-    m_DescriptorPool = VK_NULL_HANDLE;
+    if (m_DescriptorPool != VK_NULL_HANDLE)
+    {
+        vkDestroyDescriptorPool(VulkanLogicalDevice, m_DescriptorPool, nullptr);
+        m_DescriptorPool = VK_NULL_HANDLE;
+    }
     
     m_DescriptorSets.clear();
 }
@@ -388,6 +428,7 @@ const VkDescriptorPool &VulkanPipelineManager::GetDescriptorPool() const
 {
     return m_DescriptorPool;
 }
+
 const std::vector<VkDescriptorSet> &VulkanPipelineManager::GetDescriptorSets() const
 {
     return m_DescriptorSets;

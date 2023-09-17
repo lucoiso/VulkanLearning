@@ -3,9 +3,7 @@
 # Repo : https://github.com/lucoiso/VulkanLearning
 
 # ------------ Module Settings -------------
-set(BUILD_TESTING OFF)
-set(ENABLE_OPT OFF)
+# set(PLACEHOLDER OFF)
 
 # -------------- Directories ---------------
-add_subdirectory(vulkan-glslang)
-add_subdirectory(VulkanMemoryAllocator)
+# add_subdirectory(PLACEHOLDER)

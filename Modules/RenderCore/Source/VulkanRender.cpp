@@ -12,23 +12,23 @@
 #include "Utils/VulkanDebugHelpers.h"
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
-#include <boost/log/trivial.hpp>
-#include <boost/bind/bind.hpp>
 #include <set>
 #include <thread>
 #include <filesystem>
+#include <vulkan/vulkan.h>
+#include <boost/log/trivial.hpp>
 
 using namespace RenderCore;
 
 VulkanRender::VulkanRender()
-    : m_DeviceManager(std::make_unique<VulkanDeviceManager>()),
-    m_PipelineManager(std::make_unique<VulkanPipelineManager>()),
-    m_BufferManager(std::make_unique<VulkanBufferManager>()),
-    m_CommandsManager(std::make_unique<VulkanCommandsManager>()),
-    m_ShaderManager(std::make_unique<VulkanShaderManager>()),
-    m_Instance(VK_NULL_HANDLE),
-    m_Surface(VK_NULL_HANDLE),
-    StateFlags(VulkanRenderStateFlags::NONE)
+    : m_DeviceManager(std::make_unique<VulkanDeviceManager>())
+    , m_PipelineManager(std::make_unique<VulkanPipelineManager>())
+    , m_BufferManager(std::make_unique<VulkanBufferManager>())
+    , m_CommandsManager(std::make_unique<VulkanCommandsManager>())
+    , m_ShaderManager(std::make_unique<VulkanShaderManager>())
+    , m_Instance(VK_NULL_HANDLE)
+    , m_Surface(VK_NULL_HANDLE)
+    , StateFlags(VulkanRenderStateFlags::NONE)
 #ifdef _DEBUG
     , m_DebugMessenger(VK_NULL_HANDLE)
 #endif
@@ -47,16 +47,11 @@ VulkanRender::~VulkanRender()
     Shutdown();
 }
 
-void VulkanRender::Initialize(GLFWwindow *const Window)
+void VulkanRender::Initialize(const QWindow *const Window)
 {
     if (IsInitialized())
     {
         return;
-    }
-
-    if (!Window)
-    {
-        throw std::runtime_error("GLFW Window is invalid");
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulkan render";
@@ -117,7 +112,7 @@ void VulkanRender::Shutdown()
     m_Instance = VK_NULL_HANDLE;
 }
 
-void VulkanRender::DrawFrame(GLFWwindow *const Window)
+void VulkanRender::DrawFrame(const QWindow *const Window)
 {
     if (!IsInitialized())
     {
@@ -126,7 +121,7 @@ void VulkanRender::DrawFrame(GLFWwindow *const Window)
 
     if (Window == nullptr)
     {
-        throw std::runtime_error("GLFW Window is invalid");
+        throw std::runtime_error("Window is invalid");
     }
 
     const std::optional<std::int32_t> ImageIndice = TryRequestDrawImage(Window);
@@ -155,7 +150,7 @@ void VulkanRender::DrawFrame(GLFWwindow *const Window)
             RemoveFlags(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH);
         }
     }
-    else if (!HasInvalidFlags && HasFlag(StateFlags, VulkanRenderStateFlags::SCENE_LOADED))
+    else if (HasFlag(StateFlags, VulkanRenderStateFlags::SCENE_LOADED))
     {
         const std::int32_t IndiceToProcess = ImageIndice.value();
         m_BufferManager->UpdateUniformBuffers();
@@ -172,7 +167,7 @@ void VulkanRender::DrawFrame(GLFWwindow *const Window)
     }
 }
 
-std::optional<std::int32_t> VulkanRender::TryRequestDrawImage(GLFWwindow *const Window) const
+std::optional<std::int32_t> VulkanRender::TryRequestDrawImage(const QWindow *const Window) const
 {
     if (!VulkanRenderSubsystem::Get()->SetDeviceProperties(m_DeviceManager->GetPreferredProperties(Window)))
     {
@@ -227,6 +222,8 @@ void VulkanRender::LoadScene(const std::string_view ModelPath, const std::string
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
+    
+    m_PipelineManager->DestroyResources();
 
     const std::uint64_t ObjectID = m_BufferManager->LoadObject(ModelPath);
     m_BufferManager->LoadTexture(TexturePath, ObjectID);
@@ -290,12 +287,7 @@ void VulkanRender::CreateVulkanInstance()
         .enabledLayerCount = 0u};
 
     std::vector<const char *> Layers(g_RequiredInstanceLayers.begin(), g_RequiredInstanceLayers.end());
-    std::vector<const char *> Extensions = GetGLFWExtensions();
-
-    for (const char *const &ExtensionIter : g_RequiredInstanceExtensions)
-    {
-        Extensions.push_back(ExtensionIter);
-    }
+    std::vector<const char *> Extensions(g_RequiredInstanceExtensions.begin(), g_RequiredInstanceExtensions.end());
 
 #ifdef _DEBUG
     const VkValidationFeaturesEXT ValidationFeatures = GetInstanceValidationFeatures();
@@ -330,31 +322,31 @@ void VulkanRender::CreateVulkanInstance()
 #endif
 }
 
-void VulkanRender::CreateVulkanSurface(GLFWwindow *const Window)
+void VulkanRender::CreateVulkanSurface(const QWindow *const Window)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan surface";
-
-    if (!Window)
-    {
-        throw std::runtime_error("GLFW Window is invalid.");
-    }
 
     if (m_Instance == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan instance is invalid.");
     }
 
-    RENDERCORE_CHECK_VULKAN_RESULT(glfwCreateWindowSurface(m_Instance, Window, nullptr, &m_Surface));
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+    const VkWin32SurfaceCreateInfoKHR CreateInfo{
+        .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+        .pNext = nullptr,
+        .flags = 0u,
+        .hinstance = GetModuleHandle(nullptr),
+        .hwnd = reinterpret_cast<HWND>(Window->winId())};
+
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateWin32SurfaceKHR(m_Instance, &CreateInfo, nullptr, &m_Surface));
+#endif
+
     VulkanRenderSubsystem::Get()->SetSurface(m_Surface);
 }
 
-void VulkanRender::InitializeRenderCore(GLFWwindow *const Window)
+void VulkanRender::InitializeRenderCore(const QWindow *const Window)
 {
-    if (!Window)
-    {
-        throw std::runtime_error("GLFW Window is invalid.");
-    }
-
     m_DeviceManager->PickPhysicalDevice();
     m_DeviceManager->CreateLogicalDevice();
     VulkanRenderSubsystem::Get()->SetDeviceProperties(m_DeviceManager->GetPreferredProperties(Window));

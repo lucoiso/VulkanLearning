@@ -7,7 +7,7 @@
 #include "RenderCoreModule.h"
 #include "Types/QueueType.h"
 #include "Types/DeviceProperties.h"
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan.h>
 #include <vector>
 #include <unordered_map>
 #include <memory>
@@ -32,6 +32,10 @@ namespace RenderCore
         bool SetDeviceProperties(const VulkanDeviceProperties &DeviceProperties);
         void SetQueueFamilyIndices(const std::vector<std::uint8_t> &QueueFamilyIndices);
         void SetDefaultShadersStageInfos(const std::vector<VkPipelineShaderStageCreateInfo> &DefaultShadersStageInfos);
+        void SetMinImageCount(const std::uint8_t MinImageCount);
+        void SetRenderPass(const VkRenderPass &RenderPass);
+        void SetPipelineCache(const VkPipelineCache &PipelineCache);
+        void SetDescriptorPool(const VkDescriptorPool &DescriptorPool);
         
         void UpdateFrameIndex();
 
@@ -52,6 +56,10 @@ namespace RenderCore
         [[nodiscard]] const VulkanQueueType GetQueueTypeFromID(const uint8_t ID) const;
         [[nodiscard]] const std::uint8_t GetFrameIndex() const;
         [[nodiscard]] const std::vector<VkPipelineShaderStageCreateInfo> &GetDefaultShadersStageInfos() const;
+        [[nodiscard]] const std::uint8_t GetMinImageCount() const;
+        [[nodiscard]] const VkRenderPass &GetRenderPass() const;
+        [[nodiscard]] const VkPipelineCache &GetPipelineCache() const;
+        [[nodiscard]] const VkDescriptorPool &GetDescriptorPool() const;
 
     private:
         static std::shared_ptr<VulkanRenderSubsystem> m_SubsystemInstance;
@@ -60,6 +68,9 @@ namespace RenderCore
         VkDevice m_Device;
         VkPhysicalDevice m_PhysicalDevice;
         VkSurfaceKHR m_Surface;
+        VkRenderPass m_RenderPass;
+        VkPipelineCache m_PipelineCache;
+        VkDescriptorPool m_DescriptorPool;
         VulkanDeviceProperties m_DeviceProperties;
         std::vector<std::uint8_t> m_QueueFamilyIndices;
 
@@ -73,5 +84,6 @@ namespace RenderCore
         std::unordered_map<std::uint8_t, VulkanQueueHandle> m_Queues;
         std::uint8_t m_FrameIndex;
         std::vector<VkPipelineShaderStageCreateInfo> m_DefaultShadersStageInfos;
+        std::uint8_t m_MinImageCount;
     };
 }

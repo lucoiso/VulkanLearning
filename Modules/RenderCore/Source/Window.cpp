@@ -4,76 +4,58 @@
 
 #include "Window.h"
 #include "VulkanRender.h"
+#include "Managers/VulkanRenderSubsystem.h"
+#include "Utils/RenderCoreHelpers.h"
+#include "Utils/VulkanConstants.h"
 #include <stdexcept>
 #include <boost/log/trivial.hpp>
-
-#ifndef GLFW_INCLUDE_VULKAN
-#define GLFW_INCLUDE_VULKAN
-#endif
-#include <GLFW/glfw3.h>
+#include <QTimer>
 
 using namespace RenderCore;
 
-class Window::Impl
+class Window::Renderer
 {
 public:
-    Impl(const Window &) = delete;
-    Impl &operator=(const Window &) = delete;
+    Renderer(const Window::Renderer &) = delete;
+    Renderer &operator=(const Window::Renderer &) = delete;
 
-    Impl()
-        : m_Window(nullptr)
+    Renderer()
+        : m_Render(std::make_unique<VulkanRender>())
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Window Implementation";
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Window Renderer";
     }
 
-    ~Impl()
+    ~Renderer()
     {
         if (!IsInitialized())
         {
             return;
         }
 
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing Window Implementation";
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing Window Renderer";
         Shutdown();
     }
 
-    bool Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title)
+    bool Initialize(const QWindow *const Window)
     {
         if (IsInitialized())
         {
             return false;
         }
 
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing Window";
-
-        if (!glfwInit())
+        try
         {
-            throw std::runtime_error("Failed to initialize GLFW Library");
+            m_Render->Initialize(Window);
+            m_Render->LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+            
+            return m_Render->IsInitialized();
         }
-
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-
-        if (m_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr); !m_Window)
+        catch (const std::exception &Ex)
         {
-            throw std::runtime_error("Failed to create GLFW Window");
-        }
-
-        if (m_Render = std::make_unique<VulkanRender>())
-        {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Window initialized";
-
-            if (m_Render->Initialize(m_Window); m_Render->IsInitialized())
-            {
-                m_Render->LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
-                return true;
-            }
-
-            return false;
+            BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
         }
 
         Shutdown();
-
         return false;
     }
 
@@ -84,48 +66,29 @@ public:
             return;
         }
 
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Window";
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Window Renderer";
 
         m_Render.reset();
-
-        glfwDestroyWindow(m_Window);
-        glfwTerminate();
-
-        m_Window = nullptr;
     }
 
     bool IsInitialized() const
     {
-        return m_Window != nullptr && m_Render != nullptr;
+        return m_Render && m_Render->IsInitialized();
     }
 
-    bool IsOpen() const
+    void DrawFrame(const QWindow *const Window)
     {
-        return !ShouldClose();
-    }
-
-    bool ShouldClose() const
-    {
-        return glfwWindowShouldClose(m_Window);
-    }
-
-    void PollEvents()
-    {
-        glfwPollEvents();
-    }
-
-    void DrawFrame()
-    {
-        m_Render->DrawFrame(m_Window);
+        m_Render->DrawFrame(Window);
     }
 
 private:
-    GLFWwindow *m_Window;
+
     std::unique_ptr<VulkanRender> m_Render;
 };
 
 Window::Window()
-    : m_Impl(std::make_unique<Window::Impl>())
+    : QMainWindow()
+    , m_Renderer(std::make_unique<Window::Renderer>())
 {
 }
 
@@ -146,7 +109,23 @@ bool Window::Initialize(const std::uint16_t Width, const std::uint16_t Height, c
         return false;
     }
 
-    return m_Impl && m_Impl->Initialize(Width, Height, Title);
+    setWindowTitle(Title.data());
+    setMinimumSize(Width, Height);
+    show();
+
+    if (m_Renderer->Initialize(windowHandle()))
+    {
+        constexpr std::uint32_t FrameRate = 75u;
+        QTimer *const Timer = new QTimer(this);
+        connect(Timer, &QTimer::timeout, this, &Window::DrawFrame);
+        Timer->start(static_cast<std::int32_t>(1000u / FrameRate));
+    }
+    else
+    {
+        Shutdown();
+    }
+
+    return IsInitialized();
 }
 
 void Window::Shutdown()
@@ -156,31 +135,27 @@ void Window::Shutdown()
         return;
     }
 
-    m_Impl->Shutdown();
+    m_Renderer->Shutdown();
 }
 
 bool Window::IsInitialized() const
 {
-    return m_Impl && m_Impl->IsInitialized();
+    return m_Renderer && m_Renderer->IsInitialized();
 }
 
-bool Window::IsOpen() const
+void Window::DrawFrame()
 {
-    return IsInitialized() && m_Impl->IsOpen();
-}
-
-bool Window::ShouldClose() const
-{
-    return !IsInitialized() || (m_Impl && m_Impl->ShouldClose());
-}
-
-void Window::PollEvents()
-{
-    if (!IsInitialized())
+    try
     {
-        return;
+        m_Renderer->DrawFrame(windowHandle());
     }
+    catch (const std::exception &Ex)
+    {
+        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
+    }
+}
 
-    m_Impl->PollEvents();
-    m_Impl->DrawFrame();
+bool Window::event(QEvent *const Event)
+{
+    return QMainWindow::event(Event);
 }

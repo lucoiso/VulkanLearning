@@ -5,12 +5,12 @@
 #include "Managers/VulkanShaderManager.h"
 #include "Managers/VulkanRenderSubsystem.h"
 #include "Utils/RenderCoreHelpers.h"
-#include <boost/log/trivial.hpp>
-#include <SPIRV/GlslangToSpv.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
 #include <glslang/Public/ResourceLimits.h>
 #include <filesystem>
 #include <fstream>
 #include <format>
+#include <boost/log/trivial.hpp>
 
 using namespace RenderCore;
 
@@ -213,8 +213,6 @@ VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(const VkShader
 std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
 {
     std::vector<VkShaderModule> Output;
-    Output.reserve(m_StageInfos.size());
-
     for (const auto &[ShaderModule, _] : m_StageInfos)
     {
         Output.push_back(ShaderModule);
@@ -226,8 +224,6 @@ std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
 std::vector<VkPipelineShaderStageCreateInfo> VulkanShaderManager::GetStageInfos() const
 {
     std::vector<VkPipelineShaderStageCreateInfo> Output;
-    Output.reserve(m_StageInfos.size());
-
     for (const auto &[_, StageInfo] : m_StageInfos)
     {
         Output.push_back(StageInfo);
@@ -295,8 +291,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Lan
         throw std::runtime_error(ErrMessage);
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n"
-                             << Source;
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n" << Source;
 
     spv::SpvBuildLogger Logger;
     glslang::GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
@@ -304,8 +299,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Lan
 
     if (const std::string_view GeneratedLogs = Logger.getAllMessages(); !GeneratedLogs.empty())
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compilation result log:\n"
-                                 << GeneratedLogs;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compilation result log:\n" << GeneratedLogs;
     }
 
     return !OutSPIRVCode.empty();

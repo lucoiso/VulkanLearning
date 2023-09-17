@@ -53,27 +53,46 @@ target_include_directories(${LIBRARY_NAME} PRIVATE
 
 target_compile_definitions(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 
-find_package(glfw3 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS log)
 find_package(glm REQUIRED)
-find_package(Boost REQUIRED CONFIG COMPONENTS log)
-find_package(stb REQUIRED)
-find_package(assimp REQUIRED)
-find_package(Vulkan REQUIRED)
+find_package(Stb REQUIRED)
+find_package(assimp CONFIG REQUIRED)
+
+find_package(Vulkan)
+find_package(VulkanHeaders CONFIG REQUIRED)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+find_package(glslang CONFIG REQUIRED)
+
+set(Qt_Version 5)
+
+find_package(Qt${Qt_Version}Core CONFIG REQUIRED)
+find_package(Qt${Qt_Version}Gui CONFIG REQUIRED)
+find_package(Qt${Qt_Version}Widgets CONFIG REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE
-    glfw
-    glm::glm
     Boost::log
-    stb::stb
+
+    glm::glm
     assimp::assimp
-    ${Vulkan_LIBRARIES}
-    glslang
-    glslang-default-resource-limits
-    SPIRV
+
+    glslang::glslang
+    glslang::glslang-default-resource-limits
+    glslang::SPIRV
+    Vulkan::Vulkan
+    Vulkan::Headers
     GPUOpen::VulkanMemoryAllocator
 )
 
-target_include_directories(${LIBRARY_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
+target_link_libraries(${LIBRARY_NAME} PUBLIC
+    Qt${Qt_Version}::Core
+    Qt${Qt_Version}::Gui
+    Qt${Qt_Version}::Widgets
+)
+
+target_include_directories(${LIBRARY_NAME} PRIVATE
+    ${Vulkan_INCLUDE_DIRS}
+    ${Stb_INCLUDE_DIR}
+)
 
 target_compile_definitions(${LIBRARY_NAME} PRIVATE
     PLACEHOLDER_IMAGE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/Resources/Placeholder.jpg"
@@ -88,4 +107,5 @@ target_compile_definitions(${LIBRARY_NAME} PUBLIC
     WIN32_LEAN_AND_MEAN
     VK_USE_PLATFORM_WIN32_KHR
     NOMINMAX
+    _WIN32_WINNT=0x0601
 )

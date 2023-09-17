@@ -78,6 +78,9 @@ out
 CMakeUserPresets.json
 build
 
+# vcpkg files
+vcpkg_installed
+
 # CLion generated files
 .idea
 DartConfiguration.tcl
