@@ -13,7 +13,7 @@ set(SOURCE_FILES
 
 add_executable(${LIBRARY_NAME} ${SOURCE_FILES})
 
-find_package(Boost REQUIRED CONFIG COMPONENTS log)
+find_package(Boost REQUIRED COMPONENTS log)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE
     Boost::log
@@ -21,6 +21,7 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE
 )
 
 include(GNUInstallDirs)
+
 install(TARGETS ${LIBRARY_NAME}
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

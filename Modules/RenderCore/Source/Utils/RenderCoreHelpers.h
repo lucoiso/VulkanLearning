@@ -11,9 +11,9 @@
 #include "Utils/VulkanEnumConverter.h"
 #include "Types/VulkanVertex.h"
 #include <QWindow>
-#include <boost/log/trivial.hpp>
 #include <vulkan/vulkan.h>
 #include <numbers>
+#include <boost/log/trivial.hpp>
 
 namespace RenderCore
 {
@@ -23,7 +23,7 @@ namespace RenderCore
         throw std::runtime_error("Vulkan operation failed with result: " + std::string(ResultToString(OperationResult))); \
     }
 
-    static inline VkExtent2D GetWindowExtent(QWindow *const Window, const VkSurfaceCapabilitiesKHR &Capabilities)
+    static inline VkExtent2D GetWindowExtent(const QWindow *const Window, const VkSurfaceCapabilitiesKHR &Capabilities)
     {
         const std::int32_t Width = Window->width();
         const std::int32_t Height = Window->height();
@@ -44,7 +44,7 @@ namespace RenderCore
         RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceLayerProperties(&LayersCount, nullptr));
         
         std::vector<VkLayerProperties> Output;
-        Output.reserve(LayersCount);
+        Output.resize(LayersCount);
         RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceLayerProperties(&LayersCount, Output.data()));
 
         return Output;
@@ -55,7 +55,6 @@ namespace RenderCore
         const std::vector<VkLayerProperties> AvailableInstanceLayers = GetAvailableInstanceLayers();
         
         std::vector<const char*> Output;
-        Output.reserve(Output.size());
         for (const VkLayerProperties &LayerIter : AvailableInstanceLayers)
         {
             Output.push_back(LayerIter.layerName);
@@ -86,7 +85,7 @@ namespace RenderCore
         RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(LayerName, &ExtensionCount, nullptr));
         
         std::vector<VkExtensionProperties> Output;
-        Output.reserve(ExtensionCount);
+        Output.resize(ExtensionCount);
         RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(LayerName, &ExtensionCount, Output.data()));
 
         return Output;
@@ -97,7 +96,6 @@ namespace RenderCore
         const std::vector<VkExtensionProperties> AvailableLayerExtensions = GetAvailableLayerExtensions(LayerName);
         
         std::vector<const char*> Output;
-        Output.reserve(Output.size());
         for (const VkExtensionProperties &ExtensionIter : AvailableLayerExtensions)
         {
             Output.push_back(ExtensionIter.extensionName);

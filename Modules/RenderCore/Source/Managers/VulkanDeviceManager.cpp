@@ -7,9 +7,9 @@
 #include "Utils/VulkanEnumConverter.h"
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
-#include <boost/log/trivial.hpp>
 #include <stdexcept>
 #include <set>
+#include <boost/log/trivial.hpp>
 
 using namespace RenderCore;
 
@@ -138,8 +138,6 @@ void VulkanDeviceManager::CreateLogicalDevice()
     VulkanRenderSubsystem::Get()->SetQueueFamilyIndices(UniqueQueueFamilyIndicesIDs);
 
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo;
-    QueueCreateInfo.reserve(QueueFamilyIndices.size());
-
     for (const auto &QueueFamilyIndex : QueueFamilyIndices)
     {
         QueueCreateInfo.push_back({
@@ -188,7 +186,7 @@ void VulkanDeviceManager::CreateLogicalDevice()
     VulkanRenderSubsystem::Get()->RegisterQueue(m_TransferQueue.second, m_TransferQueue.first, VulkanQueueType::Transfer);
 }
 
-VulkanDeviceProperties VulkanDeviceManager::GetPreferredProperties(QWindow *const Window)
+VulkanDeviceProperties VulkanDeviceManager::GetPreferredProperties(const QWindow *const Window)
 {
     VulkanDeviceProperties Output;
 
@@ -352,7 +350,6 @@ std::vector<const char *> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensi
     const std::vector<VkExtensionProperties> AvailableExtensions = GetAvailablePhysicalDeviceExtensions();
     
     std::vector<const char *> Output;
-    Output.reserve(AvailableExtensions.size());
     for (const VkExtensionProperties &ExtensionIter : AvailableExtensions)
     {
         Output.push_back(ExtensionIter.extensionName);
@@ -366,7 +363,6 @@ std::vector<const char *> VulkanDeviceManager::GetAvailablePhysicalDeviceLayersN
     const std::vector<VkLayerProperties> AvailableLayers = GetAvailablePhysicalDeviceLayers();
 
     std::vector<const char *> Output;
-    Output.reserve(AvailableLayers.size());
     for (const VkLayerProperties &LayerIter : AvailableLayers)
     {
         Output.push_back(LayerIter.layerName);

@@ -4,8 +4,8 @@
 
 #include "Managers/VulkanRenderSubsystem.h"
 #include "Utils/VulkanConstants.h"
+#include <algorithm>
 #include <boost/log/trivial.hpp>
-#include "VulkanRenderSubsystem.h"
 
 using namespace RenderCore;
 

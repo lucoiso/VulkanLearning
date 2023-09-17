@@ -12,24 +12,23 @@
 #include "Utils/VulkanDebugHelpers.h"
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
-#include <boost/log/trivial.hpp>
-#include <boost/bind/bind.hpp>
 #include <set>
 #include <thread>
 #include <filesystem>
 #include <vulkan/vulkan.h>
+#include <boost/log/trivial.hpp>
 
 using namespace RenderCore;
 
 VulkanRender::VulkanRender()
-    : m_DeviceManager(std::make_unique<VulkanDeviceManager>()),
-    m_PipelineManager(std::make_unique<VulkanPipelineManager>()),
-    m_BufferManager(std::make_unique<VulkanBufferManager>()),
-    m_CommandsManager(std::make_unique<VulkanCommandsManager>()),
-    m_ShaderManager(std::make_unique<VulkanShaderManager>()),
-    m_Instance(VK_NULL_HANDLE),
-    m_Surface(VK_NULL_HANDLE),
-    StateFlags(VulkanRenderStateFlags::NONE)
+    : m_DeviceManager(std::make_unique<VulkanDeviceManager>())
+    , m_PipelineManager(std::make_unique<VulkanPipelineManager>())
+    , m_BufferManager(std::make_unique<VulkanBufferManager>())
+    , m_CommandsManager(std::make_unique<VulkanCommandsManager>())
+    , m_ShaderManager(std::make_unique<VulkanShaderManager>())
+    , m_Instance(VK_NULL_HANDLE)
+    , m_Surface(VK_NULL_HANDLE)
+    , StateFlags(VulkanRenderStateFlags::NONE)
 #ifdef _DEBUG
     , m_DebugMessenger(VK_NULL_HANDLE)
 #endif
@@ -48,16 +47,11 @@ VulkanRender::~VulkanRender()
     Shutdown();
 }
 
-void VulkanRender::Initialize(QWindow *const Window)
+void VulkanRender::Initialize(const QWindow *const Window)
 {
     if (IsInitialized())
     {
         return;
-    }
-
-    if (!Window)
-    {
-        throw std::runtime_error("GLFW Window is invalid");
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulkan render";
@@ -118,7 +112,7 @@ void VulkanRender::Shutdown()
     m_Instance = VK_NULL_HANDLE;
 }
 
-void VulkanRender::DrawFrame(QWindow *const Window)
+void VulkanRender::DrawFrame(const QWindow *const Window)
 {
     if (!IsInitialized())
     {
@@ -127,7 +121,7 @@ void VulkanRender::DrawFrame(QWindow *const Window)
 
     if (Window == nullptr)
     {
-        throw std::runtime_error("GLFW Window is invalid");
+        throw std::runtime_error("Window is invalid");
     }
 
     const std::optional<std::int32_t> ImageIndice = TryRequestDrawImage(Window);
@@ -173,7 +167,7 @@ void VulkanRender::DrawFrame(QWindow *const Window)
     }
 }
 
-std::optional<std::int32_t> VulkanRender::TryRequestDrawImage(QWindow *const Window) const
+std::optional<std::int32_t> VulkanRender::TryRequestDrawImage(const QWindow *const Window) const
 {
     if (!VulkanRenderSubsystem::Get()->SetDeviceProperties(m_DeviceManager->GetPreferredProperties(Window)))
     {
@@ -270,7 +264,6 @@ void VulkanRender::UnloadScene()
     m_CommandsManager->DestroySynchronizationObjects();
     m_BufferManager->DestroyResources(true);
     m_PipelineManager->DestroyResources();
-    m_PipelineManager->CreateDefaultRenderPass();
 
     RemoveFlags(StateFlags, VulkanRenderStateFlags::SCENE_LOADED);
 }
@@ -329,14 +322,9 @@ void VulkanRender::CreateVulkanInstance()
 #endif
 }
 
-void VulkanRender::CreateVulkanSurface(QWindow *const Window)
+void VulkanRender::CreateVulkanSurface(const QWindow *const Window)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan surface";
-
-    if (!Window)
-    {
-        throw std::runtime_error("GLFW Window is invalid.");
-    }
 
     if (m_Instance == VK_NULL_HANDLE)
     {
@@ -357,21 +345,14 @@ void VulkanRender::CreateVulkanSurface(QWindow *const Window)
     VulkanRenderSubsystem::Get()->SetSurface(m_Surface);
 }
 
-void VulkanRender::InitializeRenderCore(QWindow *const Window)
+void VulkanRender::InitializeRenderCore(const QWindow *const Window)
 {
-    if (!Window)
-    {
-        throw std::runtime_error("GLFW Window is invalid.");
-    }
-
     m_DeviceManager->PickPhysicalDevice();
     m_DeviceManager->CreateLogicalDevice();
     VulkanRenderSubsystem::Get()->SetDeviceProperties(m_DeviceManager->GetPreferredProperties(Window));
 
     m_BufferManager->CreateMemoryAllocator();
     VulkanRenderSubsystem::Get()->SetDefaultShadersStageInfos(CompileDefaultShaders());
-
-    m_PipelineManager->CreateDefaultRenderPass();
     
     AddFlags(StateFlags, VulkanRenderStateFlags::INITIALIZED);
 }

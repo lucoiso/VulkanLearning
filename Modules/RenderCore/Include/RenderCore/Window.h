@@ -24,16 +24,14 @@ namespace RenderCore
 
         ~Window();
 
-        virtual void CreateContent() = 0;
-
         bool Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title);
         void Shutdown();
 
         bool IsInitialized() const;
-        bool IsOpen() const;
-        bool ShouldClose() const;
 
-        void PollEvents();
+    protected:
+        void DrawFrame();
+        virtual bool event(QEvent *const Event) override;
 
     private:
         std::unique_ptr<Renderer> m_Renderer;

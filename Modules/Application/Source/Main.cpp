@@ -3,10 +3,9 @@
 // Repo : https://github.com/lucoiso/VulkanLearning
 
 #include <RenderCore/Window.h>
-#include <boost/log/trivial.hpp>
 #include <QApplication>
-#include <exception>
 #include <memory>
+#include <boost/log/trivial.hpp>
 
 int main(int Argc, char *Argv[])
 {
@@ -17,18 +16,11 @@ int main(int Argc, char *Argv[])
     Application.setApplicationVersion("0.0.1");
     Application.setOrganizationName("Lucas Vilas-Boas");
 
-    try
+    const std::unique_ptr<RenderCore::Window> Window = std::make_unique<RenderCore::Window>();
+
+    if (Window->Initialize(600u, 600u, "Vulkan Project"))
     {
-        const std::unique_ptr<RenderCore::Window> Window = std::make_unique<RenderCore::Window>();
-        
-        if (Window->Initialize(600u, 600u, "Vulkan Project"))
-        {
-            return Application.exec();
-        }
-    }
-    catch (const std::exception &Ex)
-    {
-        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
+        return Application.exec();
     }
 
     return EXIT_FAILURE;

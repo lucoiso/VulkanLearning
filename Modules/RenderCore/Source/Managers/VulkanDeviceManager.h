@@ -44,7 +44,7 @@ namespace RenderCore
         [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment() const;
 
         [[nodiscard]] bool IsPhysicalDeviceSuitable(const VkPhysicalDevice &Device) const;
-        [[nodiscard]] VulkanDeviceProperties GetPreferredProperties(QWindow *const Window);
+        [[nodiscard]] VulkanDeviceProperties GetPreferredProperties(const QWindow *const Window);
 
     private:
         bool GetQueueFamilyIndices(std::optional<std::uint8_t> &GraphicsQueueFamilyIndex, std::optional<std::uint8_t> &PresentationQueueFamilyIndex, std::optional<std::uint8_t> &TransferQueueFamilyIndex);

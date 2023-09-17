@@ -2,9 +2,19 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "CMake Configure",
+            "label": "CMake Configure: Release",
             "type": "shell",
-            "command": "cmake .",
+            "command": "cmake -B build --preset Release",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "CMake Configure: Debug",
+            "type": "shell",
+            "command": "cmake -B build --preset Debug",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -14,7 +24,7 @@
         {
             "label": "VCPKG Install",
             "type": "shell",
-            "command": "vcpkg install --allow-unsupported --clean-after-build",
+            "command": "vcpkg install --allow-unsupported --clean-after-build --triplet x64-windows",
             "group": {
                 
                 "kind": "build",
@@ -23,9 +33,9 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "CMake Build: VCPKG Release",
+            "label": "CMake Build: Release",
             "type": "shell",
-            "command": "cmake --build . --preset vcpkg-release",
+            "command": "cmake --build build --preset Release",
             "group": {
 
                 "kind": "build",
@@ -34,9 +44,9 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "CMake Build: VCPKG Debug",
+            "label": "CMake Build: Debug",
             "type": "shell",
-            "command": "cmake --build . --preset vcpkg-debug",
+            "command": "cmake --build build --preset Debug",
             "group": {
                 "kind": "build",
                 "isDefault": true

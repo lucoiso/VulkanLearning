@@ -2,11 +2,16 @@
     "name": "vulkan-project",
     "version-string": "0.0.1",
     "dependencies": [
-        "qt",
-        "boost",
+        "qt5-base",
+        "boost-log",
+        "boost-json",
+        "boost-test",
         "benchmark",
         "glm",
         "stb",
-        "assimp"
+        "assimp",
+        "vulkan-headers",
+        "vulkan-memory-allocator",
+        "glslang"
     ]
 }

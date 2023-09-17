@@ -9,6 +9,7 @@
 #include "Utils/VulkanConstants.h"
 #include <stdexcept>
 #include <boost/log/trivial.hpp>
+#include <QTimer>
 
 using namespace RenderCore;
 
@@ -19,6 +20,7 @@ public:
     Renderer &operator=(const Window::Renderer &) = delete;
 
     Renderer()
+        : m_Render(std::make_unique<VulkanRender>())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Window Renderer";
     }
@@ -34,30 +36,26 @@ public:
         Shutdown();
     }
 
-    bool Initialize(QWindow *const Window)
+    bool Initialize(const QWindow *const Window)
     {
         if (IsInitialized())
         {
             return false;
         }
 
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing Window Renderer";
-
-        if (m_Render = std::make_unique<VulkanRender>())
+        try
         {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Window Renderer Initialized";
-
-            if (m_Render->Initialize(Window); m_Render->IsInitialized())
-            {
-                //m_Render->LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
-                return true;
-            }
-
-            return false;
+            m_Render->Initialize(Window);
+            m_Render->LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+            
+            return m_Render->IsInitialized();
+        }
+        catch (const std::exception &Ex)
+        {
+            BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
         }
 
         Shutdown();
-
         return false;
     }
 
@@ -75,10 +73,10 @@ public:
 
     bool IsInitialized() const
     {
-        return m_Render != nullptr;
+        return m_Render && m_Render->IsInitialized();
     }
 
-    void DrawFrame(QWindow *const Window)
+    void DrawFrame(const QWindow *const Window)
     {
         m_Render->DrawFrame(Window);
     }
@@ -112,10 +110,22 @@ bool Window::Initialize(const std::uint16_t Width, const std::uint16_t Height, c
     }
 
     setWindowTitle(Title.data());
-    setBaseSize(Width, Height);
+    setMinimumSize(Width, Height);
     show();
 
-    return m_Renderer && m_Renderer->Initialize(qobject_cast<QWindow*>(window()));
+    if (m_Renderer->Initialize(windowHandle()))
+    {
+        constexpr std::uint32_t FrameRate = 75u;
+        QTimer *const Timer = new QTimer(this);
+        connect(Timer, &QTimer::timeout, this, &Window::DrawFrame);
+        Timer->start(static_cast<std::int32_t>(1000u / FrameRate));
+    }
+    else
+    {
+        Shutdown();
+    }
+
+    return IsInitialized();
 }
 
 void Window::Shutdown()
@@ -133,22 +143,19 @@ bool Window::IsInitialized() const
     return m_Renderer && m_Renderer->IsInitialized();
 }
 
-bool Window::IsOpen() const
+void Window::DrawFrame()
 {
-    return IsInitialized();
-}
-
-bool Window::ShouldClose() const
-{
-    return !IsInitialized();
-}
-
-void Window::PollEvents()
-{
-    if (!IsInitialized())
+    try
     {
-        return;
+        m_Renderer->DrawFrame(windowHandle());
     }
+    catch (const std::exception &Ex)
+    {
+        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
+    }
+}
 
-    m_Renderer->DrawFrame(qobject_cast<QWindow*>(window()));
+bool Window::event(QEvent *const Event)
+{
+    return QMainWindow::event(Event);
 }

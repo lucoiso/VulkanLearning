@@ -8,7 +8,6 @@ on:
 
 env:
   BUILD_TYPE: Release
-  VCPKG_PRESET: vcpkg-release
   
 permissions:
   actions: read
@@ -44,12 +43,13 @@ jobs:
             
     - name: Configure Packages
       run: |
+        python -m pip install PyQt6
         vcpkg install --allow-unsupported --clean-after-build
 
     - name: Build Project
       run: |
-        cmake .
-        cmake --build --preset ${{env.VCPKG_PRESET}}
+        cmake -B build --preset ${{env.BUILD_TYPE}}
+        cmake --build build --preset ${{env.BUILD_TYPE}}
 
     - name: Test Binaries
       working-directory: ${{github.workspace}}/build

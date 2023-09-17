@@ -27,12 +27,12 @@ namespace RenderCore
 
         ~VulkanRender();
 
-        void Initialize(QWindow *const Window);
+        void Initialize(const QWindow *const Window);
         void Shutdown();
 
-        void DrawFrame(QWindow *const Window);
+        void DrawFrame(const QWindow *const Window);
 
-        std::optional<std::int32_t> TryRequestDrawImage(QWindow *const Window) const;
+        std::optional<std::int32_t> TryRequestDrawImage(const QWindow *const Window) const;
         bool IsInitialized() const;
 
         void LoadScene(const std::string_view ModelPath, const std::string_view TexturePath);
@@ -40,8 +40,8 @@ namespace RenderCore
 
     private:
         void CreateVulkanInstance();
-        void CreateVulkanSurface(QWindow *const Window);
-        void InitializeRenderCore(QWindow *const Window);
+        void CreateVulkanSurface(const QWindow *const Window);
+        void InitializeRenderCore(const QWindow *const Window);
         std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders();
         VulkanBufferRecordParameters GetBufferRecordParameters(const std::uint32_t ImageIndex, const std::uint64_t ObjectID) const;
 

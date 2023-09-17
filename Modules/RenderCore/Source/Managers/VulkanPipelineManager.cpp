@@ -9,7 +9,6 @@
 #include "Utils/RenderCoreHelpers.h"
 #include "Utils/VulkanConstants.h"
 #include <boost/log/trivial.hpp>
-#include "VulkanPipelineManager.h"
 
 using namespace RenderCore;
 
@@ -354,14 +353,23 @@ void VulkanPipelineManager::Shutdown()
 
     const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
 
-    vkDestroyPipeline(VulkanLogicalDevice, m_Pipeline, nullptr);
-    m_Pipeline = VK_NULL_HANDLE;
+    if (m_Pipeline != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(VulkanLogicalDevice, m_Pipeline, nullptr);
+        m_Pipeline = VK_NULL_HANDLE;
+    }
 
-    vkDestroyPipelineLayout(VulkanLogicalDevice, m_PipelineLayout, nullptr);
-    m_PipelineLayout = VK_NULL_HANDLE;
+    if (m_PipelineLayout != VK_NULL_HANDLE)
+    {
+        vkDestroyPipelineLayout(VulkanLogicalDevice, m_PipelineLayout, nullptr);
+        m_PipelineLayout = VK_NULL_HANDLE;
+    }
 
-    vkDestroyPipelineCache(VulkanLogicalDevice, m_PipelineCache, nullptr);
-    m_PipelineCache = VK_NULL_HANDLE;
+    if (m_PipelineCache != VK_NULL_HANDLE)
+    {
+        vkDestroyPipelineCache(VulkanLogicalDevice, m_PipelineCache, nullptr);
+        m_PipelineCache = VK_NULL_HANDLE;
+    }
 }
 
 void VulkanPipelineManager::DestroyResources()
@@ -370,14 +378,23 @@ void VulkanPipelineManager::DestroyResources()
 
     const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
 
-    vkDestroyRenderPass(VulkanLogicalDevice, m_RenderPass, nullptr);
-    m_RenderPass = VK_NULL_HANDLE;
+    if (m_RenderPass != VK_NULL_HANDLE)
+    {
+        vkDestroyRenderPass(VulkanLogicalDevice, m_RenderPass, nullptr);
+        m_RenderPass = VK_NULL_HANDLE;
+    }
 
-    vkDestroyDescriptorSetLayout(VulkanLogicalDevice, m_DescriptorSetLayout, nullptr);
-    m_DescriptorSetLayout = VK_NULL_HANDLE;
+    if (m_DescriptorSetLayout != VK_NULL_HANDLE)
+    {
+        vkDestroyDescriptorSetLayout(VulkanLogicalDevice, m_DescriptorSetLayout, nullptr);
+        m_DescriptorSetLayout = VK_NULL_HANDLE;
+    }
 
-    vkDestroyDescriptorPool(VulkanLogicalDevice, m_DescriptorPool, nullptr);
-    m_DescriptorPool = VK_NULL_HANDLE;
+    if (m_DescriptorPool != VK_NULL_HANDLE)
+    {
+        vkDestroyDescriptorPool(VulkanLogicalDevice, m_DescriptorPool, nullptr);
+        m_DescriptorPool = VK_NULL_HANDLE;
+    }
     
     m_DescriptorSets.clear();
 }
