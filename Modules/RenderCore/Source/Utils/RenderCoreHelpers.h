@@ -55,6 +55,7 @@ namespace RenderCore
         const std::vector<VkLayerProperties> AvailableInstanceLayers = GetAvailableInstanceLayers();
         
         std::vector<const char*> Output;
+        Output.reserve(AvailableInstanceLayers.size());
         for (const VkLayerProperties &LayerIter : AvailableInstanceLayers)
         {
             Output.push_back(LayerIter.layerName);
@@ -96,6 +97,7 @@ namespace RenderCore
         const std::vector<VkExtensionProperties> AvailableLayerExtensions = GetAvailableLayerExtensions(LayerName);
         
         std::vector<const char*> Output;
+        Output.reserve(AvailableLayerExtensions.size());
         for (const VkExtensionProperties &ExtensionIter : AvailableLayerExtensions)
         {
             Output.push_back(ExtensionIter.extensionName);

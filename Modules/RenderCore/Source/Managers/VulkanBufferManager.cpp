@@ -487,11 +487,11 @@ public:
                 const aiVector3D &Normal = MeshIter->mNormals[Iterator];
                 const aiVector3D &TextureCoord = MeshIter->mTextureCoords[0][Iterator];
 
-                NewObject.Vertices.emplace_back(Vertex{
-                    .Position = glm::vec3(Position.x, Position.y, Position.z),
-                    .Normal = glm::vec3(Normal.x, Normal.y, Normal.z),
-                    .Color = glm::vec3(1.f, 1.f, 1.f),
-                    .TextureCoordinate = glm::vec2(TextureCoord.x, TextureCoord.y)});
+                NewObject.Vertices.emplace_back(
+                    glm::vec3(Position.x, Position.y, Position.z),
+                    glm::vec3(Normal.x, Normal.y, Normal.z),
+                    glm::vec3(1.f, 1.f, 1.f),
+                    glm::vec2(TextureCoord.x, TextureCoord.y));
             }
 
             for (std::uint32_t Iterator = 0u; Iterator < MeshIter->mNumFaces; ++Iterator)
@@ -499,7 +499,7 @@ public:
                 const aiFace &Face = MeshIter->mFaces[Iterator];
                 for (std::uint32_t FaceIterator = 0u; FaceIterator < Face.mNumIndices; ++FaceIterator)
                 {
-                    NewObject.Indices.emplace_back(Face.mIndices[FaceIterator]);
+                    NewObject.Indices.push_back(Face.mIndices[FaceIterator]);
                 }
             }
         }
@@ -522,9 +522,9 @@ public:
 
         for (const VulkanImageAllocation &ImageIter : Object.TextureImages)
         {
-            TextureData.emplace_back(VulkanTextureData{
-                .ImageView = ImageIter.View,
-                .Sampler = ImageIter.Sampler});
+            TextureData.emplace_back(
+                ImageIter.View,
+                ImageIter.Sampler);
         }
 
         return true;
@@ -668,9 +668,10 @@ public:
     const std::vector<VkImage> GetSwapChainImages() const
     {
         std::vector<VkImage> SwapChainImages;
+        SwapChainImages.reserve(m_SwapChainImages.size());
         for (const VulkanImageAllocation &ImageIter : m_SwapChainImages)
         {
-            SwapChainImages.emplace_back(ImageIter.Image);
+            SwapChainImages.push_back(ImageIter.Image);
         }
 
         return SwapChainImages;
@@ -684,9 +685,10 @@ public:
     const std::vector<VkBuffer> GetVertexBuffers(const std::uint64_t ObjectID) const
     {
         std::vector<VkBuffer> VertexBuffers;
+        VertexBuffers.reserve(m_Objects.at(ObjectID).VertexBuffers.size());
         for (const VulkanBufferAllocation &BufferIter : m_Objects.at(ObjectID).VertexBuffers)
         {
-            VertexBuffers.emplace_back(BufferIter.Buffer);
+            VertexBuffers.push_back(BufferIter.Buffer);
         }
 
         return VertexBuffers;
@@ -695,9 +697,10 @@ public:
     const std::vector<VkBuffer> GetIndexBuffers(const std::uint64_t ObjectID) const
     {
         std::vector<VkBuffer> IndexBuffers;
+        IndexBuffers.reserve(m_Objects.at(ObjectID).IndexBuffers.size());
         for (const VulkanBufferAllocation &BufferIter : m_Objects.at(ObjectID).IndexBuffers)
         {
-            IndexBuffers.emplace_back(BufferIter.Buffer);
+            IndexBuffers.push_back(BufferIter.Buffer);
         }
 
         return IndexBuffers;
@@ -706,9 +709,10 @@ public:
     const std::vector<VkBuffer> GetUniformBuffers(const std::uint64_t ObjectID) const
     {
         std::vector<VkBuffer> UniformBuffers;
+        UniformBuffers.reserve(m_Objects.at(ObjectID).UniformBuffers.size());
         for (const VulkanBufferAllocation &BufferIter : m_Objects.at(ObjectID).UniformBuffers)
         {
-            UniformBuffers.emplace_back(BufferIter.Buffer);
+            UniformBuffers.push_back(BufferIter.Buffer);
         }
 
         return UniformBuffers;

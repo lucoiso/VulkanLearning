@@ -22,17 +22,6 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "VCPKG Install",
-            "type": "shell",
-            "command": "vcpkg install --allow-unsupported --clean-after-build --triplet x64-windows",
-            "group": {
-                
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": "$msCompile"
-        },
-        {
             "label": "CMake Build: Release",
             "type": "shell",
             "command": "cmake --build build --preset Release",

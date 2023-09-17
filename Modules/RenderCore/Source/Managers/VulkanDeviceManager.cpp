@@ -97,11 +97,13 @@ void VulkanDeviceManager::CreateLogicalDevice()
     std::vector<const char *> Extensions(g_RequiredDeviceExtensions.begin(), g_RequiredDeviceExtensions.end());
     
 #ifdef _DEBUG
+    Layers.reserve(Layers.size() + g_DebugDeviceLayers.size());
     for (const char *const &DebugLayerIter : g_DebugDeviceLayers)
     {
         Layers.push_back(DebugLayerIter);
     }
 
+    Extensions.reserve(Extensions.size() + g_DebugDeviceExtensions.size());
     for (const char *const &DebugExtensionIter : g_DebugDeviceExtensions)
     {
         Extensions.push_back(DebugExtensionIter);
@@ -138,6 +140,7 @@ void VulkanDeviceManager::CreateLogicalDevice()
     VulkanRenderSubsystem::Get()->SetQueueFamilyIndices(UniqueQueueFamilyIndicesIDs);
 
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo;
+    QueueCreateInfo.reserve(QueueFamilyIndices.size());
     for (const auto &QueueFamilyIndex : QueueFamilyIndices)
     {
         QueueCreateInfo.push_back({
@@ -350,6 +353,7 @@ std::vector<const char *> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensi
     const std::vector<VkExtensionProperties> AvailableExtensions = GetAvailablePhysicalDeviceExtensions();
     
     std::vector<const char *> Output;
+    Output.reserve(AvailableExtensions.size());
     for (const VkExtensionProperties &ExtensionIter : AvailableExtensions)
     {
         Output.push_back(ExtensionIter.extensionName);
@@ -363,6 +367,7 @@ std::vector<const char *> VulkanDeviceManager::GetAvailablePhysicalDeviceLayersN
     const std::vector<VkLayerProperties> AvailableLayers = GetAvailablePhysicalDeviceLayers();
 
     std::vector<const char *> Output;
+    Output.reserve(AvailableLayers.size());
     for (const VkLayerProperties &LayerIter : AvailableLayers)
     {
         Output.push_back(LayerIter.layerName);

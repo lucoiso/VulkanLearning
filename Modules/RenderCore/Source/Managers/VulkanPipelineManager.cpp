@@ -310,6 +310,8 @@ void VulkanPipelineManager::CreateDescriptorSets(const std::vector<VulkanObjectD
         }
 
         std::vector<VkWriteDescriptorSet> WriteDescriptors {};
+        WriteDescriptors.reserve(UniformBuffers.size() + ImageInfos.size());
+        
         if (!UniformBuffers.empty())
         {
             WriteDescriptors.push_back(VkWriteDescriptorSet{

@@ -213,6 +213,7 @@ VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(const VkShader
 std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
 {
     std::vector<VkShaderModule> Output;
+    Output.reserve(m_StageInfos.size());
     for (const auto &[ShaderModule, _] : m_StageInfos)
     {
         Output.push_back(ShaderModule);
@@ -224,6 +225,7 @@ std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
 std::vector<VkPipelineShaderStageCreateInfo> VulkanShaderManager::GetStageInfos() const
 {
     std::vector<VkPipelineShaderStageCreateInfo> Output;
+    Output.reserve(m_StageInfos.size());
     for (const auto &[_, StageInfo] : m_StageInfos)
     {
         Output.push_back(StageInfo);

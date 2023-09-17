@@ -15,5 +15,12 @@ namespace RenderCore
         glm::vec3 Normal;
         glm::vec3 Color;
         glm::vec2 TextureCoordinate;
+
+        Vertex() = default;
+        Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec3& color, const glm::vec2& textureCoordinate)
+            : Position(position)
+            , Normal(normal)
+            , Color(color)
+            , TextureCoordinate(textureCoordinate) {}
     };
 }
