@@ -6,7 +6,7 @@
 
 #include "RenderCoreModule.h"
 #include "Types/ObjectData.h"
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan.h>
 #include <memory>
 #include <vector>
 
@@ -22,6 +22,7 @@ namespace RenderCore
         ~VulkanPipelineManager();
 
         void CreateRenderPass();
+        void CreateDefaultRenderPass();
         void CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &ShaderStages);
         void CreateDescriptorSetLayout();
         void CreateDescriptorPool();

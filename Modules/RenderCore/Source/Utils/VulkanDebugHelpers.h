@@ -8,7 +8,7 @@
 #pragma once
 
 #include "Utils/VulkanConstants.h"
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan.h>
 #include <boost/log/trivial.hpp>
 
 namespace RenderCore

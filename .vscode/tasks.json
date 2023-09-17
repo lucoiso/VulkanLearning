@@ -2,9 +2,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Conan Install: Debug",
+            "label": "CMake Configure",
             "type": "shell",
-            "command": "conan install . --build=missing -pr Profiles/Windows_x64_Debug",
+            "command": "cmake .",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -12,39 +12,31 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "Conan Install: Release",
+            "label": "VCPKG Install",
             "type": "shell",
-            "command": "conan install . --build=missing -pr Profiles/Windows_x64_Release",
+            "command": "vcpkg install --allow-unsupported --clean-after-build",
             "group": {
+                
                 "kind": "build",
                 "isDefault": true
             },
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "CMake Build: Debug",
+            "label": "CMake Build: VCPKG Release",
             "type": "shell",
-            "command": "cmake -DCMAKE_BUILD_TYPE=Debug ; cmake --build --preset conan-debug",
+            "command": "cmake --build . --preset vcpkg-release",
             "group": {
+
                 "kind": "build",
                 "isDefault": true
             },
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "CMake Build: Debug with Sanitizer",
+            "label": "CMake Build: VCPKG Debug",
             "type": "shell",
-            "command": "cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=\"-fsanitize=address\" ; cmake --build --preset conan-debug",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": "$msCompile"
-        },
-        {
-            "label": "CMake Build: Release",
-            "type": "shell",
-            "command": "cmake -DCMAKE_BUILD_TYPE=Release ; cmake --build --preset conan-release",
+            "command": "cmake --build . --preset vcpkg-debug",
             "group": {
                 "kind": "build",
                 "isDefault": true

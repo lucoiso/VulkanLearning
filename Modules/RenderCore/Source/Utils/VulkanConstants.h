@@ -8,7 +8,7 @@
 #pragma once
 
 #include <array>
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan.h>
 
 namespace RenderCore
 {
@@ -41,8 +41,14 @@ namespace RenderCore
     };
 #endif
 
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+    constexpr std::array<const char*, 1> g_RequiredInstanceLayers = {
+        VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+    };
+#else
     constexpr std::array<const char*, 0> g_RequiredInstanceLayers = {
     };
+#endif
 
     constexpr std::array<const char*, 0> g_RequiredDeviceLayers = {
     };
@@ -62,6 +68,8 @@ namespace RenderCore
     constexpr std::uint8_t g_MaxFramesInFlight = 2u;
 
     constexpr std::uint32_t g_BufferMemoryAllocationSize = 65536u;
+
+    constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 }
 
 #endif

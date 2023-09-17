@@ -11,11 +11,6 @@
 #include <stdexcept>
 #include <set>
 
-#ifndef GLFW_INCLUDE_VULKAN
-#define GLFW_INCLUDE_VULKAN
-#endif
-#include <GLFW/glfw3.h>
-
 using namespace RenderCore;
 
 VulkanDeviceManager::VulkanDeviceManager()
@@ -193,7 +188,7 @@ void VulkanDeviceManager::CreateLogicalDevice()
     VulkanRenderSubsystem::Get()->RegisterQueue(m_TransferQueue.second, m_TransferQueue.first, VulkanQueueType::Transfer);
 }
 
-VulkanDeviceProperties VulkanDeviceManager::GetPreferredProperties(GLFWwindow *const Window)
+VulkanDeviceProperties VulkanDeviceManager::GetPreferredProperties(QWindow *const Window)
 {
     VulkanDeviceProperties Output;
 

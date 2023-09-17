@@ -7,6 +7,7 @@
 #include "RenderCoreModule.h"
 #include "Types/RenderStateFlags.h"
 #include "Types/BufferRecordParameters.h"
+#include <QWindow>
 #include <memory>
 #include <string_view>
 #include <vector>
@@ -26,12 +27,12 @@ namespace RenderCore
 
         ~VulkanRender();
 
-        void Initialize(GLFWwindow *const Window);
+        void Initialize(QWindow *const Window);
         void Shutdown();
 
-        void DrawFrame(GLFWwindow *const Window);
+        void DrawFrame(QWindow *const Window);
 
-        std::optional<std::int32_t> TryRequestDrawImage(GLFWwindow *const Window) const;
+        std::optional<std::int32_t> TryRequestDrawImage(QWindow *const Window) const;
         bool IsInitialized() const;
 
         void LoadScene(const std::string_view ModelPath, const std::string_view TexturePath);
@@ -39,8 +40,8 @@ namespace RenderCore
 
     private:
         void CreateVulkanInstance();
-        void CreateVulkanSurface(GLFWwindow *const Window);
-        void InitializeRenderCore(GLFWwindow *const Window);
+        void CreateVulkanSurface(QWindow *const Window);
+        void InitializeRenderCore(QWindow *const Window);
         std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders();
         VulkanBufferRecordParameters GetBufferRecordParameters(const std::uint32_t ImageIndex, const std::uint64_t ObjectID) const;
 

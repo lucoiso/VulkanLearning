@@ -16,6 +16,9 @@ VulkanRenderSubsystem::VulkanRenderSubsystem()
     , m_Device(VK_NULL_HANDLE)
     , m_PhysicalDevice(VK_NULL_HANDLE)
     , m_Surface(VK_NULL_HANDLE)
+    , m_RenderPass(VK_NULL_HANDLE)
+    , m_PipelineCache(VK_NULL_HANDLE)
+    , m_DescriptorPool(VK_NULL_HANDLE)
     , m_DeviceProperties()
     , m_QueueFamilyIndices({})
     , m_Queues({})
@@ -72,6 +75,21 @@ void VulkanRenderSubsystem::SetQueueFamilyIndices(const std::vector<std::uint8_t
 void VulkanRenderSubsystem::SetDefaultShadersStageInfos(const std::vector<VkPipelineShaderStageCreateInfo> &DefaultShadersStageInfos)
 {
     m_DefaultShadersStageInfos = DefaultShadersStageInfos;
+}
+
+void VulkanRenderSubsystem::SetRenderPass(const VkRenderPass &RenderPass)
+{
+    m_RenderPass = RenderPass;
+}
+
+void VulkanRenderSubsystem::SetPipelineCache(const VkPipelineCache &PipelineCache)
+{
+    m_PipelineCache = PipelineCache;
+}
+
+void VulkanRenderSubsystem::SetDescriptorPool(const VkDescriptorPool &DescriptorPool)
+{
+    m_DescriptorPool = DescriptorPool;
 }
 
 void VulkanRenderSubsystem::UpdateFrameIndex()
@@ -178,4 +196,25 @@ const std::uint8_t VulkanRenderSubsystem::GetFrameIndex() const
 const std::vector<VkPipelineShaderStageCreateInfo> &VulkanRenderSubsystem::GetDefaultShadersStageInfos() const
 {
     return m_DefaultShadersStageInfos;
+}
+
+const std::uint8_t VulkanRenderSubsystem::GetMinImageCount() const
+{
+    const bool bSupportsTripleBuffering = m_DeviceProperties.Capabilities.minImageCount < 3u && m_DeviceProperties.Capabilities.maxImageCount >= 3u;
+    return bSupportsTripleBuffering ? 3u : m_DeviceProperties.Capabilities.minImageCount;
+}
+
+const VkRenderPass &VulkanRenderSubsystem::GetRenderPass() const
+{
+    return m_RenderPass;
+}
+
+const VkPipelineCache &VulkanRenderSubsystem::GetPipelineCache() const
+{
+    return m_PipelineCache;
+}
+
+const VkDescriptorPool &VulkanRenderSubsystem::GetDescriptorPool() const
+{
+    return m_DescriptorPool;
 }

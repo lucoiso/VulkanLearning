@@ -22,12 +22,6 @@
 #endif
 #include <stb_image.h>
 
-#ifndef GLFW_INCLUDE_VULKAN
-#define GLFW_INCLUDE_VULKAN
-#endif
-#include <GLFW/glfw3.h>
-#include "VulkanBufferManager.h"
-
 using namespace RenderCore;
 
 class VulkanBufferManager::Impl
@@ -215,14 +209,11 @@ public:
 
         const std::vector<std::uint32_t> QueueFamilyIndices = VulkanRenderSubsystem::Get()->GetQueueFamilyIndices_u32();
         const std::uint32_t QueueFamilyIndicesCount = static_cast<std::uint32_t>(QueueFamilyIndices.size());
-
-        const bool bSupportsTripleBuffering = Properties.Capabilities.minImageCount < 3u && Properties.Capabilities.maxImageCount >= 3u;
-        const std::uint32_t MinImageCount = bSupportsTripleBuffering ? 3u : Properties.Capabilities.minImageCount;
         
         const VkSwapchainCreateInfoKHR SwapChainCreateInfo{
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface = VulkanRenderSubsystem::Get()->GetSurface(),
-            .minImageCount = MinImageCount,
+            .minImageCount = VulkanRenderSubsystem::Get()->GetMinImageCount(),
             .imageFormat = Properties.Format.format,
             .imageColorSpace = Properties.Format.colorSpace,
             .imageExtent = Properties.Extent,
@@ -971,62 +962,6 @@ private:
             vkCmdPipelineBarrier(CommandBuffer, SourceStage, DestinationStage, 0u, 0u, nullptr, 0u, nullptr, 1u, &Barrier);
         }
         FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
-    }
-
-    void InitializeSingleCommandQueue(VkCommandPool &CommandPool, VkCommandBuffer &CommandBuffer, const std::uint8_t QueueFamilyIndex) const
-    {
-        const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
-
-        const VkCommandPoolCreateInfo CommandPoolCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-            .queueFamilyIndex = static_cast<std::uint32_t>(QueueFamilyIndex)};
-
-        RENDERCORE_CHECK_VULKAN_RESULT(vkCreateCommandPool(VulkanLogicalDevice, &CommandPoolCreateInfo, nullptr, &CommandPool));
-
-        const VkCommandBufferBeginInfo CommandBufferBeginInfo{
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-        };
-
-        const VkCommandBufferAllocateInfo CommandBufferAllocateInfo{
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .commandPool = CommandPool,
-            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = 1u,
-        };
-
-        RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, &CommandBuffer));
-        RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));        
-    }
-
-    void FinishSingleCommandQueue(const VkQueue &Queue, const VkCommandPool &CommandPool, const VkCommandBuffer &CommandBuffer) const
-    {
-        if (CommandPool == VK_NULL_HANDLE)
-        {
-            throw std::runtime_error("Vulkan command pool is invalid.");
-        }
-
-        if (CommandBuffer == VK_NULL_HANDLE)
-        {
-            throw std::runtime_error("Vulkan command buffer is invalid.");
-        }
-
-        RENDERCORE_CHECK_VULKAN_RESULT(vkEndCommandBuffer(CommandBuffer));
-
-        const VkSubmitInfo SubmitInfo{
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .commandBufferCount = 1u,
-            .pCommandBuffers = &CommandBuffer,
-        };
-
-        RENDERCORE_CHECK_VULKAN_RESULT(vkQueueSubmit(Queue, 1u, &SubmitInfo, VK_NULL_HANDLE));
-        RENDERCORE_CHECK_VULKAN_RESULT(vkQueueWaitIdle(Queue));
-
-        const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
-
-        vkFreeCommandBuffers(VulkanLogicalDevice, CommandPool, 1u, &CommandBuffer);
-        vkDestroyCommandPool(VulkanLogicalDevice, CommandPool, nullptr);
     }
 
     void CreateTextureImageView(VulkanImageAllocation& Allocation)

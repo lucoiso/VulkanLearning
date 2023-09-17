@@ -5,15 +5,16 @@
 #pragma once
 
 #include "RenderCoreModule.h"
+#include <QMainWindow>
 #include <string_view>
 #include <cstdint>
 #include <memory>
 
 namespace RenderCore
 {
-    class RENDERCOREMODULE_API Window
+    class RENDERCOREMODULE_API Window : public QMainWindow
     {
-        class Impl;
+        class Renderer;
 
     public:
         Window();
@@ -22,6 +23,8 @@ namespace RenderCore
         Window &operator=(const Window &) = delete;
 
         ~Window();
+
+        virtual void CreateContent() = 0;
 
         bool Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title);
         void Shutdown();
@@ -33,6 +36,6 @@ namespace RenderCore
         void PollEvents();
 
     private:
-        std::unique_ptr<Impl> m_Impl;
+        std::unique_ptr<Renderer> m_Renderer;
     };
 }

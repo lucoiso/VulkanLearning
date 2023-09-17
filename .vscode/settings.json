@@ -94,6 +94,10 @@
         "memory_resource": "cpp",
         "random": "cpp",
         "stdfloat": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "qwindow": "cpp",
+        "future": "cpp",
+        "queue": "cpp",
+        "regex": "cpp"
     }
 }

@@ -5,7 +5,7 @@
 #pragma once
 
 #include "RenderCoreModule.h"
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan.h>
 #include <glslang/Public/ShaderLang.h>
 #include <vector>
 #include <string_view>

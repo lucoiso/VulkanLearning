@@ -10,14 +10,10 @@
 #include "Utils/VulkanConstants.h"
 #include "Utils/VulkanEnumConverter.h"
 #include "Types/VulkanVertex.h"
+#include <QWindow>
 #include <boost/log/trivial.hpp>
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan.h>
 #include <numbers>
-
-#ifndef GLFW_INCLUDE_VULKAN
-#define GLFW_INCLUDE_VULKAN
-#endif
-#include <GLFW/glfw3.h>
 
 namespace RenderCore
 {
@@ -27,30 +23,10 @@ namespace RenderCore
         throw std::runtime_error("Vulkan operation failed with result: " + std::string(ResultToString(OperationResult))); \
     }
 
-    static inline std::vector<const char *> GetGLFWExtensions()
+    static inline VkExtent2D GetWindowExtent(QWindow *const Window, const VkSurfaceCapabilitiesKHR &Capabilities)
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting GLFW extensions";
-
-        std::uint32_t GLFWExtensionsCount = 0u;
-        const char **const GLFWExtensions = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
-
-        const std::vector<const char *> Output(GLFWExtensions, GLFWExtensions + GLFWExtensionsCount);
-
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found extensions:";
-
-        for (const char *const &ExtensionIter : Output)
-        {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: " << ExtensionIter;
-        }
-
-        return Output;
-    }
-
-    static inline VkExtent2D GetWindowExtent(GLFWwindow *const Window, const VkSurfaceCapabilitiesKHR &Capabilities)
-    {
-        std::int32_t Width = 0u;
-        std::int32_t Height = 0u;
-        glfwGetFramebufferSize(Window, &Width, &Height);
+        const std::int32_t Width = Window->width();
+        const std::int32_t Height = Window->height();
 
         VkExtent2D ActualExtent{
             .width = static_cast<std::uint32_t>(Width),
@@ -200,6 +176,62 @@ namespace RenderCore
     constexpr bool HasAnyFlag(const T Lhs)
     {
         return static_cast<std::uint8_t>(Lhs) != 0u;
+    }    
+
+    static inline void InitializeSingleCommandQueue(VkCommandPool &CommandPool, VkCommandBuffer &CommandBuffer, const std::uint8_t QueueFamilyIndex)
+    {
+        const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
+
+        const VkCommandPoolCreateInfo CommandPoolCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+            .queueFamilyIndex = static_cast<std::uint32_t>(QueueFamilyIndex)};
+
+        RENDERCORE_CHECK_VULKAN_RESULT(vkCreateCommandPool(VulkanLogicalDevice, &CommandPoolCreateInfo, nullptr, &CommandPool));
+
+        const VkCommandBufferBeginInfo CommandBufferBeginInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        };
+
+        const VkCommandBufferAllocateInfo CommandBufferAllocateInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool = CommandPool,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = 1u,
+        };
+
+        RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, &CommandBuffer));
+        RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));        
+    }
+
+    static inline void FinishSingleCommandQueue(const VkQueue &Queue, const VkCommandPool &CommandPool, const VkCommandBuffer &CommandBuffer)
+    {
+        if (CommandPool == VK_NULL_HANDLE)
+        {
+            throw std::runtime_error("Vulkan command pool is invalid.");
+        }
+
+        if (CommandBuffer == VK_NULL_HANDLE)
+        {
+            throw std::runtime_error("Vulkan command buffer is invalid.");
+        }
+
+        RENDERCORE_CHECK_VULKAN_RESULT(vkEndCommandBuffer(CommandBuffer));
+
+        const VkSubmitInfo SubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount = 1u,
+            .pCommandBuffers = &CommandBuffer,
+        };
+
+        RENDERCORE_CHECK_VULKAN_RESULT(vkQueueSubmit(Queue, 1u, &SubmitInfo, VK_NULL_HANDLE));
+        RENDERCORE_CHECK_VULKAN_RESULT(vkQueueWaitIdle(Queue));
+
+        const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
+
+        vkFreeCommandBuffers(VulkanLogicalDevice, CommandPool, 1u, &CommandBuffer);
+        vkDestroyCommandPool(VulkanLogicalDevice, CommandPool, nullptr);
     }
 }
 #endif

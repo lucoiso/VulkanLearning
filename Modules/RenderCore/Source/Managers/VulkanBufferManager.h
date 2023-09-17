@@ -8,7 +8,7 @@
 #include "Types/VulkanVertex.h"
 #include "Types/VulkanUniformBufferObject.h"
 #include "Types/TextureData.h"
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan.h>
 #include <vector>
 #include <memory>
 #include <string_view>

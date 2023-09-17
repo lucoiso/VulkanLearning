@@ -53,24 +53,31 @@ target_include_directories(${LIBRARY_NAME} PRIVATE
 
 target_compile_definitions(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 
-find_package(glfw3 REQUIRED)
-find_package(glm REQUIRED)
+set(CMAKE_AUTOMOC ON)
+
 find_package(Boost REQUIRED CONFIG COMPONENTS log)
+find_package(glm REQUIRED)
 find_package(stb REQUIRED)
 find_package(assimp REQUIRED)
 find_package(Vulkan REQUIRED)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE
-    glfw
-    glm::glm
     Boost::log
-    stb::stb
-    assimp::assimp
-    ${Vulkan_LIBRARIES}
     glslang
     glslang-default-resource-limits
     SPIRV
+    glm::glm
+    stb::stb
+    assimp::assimp
+    ${Vulkan_LIBRARIES}
     GPUOpen::VulkanMemoryAllocator
+)
+
+target_link_libraries(${LIBRARY_NAME} PUBLIC
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
 )
 
 target_include_directories(${LIBRARY_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
@@ -86,6 +93,7 @@ target_compile_definitions(${LIBRARY_NAME} PRIVATE
 
 target_compile_definitions(${LIBRARY_NAME} PUBLIC
     WIN32_LEAN_AND_MEAN
-    VK_USE_PLATFORM_WIN32_KHR
+    VK_USE_PLATFORM_WIN32_KHR 
     NOMINMAX
+    _WIN32_WINNT=0x0A00
 )

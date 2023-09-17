@@ -8,7 +8,7 @@ on:
 
 env:
   BUILD_TYPE: Release
-  CONAN_PRESET: conan-release
+  VCPKG_PRESET: vcpkg-release
   
 permissions:
   actions: read
@@ -44,14 +44,12 @@ jobs:
             
     - name: Configure Packages
       run: |
-        python -m pip install conan
-        conan profile detect --force
-        conan install . --build=missing -pr=Profiles/Windows_x64_${{env.BUILD_TYPE}}
+        vcpkg install --allow-unsupported --clean-after-build
 
     - name: Build Project
       run: |
-        cmake --preset conan-default
-        cmake --build --preset ${{env.CONAN_PRESET}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        cmake .
+        cmake --build --preset ${{env.VCPKG_PRESET}}
 
     - name: Test Binaries
       working-directory: ${{github.workspace}}/build
