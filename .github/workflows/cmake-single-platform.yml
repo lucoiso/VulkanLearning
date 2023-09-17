@@ -46,7 +46,7 @@ jobs:
             
     - name: Configure Packages
       run: |
-        ${{ github.workspace }}/vcpkg/vcpkg install --dry-run
+        vcpkg install --dry-run --allow-unsupported --clean-after-build --triplet x64-windows-rel
 
     - name: Build Project
       run: |
