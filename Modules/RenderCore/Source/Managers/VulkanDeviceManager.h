@@ -6,8 +6,8 @@
 
 #include "RenderCoreModule.h"
 #include "Types/DeviceProperties.h"
+#include <volk.h>
 #include <QWindow>
-#include <vulkan/vulkan.h>
 #include <vector>
 #include <string>
 #include <optional>
@@ -35,9 +35,10 @@ namespace RenderCore
         [[nodiscard]] std::vector<VkPhysicalDevice> GetAvailablePhysicalDevices() const;
         [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions() const;
         [[nodiscard]] std::vector<VkLayerProperties> GetAvailablePhysicalDeviceLayers() const;
-        [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(const char *LayerName) const;
-        [[nodiscard]] std::vector<const char *> GetAvailablePhysicalDeviceExtensionsNames() const;
-        [[nodiscard]] std::vector<const char *> GetAvailablePhysicalDeviceLayersNames() const;
+        [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(const std::string_view LayerName) const;
+        [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceExtensionsNames() const;
+        [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayerExtensionsNames(const std::string_view LayerName) const;
+        [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayersNames() const;
         [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities() const;
         [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats() const;
         [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes() const;
@@ -53,7 +54,7 @@ namespace RenderCore
         void ListAvailablePhysicalDevices() const;
         void ListAvailablePhysicalDeviceExtensions() const;
         void ListAvailablePhysicalDeviceLayers() const;
-        void ListAvailablePhysicalDeviceLayerExtensions(const char *LayerName) const;
+        void ListAvailablePhysicalDeviceLayerExtensions(const std::string_view LayerName) const;
         void ListAvailablePhysicalDeviceSurfaceCapabilities() const;
         void ListAvailablePhysicalDeviceSurfaceFormats() const;
         void ListAvailablePhysicalDeviceSurfacePresentationModes() const;

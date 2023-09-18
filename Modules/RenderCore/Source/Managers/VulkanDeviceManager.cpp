@@ -7,9 +7,10 @@
 #include "Utils/VulkanEnumConverter.h"
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
+#include <boost/log/trivial.hpp>
 #include <stdexcept>
 #include <set>
-#include <boost/log/trivial.hpp>
+#include <algorithm>
 
 using namespace RenderCore;
 
@@ -53,7 +54,6 @@ void VulkanDeviceManager::PickPhysicalDevice()
 
 #ifdef _DEBUG
     ListAvailablePhysicalDevices();
-    // ListAvailablePhysicalDeviceExtensions();
     ListAvailablePhysicalDeviceLayers();
     
     for (const char *const &RequiredLayerIter : g_RequiredDeviceLayers)
@@ -77,6 +77,7 @@ void VulkanDeviceManager::CreateLogicalDevice()
     std::optional<std::uint8_t> GraphicsQueueFamilyIndex = std::nullopt;
     std::optional<std::uint8_t> PresentationQueueFamilyIndex = std::nullopt;
     std::optional<std::uint8_t> TransferQueueFamilyIndex = std::nullopt;
+
     if (!GetQueueFamilyIndices(GraphicsQueueFamilyIndex, PresentationQueueFamilyIndex, TransferQueueFamilyIndex))
     {
         throw std::runtime_error("Failed to get queue family indices.");
@@ -93,20 +94,39 @@ void VulkanDeviceManager::CreateLogicalDevice()
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
+    const std::vector<std::string> AvailableDeviceLayers = GetAvailablePhysicalDeviceLayersNames();
     std::vector<const char *> Layers(g_RequiredDeviceLayers.begin(), g_RequiredDeviceLayers.end());
+    std::erase_if(Layers, 
+        [&AvailableDeviceLayers](const char *const &LayerIter) 
+        {
+            return std::find(AvailableDeviceLayers.begin(), AvailableDeviceLayers.end(), LayerIter) == AvailableDeviceLayers.end();
+        }
+    );
+
+    std::vector<std::string> AvailableDeviceExtensions = GetAvailablePhysicalDeviceExtensionsNames();
     std::vector<const char *> Extensions(g_RequiredDeviceExtensions.begin(), g_RequiredDeviceExtensions.end());
+    std::erase_if(Extensions, 
+        [&AvailableDeviceExtensions](const char *const &ExtensionIter) 
+        {
+            return std::find(AvailableDeviceExtensions.begin(), AvailableDeviceExtensions.end(), ExtensionIter) == AvailableDeviceExtensions.end();
+        }
+    );
     
 #ifdef _DEBUG
-    Layers.reserve(Layers.size() + g_DebugDeviceLayers.size());
     for (const char *const &DebugLayerIter : g_DebugDeviceLayers)
     {
-        Layers.push_back(DebugLayerIter);
+        if (std::find(AvailableDeviceLayers.begin(), AvailableDeviceLayers.end(), DebugLayerIter) != AvailableDeviceLayers.end())
+        {
+            Layers.push_back(DebugLayerIter);
+        }
     }
 
-    Extensions.reserve(Extensions.size() + g_DebugDeviceExtensions.size());
     for (const char *const &DebugExtensionIter : g_DebugDeviceExtensions)
     {
-        Extensions.push_back(DebugExtensionIter);
+        if (std::find(AvailableDeviceExtensions.begin(), AvailableDeviceExtensions.end(), DebugExtensionIter) != AvailableDeviceExtensions.end())
+        {
+            Extensions.push_back(DebugExtensionIter);
+        }
     }
 #endif
 
@@ -140,7 +160,6 @@ void VulkanDeviceManager::CreateLogicalDevice()
     VulkanRenderSubsystem::Get()->SetQueueFamilyIndices(UniqueQueueFamilyIndicesIDs);
 
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo;
-    QueueCreateInfo.reserve(QueueFamilyIndices.size());
     for (const auto &QueueFamilyIndex : QueueFamilyIndices)
     {
         QueueCreateInfo.push_back({
@@ -332,45 +351,56 @@ std::vector<VkLayerProperties> VulkanDeviceManager::GetAvailablePhysicalDeviceLa
     return Output;
 }
 
-std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDeviceLayerExtensions(const char *LayerName) const
+std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDeviceLayerExtensions(const std::string_view LayerName) const
 {
     if (m_PhysicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
+    const std::vector<std::string> AvailableLayers = GetAvailablePhysicalDeviceLayersNames();
+    if (std::find(AvailableLayers.begin(), AvailableLayers.end(), LayerName) == AvailableLayers.end())
+    {
+        return std::vector<VkExtensionProperties>();
+    }
+
     std::uint32_t ExtensionsCount;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, LayerName, &ExtensionsCount, nullptr));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, LayerName.data(), &ExtensionsCount, nullptr));
 
     std::vector<VkExtensionProperties> Output(ExtensionsCount);
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, LayerName, &ExtensionsCount, Output.data()));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, LayerName.data(), &ExtensionsCount, Output.data()));
 
     return Output;
 }
 
-std::vector<const char *> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensionsNames() const
-{
-    const std::vector<VkExtensionProperties> AvailableExtensions = GetAvailablePhysicalDeviceExtensions();
-    
-    std::vector<const char *> Output;
-    Output.reserve(AvailableExtensions.size());
-    for (const VkExtensionProperties &ExtensionIter : AvailableExtensions)
+std::vector<std::string> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensionsNames() const
+{    
+    std::vector<std::string> Output;
+    for (const VkExtensionProperties &ExtensionIter : GetAvailablePhysicalDeviceExtensions())
     {
-        Output.push_back(ExtensionIter.extensionName);
+        Output.emplace_back(ExtensionIter.extensionName);
     }
 
     return Output;
 }
 
-std::vector<const char *> VulkanDeviceManager::GetAvailablePhysicalDeviceLayersNames() const
-{
-    const std::vector<VkLayerProperties> AvailableLayers = GetAvailablePhysicalDeviceLayers();
-
-    std::vector<const char *> Output;
-    Output.reserve(AvailableLayers.size());
-    for (const VkLayerProperties &LayerIter : AvailableLayers)
+std::vector<std::string> VulkanDeviceManager::GetAvailablePhysicalDeviceLayerExtensionsNames(const std::string_view LayerName) const
+{    
+    std::vector<std::string> Output;
+    for (const VkExtensionProperties &ExtensionIter : GetAvailablePhysicalDeviceLayerExtensions(LayerName))
     {
-        Output.push_back(LayerIter.layerName);
+        Output.emplace_back(ExtensionIter.extensionName);
+    }
+
+    return Output;
+}
+
+std::vector<std::string> VulkanDeviceManager::GetAvailablePhysicalDeviceLayersNames() const
+{
+    std::vector<std::string> Output;
+    for (const VkLayerProperties &LayerIter : GetAvailablePhysicalDeviceLayers())
+    {
+        Output.emplace_back(LayerIter.layerName);
     }
 
     return Output;
@@ -543,7 +573,7 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceLayers() const
     }
 }
 
-void VulkanDeviceManager::ListAvailablePhysicalDeviceLayerExtensions(const char *LayerName) const
+void VulkanDeviceManager::ListAvailablePhysicalDeviceLayerExtensions(const std::string_view LayerName) const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device layer '" << LayerName << "' extensions...";
 

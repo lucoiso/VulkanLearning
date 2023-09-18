@@ -58,16 +58,19 @@ find_package(glm REQUIRED)
 find_package(Stb REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 
-find_package(Vulkan)
-find_package(VulkanHeaders CONFIG REQUIRED)
+find_package(volk CONFIG REQUIRED)
+find_package(VulkanHeaders CONFIG)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(glslang CONFIG REQUIRED)
 
-set(Qt_Version 5)
+set(QT_LIB_VERSION 5)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
 
-find_package(Qt${Qt_Version}Core CONFIG REQUIRED)
-find_package(Qt${Qt_Version}Gui CONFIG REQUIRED)
-find_package(Qt${Qt_Version}Widgets CONFIG REQUIRED)
+find_package(Qt${QT_LIB_VERSION}Core CONFIG REQUIRED)
+find_package(Qt${QT_LIB_VERSION}Gui CONFIG REQUIRED)
+find_package(Qt${QT_LIB_VERSION}Widgets CONFIG REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE
     Boost::log
@@ -78,19 +81,19 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE
     glslang::glslang
     glslang::glslang-default-resource-limits
     glslang::SPIRV
-    Vulkan::Vulkan
+
+    volk::volk_headers
     Vulkan::Headers
     GPUOpen::VulkanMemoryAllocator
 )
 
 target_link_libraries(${LIBRARY_NAME} PUBLIC
-    Qt${Qt_Version}::Core
-    Qt${Qt_Version}::Gui
-    Qt${Qt_Version}::Widgets
+    Qt${QT_LIB_VERSION}::Core
+    Qt${QT_LIB_VERSION}::Gui
+    Qt${QT_LIB_VERSION}::Widgets
 )
 
 target_include_directories(${LIBRARY_NAME} PRIVATE
-    ${Vulkan_INCLUDE_DIRS}
     ${Stb_INCLUDE_DIR}
 )
 

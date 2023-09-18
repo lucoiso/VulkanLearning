@@ -5,8 +5,8 @@
 #pragma once
 
 #include "RenderCoreModule.h"
-#include <vulkan/vulkan.h>
 #include <glslang/Public/ShaderLang.h>
+#include <volk.h>
 #include <vector>
 #include <string_view>
 #include <unordered_map>

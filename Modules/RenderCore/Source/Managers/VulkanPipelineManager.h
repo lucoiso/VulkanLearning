@@ -6,9 +6,9 @@
 
 #include "RenderCoreModule.h"
 #include "Types/ObjectData.h"
-#include <vulkan/vulkan.h>
 #include <memory>
 #include <vector>
+#include <volk.h>
 
 namespace RenderCore
 {

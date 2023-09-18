@@ -50,15 +50,35 @@ namespace RenderCore
         return Output;
     }
 
-    static inline std::vector<const char*> GetAvailableInstanceLayersNames()
-    {
-        const std::vector<VkLayerProperties> AvailableInstanceLayers = GetAvailableInstanceLayers();
-        
-        std::vector<const char*> Output;
-        Output.reserve(AvailableInstanceLayers.size());
-        for (const VkLayerProperties &LayerIter : AvailableInstanceLayers)
+    static inline std::vector<std::string> GetAvailableInstanceLayersNames()
+    {        
+        std::vector<std::string> Output;
+        for (const VkLayerProperties &LayerIter : GetAvailableInstanceLayers())
         {
-            Output.push_back(LayerIter.layerName);
+            Output.emplace_back(LayerIter.layerName);
+        }
+
+        return Output;
+    }
+
+    static inline std::vector<VkExtensionProperties> GetAvailableInstanceExtensions()
+    {
+        std::uint32_t ExtensionCount = 0u;
+        RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionCount, nullptr));
+        
+        std::vector<VkExtensionProperties> Output;
+        Output.resize(ExtensionCount);
+        RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionCount, Output.data()));
+
+        return Output;
+    }
+
+    static inline std::vector<std::string> GetAvailableInstanceExtensionsNames()
+    {        
+        std::vector<std::string> Output;
+        for (const VkExtensionProperties &ExtensionIter : GetAvailableInstanceExtensions())
+        {
+            Output.emplace_back(ExtensionIter.extensionName);
         }
 
         return Output;
@@ -69,50 +89,62 @@ namespace RenderCore
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available instance layers...";
 
-        const std::vector<VkLayerProperties> AvailableInstanceLayers = GetAvailableInstanceLayers();
-        for (const VkLayerProperties &LayerIter : AvailableInstanceLayers)
+        for (const VkLayerProperties &LayerIter : GetAvailableInstanceLayers())
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Name: " << LayerIter.layerName;
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Description: " << LayerIter.description;
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Spec Version: " << LayerIter.specVersion;
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Implementation Version: " << LayerIter.implementationVersion << std::endl;
         }
+    }    
+    
+    static inline void ListAvailableInstanceExtensions()
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available instance extensions...";
+
+        for (const VkExtensionProperties &ExtensionIter : GetAvailableInstanceExtensions())
+        {
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Name: " << ExtensionIter.extensionName;
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Spec Version: " << ExtensionIter.specVersion << std::endl;
+        }
     }
 #endif
 
-    static inline std::vector<VkExtensionProperties> GetAvailableLayerExtensions(const char *LayerName)
-    {
+    static inline std::vector<VkExtensionProperties> GetAvailableLayerExtensions(const std::string_view LayerName)
+    {        
+        const std::vector<std::string> AvailableLayers = GetAvailableInstanceLayersNames();
+        if (std::find(AvailableLayers.begin(), AvailableLayers.end(), LayerName) == AvailableLayers.end())
+        {
+            return std::vector<VkExtensionProperties>();
+        }
+
         std::uint32_t ExtensionCount = 0u;
-        RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(LayerName, &ExtensionCount, nullptr));
+        RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(LayerName.data(), &ExtensionCount, nullptr));
         
         std::vector<VkExtensionProperties> Output;
         Output.resize(ExtensionCount);
-        RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(LayerName, &ExtensionCount, Output.data()));
+        RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(LayerName.data(), &ExtensionCount, Output.data()));
 
         return Output;
     }
 
-    static inline std::vector<const char*> GetAvailableLayerExtensionsNames(const char *LayerName)
-    {
-        const std::vector<VkExtensionProperties> AvailableLayerExtensions = GetAvailableLayerExtensions(LayerName);
-        
-        std::vector<const char*> Output;
-        Output.reserve(AvailableLayerExtensions.size());
-        for (const VkExtensionProperties &ExtensionIter : AvailableLayerExtensions)
+    static inline std::vector<std::string> GetAvailableLayerExtensionsNames(const std::string_view LayerName)
+    {        
+        std::vector<std::string> Output;
+        for (const VkExtensionProperties &ExtensionIter : GetAvailableLayerExtensions(LayerName))
         {
-            Output.push_back(ExtensionIter.extensionName);
+            Output.emplace_back(ExtensionIter.extensionName);
         }
 
         return Output;
     }
 
 #ifdef _DEBUG
-    static inline void ListAvailableInstanceLayerExtensions(const char *LayerName)
+    static inline void ListAvailableInstanceLayerExtensions(const std::string_view LayerName)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available layer '" << LayerName << "' extensions...";
 
-        const std::vector<VkExtensionProperties> AvailableLayerExtensions = GetAvailableLayerExtensions(LayerName);
-        for (const VkExtensionProperties &ExtensionIter : AvailableLayerExtensions)
+        for (const VkExtensionProperties &ExtensionIter : GetAvailableLayerExtensions(LayerName))
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Name: " << ExtensionIter.extensionName;
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Spec Version: " << ExtensionIter.specVersion << std::endl;

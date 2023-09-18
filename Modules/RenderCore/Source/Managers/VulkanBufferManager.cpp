@@ -179,6 +179,11 @@ public:
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan memory allocator";
 
+        const VmaVulkanFunctions VulkanFunctions {
+            .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+            .vkGetDeviceProcAddr = vkGetDeviceProcAddr
+        };
+
         const VmaAllocatorCreateInfo AllocatorInfo{
             .flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT,
             .physicalDevice = VulkanRenderSubsystem::Get()->GetPhysicalDevice(),
@@ -187,7 +192,7 @@ public:
             .pAllocationCallbacks = nullptr,
             .pDeviceMemoryCallbacks = nullptr,
             .pHeapSizeLimit = nullptr,
-            .pVulkanFunctions = nullptr,
+            .pVulkanFunctions = &VulkanFunctions,
             .instance = VulkanRenderSubsystem::Get()->GetInstance(),
             .vulkanApiVersion = VK_API_VERSION_1_0,
             .pTypeExternalMemoryHandleTypes = nullptr
@@ -668,7 +673,6 @@ public:
     const std::vector<VkImage> GetSwapChainImages() const
     {
         std::vector<VkImage> SwapChainImages;
-        SwapChainImages.reserve(m_SwapChainImages.size());
         for (const VulkanImageAllocation &ImageIter : m_SwapChainImages)
         {
             SwapChainImages.push_back(ImageIter.Image);
@@ -685,7 +689,6 @@ public:
     const std::vector<VkBuffer> GetVertexBuffers(const std::uint64_t ObjectID) const
     {
         std::vector<VkBuffer> VertexBuffers;
-        VertexBuffers.reserve(m_Objects.at(ObjectID).VertexBuffers.size());
         for (const VulkanBufferAllocation &BufferIter : m_Objects.at(ObjectID).VertexBuffers)
         {
             VertexBuffers.push_back(BufferIter.Buffer);
@@ -697,7 +700,6 @@ public:
     const std::vector<VkBuffer> GetIndexBuffers(const std::uint64_t ObjectID) const
     {
         std::vector<VkBuffer> IndexBuffers;
-        IndexBuffers.reserve(m_Objects.at(ObjectID).IndexBuffers.size());
         for (const VulkanBufferAllocation &BufferIter : m_Objects.at(ObjectID).IndexBuffers)
         {
             IndexBuffers.push_back(BufferIter.Buffer);
@@ -709,7 +711,6 @@ public:
     const std::vector<VkBuffer> GetUniformBuffers(const std::uint64_t ObjectID) const
     {
         std::vector<VkBuffer> UniformBuffers;
-        UniformBuffers.reserve(m_Objects.at(ObjectID).UniformBuffers.size());
         for (const VulkanBufferAllocation &BufferIter : m_Objects.at(ObjectID).UniformBuffers)
         {
             UniformBuffers.push_back(BufferIter.Buffer);

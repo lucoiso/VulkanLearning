@@ -7,27 +7,27 @@
 
 #pragma once
 
+#include <volk.h>
 #include <array>
-#include <vulkan/vulkan.h>
 
 namespace RenderCore
 {
 #ifdef _DEBUG
-    constexpr std::array<const char*, 1> g_DebugInstanceLayers = {
+    constexpr std::array<const char *, 1> g_DebugInstanceLayers = {
         "VK_LAYER_KHRONOS_validation"     
     };
 
-    constexpr std::array<const char*, 1> g_DebugDeviceLayers = {
+    constexpr std::array<const char *, 1> g_DebugDeviceLayers = {
         "VK_LAYER_KHRONOS_validation"     
     };
 
-    constexpr std::array<const char*, 3> g_DebugInstanceExtensions = {
+    constexpr std::array<const char *, 3> g_DebugInstanceExtensions = {
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
         "VK_EXT_debug_report",
         "VK_EXT_validation_features"  
     };
 
-    constexpr std::array<const char*, 2> g_DebugDeviceExtensions = {
+    constexpr std::array<const char *, 2> g_DebugDeviceExtensions = {
         "VK_EXT_validation_cache",
         "VK_EXT_tooling_info"   
     };
@@ -41,23 +41,23 @@ namespace RenderCore
     };
 #endif
 
-    constexpr std::array<const char*, 0> g_RequiredInstanceLayers = {
+    constexpr std::array<const char *, 0> g_RequiredInstanceLayers = {
     };
 
-    constexpr std::array<const char*, 0> g_RequiredDeviceLayers = {
+    constexpr std::array<const char *, 0> g_RequiredDeviceLayers = {
     };
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
-    constexpr std::array<const char*, 2> g_RequiredInstanceExtensions = {
+    constexpr std::array<const char *, 2> g_RequiredInstanceExtensions = {
         "VK_KHR_surface",
         VK_KHR_WIN32_SURFACE_EXTENSION_NAME
     };
 #else
-    constexpr std::array<const char*, 0> g_RequiredInstanceExtensions = {
+    constexpr std::array<const char *, 0> g_RequiredInstanceExtensions = {
     };
 #endif
 
-    constexpr std::array<const char*, 1> g_RequiredDeviceExtensions = {
+    constexpr std::array<const char *, 1> g_RequiredDeviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
