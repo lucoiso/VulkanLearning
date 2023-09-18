@@ -63,7 +63,13 @@ void VulkanRenderSubsystem::SetSurface(const VkSurfaceKHR &Surface)
 
 bool VulkanRenderSubsystem::SetDeviceProperties(const VulkanDeviceProperties &DeviceProperties)
 {
-    m_DeviceProperties = DeviceProperties;
+    if (m_DeviceProperties != DeviceProperties)
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Device properties changed. Updating...";    
+        m_DeviceProperties = DeviceProperties;
+        return false;
+    }
+
     return m_DeviceProperties.IsValid();
 }
 
