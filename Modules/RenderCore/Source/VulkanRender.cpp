@@ -13,7 +13,6 @@
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
 #include <set>
-#include <thread>
 #include <filesystem>
 #include <boost/log/trivial.hpp>
 #include <algorithm>
@@ -184,9 +183,6 @@ std::optional<std::int32_t> VulkanRender::TryRequestDrawImage(const QWindow *con
     {
         RemoveFlags(StateFlags, VulkanRenderStateFlags::RENDERING);
         AddFlags(StateFlags, VulkanRenderStateFlags::INVALID_PROPERTIES);
-        
-        constexpr std::uint64_t DelayMs = 250u;
-        std::this_thread::sleep_for(std::chrono::milliseconds(DelayMs));
 
         return std::optional<std::int32_t>();
     }
