@@ -94,40 +94,12 @@ void VulkanDeviceManager::CreateLogicalDevice()
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    const std::vector<std::string> AvailableDeviceLayers = GetAvailablePhysicalDeviceLayersNames();
     std::vector<const char *> Layers(g_RequiredDeviceLayers.begin(), g_RequiredDeviceLayers.end());
-    std::erase_if(Layers, 
-        [&AvailableDeviceLayers](const char *const &LayerIter) 
-        {
-            return std::find(AvailableDeviceLayers.begin(), AvailableDeviceLayers.end(), LayerIter) == AvailableDeviceLayers.end();
-        }
-    );
-
-    std::vector<std::string> AvailableDeviceExtensions = GetAvailablePhysicalDeviceExtensionsNames();
     std::vector<const char *> Extensions(g_RequiredDeviceExtensions.begin(), g_RequiredDeviceExtensions.end());
-    std::erase_if(Extensions, 
-        [&AvailableDeviceExtensions](const char *const &ExtensionIter) 
-        {
-            return std::find(AvailableDeviceExtensions.begin(), AvailableDeviceExtensions.end(), ExtensionIter) == AvailableDeviceExtensions.end();
-        }
-    );
     
 #ifdef _DEBUG
-    for (const char *const &DebugLayerIter : g_DebugDeviceLayers)
-    {
-        if (std::find(AvailableDeviceLayers.begin(), AvailableDeviceLayers.end(), DebugLayerIter) != AvailableDeviceLayers.end())
-        {
-            Layers.push_back(DebugLayerIter);
-        }
-    }
-
-    for (const char *const &DebugExtensionIter : g_DebugDeviceExtensions)
-    {
-        if (std::find(AvailableDeviceExtensions.begin(), AvailableDeviceExtensions.end(), DebugExtensionIter) != AvailableDeviceExtensions.end())
-        {
-            Extensions.push_back(DebugExtensionIter);
-        }
-    }
+    Layers.insert(Layers.end(), g_DebugDeviceLayers.begin(), g_DebugDeviceLayers.end());
+    Extensions.insert(Extensions.end(), g_DebugDeviceExtensions.begin(), g_DebugDeviceExtensions.end());
 #endif
 
     std::unordered_map<std::uint8_t, std::uint8_t> QueueFamilyIndices;

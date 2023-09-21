@@ -65,7 +65,6 @@ void VulkanRender::Initialize(const QWindow *const Window)
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulkan render";
 
     RENDERCORE_CHECK_VULKAN_RESULT(volkInitialize());
-    CreateVulkanInstance();
 
 #ifdef _DEBUG
     ListAvailableInstanceLayers();
@@ -81,6 +80,7 @@ void VulkanRender::Initialize(const QWindow *const Window)
     }
 #endif
 
+    CreateVulkanInstance();
     CreateVulkanSurface(Window);
     InitializeRenderCore(Window);
 }
@@ -293,58 +293,18 @@ void VulkanRender::CreateVulkanInstance()
         .pApplicationInfo = &AppInfo,
         .enabledLayerCount = 0u};
         
-    const std::vector<std::string> AvailableInstanceLayers = GetAvailableInstanceLayersNames();
     std::vector<const char*> Layers(g_RequiredInstanceLayers.begin(), g_RequiredInstanceLayers.end());
-    std::erase_if(Layers, 
-        [&AvailableInstanceLayers](const std::string &LayerIter) 
-        {
-            return std::find(AvailableInstanceLayers.begin(), AvailableInstanceLayers.end(), LayerIter) == AvailableInstanceLayers.end();
-        }
-    );
-
-    const std::vector<std::string> AvailableInstanceExtensions = GetAvailableInstanceExtensionsNames();
     std::vector<const char*> Extensions(g_RequiredInstanceExtensions.begin(), g_RequiredInstanceExtensions.end());
-    std::erase_if(Extensions, 
-        [&AvailableInstanceExtensions](const std::string &ExtensionIter) 
-        {
-            return std::find(AvailableInstanceExtensions.begin(), AvailableInstanceExtensions.end(), ExtensionIter) == AvailableInstanceExtensions.end();
-        }
-    );
 
 #ifdef _DEBUG
-    bool bSupportsDebuggingFeatures = false;
-
     const VkValidationFeaturesEXT ValidationFeatures = GetInstanceValidationFeatures();
     CreateInfo.pNext = &ValidationFeatures;
 
-    for (const char *const &DebugInstanceLayerIter : g_DebugInstanceLayers)
-    {
-        if (std::find(AvailableInstanceLayers.begin(), AvailableInstanceLayers.end(), DebugInstanceLayerIter) != AvailableInstanceLayers.end())
-        {
-            Layers.push_back(DebugInstanceLayerIter);
-
-            if (!bSupportsDebuggingFeatures)
-            {
-                bSupportsDebuggingFeatures = true;
-            }
-        }
-    }
+    Layers.insert(Layers.end(), g_DebugInstanceLayers.begin(), g_DebugInstanceLayers.end());
+    Extensions.insert(Extensions.end(), g_DebugInstanceExtensions.begin(), g_DebugInstanceExtensions.end());
 
     VkDebugUtilsMessengerCreateInfoEXT CreateDebugInfo{};
     PopulateDebugInfo(CreateDebugInfo);
-
-    for (const char *const &DebugInstanceExtensionIter : g_DebugInstanceExtensions)
-    {
-        if (std::find(AvailableInstanceExtensions.begin(), AvailableInstanceExtensions.end(), DebugInstanceExtensionIter) != AvailableInstanceExtensions.end())
-        {
-            Extensions.push_back(DebugInstanceExtensionIter);
-
-            if (!bSupportsDebuggingFeatures)
-            {
-                bSupportsDebuggingFeatures = true;
-            }
-        }
-    }
 #endif
 
     CreateInfo.enabledLayerCount = static_cast<std::uint32_t>(Layers.size());
@@ -358,11 +318,8 @@ void VulkanRender::CreateVulkanInstance()
     volkLoadInstance(m_Instance);
 
 #ifdef _DEBUG
-    if (bSupportsDebuggingFeatures)
-    {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Setting up debug messages";
-        RENDERCORE_CHECK_VULKAN_RESULT(CreateDebugUtilsMessenger(m_Instance, &CreateDebugInfo, nullptr, &m_DebugMessenger));
-    }
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Setting up debug messages";
+    RENDERCORE_CHECK_VULKAN_RESULT(CreateDebugUtilsMessenger(m_Instance, &CreateDebugInfo, nullptr, &m_DebugMessenger));
 #endif
 }
 

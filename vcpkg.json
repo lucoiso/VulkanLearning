@@ -11,7 +11,6 @@
         { "name": "stb",                        "platform": "windows & x64" },
         { "name": "assimp",                     "platform": "windows & x64" },
         { "name": "volk",                       "platform": "windows & x64" },
-        { "name": "vulkan-headers",             "platform": "windows & x64" },
         { "name": "vulkan-memory-allocator",    "platform": "windows & x64" },
         { "name": "glslang",                    "platform": "windows & x64" }
     ]

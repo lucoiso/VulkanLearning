@@ -26,8 +26,8 @@ set(HEADER_FILES
     # Private Headers
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/RenderCoreHelpers.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanDebugHelpers.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanEnumConverter.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanConstants.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanEnumConverter.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/DeviceProperties.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/QueueType.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/ObjectData.h
@@ -58,8 +58,8 @@ find_package(glm REQUIRED)
 find_package(Stb REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 
+find_package(Vulkan)
 find_package(volk CONFIG REQUIRED)
-find_package(VulkanHeaders CONFIG)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(glslang CONFIG REQUIRED)
 
@@ -78,13 +78,12 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE
     glm::glm
     assimp::assimp
 
+    volk::volk_headers
+    GPUOpen::VulkanMemoryAllocator
+
     glslang::glslang
     glslang::glslang-default-resource-limits
     glslang::SPIRV
-
-    volk::volk_headers
-    Vulkan::Headers
-    GPUOpen::VulkanMemoryAllocator
 )
 
 target_link_libraries(${LIBRARY_NAME} PUBLIC
@@ -94,6 +93,7 @@ target_link_libraries(${LIBRARY_NAME} PUBLIC
 )
 
 target_include_directories(${LIBRARY_NAME} PRIVATE
+    ${Vulkan_INCLUDE_DIRS}
     ${Stb_INCLUDE_DIR}
 )
 
