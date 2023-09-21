@@ -205,16 +205,13 @@ public:
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain";
 
-        if (bRecreate)
-        {
-            DestroyResources(false);
-        }
-
         const VulkanDeviceProperties &Properties = VulkanRenderSubsystem::Get()->GetDeviceProperties();
 
         const std::vector<std::uint32_t> QueueFamilyIndices = VulkanRenderSubsystem::Get()->GetQueueFamilyIndices_u32();
         const std::uint32_t QueueFamilyIndicesCount = static_cast<std::uint32_t>(QueueFamilyIndices.size());
         
+        m_OldSwapChain = m_SwapChain;
+
         const VkSwapchainCreateInfoKHR SwapChainCreateInfo{
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface = VulkanRenderSubsystem::Get()->GetSurface(),
@@ -231,11 +228,17 @@ public:
             .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             .presentMode = Properties.Mode,
             .clipped = VK_TRUE,
+            .oldSwapchain = m_OldSwapChain
         };
         
         const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
 
         RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSwapchainKHR(VulkanLogicalDevice, &SwapChainCreateInfo, nullptr, &m_SwapChain));
+
+        if (bRecreate)
+        {
+            DestroyResources(false);
+        }
 
         std::uint32_t Count = 0u;
         RENDERCORE_CHECK_VULKAN_RESULT(vkGetSwapchainImagesKHR(VulkanLogicalDevice, m_SwapChain, &Count, nullptr));
@@ -314,7 +317,7 @@ public:
         constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
         constexpr VkBufferUsageFlags DestinationUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-        constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT;
 
         VkPhysicalDeviceMemoryProperties MemoryProperties;
         vkGetPhysicalDeviceMemoryProperties(m_Allocator->GetPhysicalDevice(), &MemoryProperties);
@@ -363,7 +366,7 @@ public:
         constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
         constexpr VkBufferUsageFlags DestinationUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-        constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT;
 
         VkPhysicalDeviceMemoryProperties MemoryProperties;
         vkGetPhysicalDeviceMemoryProperties(m_Allocator->GetPhysicalDevice(), &MemoryProperties);
@@ -461,9 +464,16 @@ public:
         const VkQueue &GraphicsQueue = VulkanRenderSubsystem::Get()->GetQueueFromType(VulkanQueueType::Graphics);
         const std::uint8_t GraphicsQueueFamilyIndex = VulkanRenderSubsystem::Get()->GetQueueFamilyIndexFromType(VulkanQueueType::Graphics);
 
-        CreateImage(Properties.DepthFormat, Properties.Extent, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DepthImage.Image, m_DepthImage.Allocation);
-        CreateImageView(m_DepthImage.Image, Properties.DepthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, m_DepthImage.View);
-        MoveImageLayout(m_DepthImage.Image, Properties.DepthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, GraphicsQueue, GraphicsQueueFamilyIndex);
+        constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
+        constexpr VkImageUsageFlagBits Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        constexpr VkMemoryPropertyFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        constexpr VkImageAspectFlagBits Aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+        constexpr VkImageLayout InitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        constexpr VkImageLayout DestinationLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        CreateImage(Properties.DepthFormat, Properties.Extent, Tiling, Usage, MemoryPropertyFlags, m_DepthImage.Image, m_DepthImage.Allocation);
+        CreateImageView(m_DepthImage.Image, Properties.DepthFormat, Aspect, m_DepthImage.View);
+        MoveImageLayout(m_DepthImage.Image, Properties.DepthFormat, InitialLayout, DestinationLayout, GraphicsQueue, GraphicsQueueFamilyIndex);
     }
 
     std::uint64_t LoadObject(const std::string_view Path)
@@ -562,7 +572,7 @@ public:
         constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
         constexpr VkBufferUsageFlags DestinationUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT;
 
         constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
 
@@ -613,6 +623,12 @@ public:
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Vulkan buffer manager";
 
+        if (m_SwapChain != VK_NULL_HANDLE)
+        {
+            vkDestroySwapchainKHR(VulkanRenderSubsystem::Get()->GetDevice(), m_SwapChain, nullptr);
+            m_SwapChain = VK_NULL_HANDLE;
+        }
+
         DestroyResources(true);
 
         vmaDestroyAllocator(m_Allocator);
@@ -625,10 +641,10 @@ public:
 
         const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
 
-        if (m_SwapChain != VK_NULL_HANDLE)
+        if (m_OldSwapChain != VK_NULL_HANDLE)
         {
-            vkDestroySwapchainKHR(VulkanLogicalDevice, m_SwapChain, nullptr);
-            m_SwapChain = VK_NULL_HANDLE;
+            vkDestroySwapchainKHR(VulkanLogicalDevice, m_OldSwapChain, nullptr);
+            m_OldSwapChain = VK_NULL_HANDLE;
         }
 
         for (VulkanImageAllocation &ImageViewIter : m_SwapChainImages)
@@ -973,6 +989,7 @@ private:
 
     VmaAllocator m_Allocator;
     VkSwapchainKHR m_SwapChain;
+    VkSwapchainKHR m_OldSwapChain;
     std::vector<VulkanImageAllocation> m_SwapChainImages;
     VulkanImageAllocation m_DepthImage;
     std::vector<VkFramebuffer> m_FrameBuffers;
