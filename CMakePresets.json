@@ -6,8 +6,7 @@
             "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
             "displayName": "VCPKG Default",
             "cacheVariables": {
-              "VCPKG_TARGET_TRIPLET": "x64-windows",
-              "CMAKE_BINARY_DIR": "./build"
+              "VCPKG_TARGET_TRIPLET": "x64-windows"
             }
         },
         {

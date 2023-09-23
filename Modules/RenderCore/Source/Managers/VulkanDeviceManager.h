@@ -4,15 +4,13 @@
 
 #pragma once
 
-#include "RenderCoreModule.h"
 #include "Types/DeviceProperties.h"
-#include <volk.h>
-#include <QWindow>
 #include <vector>
 #include <string>
 #include <optional>
+#include <volk.h>
 
-struct GLFWwindow;
+class QQuickWindow;
 
 namespace RenderCore
 {
@@ -45,7 +43,7 @@ namespace RenderCore
         [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment() const;
 
         [[nodiscard]] bool IsPhysicalDeviceSuitable(const VkPhysicalDevice &Device) const;
-        [[nodiscard]] VulkanDeviceProperties GetPreferredProperties(const QWindow *const Window);
+        [[nodiscard]] VulkanDeviceProperties GetPreferredProperties(const QQuickWindow *const Window);
 
     private:
         bool GetQueueFamilyIndices(std::optional<std::uint8_t> &GraphicsQueueFamilyIndex, std::optional<std::uint8_t> &PresentationQueueFamilyIndex, std::optional<std::uint8_t> &TransferQueueFamilyIndex);

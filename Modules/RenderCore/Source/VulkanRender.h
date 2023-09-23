@@ -4,16 +4,19 @@
 
 #pragma once
 
-#include "RenderCoreModule.h"
+#include "Managers/VulkanRenderSubsystem.h"
+#include "Managers/VulkanDeviceManager.h"
+#include "Managers/VulkanPipelineManager.h"
+#include "Managers/VulkanBufferManager.h"
+#include "Managers/VulkanCommandsManager.h"
+#include "Managers/VulkanShaderManager.h"
 #include "Types/RenderStateFlags.h"
 #include "Types/BufferRecordParameters.h"
-#include <QWindow>
-#include <memory>
 #include <string_view>
 #include <vector>
 #include <optional>
 
-struct GLFWwindow;
+class QQuickWindow;
 
 namespace RenderCore
 {
@@ -27,29 +30,30 @@ namespace RenderCore
 
         ~VulkanRender();
 
-        void Initialize(const QWindow *const Window);
+        void Initialize(const QQuickWindow *const Window);
         void Shutdown();
 
-        void DrawFrame(const QWindow *const Window);
-
-        std::optional<std::int32_t> TryRequestDrawImage(const QWindow *const Window) const;
+        void DrawFrame(const QQuickWindow *const Window);
         bool IsInitialized() const;
 
         void LoadScene(const std::string_view ModelPath, const std::string_view TexturePath);
         void UnloadScene();
 
     private:
+        std::optional<std::int32_t> TryRequestDrawImage(const QQuickWindow *const Window);
+
         void CreateVulkanInstance();
-        void CreateVulkanSurface(const QWindow *const Window);
-        void InitializeRenderCore(const QWindow *const Window);
+        void CreateVulkanSurface(const QQuickWindow *const Window);
+        void InitializeRenderCore(const QQuickWindow *const Window);
+
         std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders();
         VulkanBufferRecordParameters GetBufferRecordParameters(const std::uint32_t ImageIndex, const std::uint64_t ObjectID) const;
 
-        std::unique_ptr<class VulkanDeviceManager> m_DeviceManager;
-        std::unique_ptr<class VulkanPipelineManager> m_PipelineManager;
-        std::unique_ptr<class VulkanBufferManager> m_BufferManager;
-        std::unique_ptr<class VulkanCommandsManager> m_CommandsManager;
-        std::unique_ptr<class VulkanShaderManager> m_ShaderManager;
+        VulkanDeviceManager m_DeviceManager;
+        VulkanPipelineManager m_PipelineManager;
+        VulkanBufferManager m_BufferManager;
+        VulkanCommandsManager m_CommandsManager;
+        VulkanShaderManager m_ShaderManager;
 
         VkInstance m_Instance;
         VkSurfaceKHR m_Surface;

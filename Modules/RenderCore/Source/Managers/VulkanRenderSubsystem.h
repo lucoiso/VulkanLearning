@@ -4,13 +4,11 @@
 
 #pragma once
 
-#include "RenderCoreModule.h"
 #include "Types/QueueType.h"
 #include "Types/DeviceProperties.h"
-#include <volk.h>
 #include <vector>
 #include <unordered_map>
-#include <memory>
+#include <volk.h>
 
 namespace RenderCore
 {
@@ -23,7 +21,7 @@ namespace RenderCore
         VulkanRenderSubsystem();
         ~VulkanRenderSubsystem();
 
-        static std::shared_ptr<VulkanRenderSubsystem> Get();
+        static VulkanRenderSubsystem &Get();
 
         void SetInstance(const VkInstance &Instance);
         void SetDevice(const VkDevice &Device);
@@ -62,7 +60,7 @@ namespace RenderCore
         [[nodiscard]] const VkDescriptorPool &GetDescriptorPool() const;
 
     private:
-        static std::shared_ptr<VulkanRenderSubsystem> m_SubsystemInstance;
+        static VulkanRenderSubsystem m_SubsystemInstance;
 
         const VkInstance *m_Instance;
         const VkDevice *m_Device;

@@ -8,8 +8,8 @@
 #pragma once
 
 #include "Utils/VulkanConstants.h"
-#include <volk.h>
 #include <boost/log/trivial.hpp>
+#include <volk.h>
 
 namespace RenderCore
 {
@@ -90,5 +90,4 @@ namespace RenderCore
     }
 #endif
 }
-
 #endif

@@ -5,8 +5,7 @@
 #pragma once
 
 #include "RenderCoreModule.h"
-#include "Types/ObjectData.h"
-#include <memory>
+#include "Types/TextureData.h"
 #include <vector>
 #include <volk.h>
 

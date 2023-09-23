@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <volk.h>
 #include <cstdint>
 
 namespace RenderCore
@@ -14,7 +13,6 @@ namespace RenderCore
         Graphics,
         Compute,
         Transfer,
-        Present,
-        Count
+        Present
     };
 }

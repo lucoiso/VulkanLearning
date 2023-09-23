@@ -48,6 +48,9 @@ set(HEADER_FILES
 )
 
 find_package(Qt${QT_LIB_VERSION}Core CONFIG REQUIRED)
+find_package(Qt${QT_LIB_VERSION}Gui CONFIG REQUIRED)
+find_package(Qt${QT_LIB_VERSION}Quick CONFIG REQUIRED)
+
 qt_add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
 
 target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
@@ -57,9 +60,6 @@ target_include_directories(${LIBRARY_NAME} PRIVATE
 )
 
 target_compile_definitions(${LIBRARY_NAME} PRIVATE BUILD_DLL)
-
-find_package(Qt${QT_LIB_VERSION}Gui CONFIG REQUIRED)
-find_package(Qt${QT_LIB_VERSION}Widgets CONFIG REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS log)
 find_package(glm REQUIRED)
@@ -88,7 +88,7 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE
 target_link_libraries(${LIBRARY_NAME} PUBLIC
     Qt${QT_LIB_VERSION}::Core
     Qt${QT_LIB_VERSION}::Gui
-    Qt${QT_LIB_VERSION}::Widgets
+    Qt${QT_LIB_VERSION}::Quick
 )
 
 target_include_directories(${LIBRARY_NAME} PRIVATE
@@ -110,4 +110,14 @@ target_compile_definitions(${LIBRARY_NAME} PUBLIC
     NOMINMAX
     _WIN32_WINNT=0x0601
     GPU_API_DUMP=0
+)
+
+set(QML_FILES
+    QML/Placeholder.qml
+)
+
+qt_add_qml_module(${LIBRARY_NAME}
+    URI ${LIBRARY_NAME}
+    VERSION 1.0
+    QML_FILES ${QML_FILES}
 )

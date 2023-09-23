@@ -16,7 +16,6 @@ using namespace RenderCore;
 
 VulkanShaderManager::VulkanShaderManager()
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan shader compiler";
 }
 
 VulkanShaderManager::~VulkanShaderManager()
@@ -26,7 +25,6 @@ VulkanShaderManager::~VulkanShaderManager()
         return;
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing vulkan shader compiler";
     Shutdown();
 }
 
@@ -34,7 +32,7 @@ void VulkanShaderManager::Shutdown()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan shader compiler";
 
-    const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
+    const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get().GetDevice();
 
     for (auto &[ShaderModule, _] : m_StageInfos)
     {
@@ -236,7 +234,7 @@ void VulkanShaderManager::FreeStagedModules(const std::vector<VkPipelineShaderSt
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
 
-    const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
+    const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get().GetDevice();
 
     for (const VkPipelineShaderStageCreateInfo& StageInfoIter : StagedModules)
     {

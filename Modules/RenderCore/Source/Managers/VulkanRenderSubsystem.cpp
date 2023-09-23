@@ -9,7 +9,7 @@
 
 using namespace RenderCore;
 
-std::shared_ptr<VulkanRenderSubsystem> VulkanRenderSubsystem::m_SubsystemInstance(nullptr);
+VulkanRenderSubsystem VulkanRenderSubsystem::m_SubsystemInstance;
 
 VulkanRenderSubsystem::VulkanRenderSubsystem()
     : m_Instance(VK_NULL_HANDLE)
@@ -31,13 +31,8 @@ VulkanRenderSubsystem::~VulkanRenderSubsystem()
 {
 }
 
-std::shared_ptr<VulkanRenderSubsystem> VulkanRenderSubsystem::Get()
+VulkanRenderSubsystem &VulkanRenderSubsystem::Get()
 {
-    if (!m_SubsystemInstance)
-    {
-        m_SubsystemInstance = std::make_shared<VulkanRenderSubsystem>();
-    }
-
     return m_SubsystemInstance;
 }
 

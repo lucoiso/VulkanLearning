@@ -4,39 +4,36 @@
 
 #include "Window.h"
 #include "VulkanRender.h"
-#include "Managers/VulkanRenderSubsystem.h"
-#include "Utils/RenderCoreHelpers.h"
-#include "Utils/VulkanConstants.h"
 #include <stdexcept>
 #include <boost/log/trivial.hpp>
 #include <QTimer>
+#include <QEvent>
+#include <QPluginLoader>
 
 using namespace RenderCore;
 
-class Window::Renderer
+class Window::Impl
 {
 public:
-    Renderer(const Window::Renderer &) = delete;
-    Renderer &operator=(const Window::Renderer &) = delete;
+    Impl(const Window::Impl &) = delete;
+    Impl &operator=(const Window::Impl &) = delete;
 
-    Renderer()
-        : m_Render(std::make_unique<VulkanRender>())
+    Impl()
+        : m_Render()
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Window Renderer";
     }
 
-    ~Renderer()
+    ~Impl()
     {
         if (!IsInitialized())
         {
             return;
         }
 
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing Window Renderer";
         Shutdown();
     }
 
-    bool Initialize(const QWindow *const Window)
+    bool Initialize(const QQuickWindow *const Window)
     {
         if (IsInitialized())
         {
@@ -45,10 +42,10 @@ public:
 
         try
         {
-            m_Render->Initialize(Window);
-            m_Render->LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+            m_Render.Initialize(Window);
+            m_Render.LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
             
-            return m_Render->IsInitialized();
+            return m_Render.IsInitialized();
         }
         catch (const std::exception &Ex)
         {
@@ -66,32 +63,30 @@ public:
             return;
         }
 
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Window Renderer";
-
-        m_Render.reset();
+        m_Render.Shutdown();
     }
 
     bool IsInitialized() const
     {
-        return m_Render && m_Render->IsInitialized();
+        return m_Render.IsInitialized();
     }
 
-    void DrawFrame(const QWindow *const Window)
+    void DrawFrame(const QQuickWindow *const Window)
     {
-        m_Render->DrawFrame(Window);
+        m_Render.DrawFrame(Window);
     }
 
 private:
 
-    std::unique_ptr<VulkanRender> m_Render;
+    VulkanRender m_Render;
 };
 
 Window::Window()
-    : QMainWindow()
-    , m_Renderer(std::make_unique<Window::Renderer>())
+    : QQuickView()
+    , m_Impl(std::make_unique<Window::Impl>())
     , m_CanDraw(false)
 {
-    CreateWidgets();
+    CreateOverlay();
 }
 
 Window::~Window()
@@ -111,11 +106,13 @@ bool Window::Initialize(const std::uint16_t Width, const std::uint16_t Height, c
         return false;
     }
 
-    setWindowTitle(Title.data());
-    setMinimumSize(Width, Height);
+    // setSource(QUrl("qrc:/RenderCore/QML/Placeholder.qml"));
+    setResizeMode(QQuickView::SizeRootObjectToView);
+    setTitle(Title.data());
+    setMinimumSize(QSize(Width, Height));
     show();
 
-    if (m_Renderer->Initialize(windowHandle()))
+    if (m_Impl->Initialize(this))
     {
         m_CanDraw = true;
 
@@ -139,15 +136,15 @@ void Window::Shutdown()
         return;
     }
 
-    m_Renderer->Shutdown();
+    m_Impl->Shutdown();
 }
 
 bool Window::IsInitialized() const
 {
-    return m_Renderer && m_Renderer->IsInitialized();
+    return m_Impl && m_Impl->IsInitialized();
 }
 
-void Window::CreateWidgets()
+void Window::CreateOverlay()
 {
 }
 
@@ -157,7 +154,7 @@ void Window::DrawFrame()
     {
         if (m_CanDraw)
         {
-            m_Renderer->DrawFrame(windowHandle());
+            m_Impl->DrawFrame(this);
         }
     }
     catch (const std::exception &Ex)
@@ -173,5 +170,5 @@ bool Window::event(QEvent *const Event)
         m_CanDraw = false;
     }
 
-    return QMainWindow::event(Event);
+    return QQuickWindow::event(Event);
 }

@@ -3,6 +3,7 @@
     "version-string": "0.0.1",
     "dependencies": [
         { "name": "qtbase",                     "platform": "windows & x64" },
+        { "name": "qtdeclarative",              "platform": "windows & x64" },
         { "name": "boost-log",                  "platform": "windows & x64" },
         { "name": "boost-json",                 "platform": "windows & x64" },
         { "name": "boost-test",                 "platform": "windows & x64" },

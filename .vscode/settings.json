@@ -108,6 +108,10 @@
         "qlayout": "cpp",
         "qlineedit": "cpp",
         "qslider": "cpp",
-        "qapplication": "cpp"
+        "qapplication": "cpp",
+        "string_view": "cpp",
+        "qmainwindow": "cpp",
+        "qquickwindow": "cpp",
+        "qquickview": "cpp"
     }
 }

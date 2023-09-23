@@ -5,16 +5,18 @@
 #pragma once
 
 #include "RenderCoreModule.h"
-#include <QMainWindow>
+#include <QtQuick/QQuickView>
 #include <string_view>
 #include <cstdint>
 #include <memory>
 
+class QEvent;
+
 namespace RenderCore
 {
-    class RENDERCOREMODULE_API Window : public QMainWindow
+    class RENDERCOREMODULE_API Window : public QQuickView
     {
-        class Renderer;
+        class Impl;
 
     public:
         Window();
@@ -29,14 +31,14 @@ namespace RenderCore
 
         bool IsInitialized() const;
 
-        virtual void CreateWidgets();
+        virtual void CreateOverlay();
 
     protected:
         void DrawFrame();
         virtual bool event(QEvent *const Event) override;
 
     private:
-        std::unique_ptr<Renderer> m_Renderer;
+        std::unique_ptr<Impl> m_Impl;
         bool m_CanDraw;
     };
 }
