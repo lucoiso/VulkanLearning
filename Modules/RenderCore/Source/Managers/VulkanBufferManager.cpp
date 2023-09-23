@@ -413,7 +413,7 @@ public:
         std::string UsedTexturePath = TexturePath.data();
         if (!std::filesystem::exists(UsedTexturePath))
         {
-            UsedTexturePath = PLACEHOLDER_MODEL_TEX;
+            UsedTexturePath = EMPTY_TEX;
         }
 
         stbi_uc *const ImagePixels = stbi_load(UsedTexturePath.c_str(), &Width, &Height, &Channels, STBI_rgb_alpha);

@@ -5,6 +5,10 @@
 # ----------- Global Definitions -----------
 set(LIBRARY_NAME RenderCore)
 
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
+
 # ------------- Library Setup --------------
 set(SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRender.cpp
@@ -43,7 +47,8 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanDeviceManager.h
 )
 
-add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
+find_package(Qt${QT_LIB_VERSION}Core CONFIG REQUIRED)
+qt_add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
 
 target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 target_include_directories(${LIBRARY_NAME} PRIVATE
@@ -53,6 +58,9 @@ target_include_directories(${LIBRARY_NAME} PRIVATE
 
 target_compile_definitions(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 
+find_package(Qt${QT_LIB_VERSION}Gui CONFIG REQUIRED)
+find_package(Qt${QT_LIB_VERSION}Widgets CONFIG REQUIRED)
+
 find_package(Boost REQUIRED COMPONENTS log)
 find_package(glm REQUIRED)
 find_package(Stb REQUIRED)
@@ -61,15 +69,6 @@ find_package(assimp CONFIG REQUIRED)
 find_package(volk CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(glslang CONFIG REQUIRED)
-
-set(QT_LIB_VERSION 5)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
-
-find_package(Qt${QT_LIB_VERSION}Core CONFIG REQUIRED)
-find_package(Qt${QT_LIB_VERSION}Gui CONFIG REQUIRED)
-find_package(Qt${QT_LIB_VERSION}Widgets CONFIG REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE
     Boost::log
@@ -97,15 +96,12 @@ target_include_directories(${LIBRARY_NAME} PRIVATE
 )
 
 target_compile_definitions(${LIBRARY_NAME} PRIVATE
-    PLACEHOLDER_IMAGE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/Resources/Placeholder.jpg"
-
-    DEBUG_SHADER_VERT="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.vert"
-    DEBUG_SHADER_FRAG="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.frag"
-
-    DEBUG_MODEL_OBJ="${CMAKE_CURRENT_SOURCE_DIR}/Resources/viking_room.obj"
-    DEBUG_MODEL_TEX="${CMAKE_CURRENT_SOURCE_DIR}/Resources/viking_room.png"
-    
-    PLACEHOLDER_MODEL_TEX="${CMAKE_CURRENT_SOURCE_DIR}/Resources/Placeholder.png"
+    # Assets directory (relative to binaries)
+    DEBUG_SHADER_VERT="Resources/Shaders/TRIANGLE_VERT_SHADER.vert"
+    DEBUG_SHADER_FRAG="Resources/Shaders/TRIANGLE_FRAG_SHADER.frag"
+    DEBUG_MODEL_OBJ="Resources/Assets/VIKING_ROOM_OBJ.obj"
+    DEBUG_MODEL_TEX="Resources/Assets/VIKING_ROOM_TEX.png"
+    EMPTY_TEX="Resources/Assets/EMPTY_TEX.png"
 )
 
 target_compile_definitions(${LIBRARY_NAME} PUBLIC

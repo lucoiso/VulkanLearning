@@ -35,7 +35,7 @@
         {
             "label": "CMake Build: Release",
             "type": "shell",
-            "command": "cmake --build build --preset Release",
+            "command": "cmake -DCMAKE_BUILD_TYPE=Release ; cmake --build build --preset Release",
             "group": {
 
                 "kind": "build",
@@ -46,7 +46,7 @@
         {
             "label": "CMake Build: Debug",
             "type": "shell",
-            "command": "cmake --build build --preset Debug",
+            "command": "cmake -DCMAKE_BUILD_TYPE=Debug ; cmake --build build --preset Debug",
             "group": {
                 "kind": "build",
                 "isDefault": true

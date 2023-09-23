@@ -36,7 +36,7 @@ public:
         Shutdown();
     }
 
-    bool Initialize(QWindow *const Window)
+    bool Initialize(const QWindow *const Window)
     {
         if (IsInitialized())
         {

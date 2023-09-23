@@ -107,6 +107,7 @@
         "scoped_allocator": "cpp",
         "qlayout": "cpp",
         "qlineedit": "cpp",
-        "qslider": "cpp"
+        "qslider": "cpp",
+        "qapplication": "cpp"
     }
 }
