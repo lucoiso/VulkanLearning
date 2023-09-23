@@ -29,11 +29,14 @@ namespace RenderCore
 
         bool IsInitialized() const;
 
+        virtual void CreateWidgets();
+
     protected:
         void DrawFrame();
         virtual bool event(QEvent *const Event) override;
 
     private:
         std::unique_ptr<Renderer> m_Renderer;
+        bool m_CanDraw;
     };
 }

@@ -13,13 +13,25 @@
 namespace RenderCore
 {
 #ifdef _DEBUG
+#if defined(GPU_API_DUMP) && GPU_API_DUMP
+    constexpr std::array<const char *, 2> g_DebugInstanceLayers = {
+        "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_LUNARG_api_dump"
+    };
+
+    constexpr std::array<const char *, 2> g_DebugDeviceLayers = {
+        "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_LUNARG_api_dump"
+    };
+#else
     constexpr std::array<const char *, 1> g_DebugInstanceLayers = {
-        "VK_LAYER_KHRONOS_validation"     
+        "VK_LAYER_KHRONOS_validation"
     };
 
     constexpr std::array<const char *, 1> g_DebugDeviceLayers = {
-        "VK_LAYER_KHRONOS_validation"     
+        "VK_LAYER_KHRONOS_validation"
     };
+#endif
 
     constexpr std::array<const char *, 3> g_DebugInstanceExtensions = {
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
@@ -66,7 +78,7 @@ namespace RenderCore
         VK_DYNAMIC_STATE_SCISSOR
     };
 
-    constexpr std::uint8_t g_MaxFramesInFlight = 2u;
+    constexpr std::uint8_t g_MaxFramesInFlight = 1u;
 
     constexpr std::uint32_t g_BufferMemoryAllocationSize = 65536u;
 

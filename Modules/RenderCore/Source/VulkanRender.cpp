@@ -163,9 +163,8 @@ void VulkanRender::DrawFrame(const QWindow *const Window)
     else if (HasFlag(StateFlags, VulkanRenderStateFlags::SCENE_LOADED))
     {
         const std::int32_t IndiceToProcess = ImageIndice.value();
-        m_BufferManager->UpdateUniformBuffers();
-
         const VulkanBufferRecordParameters Parameters = GetBufferRecordParameters(IndiceToProcess, 0u);
+
         m_CommandsManager->RecordCommandBuffers(Parameters);
 
         const VkQueue &GraphicsQueue = VulkanRenderSubsystem::Get()->GetQueueFromType(VulkanQueueType::Graphics);
@@ -232,10 +231,9 @@ void VulkanRender::LoadScene(const std::string_view ModelPath, const std::string
     
     m_PipelineManager->DestroyResources();
 
-    const std::uint64_t ObjectID = m_BufferManager->LoadObject(ModelPath);
-    m_BufferManager->LoadTexture(TexturePath, ObjectID);
-
     m_BufferManager->CreateSwapChain(false);
+
+    const std::uint64_t ObjectID = m_BufferManager->LoadObject(ModelPath, TexturePath);
     m_BufferManager->CreateDepthResources();
 
     m_PipelineManager->CreateRenderPass();
@@ -244,15 +242,11 @@ void VulkanRender::LoadScene(const std::string_view ModelPath, const std::string
 
     m_BufferManager->CreateFrameBuffers(m_PipelineManager->GetRenderPass());
 
-    std::vector<VulkanTextureData> TextureData;
+    VulkanTextureData TextureData;
     m_BufferManager->GetObjectTexture(ObjectID, TextureData);
 
-    const VulkanObjectData Data{
-        .UniformBuffers = m_BufferManager->GetUniformBuffers(ObjectID),
-        .TextureDatas = TextureData};
-
     m_PipelineManager->CreateDescriptorPool();
-    m_PipelineManager->CreateDescriptorSets({Data});
+    m_PipelineManager->CreateDescriptorSets({ TextureData });
 
     m_CommandsManager->CreateSynchronizationObjects();
 
@@ -397,8 +391,8 @@ VulkanBufferRecordParameters VulkanRender::GetBufferRecordParameters(const std::
         .Pipeline = m_PipelineManager->GetPipeline(),
         .Extent = VulkanRenderSubsystem::Get()->GetDeviceProperties().Extent,
         .FrameBuffers = m_BufferManager->GetFrameBuffers(),
-        .VertexBuffers = m_BufferManager->GetVertexBuffers(ObjectID),
-        .IndexBuffers = m_BufferManager->GetIndexBuffers(ObjectID),
+        .VertexBuffer = m_BufferManager->GetVertexBuffer(ObjectID),
+        .IndexBuffer = m_BufferManager->GetIndexBuffer(ObjectID),
         .PipelineLayout = m_PipelineManager->GetPipelineLayout(),
         .DescriptorSets = m_PipelineManager->GetDescriptorSets(),
         .IndexCount = m_BufferManager->GetIndicesCount(ObjectID),

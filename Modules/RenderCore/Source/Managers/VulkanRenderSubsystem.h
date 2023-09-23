@@ -64,13 +64,14 @@ namespace RenderCore
     private:
         static std::shared_ptr<VulkanRenderSubsystem> m_SubsystemInstance;
 
-        VkInstance m_Instance;
-        VkDevice m_Device;
-        VkPhysicalDevice m_PhysicalDevice;
-        VkSurfaceKHR m_Surface;
-        VkRenderPass m_RenderPass;
-        VkPipelineCache m_PipelineCache;
-        VkDescriptorPool m_DescriptorPool;
+        const VkInstance *m_Instance;
+        const VkDevice *m_Device;
+        const VkPhysicalDevice *m_PhysicalDevice;
+        const VkSurfaceKHR *m_Surface;
+        const VkRenderPass *m_RenderPass;
+        const VkPipelineCache *m_PipelineCache;
+        const VkDescriptorPool *m_DescriptorPool;
+
         VulkanDeviceProperties m_DeviceProperties;
         std::vector<std::uint8_t> m_QueueFamilyIndices;
 

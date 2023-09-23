@@ -32,6 +32,11 @@ VulkanPipelineManager::~VulkanPipelineManager()
 
 void VulkanPipelineManager::CreateRenderPass()
 {
+    if (m_RenderPass != VK_NULL_HANDLE)
+    {
+        vkDestroyRenderPass(VulkanRenderSubsystem::Get()->GetDevice(), m_RenderPass, nullptr);
+    }
+    
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render pass";
 
     const VulkanDeviceProperties &DeviceProperties = VulkanRenderSubsystem::Get()->GetDeviceProperties();
@@ -144,16 +149,28 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         .cullMode = VK_CULL_MODE_BACK_BIT,
         .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .depthBiasEnable = VK_FALSE,
+        .depthBiasConstantFactor = 0.f,
+        .depthBiasClamp = 0.f,
+        .depthBiasSlopeFactor = 0.f,
         .lineWidth = 1.f};
 
     const VkPipelineMultisampleStateCreateInfo MultisampleState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .rasterizationSamples = g_MSAASamples,
         .sampleShadingEnable = VK_FALSE,
-    };
+        .minSampleShading = 1.f,
+        .pSampleMask = nullptr,
+        .alphaToCoverageEnable = VK_FALSE,
+        .alphaToOneEnable = VK_FALSE};
 
     const VkPipelineColorBlendAttachmentState ColorBlendAttachmentStates{
         .blendEnable = VK_FALSE,
+        .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
+        .colorBlendOp = VK_BLEND_OP_ADD,
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+        .alphaBlendOp = VK_BLEND_OP_ADD,
         .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
 
     const VkPipelineColorBlendStateCreateInfo ColorBlendState{
@@ -169,10 +186,17 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         .dynamicStateCount = static_cast<uint32_t>(g_DynamicStates.size()),
         .pDynamicStates = g_DynamicStates.data()};
 
+    const VkPushConstantRange PushConstantRange{
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        .offset = 0u,
+        .size = sizeof(UniformBufferObject)};
+
     const VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .setLayoutCount = 1u,
-        .pSetLayouts = &m_DescriptorSetLayout};
+        .pSetLayouts = &m_DescriptorSetLayout,
+        .pushConstantRangeCount = 1u,
+        .pPushConstantRanges = &PushConstantRange};
 
     const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get()->GetDevice();
 
@@ -211,7 +235,8 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         .layout = m_PipelineLayout,
         .renderPass = m_RenderPass,
         .subpass = 0u,
-        .basePipelineHandle = VK_NULL_HANDLE};
+        .basePipelineHandle = VK_NULL_HANDLE,
+        .basePipelineIndex = -1};
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateGraphicsPipelines(VulkanLogicalDevice, VK_NULL_HANDLE, 1u, &GraphicsPipelineCreateInfo, nullptr, &m_Pipeline));
 }
@@ -264,7 +289,7 @@ void VulkanPipelineManager::CreateDescriptorPool()
     VulkanRenderSubsystem::Get()->SetDescriptorPool(m_DescriptorPool);
 }
 
-void VulkanPipelineManager::CreateDescriptorSets(const std::vector<VulkanObjectData> &ObjectsData)
+void VulkanPipelineManager::CreateDescriptorSets(const std::vector<VulkanTextureData> &TextureDatas)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor sets";
 
@@ -283,46 +308,16 @@ void VulkanPipelineManager::CreateDescriptorSets(const std::vector<VulkanObjectD
 
     for (std::uint32_t Iterator = 0u; Iterator < g_MaxFramesInFlight; ++Iterator)
     {
-        std::vector<VkDescriptorBufferInfo> UniformBuffers{};
-        for (const VulkanObjectData &ObjectDataIter : ObjectsData)
-        {
-            if (ObjectDataIter.UniformBuffers.empty())
-            {
-                continue;
-            }
-
-            UniformBuffers.push_back(VkDescriptorBufferInfo{
-                .buffer = ObjectDataIter.UniformBuffers[Iterator],
-                .offset = 0u,
-                .range = sizeof(UniformBufferObject)});
-        }
-        
         std::vector<VkDescriptorImageInfo> ImageInfos{};
-        for (const VulkanObjectData &ObjectDataIter : ObjectsData)
+        for (const VulkanTextureData &TextureDataIter : TextureDatas)
         {
-            for (const VulkanTextureData &TextureDataIter : ObjectDataIter.TextureDatas)
-            {
-                ImageInfos.push_back(VkDescriptorImageInfo{
-                    .sampler = TextureDataIter.Sampler,
-                    .imageView = TextureDataIter.ImageView,
-                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
-            }
+            ImageInfos.push_back(VkDescriptorImageInfo{
+                .sampler = TextureDataIter.Sampler,
+                .imageView = TextureDataIter.ImageView,
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
         }
 
-        std::vector<VkWriteDescriptorSet> WriteDescriptors {};        
-        if (!UniformBuffers.empty())
-        {
-            WriteDescriptors.push_back(VkWriteDescriptorSet{
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = m_DescriptorSets[Iterator],
-                .dstBinding = 0u,
-                .dstArrayElement = 0u,
-                .descriptorCount = static_cast<std::uint32_t>(UniformBuffers.size()),
-                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .pImageInfo = nullptr,
-                .pBufferInfo = UniformBuffers.data(),
-                .pTexelBufferView = nullptr});
-        }
+        std::vector<VkWriteDescriptorSet> WriteDescriptors {};
 
         if (!ImageInfos.empty())
         {

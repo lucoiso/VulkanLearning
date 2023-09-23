@@ -26,7 +26,7 @@ namespace RenderCore
         void CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &ShaderStages);
         void CreateDescriptorSetLayout();
         void CreateDescriptorPool();
-        void CreateDescriptorSets(const std::vector<VulkanObjectData> &ObjectsData);
+        void CreateDescriptorSets(const std::vector<VulkanTextureData> &TextureDatas);
 
         void Shutdown();
         void DestroyResources();

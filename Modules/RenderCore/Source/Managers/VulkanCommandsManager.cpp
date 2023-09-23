@@ -200,7 +200,7 @@ void VulkanCommandsManager::RecordCommandBuffers(const VulkanBufferRecordParamet
 	RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(m_CommandBuffer, &CommandBufferBeginInfo));
 
 	const std::array<VkClearValue, 2> ClearValues{
-		VkClearValue{.color = {0.0f, 0.0f, 0.0f, 1.0f}},
+		VkClearValue{.color = {0.25f, 0.25f, 0.5f, 1.0f}},
 		VkClearValue{.depthStencil = {1.0f, 0u}}};
 
 	bool bActiveRenderPass = false;
@@ -225,20 +225,26 @@ void VulkanCommandsManager::RecordCommandBuffers(const VulkanBufferRecordParamet
 		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.Pipeline);
 	}
 
-	bool bActiveVertexBinding = false;
-	if (!Parameters.VertexBuffers.empty())
+	if (!Parameters.DescriptorSets.empty())
 	{
-		vkCmdBindVertexBuffers(m_CommandBuffer, 0u, 1u, Parameters.VertexBuffers.data(), Parameters.Offsets.data());
+		const VkDescriptorSet &DescriptorSet = Parameters.DescriptorSets[VulkanRenderSubsystem::Get()->GetFrameIndex()];
+		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.PipelineLayout, 0u, 1u, &DescriptorSet, 0u, nullptr);
+	}
+	
+	const UniformBufferObject UniformBufferObj = GetUniformBufferObject();
+	vkCmdPushConstants(m_CommandBuffer, Parameters.PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0u, sizeof(UniformBufferObject), &UniformBufferObj);
+
+	bool bActiveVertexBinding = false;
+	if (Parameters.VertexBuffer != VK_NULL_HANDLE)
+	{
+		vkCmdBindVertexBuffers(m_CommandBuffer, 0u, 1u, &Parameters.VertexBuffer, Parameters.Offsets.data());
 		bActiveVertexBinding = true;
 	}
 
 	bool bActiveIndexBinding = false;
-	if (!Parameters.IndexBuffers.empty())
+	if (Parameters.IndexBuffer != VK_NULL_HANDLE)
 	{
-		for (const VkBuffer &IndexBufferIter : Parameters.IndexBuffers)
-		{
-			vkCmdBindIndexBuffer(m_CommandBuffer, IndexBufferIter, 0u, VK_INDEX_TYPE_UINT32);
-		}
+		vkCmdBindIndexBuffer(m_CommandBuffer, Parameters.IndexBuffer, 0u, VK_INDEX_TYPE_UINT32);
 		bActiveIndexBinding = true;	
 	}
 
@@ -248,8 +254,7 @@ void VulkanCommandsManager::RecordCommandBuffers(const VulkanBufferRecordParamet
 		.width = static_cast<float>(Parameters.Extent.width),
 		.height = static_cast<float>(Parameters.Extent.height),
 		.minDepth = 0.f,
-		.maxDepth = 1.f
-	};
+		.maxDepth = 1.f};
 
 	vkCmdSetViewport(m_CommandBuffer, 0u, 1u, &Viewport);
 
@@ -258,12 +263,6 @@ void VulkanCommandsManager::RecordCommandBuffers(const VulkanBufferRecordParamet
 		.extent = Parameters.Extent};
 
 	vkCmdSetScissor(m_CommandBuffer, 0u, 1u, &Scissor);
-
-	if (!Parameters.DescriptorSets.empty())
-	{
-		const VkDescriptorSet &DescriptorSet = Parameters.DescriptorSets[VulkanRenderSubsystem::Get()->GetFrameIndex()];
-		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.PipelineLayout, 0u, 1u, &DescriptorSet, 0u, nullptr);
-	}
 
 	if (bActiveRenderPass && bActiveVertexBinding && bActiveIndexBinding)
 	{

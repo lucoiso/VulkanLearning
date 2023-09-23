@@ -58,7 +58,6 @@ find_package(glm REQUIRED)
 find_package(Stb REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 
-find_package(Vulkan)
 find_package(volk CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(glslang CONFIG REQUIRED)
@@ -78,6 +77,7 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE
     glm::glm
     assimp::assimp
 
+    Vulkan::Headers
     volk::volk_headers
     GPUOpen::VulkanMemoryAllocator
 
@@ -93,7 +93,6 @@ target_link_libraries(${LIBRARY_NAME} PUBLIC
 )
 
 target_include_directories(${LIBRARY_NAME} PRIVATE
-    ${Vulkan_INCLUDE_DIRS}
     ${Stb_INCLUDE_DIR}
 )
 
@@ -102,8 +101,11 @@ target_compile_definitions(${LIBRARY_NAME} PRIVATE
 
     DEBUG_SHADER_VERT="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.vert"
     DEBUG_SHADER_FRAG="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/Triangle.frag"
+
     DEBUG_MODEL_OBJ="${CMAKE_CURRENT_SOURCE_DIR}/Resources/viking_room.obj"
     DEBUG_MODEL_TEX="${CMAKE_CURRENT_SOURCE_DIR}/Resources/viking_room.png"
+    
+    PLACEHOLDER_MODEL_TEX="${CMAKE_CURRENT_SOURCE_DIR}/Resources/Placeholder.png"
 )
 
 target_compile_definitions(${LIBRARY_NAME} PUBLIC
@@ -111,4 +113,5 @@ target_compile_definitions(${LIBRARY_NAME} PUBLIC
     VK_USE_PLATFORM_WIN32_KHR
     NOMINMAX
     _WIN32_WINNT=0x0601
+    GPU_API_DUMP=0
 )

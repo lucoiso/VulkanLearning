@@ -10,10 +10,13 @@
 #include "Utils/VulkanConstants.h"
 #include "Utils/VulkanEnumConverter.h"
 #include "Types/VulkanVertex.h"
+#include "Types/VulkanUniformBufferObject.h"
+#include "Types/TextureData.h"
+#include <glm/glm.hpp>
 #include <QWindow>
-#include <vulkan/vulkan.h>
 #include <numbers>
 #include <boost/log/trivial.hpp>
+#include <volk.h>
 
 namespace RenderCore
 {
@@ -161,7 +164,7 @@ namespace RenderCore
                 .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
     }
 
-    constexpr std::array<VkVertexInputAttributeDescription, 4> GetAttributeDescriptions()
+    constexpr std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions()
     {
         return {
             VkVertexInputAttributeDescription{
@@ -173,33 +176,28 @@ namespace RenderCore
                 .location = 1u,
                 .binding = 0u,
                 .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(Vertex, Normal)},
+                .offset = offsetof(Vertex, Color)},
             VkVertexInputAttributeDescription{
                 .location = 2u,
                 .binding = 0u,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(Vertex, Color)},
-            VkVertexInputAttributeDescription{
-                .location = 3u,
-                .binding = 0u,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
+                .format = VK_FORMAT_R32G32_SFLOAT,
                 .offset = offsetof(Vertex, TextureCoordinate)}};
     }
 
-    template<typename T>
-    constexpr void AddFlags(T &Lhs, const T Rhs)
+    template<typename T1, typename T2>
+    constexpr void AddFlags(T1 &Lhs, const T2 Rhs)
     {
-        Lhs = static_cast<T>(static_cast<std::uint8_t>(Lhs) | static_cast<std::uint8_t>(Rhs));
+        Lhs = static_cast<T1>(static_cast<std::uint8_t>(Lhs) | static_cast<std::uint8_t>(Rhs));
     }
 
-    template<typename T>
-    constexpr void RemoveFlags(T &Lhs, const T Rhs)
+    template<typename T1, typename T2>
+    constexpr void RemoveFlags(T1 &Lhs, const T2 Rhs)
     {
-        Lhs = static_cast<T>(static_cast<std::uint8_t>(Lhs) & ~static_cast<std::uint8_t>(Rhs));
+        Lhs = static_cast<T1>(static_cast<std::uint8_t>(Lhs) & ~static_cast<std::uint8_t>(Rhs));
     }
     
-    template<typename T>
-    constexpr bool HasFlag(const T Lhs, const T Rhs)
+    template<typename T1, typename T2>
+    constexpr bool HasFlag(const T1 Lhs, const T2 Rhs)
     {
         return (Lhs & Rhs) == Rhs;
     }
@@ -264,6 +262,21 @@ namespace RenderCore
 
         vkFreeCommandBuffers(VulkanLogicalDevice, CommandPool, 1u, &CommandBuffer);
         vkDestroyCommandPool(VulkanLogicalDevice, CommandPool, nullptr);
+    }
+
+    static inline UniformBufferObject GetUniformBufferObject()
+    {
+        const VkExtent2D &SwapChainExtent = VulkanRenderSubsystem::Get()->GetDeviceProperties().Extent;
+        static auto StartTime = std::chrono::high_resolution_clock::now();
+        const auto CurrentTime = std::chrono::high_resolution_clock::now();
+        const float Time = std::chrono::duration<float, std::chrono::seconds::period>(CurrentTime - StartTime).count();
+
+        const glm::mat4 Model = glm::rotate(glm::mat4(1.f), Time * glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
+        const glm::mat4 View = glm::lookAt(glm::vec3(2.f, 2.f, 2.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f));
+        glm::mat4 Projection = glm::perspective(glm::radians(45.0f), SwapChainExtent.width / (float)SwapChainExtent.height, 0.1f, 10.f);
+        Projection[1][1] *= -1;
+        
+        return UniformBufferObject{ .ModelViewProjection = Projection * View * Model };
     }
 }
 #endif

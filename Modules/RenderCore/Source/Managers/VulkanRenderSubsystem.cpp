@@ -43,29 +43,28 @@ std::shared_ptr<VulkanRenderSubsystem> VulkanRenderSubsystem::Get()
 
 void VulkanRenderSubsystem::SetInstance(const VkInstance &Instance)
 {
-    m_Instance = Instance;
+    m_Instance = &Instance;
 }
 
 void VulkanRenderSubsystem::SetDevice(const VkDevice &Device)
 {
-    m_Device = Device;
+    m_Device = &Device;
 }
 
 void VulkanRenderSubsystem::SetPhysicalDevice(const VkPhysicalDevice &PhysicalDevice)
 {
-    m_PhysicalDevice = PhysicalDevice;
+    m_PhysicalDevice = &PhysicalDevice;
 }
 
 void VulkanRenderSubsystem::SetSurface(const VkSurfaceKHR &Surface)
 {
-    m_Surface = Surface;
+    m_Surface = &Surface;
 }
 
 bool VulkanRenderSubsystem::SetDeviceProperties(const VulkanDeviceProperties &DeviceProperties)
 {
     if (m_DeviceProperties != DeviceProperties)
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Device properties changed. Updating...";    
         m_DeviceProperties = DeviceProperties;
         return false;
     }
@@ -85,17 +84,17 @@ void VulkanRenderSubsystem::SetDefaultShadersStageInfos(const std::vector<VkPipe
 
 void VulkanRenderSubsystem::SetRenderPass(const VkRenderPass &RenderPass)
 {
-    m_RenderPass = RenderPass;
+    m_RenderPass = &RenderPass;
 }
 
 void VulkanRenderSubsystem::SetPipelineCache(const VkPipelineCache &PipelineCache)
 {
-    m_PipelineCache = PipelineCache;
+    m_PipelineCache = &PipelineCache;
 }
 
 void VulkanRenderSubsystem::SetDescriptorPool(const VkDescriptorPool &DescriptorPool)
 {
-    m_DescriptorPool = DescriptorPool;
+    m_DescriptorPool = &DescriptorPool;
 }
 
 void VulkanRenderSubsystem::UpdateFrameIndex()
@@ -118,22 +117,22 @@ void VulkanRenderSubsystem::UnregisterQueue(const std::uint8_t ID)
 
 const VkInstance &VulkanRenderSubsystem::GetInstance() const
 {
-    return m_Instance;
+    return *m_Instance;
 }
 
 const VkDevice &VulkanRenderSubsystem::GetDevice() const
 {
-    return m_Device;
+    return *m_Device;
 }
 
 const VkPhysicalDevice &VulkanRenderSubsystem::GetPhysicalDevice() const
 {
-    return m_PhysicalDevice;
+    return *m_PhysicalDevice;
 }
 
 const VkSurfaceKHR &VulkanRenderSubsystem::GetSurface() const
 {
-    return m_Surface;
+    return *m_Surface;
 }
 
 const VulkanDeviceProperties &VulkanRenderSubsystem::GetDeviceProperties() const
@@ -212,15 +211,15 @@ const std::uint8_t VulkanRenderSubsystem::GetMinImageCount() const
 
 const VkRenderPass &VulkanRenderSubsystem::GetRenderPass() const
 {
-    return m_RenderPass;
+    return *m_RenderPass;
 }
 
 const VkPipelineCache &VulkanRenderSubsystem::GetPipelineCache() const
 {
-    return m_PipelineCache;
+    return *m_PipelineCache;
 }
 
 const VkDescriptorPool &VulkanRenderSubsystem::GetDescriptorPool() const
 {
-    return m_DescriptorPool;
+    return *m_DescriptorPool;
 }

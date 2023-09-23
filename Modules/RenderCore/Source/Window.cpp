@@ -36,7 +36,7 @@ public:
         Shutdown();
     }
 
-    bool Initialize(const QWindow *const Window)
+    bool Initialize(QWindow *const Window)
     {
         if (IsInitialized())
         {
@@ -89,7 +89,9 @@ private:
 Window::Window()
     : QMainWindow()
     , m_Renderer(std::make_unique<Window::Renderer>())
+    , m_CanDraw(false)
 {
+    CreateWidgets();
 }
 
 Window::~Window()
@@ -115,6 +117,8 @@ bool Window::Initialize(const std::uint16_t Width, const std::uint16_t Height, c
 
     if (m_Renderer->Initialize(windowHandle()))
     {
+        m_CanDraw = true;
+
         constexpr std::uint32_t FrameRate = 60u;
         QTimer *const Timer = new QTimer(this);
         connect(Timer, &QTimer::timeout, this, &Window::DrawFrame);
@@ -143,11 +147,18 @@ bool Window::IsInitialized() const
     return m_Renderer && m_Renderer->IsInitialized();
 }
 
+void Window::CreateWidgets()
+{
+}
+
 void Window::DrawFrame()
 {
     try
     {
-        m_Renderer->DrawFrame(windowHandle());
+        if (m_CanDraw)
+        {
+            m_Renderer->DrawFrame(windowHandle());
+        }
     }
     catch (const std::exception &Ex)
     {
@@ -157,5 +168,10 @@ void Window::DrawFrame()
 
 bool Window::event(QEvent *const Event)
 {
+    if (Event->type() == QEvent::Close)
+    {
+        m_CanDraw = false;
+    }
+
     return QMainWindow::event(Event);
 }

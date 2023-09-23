@@ -15,8 +15,8 @@ namespace RenderCore
         const VkPipeline Pipeline;
         const VkExtent2D Extent;
         const std::vector<VkFramebuffer> FrameBuffers;
-        const std::vector<VkBuffer> VertexBuffers;
-        const std::vector<VkBuffer> IndexBuffers;
+        const VkBuffer VertexBuffer;
+        const VkBuffer IndexBuffer;
         const VkPipelineLayout PipelineLayout;
         const std::vector<VkDescriptorSet> DescriptorSets;
         const std::uint32_t IndexCount;
