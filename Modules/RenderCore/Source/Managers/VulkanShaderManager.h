@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "RenderCoreModule.h"
 #include <vector>
 #include <string_view>
 #include <unordered_map>

@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "RenderCoreModule.h"
 #include "Types/TextureData.h"
 #include <vector>
 #include <volk.h>
@@ -24,12 +23,10 @@ namespace RenderCore
 
         void CreateRenderPass();
         void CreateDefaultRenderPass();
-        void CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &ShaderStages);
+        void CreateGraphicsPipeline();
         void CreateDescriptorSetLayout();
         void CreateDescriptorPool();
-        void CreateDescriptorSets(const std::vector<VulkanTextureData> &TextureDatas);
-        
-        static void CreateDescriptorSets(const VkDescriptorPool &DescriptorPool, const VkDescriptorSetLayout &DescriptorSetLayout, const std::vector<VulkanTextureData> &TextureDatas, std::vector<VkDescriptorSet> &DescriptorSets);
+        void CreateDescriptorSets();
 
         void Shutdown();
         void DestroyResources();

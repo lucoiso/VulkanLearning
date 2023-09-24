@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "Types/BufferRecordParameters.h"
-#include <volk.h>
+#include <limits>
 #include <optional>
+#include <volk.h>
 
 namespace RenderCore
 {
@@ -30,11 +30,11 @@ namespace RenderCore
         void CreateSynchronizationObjects();
         void DestroySynchronizationObjects();
 
-        std::optional<std::int32_t> DrawFrame(const VkSwapchainKHR &SwapChain);
+        std::optional<std::int32_t> DrawFrame();
 
-        void RecordCommandBuffers(const VulkanBufferRecordParameters &Parameters);
-        void SubmitCommandBuffers(const VkQueue &Queue);
-        void PresentFrame(const VkQueue &Queue, const VkSwapchainKHR &SwapChain, const std::uint32_t ImageIndice);
+        void RecordCommandBuffers(const std::uint32_t ImageIndex);
+        void SubmitCommandBuffers();
+        void PresentFrame(const std::uint32_t ImageIndice);
 
     private:
         void CreateGraphicsCommandPool();

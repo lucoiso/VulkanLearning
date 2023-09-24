@@ -4,6 +4,8 @@
 
 #include "Managers/VulkanPipelineManager.h"
 #include "Managers/VulkanDeviceManager.h"
+#include "Managers/VulkanShaderManager.h"
+#include "Managers/VulkanBufferManager.h"
 #include "Types/VulkanVertex.h"
 #include "Types/VulkanUniformBufferObject.h"
 #include "Utils/RenderCoreHelpers.h"
@@ -118,12 +120,12 @@ void VulkanPipelineManager::CreateDefaultRenderPass()
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateRenderPass(VulkanDeviceManager::Get().GetLogicalDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass));
 }
 
-void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &ShaderStages)
+void VulkanPipelineManager::CreateGraphicsPipeline()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan graphics pipeline";
     
-    const auto BindingDescription = GetBindingDescriptors();
-    const auto AttributeDescriptions = GetAttributeDescriptions();
+    const auto BindingDescription = RenderCoreHelpers::GetBindingDescriptors();
+    const auto AttributeDescriptions = RenderCoreHelpers::GetAttributeDescriptions();
 
     const VkPipelineVertexInputStateCreateInfo VertexInputState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -222,6 +224,8 @@ void VulkanPipelineManager::CreateGraphicsPipeline(const std::vector<VkPipelineS
         .minDepthBounds = 0.f,
         .maxDepthBounds = 1.f};
 
+    const std::vector<VkPipelineShaderStageCreateInfo> ShaderStages = VulkanShaderManager::Get().GetStageInfos();
+
     const VkGraphicsPipelineCreateInfo GraphicsPipelineCreateInfo{
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .stageCount = static_cast<std::uint32_t>(ShaderStages.size()),
@@ -290,31 +294,28 @@ void VulkanPipelineManager::CreateDescriptorPool()
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorPool(VulkanDeviceManager::Get().GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool));
 }
 
-void VulkanPipelineManager::CreateDescriptorSets(const std::vector<VulkanTextureData> &TextureDatas)
+void VulkanPipelineManager::CreateDescriptorSets()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor sets";
-    CreateDescriptorSets(m_DescriptorPool, m_DescriptorSetLayout, TextureDatas, m_DescriptorSets);
-}
-
-void VulkanPipelineManager::CreateDescriptorSets(const VkDescriptorPool &DescriptorPool, const VkDescriptorSetLayout &DescriptorSetLayout, const std::vector<VulkanTextureData> &TextureDatas, std::vector<VkDescriptorSet> &DescriptorSets)
-{
+    
     const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    const std::vector<VkDescriptorSetLayout> DescriptorSetLayouts(g_MaxFramesInFlight, DescriptorSetLayout);
+    const std::vector<VkDescriptorSetLayout> DescriptorSetLayouts(g_MaxFramesInFlight, m_DescriptorSetLayout);
     
     const VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-        .descriptorPool = DescriptorPool,
+        .descriptorPool = m_DescriptorPool,
         .descriptorSetCount = static_cast<std::uint32_t>(DescriptorSetLayouts.size()),
         .pSetLayouts = DescriptorSetLayouts.data()};
         
-    DescriptorSets.resize(g_MaxFramesInFlight);
-    RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, DescriptorSets.data()));
+    m_DescriptorSets.clear();
+    m_DescriptorSets.resize(g_MaxFramesInFlight);
+    RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, m_DescriptorSets.data()));
 
     for (std::uint32_t Iterator = 0u; Iterator < g_MaxFramesInFlight; ++Iterator)
     {
         std::vector<VkDescriptorImageInfo> ImageInfos{};
-        for (const VulkanTextureData &TextureDataIter : TextureDatas)
+        for (const VulkanTextureData &TextureDataIter : VulkanBufferManager::Get().GetAllocatedTextures())
         {
             ImageInfos.push_back(VkDescriptorImageInfo{
                 .sampler = TextureDataIter.Sampler,
@@ -328,7 +329,7 @@ void VulkanPipelineManager::CreateDescriptorSets(const VkDescriptorPool &Descrip
         {
             WriteDescriptors.push_back(VkWriteDescriptorSet{
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = DescriptorSets[Iterator],
+                .dstSet = m_DescriptorSets[Iterator],
                 .dstBinding = 1u,
                 .dstArrayElement = 0u,
                 .descriptorCount = static_cast<std::uint32_t>(ImageInfos.size()),

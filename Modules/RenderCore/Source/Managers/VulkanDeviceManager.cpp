@@ -2,15 +2,15 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanLearning
 
-#include "VulkanRender.h"
+#include "VulkanRenderCore.h"
 #include "Managers/VulkanDeviceManager.h"
 #include "Utils/VulkanEnumConverter.h"
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
 #include <boost/log/trivial.hpp>
 #include <stdexcept>
-#include <set>
 #include <algorithm>
+#include <set>
 
 using namespace RenderCore;
 
@@ -205,7 +205,7 @@ bool VulkanDeviceManager::UpdateDeviceProperties(GLFWwindow *const Window)
     }
     else
     {
-        m_DeviceProperties.Extent = GetWindowExtent(Window, m_DeviceProperties.Capabilities);
+        m_DeviceProperties.Extent = RenderCoreHelpers::GetWindowExtent(Window, m_DeviceProperties.Capabilities);
     }
 
     m_DeviceProperties.Format = SupportedFormats[0];
@@ -329,7 +329,7 @@ bool VulkanDeviceManager::IsInitialized() const
 
 std::vector<VkPhysicalDevice> VulkanDeviceManager::GetAvailablePhysicalDevices() const
 {
-    const VkInstance &VulkanInstance = VulkanRender::Get().GetInstance();
+    const VkInstance &VulkanInstance = VulkanRenderCore::Get().GetInstance();
 
     std::uint32_t DeviceCount = 0u;
     RENDERCORE_CHECK_VULKAN_RESULT(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, nullptr));
@@ -435,7 +435,7 @@ VkSurfaceCapabilitiesKHR VulkanDeviceManager::GetAvailablePhysicalDeviceSurfaceC
     }
 
     VkSurfaceCapabilitiesKHR Output;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, VulkanRender::Get().GetSurface(), &Output));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, VulkanRenderCore::Get().GetSurface(), &Output));
 
     return Output;
 }
@@ -447,7 +447,7 @@ std::vector<VkSurfaceFormatKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceS
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    const VkSurfaceKHR &VulkanSurface = VulkanRender::Get().GetSurface();
+    const VkSurfaceKHR &VulkanSurface = VulkanRenderCore::Get().GetSurface();
 
     std::uint32_t Count;
     RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, VulkanSurface, &Count, nullptr));
@@ -465,7 +465,7 @@ std::vector<VkPresentModeKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceSur
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    const VkSurfaceKHR &VulkanSurface = VulkanRender::Get().GetSurface();
+    const VkSurfaceKHR &VulkanSurface = VulkanRenderCore::Get().GetSurface();
 
     std::uint32_t Count;
     RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, VulkanSurface, &Count, nullptr));
@@ -514,7 +514,7 @@ bool VulkanDeviceManager::GetQueueFamilyIndices(std::optional<std::uint8_t> &Gra
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    const VkSurfaceKHR &VulkanSurface = VulkanRender::Get().GetSurface();
+    const VkSurfaceKHR &VulkanSurface = VulkanRenderCore::Get().GetSurface();
 
     std::uint32_t QueueFamilyCount = 0u;
     vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &QueueFamilyCount, nullptr);

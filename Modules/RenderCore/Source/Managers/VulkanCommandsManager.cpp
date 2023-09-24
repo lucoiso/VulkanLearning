@@ -4,7 +4,10 @@
 
 #include "Managers/VulkanCommandsManager.h"
 #include "Managers/VulkanDeviceManager.h"
+#include "Managers/VulkanPipelineManager.h"
+#include "Managers/VulkanBufferManager.h"
 #include "Utils/RenderCoreHelpers.h"
+#include "Utils/VulkanConstants.h"
 #include <boost/log/trivial.hpp>
 
 using namespace RenderCore;
@@ -139,16 +142,11 @@ void VulkanCommandsManager::DestroySynchronizationObjects()
 	m_SynchronizationObjectsCreated = false;
 }
 
-std::optional<std::int32_t> VulkanCommandsManager::DrawFrame(const VkSwapchainKHR &SwapChain)
+std::optional<std::int32_t> VulkanCommandsManager::DrawFrame()
 {
 	if (!m_SynchronizationObjectsCreated)
 	{
 		return -1;
-	}
-
-	if (SwapChain == VK_NULL_HANDLE)
-	{
-		throw std::runtime_error("Vulkan swap chain is invalid.");
 	}
 
 	WaitAndResetFences();
@@ -164,7 +162,7 @@ std::optional<std::int32_t> VulkanCommandsManager::DrawFrame(const VkSwapchainKH
 	}
 
 	std::uint32_t Output = 0u;
-	const VkResult OperationResult = vkAcquireNextImageKHR(VulkanDeviceManager::Get().GetLogicalDevice(), SwapChain, Timeout, m_ImageAvailableSemaphore, m_Fence, &Output);
+	const VkResult OperationResult = vkAcquireNextImageKHR(VulkanDeviceManager::Get().GetLogicalDevice(), VulkanBufferManager::Get().GetSwapChain(), Timeout, m_ImageAvailableSemaphore, m_Fence, &Output);
 	if (OperationResult != VK_SUCCESS)
 	{
 		if (OperationResult == VK_ERROR_OUT_OF_DATE_KHR || OperationResult == VK_SUBOPTIMAL_KHR)
@@ -190,13 +188,8 @@ std::optional<std::int32_t> VulkanCommandsManager::DrawFrame(const VkSwapchainKH
 	return static_cast<std::int32_t>(Output);
 }
 
-void VulkanCommandsManager::RecordCommandBuffers(const VulkanBufferRecordParameters &Parameters)
-{
-	if (Parameters.Pipeline == VK_NULL_HANDLE)
-	{
-		throw std::runtime_error("Vulkan graphics pipeline is invalid");
-	}
-	
+void VulkanCommandsManager::RecordCommandBuffers(const std::uint32_t ImageIndex)
+{	
 	AllocateCommandBuffer();
 
 	const VkCommandBufferBeginInfo CommandBufferBeginInfo{
@@ -209,16 +202,43 @@ void VulkanCommandsManager::RecordCommandBuffers(const VulkanBufferRecordParamet
 		VkClearValue{.color = {0.25f, 0.25f, 0.5f, 1.0f}},
 		VkClearValue{.depthStencil = {1.0f, 0u}}};
 
+
+	const VkRenderPass &RenderPass = VulkanPipelineManager::Get().GetRenderPass();
+	const VkPipeline &Pipeline = VulkanPipelineManager::Get().GetPipeline();
+	const VkPipelineLayout &PipelineLayout = VulkanPipelineManager::Get().GetPipelineLayout();
+	const std::vector<VkDescriptorSet> &DescriptorSets = VulkanPipelineManager::Get().GetDescriptorSets();
+
+	const std::vector<VkFramebuffer> &FrameBuffers = VulkanBufferManager::Get().GetFrameBuffers();
+	const VkBuffer &VertexBuffer = VulkanBufferManager::Get().GetVertexBuffer();
+	const VkBuffer &IndexBuffer = VulkanBufferManager::Get().GetIndexBuffer();
+	const std::uint32_t IndexCount = VulkanBufferManager::Get().GetIndicesCount();
+	const UniformBufferObject UniformBufferObj = RenderCoreHelpers::GetUniformBufferObject();
+
+	const std::vector<VkDeviceSize> Offsets = { 0u };
+	const VkExtent2D Extent = VulkanDeviceManager::Get().GetDeviceProperties().Extent;	
+
+	const VkViewport Viewport{
+		.x = 0.f,
+		.y = 0.f,
+		.width = static_cast<float>(Extent.width),
+		.height = static_cast<float>(Extent.height),
+		.minDepth = 0.f,
+		.maxDepth = 1.f};
+
+	const VkRect2D Scissor{
+		.offset = {0, 0},
+		.extent = Extent};
+
 	bool bActiveRenderPass = false;
-	if (Parameters.RenderPass != VK_NULL_HANDLE && !Parameters.FrameBuffers.empty())
+	if (RenderPass != VK_NULL_HANDLE && !FrameBuffers.empty())
 	{
 		const VkRenderPassBeginInfo RenderPassBeginInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-			.renderPass = Parameters.RenderPass,
-			.framebuffer = Parameters.FrameBuffers[Parameters.ImageIndex],
+			.renderPass = RenderPass,
+			.framebuffer = FrameBuffers[ImageIndex],
 			.renderArea = {
 				.offset = {0, 0},
-				.extent = Parameters.Extent},
+				.extent = Extent},
 			.clearValueCount = static_cast<std::uint32_t>(ClearValues.size()),
 			.pClearValues = ClearValues.data()};
 
@@ -226,53 +246,39 @@ void VulkanCommandsManager::RecordCommandBuffers(const VulkanBufferRecordParamet
 		bActiveRenderPass = true;
 	}
 
-	if (Parameters.Pipeline != VK_NULL_HANDLE)
+	if (Pipeline != VK_NULL_HANDLE)
 	{
-		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.Pipeline);
+		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
 	}
 
-	if (!Parameters.DescriptorSets.empty())
+	if (!DescriptorSets.empty())
 	{
-		const VkDescriptorSet &DescriptorSet = Parameters.DescriptorSets[m_FrameIndex];
-		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.PipelineLayout, 0u, 1u, &DescriptorSet, 0u, nullptr);
+		const VkDescriptorSet &DescriptorSet = DescriptorSets[m_FrameIndex];
+		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0u, 1u, &DescriptorSet, 0u, nullptr);
 	}
 	
-	const UniformBufferObject UniformBufferObj = GetUniformBufferObject();
-	vkCmdPushConstants(m_CommandBuffer, Parameters.PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0u, sizeof(UniformBufferObject), &UniformBufferObj);
+	vkCmdPushConstants(m_CommandBuffer, PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0u, sizeof(UniformBufferObject), &UniformBufferObj);
 
 	bool bActiveVertexBinding = false;
-	if (Parameters.VertexBuffer != VK_NULL_HANDLE)
+	if (VertexBuffer != VK_NULL_HANDLE)
 	{
-		vkCmdBindVertexBuffers(m_CommandBuffer, 0u, 1u, &Parameters.VertexBuffer, Parameters.Offsets.data());
+		vkCmdBindVertexBuffers(m_CommandBuffer, 0u, 1u, &VertexBuffer, Offsets.data());
 		bActiveVertexBinding = true;
 	}
 
 	bool bActiveIndexBinding = false;
-	if (Parameters.IndexBuffer != VK_NULL_HANDLE)
+	if (IndexBuffer != VK_NULL_HANDLE)
 	{
-		vkCmdBindIndexBuffer(m_CommandBuffer, Parameters.IndexBuffer, 0u, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(m_CommandBuffer, IndexBuffer, 0u, VK_INDEX_TYPE_UINT32);
 		bActiveIndexBinding = true;	
 	}
 
-	const VkViewport Viewport{
-		.x = 0.f,
-		.y = 0.f,
-		.width = static_cast<float>(Parameters.Extent.width),
-		.height = static_cast<float>(Parameters.Extent.height),
-		.minDepth = 0.f,
-		.maxDepth = 1.f};
-
 	vkCmdSetViewport(m_CommandBuffer, 0u, 1u, &Viewport);
-
-	const VkRect2D Scissor{
-		.offset = {0, 0},
-		.extent = Parameters.Extent};
-
 	vkCmdSetScissor(m_CommandBuffer, 0u, 1u, &Scissor);
 
 	if (bActiveRenderPass && bActiveVertexBinding && bActiveIndexBinding)
 	{
-		vkCmdDrawIndexed(m_CommandBuffer, Parameters.IndexCount, 1u, 0u, 0u, 0u);
+		vkCmdDrawIndexed(m_CommandBuffer, IndexCount, 1u, 0u, 0u, 0u);
 	}
 
 	if (bActiveRenderPass)
@@ -283,13 +289,8 @@ void VulkanCommandsManager::RecordCommandBuffers(const VulkanBufferRecordParamet
 	RENDERCORE_CHECK_VULKAN_RESULT(vkEndCommandBuffer(m_CommandBuffer));
 }
 
-void VulkanCommandsManager::SubmitCommandBuffers(const VkQueue &Queue)
+void VulkanCommandsManager::SubmitCommandBuffers()
 {
-	if (Queue == VK_NULL_HANDLE)
-	{
-		throw std::runtime_error("Vulkan graphics queue is invalid.");
-	}
-
 	WaitAndResetFences();
 
 	constexpr VkPipelineStageFlags WaitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -303,31 +304,28 @@ void VulkanCommandsManager::SubmitCommandBuffers(const VkQueue &Queue)
 		.pCommandBuffers = &m_CommandBuffer,
 		.signalSemaphoreCount = 1u,
 		.pSignalSemaphores = &m_RenderFinishedSemaphore};
+
+	const VkQueue &GraphicsQueue = VulkanDeviceManager::Get().GetGraphicsQueue().second;
 	
-	RENDERCORE_CHECK_VULKAN_RESULT(vkQueueSubmit(Queue, 1u, &SubmitInfo, m_Fence));
-    RENDERCORE_CHECK_VULKAN_RESULT(vkQueueWaitIdle(Queue));
+	RENDERCORE_CHECK_VULKAN_RESULT(vkQueueSubmit(GraphicsQueue, 1u, &SubmitInfo, m_Fence));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkQueueWaitIdle(GraphicsQueue));
 
 	vkFreeCommandBuffers(VulkanDeviceManager::Get().GetLogicalDevice(), m_CommandPool, 1u, &m_CommandBuffer);
 	m_CommandBuffer = VK_NULL_HANDLE;
 }
 
-void VulkanCommandsManager::PresentFrame(const VkQueue &Queue, const VkSwapchainKHR &SwapChain, const std::uint32_t ImageIndice)
+void VulkanCommandsManager::PresentFrame(const std::uint32_t ImageIndice)
 {
-	if (Queue == VK_NULL_HANDLE)
-	{
-		throw std::runtime_error("Vulkan present queue is invalid.");
-	}
-
 	const VkPresentInfoKHR PresentInfo{
 		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 		.waitSemaphoreCount = 1u,
 		.pWaitSemaphores = &m_RenderFinishedSemaphore,
 		.swapchainCount = 1u,
-		.pSwapchains = &SwapChain,
+		.pSwapchains = &VulkanBufferManager::Get().GetSwapChain(),
 		.pImageIndices = &ImageIndice,
 		.pResults = nullptr};
 
-	if (const VkResult OperationResult = vkQueuePresentKHR(Queue, &PresentInfo); OperationResult != VK_SUCCESS)
+	if (const VkResult OperationResult = vkQueuePresentKHR(VulkanDeviceManager::Get().GetGraphicsQueue().second, &PresentInfo); OperationResult != VK_SUCCESS)
 	{
 		if (OperationResult != VK_ERROR_OUT_OF_DATE_KHR && OperationResult != VK_SUBOPTIMAL_KHR)
 		{

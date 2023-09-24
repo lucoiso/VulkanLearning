@@ -33,7 +33,7 @@ static inline Type operator~(const Type Lhs)\
 
 namespace RenderCore
 {
-    enum class VulkanRenderStateFlags : std::uint8_t
+    enum class VulkanRenderCoreStateFlags : std::uint8_t
     {
         NONE                = 0,
         INITIALIZED         = 1 << 0,
@@ -44,7 +44,7 @@ namespace RenderCore
         INVALID_RESOURCES   = 1 << 5,
         INVALID_PROPERTIES  = 1 << 6,
     };
-    DECLARE_BITWISE_OPERATORS(VulkanRenderStateFlags);
+    DECLARE_BITWISE_OPERATORS(VulkanRenderCoreStateFlags);
 }
 
 #undef DECLARE_BITWISE_OPERATORS

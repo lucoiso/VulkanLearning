@@ -9,7 +9,8 @@
 #include <string>
 #include <optional>
 #include <volk.h>
-#include <GLFW/glfw3.h>
+
+struct GLFWwindow;
 
 namespace RenderCore
 {
@@ -44,7 +45,8 @@ namespace RenderCore
         [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment() const;        
 
         [[nodiscard]] bool IsPhysicalDeviceSuitable(const VkPhysicalDevice &Device) const;
-        [[nodiscard]] bool UpdateDeviceProperties(GLFWwindow *const Window);
+        
+        bool UpdateDeviceProperties(GLFWwindow *const Window);
         [[nodiscard]] VulkanDeviceProperties &GetDeviceProperties();
 
         [[nodiscard]] VkDevice &GetLogicalDevice();

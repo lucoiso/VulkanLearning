@@ -2,7 +2,7 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanLearning
 
-#include "VulkanRender.h"
+#include "VulkanRenderCore.h"
 #include "Managers/VulkanDeviceManager.h"
 #include "Managers/VulkanPipelineManager.h"
 #include "Managers/VulkanBufferManager.h"
@@ -11,16 +11,18 @@
 #include "Utils/VulkanDebugHelpers.h"
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
-#include <set>
 #include <filesystem>
 #include <boost/log/trivial.hpp>
-#include <algorithm>
-#include <GLFW/glfw3.h>
 
 #ifndef VOLK_IMPLEMENTATION
 #define VOLK_IMPLEMENTATION
 #endif
 #include <volk.h>
+
+#ifndef GLFW_INCLUDE_VULKAN
+#define GLFW_INCLUDE_VULKAN
+#endif
+#include <GLFW/glfw3.h>
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
 #include <windows.h>
@@ -28,57 +30,57 @@
 
 using namespace RenderCore;
 
-VulkanRender VulkanRender::Instance;
+VulkanRenderCore VulkanRenderCore::Instance;
 
-VulkanRender::VulkanRender()
+VulkanRenderCore::VulkanRenderCore()
     : m_Instance(VK_NULL_HANDLE)
     , m_Surface(VK_NULL_HANDLE)
-    , StateFlags(VulkanRenderStateFlags::NONE)
+    , StateFlags(VulkanRenderCoreStateFlags::NONE)
 #ifdef _DEBUG
     , m_DebugMessenger(VK_NULL_HANDLE)
 #endif
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render core";
 }
 
-VulkanRender::~VulkanRender()
+VulkanRenderCore::~VulkanRenderCore()
 {
     if (!IsInitialized())
     {
         return;
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing vulkan render";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing vulkan render core";
     Shutdown();
 }
 
-VulkanRender &VulkanRender::Get()
+VulkanRenderCore &VulkanRenderCore::Get()
 {
     return Instance;
 }
 
-void VulkanRender::Initialize(GLFWwindow *const Window)
+void VulkanRenderCore::Initialize(GLFWwindow *const Window)
 {
     if (IsInitialized())
     {
         return;
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulkan render";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulkan render core";
 
     RENDERCORE_CHECK_VULKAN_RESULT(volkInitialize());
 
 #ifdef _DEBUG
-    ListAvailableInstanceLayers();
+    RenderCoreHelpers::ListAvailableInstanceLayers();
 
     for (const char *const &RequiredLayerIter : g_RequiredInstanceLayers)
     {
-        ListAvailableInstanceLayerExtensions(RequiredLayerIter);
+        RenderCoreHelpers::ListAvailableInstanceLayerExtensions(RequiredLayerIter);
     }
 
     for (const char *const &DebugLayerIter : g_DebugInstanceLayers)
     {
-        ListAvailableInstanceLayerExtensions(DebugLayerIter);
+        RenderCoreHelpers::ListAvailableInstanceLayerExtensions(DebugLayerIter);
     }
 #endif
 
@@ -87,17 +89,17 @@ void VulkanRender::Initialize(GLFWwindow *const Window)
     InitializeRenderCore(Window);
 }
 
-void VulkanRender::Shutdown()
+void VulkanRenderCore::Shutdown()
 {
     if (!IsInitialized())
     {
         return;
     }
 
-    RemoveFlags(StateFlags, VulkanRenderStateFlags::INITIALIZED);
-    AddFlags(StateFlags, VulkanRenderStateFlags::SHUTDOWN);
+    RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::INITIALIZED);
+    RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::SHUTDOWN);
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan render";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan render core";
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkDeviceWaitIdle(VulkanDeviceManager::Get().GetLogicalDevice()));
 
@@ -112,7 +114,7 @@ void VulkanRender::Shutdown()
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan debug messenger";
 
-        DestroyDebugUtilsMessenger(m_Instance, m_DebugMessenger, nullptr);
+        DebugHelpers::DestroyDebugUtilsMessenger(m_Instance, m_DebugMessenger, nullptr);
         m_DebugMessenger = VK_NULL_HANDLE;
     }
 #endif
@@ -124,7 +126,7 @@ void VulkanRender::Shutdown()
     m_Instance = VK_NULL_HANDLE;
 }
 
-void VulkanRender::DrawFrame(GLFWwindow *const Window)
+void VulkanRenderCore::DrawFrame(GLFWwindow *const Window)
 {
     if (!IsInitialized())
     {
@@ -137,53 +139,48 @@ void VulkanRender::DrawFrame(GLFWwindow *const Window)
     }
 
     const std::optional<std::int32_t> ImageIndice = TryRequestDrawImage(Window);
-    const bool HasInvalidFlags = HasFlag(StateFlags, VulkanRenderStateFlags::INVALID_PROPERTIES) || HasFlag(StateFlags, VulkanRenderStateFlags::INVALID_RESOURCES);
+    const bool HasInvalidFlags = RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::INVALID_PROPERTIES) || RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::INVALID_RESOURCES);
 
-    if (!ImageIndice.has_value() || HasFlag(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH) || HasInvalidFlags)
+    if (!ImageIndice.has_value() || RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH) || HasInvalidFlags)
     {
-        RemoveFlags(StateFlags, VulkanRenderStateFlags::RENDERING);
+        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::RENDERING);
 
-        if (!HasFlag(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH) && HasInvalidFlags)
+        if (!RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH) && HasInvalidFlags)
         {
             VulkanCommandsManager::Get().DestroySynchronizationObjects();
             VulkanBufferManager::Get().DestroyResources(false);
 
-            AddFlags(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH);
+            RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH);
         }
-        else if (HasFlag(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH) && !HasInvalidFlags)
+        else if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH) && !HasInvalidFlags)
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
-            VulkanBufferManager::Get().CreateSwapChain(true);
+            VulkanBufferManager::Get().CreateSwapChain();
             VulkanBufferManager::Get().CreateDepthResources();
-            VulkanBufferManager::Get().CreateFrameBuffers(VulkanPipelineManager::Get().GetRenderPass());
+            VulkanBufferManager::Get().CreateFrameBuffers();
             VulkanCommandsManager::Get().CreateSynchronizationObjects();
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Buffers updated, starting to draw frames with new surface properties";
 
-            RemoveFlags(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH);
+            RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH);
         }
     }
-    else if (HasFlag(StateFlags, VulkanRenderStateFlags::SCENE_LOADED))
+    else if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::SCENE_LOADED))
     {
-        const std::int32_t IndiceToProcess = ImageIndice.value();
-        const VulkanBufferRecordParameters Parameters = GetBufferRecordParameters(IndiceToProcess, 0u, Window);
+        VulkanCommandsManager::Get().RecordCommandBuffers(ImageIndice.value());
+        VulkanCommandsManager::Get().SubmitCommandBuffers();
+        VulkanCommandsManager::Get().PresentFrame(ImageIndice.value());
 
-        VulkanCommandsManager::Get().RecordCommandBuffers(Parameters);
-
-        const VkQueue &GraphicsQueue = VulkanDeviceManager::Get().GetGraphicsQueue().second;
-        VulkanCommandsManager::Get().SubmitCommandBuffers(GraphicsQueue);
-        VulkanCommandsManager::Get().PresentFrame(GraphicsQueue, VulkanBufferManager::Get().GetSwapChain(), IndiceToProcess);
-
-        AddFlags(StateFlags, VulkanRenderStateFlags::RENDERING);
-        RemoveFlags(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH);
+        RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::RENDERING);
+        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH);
     }
 }
 
-bool VulkanRender::IsInitialized() const
+bool VulkanRenderCore::IsInitialized() const
 {
-    return HasFlag(StateFlags, VulkanRenderStateFlags::INITIALIZED);
+    return RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::INITIALIZED);
 }
 
-void VulkanRender::LoadScene(const std::string_view ModelPath, const std::string_view TexturePath)
+void VulkanRenderCore::LoadScene(const std::string_view ModelPath, const std::string_view TexturePath)
 {
     if (!IsInitialized())
     {
@@ -204,29 +201,26 @@ void VulkanRender::LoadScene(const std::string_view ModelPath, const std::string
     
     VulkanPipelineManager::Get().DestroyResources();
 
-    VulkanBufferManager::Get().CreateSwapChain(false);
+    VulkanBufferManager::Get().CreateSwapChain();
 
     const std::uint64_t ObjectID = VulkanBufferManager::Get().LoadObject(ModelPath, TexturePath);
     VulkanBufferManager::Get().CreateDepthResources();
 
     VulkanPipelineManager::Get().CreateRenderPass();
     VulkanPipelineManager::Get().CreateDescriptorSetLayout();
-    VulkanPipelineManager::Get().CreateGraphicsPipeline(VulkanShaderManager::Get().GetStageInfos());
+    VulkanPipelineManager::Get().CreateGraphicsPipeline();
 
-    VulkanBufferManager::Get().CreateFrameBuffers(VulkanPipelineManager::Get().GetRenderPass());
-
-    VulkanTextureData TextureData;
-    VulkanBufferManager::Get().GetObjectTexture(ObjectID, TextureData);
+    VulkanBufferManager::Get().CreateFrameBuffers();
 
     VulkanPipelineManager::Get().CreateDescriptorPool();
-    VulkanPipelineManager::Get().CreateDescriptorSets({ TextureData });
+    VulkanPipelineManager::Get().CreateDescriptorSets();
 
     VulkanCommandsManager::Get().CreateSynchronizationObjects();
 
-    AddFlags(StateFlags, VulkanRenderStateFlags::SCENE_LOADED);
+    RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::SCENE_LOADED);
 }
 
-void VulkanRender::UnloadScene()
+void VulkanRenderCore::UnloadScene()
 {
     if (!IsInitialized())
     {
@@ -239,54 +233,54 @@ void VulkanRender::UnloadScene()
     VulkanBufferManager::Get().DestroyResources(true);
     VulkanPipelineManager::Get().DestroyResources();
 
-    RemoveFlags(StateFlags, VulkanRenderStateFlags::SCENE_LOADED);
+    RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::SCENE_LOADED);
 }
 
-VkInstance &VulkanRender::GetInstance()
+VkInstance &VulkanRenderCore::GetInstance()
 {
     return m_Instance;
 }
 
-VkSurfaceKHR &VulkanRender::GetSurface()
+VkSurfaceKHR &VulkanRenderCore::GetSurface()
 {
     return m_Surface;
 }
 
-VulkanRenderStateFlags VulkanRender::GetStateFlags() const
+VulkanRenderCoreStateFlags VulkanRenderCore::GetStateFlags() const
 {
     return StateFlags;
 }
 
-std::optional<std::int32_t> VulkanRender::TryRequestDrawImage(GLFWwindow *const Window)
+std::optional<std::int32_t> VulkanRenderCore::TryRequestDrawImage(GLFWwindow *const Window)
 {
     if (!VulkanDeviceManager::Get().UpdateDeviceProperties(Window))
     {
-        RemoveFlags(StateFlags, VulkanRenderStateFlags::RENDERING);
-        AddFlags(StateFlags, VulkanRenderStateFlags::INVALID_PROPERTIES);
+        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::RENDERING);
+        RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::INVALID_PROPERTIES);
 
         return std::optional<std::int32_t>();
     }
     else
     {
-        RemoveFlags(StateFlags, VulkanRenderStateFlags::INVALID_PROPERTIES);
+        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::INVALID_PROPERTIES);
     }
 
-    const std::optional<std::int32_t> Output = VulkanCommandsManager::Get().DrawFrame(VulkanBufferManager::Get().GetSwapChain());
+    const std::optional<std::int32_t> Output = VulkanCommandsManager::Get().DrawFrame();
 
     if (!Output.has_value())
     {
-        RemoveFlags(StateFlags, VulkanRenderStateFlags::RENDERING);
-        AddFlags(StateFlags, VulkanRenderStateFlags::INVALID_RESOURCES);
+        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::RENDERING);
+        RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::INVALID_RESOURCES);
     }
     else
     {
-        RemoveFlags(StateFlags, VulkanRenderStateFlags::INVALID_RESOURCES);
+        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::INVALID_RESOURCES);
     }
 
     return Output;
 }
 
-void VulkanRender::CreateVulkanInstance()
+void VulkanRenderCore::CreateVulkanInstance()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan instance";
 
@@ -305,18 +299,18 @@ void VulkanRender::CreateVulkanInstance()
         .enabledLayerCount = 0u};
         
     std::vector<const char*> Layers(g_RequiredInstanceLayers.begin(), g_RequiredInstanceLayers.end());
-    std::vector<const char*> Extensions = GetGLFWExtensions();
+    std::vector<const char*> Extensions = RenderCoreHelpers::GetGLFWExtensions();
     Extensions.insert(Extensions.end(), g_RequiredInstanceExtensions.begin(), g_RequiredInstanceExtensions.end());
 
 #ifdef _DEBUG
-    const VkValidationFeaturesEXT ValidationFeatures = GetInstanceValidationFeatures();
+    const VkValidationFeaturesEXT ValidationFeatures = DebugHelpers::GetInstanceValidationFeatures();
     CreateInfo.pNext = &ValidationFeatures;
 
     Layers.insert(Layers.end(), g_DebugInstanceLayers.begin(), g_DebugInstanceLayers.end());
     Extensions.insert(Extensions.end(), g_DebugInstanceExtensions.begin(), g_DebugInstanceExtensions.end());
 
     VkDebugUtilsMessengerCreateInfoEXT CreateDebugInfo{};
-    PopulateDebugInfo(CreateDebugInfo);
+    DebugHelpers::PopulateDebugInfo(CreateDebugInfo);
 #endif
 
     CreateInfo.enabledLayerCount = static_cast<std::uint32_t>(Layers.size());
@@ -330,11 +324,11 @@ void VulkanRender::CreateVulkanInstance()
 
 #ifdef _DEBUG
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Setting up debug messages";
-    RENDERCORE_CHECK_VULKAN_RESULT(CreateDebugUtilsMessenger(m_Instance, &CreateDebugInfo, nullptr, &m_DebugMessenger));
+    RENDERCORE_CHECK_VULKAN_RESULT(DebugHelpers::CreateDebugUtilsMessenger(m_Instance, &CreateDebugInfo, nullptr, &m_DebugMessenger));
 #endif
 }
 
-void VulkanRender::CreateVulkanSurface(GLFWwindow *const Window)
+void VulkanRenderCore::CreateVulkanSurface(GLFWwindow *const Window)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan surface";
 
@@ -346,7 +340,7 @@ void VulkanRender::CreateVulkanSurface(GLFWwindow *const Window)
     RENDERCORE_CHECK_VULKAN_RESULT(glfwCreateWindowSurface(m_Instance, Window, nullptr, &m_Surface));
 }
 
-void VulkanRender::InitializeRenderCore(GLFWwindow *const Window)
+void VulkanRenderCore::InitializeRenderCore(GLFWwindow *const Window)
 {
     VulkanDeviceManager::Get().PickPhysicalDevice();
     VulkanDeviceManager::Get().CreateLogicalDevice();
@@ -355,10 +349,10 @@ void VulkanRender::InitializeRenderCore(GLFWwindow *const Window)
     VulkanBufferManager::Get().CreateMemoryAllocator();
     CompileDefaultShaders();
 
-    AddFlags(StateFlags, VulkanRenderStateFlags::INITIALIZED);
+    RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::INITIALIZED);
 }
 
-std::vector<VkPipelineShaderStageCreateInfo> VulkanRender::CompileDefaultShaders()
+std::vector<VkPipelineShaderStageCreateInfo> VulkanRenderCore::CompileDefaultShaders()
 {
     constexpr std::array<const char *, 1u> FragmentShaders { DEBUG_SHADER_FRAG };
     constexpr std::array<const char *, 1u> VertexShaders { DEBUG_SHADER_VERT };
@@ -386,20 +380,4 @@ std::vector<VkPipelineShaderStageCreateInfo> VulkanRender::CompileDefaultShaders
     }
 
     return ShaderStages;
-}
-
-VulkanBufferRecordParameters VulkanRender::GetBufferRecordParameters(const std::uint32_t ImageIndex, const std::uint64_t ObjectID, GLFWwindow *const Window) const
-{
-    return {
-        .RenderPass = VulkanPipelineManager::Get().GetRenderPass(),
-        .Pipeline = VulkanPipelineManager::Get().GetPipeline(),
-        .Extent = VulkanDeviceManager::Get().GetDeviceProperties().Extent,
-        .FrameBuffers = VulkanBufferManager::Get().GetFrameBuffers(),
-        .VertexBuffer = VulkanBufferManager::Get().GetVertexBuffer(ObjectID),
-        .IndexBuffer = VulkanBufferManager::Get().GetIndexBuffer(ObjectID),
-        .PipelineLayout = VulkanPipelineManager::Get().GetPipelineLayout(),
-        .DescriptorSets = VulkanPipelineManager::Get().GetDescriptorSets(),
-        .IndexCount = VulkanBufferManager::Get().GetIndicesCount(ObjectID),
-        .ImageIndex = ImageIndex,
-        .Offsets = {0u}};
 }

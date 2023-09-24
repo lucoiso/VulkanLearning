@@ -3,7 +3,8 @@
 // Repo : https://github.com/lucoiso/VulkanLearning
 
 #include "Window.h"
-#include "VulkanRender.h"
+#include "VulkanRenderCore.h"
+#include "Managers/VulkanDeviceManager.h"
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
 #include <stdexcept>
@@ -45,7 +46,7 @@ public:
 
         try
         {
-            return InitializeGLFW(Width, Height, Title) && InitializeVulkanRender();
+            return InitializeGLFW(Width, Height, Title) && InitializeVulkanRenderCore();
         }
         catch (const std::exception &Ex)
         {
@@ -63,12 +64,12 @@ public:
             return;
         }
 
-        VulkanRender::Get().Shutdown();
+        VulkanRenderCore::Get().Shutdown();
     }
 
     bool IsInitialized() const
     {
-        return m_Window && VulkanRender::Get().IsInitialized();
+        return m_Window && VulkanRenderCore::Get().IsInitialized();
     }
 
     bool IsOpen() const
@@ -83,7 +84,7 @@ public:
             return;
         }
 
-        VulkanRender::Get().DrawFrame(m_Window);
+        VulkanRenderCore::Get().DrawFrame(m_Window);
     }
 
 private:
@@ -105,14 +106,14 @@ private:
         return m_Window != nullptr;
     }
 
-    bool InitializeVulkanRender()
+    bool InitializeVulkanRenderCore()
     {
-        VulkanRender::Get().Initialize(m_Window);
+        VulkanRenderCore::Get().Initialize(m_Window);
 
         if (VulkanDeviceManager::Get().UpdateDeviceProperties(m_Window))
         {
-            VulkanRender::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);        
-            return VulkanRender::Get().IsInitialized();
+            VulkanRenderCore::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);        
+            return VulkanRenderCore::Get().IsInitialized();
         }
 
         return false;

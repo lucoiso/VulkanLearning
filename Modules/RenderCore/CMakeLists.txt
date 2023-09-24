@@ -7,8 +7,8 @@ set(LIBRARY_NAME RenderCore)
 
 # ------------- Library Setup --------------
 set(SOURCE_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRender.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Window.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRenderCore.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanShaderManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanCommandsManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanPipelineManager.cpp
@@ -23,17 +23,18 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Types/VulkanUniformBufferObject.h
     
     # Private Headers
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRenderCore.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/RenderCoreHelpers.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/RenderCoreHelpers.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanDebugHelpers.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanDebugHelpers.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanConstants.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanEnumConverter.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/DeviceProperties.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/QueueType.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/ObjectData.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/TextureData.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/BufferRecordParameters.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/RenderStateFlags.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRender.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanShaderManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanCommandsManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanPipelineManager.h

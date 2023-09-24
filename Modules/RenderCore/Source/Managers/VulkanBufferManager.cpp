@@ -2,9 +2,10 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanLearning
 
-#include "VulkanRender.h"
+#include "VulkanRenderCore.h"
 #include "Managers/VulkanBufferManager.h"
 #include "Managers/VulkanDeviceManager.h"
+#include "Managers/VulkanPipelineManager.h"
 #include "Utils/RenderCoreHelpers.h"
 #include <chrono>
 #include <filesystem>
@@ -133,14 +134,14 @@ void VulkanBufferManager::CreateMemoryAllocator()
         .pDeviceMemoryCallbacks = nullptr,
         .pHeapSizeLimit = nullptr,
         .pVulkanFunctions = &VulkanFunctions,
-        .instance = VulkanRender::Get().GetInstance(),
+        .instance = VulkanRenderCore::Get().GetInstance(),
         .vulkanApiVersion = VK_API_VERSION_1_0,
         .pTypeExternalMemoryHandleTypes = nullptr};
 
     RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateAllocator(&AllocatorInfo, &g_Allocator));
 }
 
-void VulkanBufferManager::CreateSwapChain(const bool bRecreate)
+void VulkanBufferManager::CreateSwapChain()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain";
 
@@ -153,7 +154,7 @@ void VulkanBufferManager::CreateSwapChain(const bool bRecreate)
 
     const VkSwapchainCreateInfoKHR SwapChainCreateInfo{
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-        .surface = VulkanRender::Get().GetSurface(),
+        .surface = VulkanRenderCore::Get().GetSurface(),
         .minImageCount = VulkanDeviceManager::Get().GetMinImageCount(),
         .imageFormat = Properties.Format.format,
         .imageColorSpace = Properties.Format.colorSpace,
@@ -173,7 +174,7 @@ void VulkanBufferManager::CreateSwapChain(const bool bRecreate)
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSwapchainKHR(VulkanLogicalDevice, &SwapChainCreateInfo, nullptr, &m_SwapChain));
 
-    if (bRecreate && m_OldSwapChain != VK_NULL_HANDLE)
+    if (m_OldSwapChain != VK_NULL_HANDLE)
     {
         vkDestroySwapchainKHR(VulkanLogicalDevice, m_OldSwapChain, nullptr);
         m_OldSwapChain = VK_NULL_HANDLE;
@@ -185,6 +186,7 @@ void VulkanBufferManager::CreateSwapChain(const bool bRecreate)
     std::vector<VkImage> SwapChainImages(Count, VK_NULL_HANDLE);
     RENDERCORE_CHECK_VULKAN_RESULT(vkGetSwapchainImagesKHR(VulkanLogicalDevice, m_SwapChain, &Count, SwapChainImages.data()));
 
+    m_SwapChainImages.clear();
     m_SwapChainImages.resize(Count);
     for (std::uint32_t Iterator = 0u; Iterator < Count; ++Iterator)
     {
@@ -194,18 +196,14 @@ void VulkanBufferManager::CreateSwapChain(const bool bRecreate)
     CreateSwapChainImageViews(Properties.Format.format);
 }
 
-void VulkanBufferManager::CreateFrameBuffers(const VkRenderPass &RenderPass)
+void VulkanBufferManager::CreateFrameBuffers()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan frame buffers";
-
-    if (RenderPass == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan render pass is invalid.");
-    }
 
     const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
     const VulkanDeviceProperties &Properties = VulkanDeviceManager::Get().GetDeviceProperties();
 
+    m_FrameBuffers.clear();
     m_FrameBuffers.resize(m_SwapChainImages.size(), VK_NULL_HANDLE);
 
     for (std::uint32_t Iterator = 0u; Iterator < static_cast<std::uint32_t>(m_FrameBuffers.size()); ++Iterator)
@@ -216,7 +214,7 @@ void VulkanBufferManager::CreateFrameBuffers(const VkRenderPass &RenderPass)
 
         const VkFramebufferCreateInfo FrameBufferCreateInfo{
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .renderPass = RenderPass,
+            .renderPass = VulkanPipelineManager::Get().GetRenderPass(),
             .attachmentCount = static_cast<std::uint32_t>(Attachments.size()),
             .pAttachments = Attachments.data(),
             .width = Properties.Extent.width,
@@ -366,7 +364,7 @@ std::uint64_t VulkanBufferManager::LoadObject(const std::string_view ModelPath, 
     return NewID;
 }
 
-VulkanImageAllocation VulkanBufferManager::AllocateTexture(const unsigned char *Data, const std::uint32_t Width, const std::uint32_t Height, const std::size_t AllocationSize)
+VulkanImageAllocation VulkanBufferManager::AllocateTexture(const unsigned char *Data, const std::uint32_t Width, const std::uint32_t Height, const std::size_t AllocationSize) const
 {
     VulkanImageAllocation ImageAllocation;
 
@@ -380,7 +378,7 @@ VulkanImageAllocation VulkanBufferManager::AllocateTexture(const unsigned char *
 
     VkBuffer StagingBuffer;
     VmaAllocation StagingBufferMemory;
-    const VmaAllocationInfo StagingInfo = VulkanBufferManager::CreateBuffer(AllocationSize, SourceUsageFlags, SourceMemoryPropertyFlags, StagingBuffer, StagingBufferMemory);
+    const VmaAllocationInfo StagingInfo = CreateBuffer(AllocationSize, SourceUsageFlags, SourceMemoryPropertyFlags, StagingBuffer, StagingBufferMemory);
 
     std::memcpy(StagingInfo.pMappedData, Data, AllocationSize);
 
@@ -439,22 +437,7 @@ void VulkanBufferManager::LoadTexture(VulkanObjectAllocation &Object, const std:
     Object.TextureImage = AllocateTexture(static_cast<const unsigned char *>(ImagePixels), static_cast<std::uint32_t>(Width), static_cast<std::uint32_t>(Height), static_cast<std::size_t>(AllocationSize));
 }
 
-const bool VulkanBufferManager::GetObjectTexture(const std::uint64_t ObjectID, VulkanTextureData &TextureData) const
-{
-    if (!m_Objects.contains(ObjectID))
-    {
-        return false;
-    }
-
-    const VulkanObjectAllocation &Object = m_Objects.at(ObjectID);
-
-    TextureData.ImageView = Object.TextureImage.View;
-    TextureData.Sampler = Object.TextureImage.Sampler;
-
-    return true;
-}
-
-VmaAllocationInfo VulkanBufferManager::CreateBuffer(const VkDeviceSize &Size, const VkBufferUsageFlags Usage, const VkMemoryPropertyFlags Flags, VkBuffer &Buffer, VmaAllocation &Allocation)
+VmaAllocationInfo VulkanBufferManager::CreateBuffer(const VkDeviceSize &Size, const VkBufferUsageFlags Usage, const VkMemoryPropertyFlags Flags, VkBuffer &Buffer, VmaAllocation &Allocation) const
 {
     if (g_Allocator == VK_NULL_HANDLE)
     {
@@ -476,11 +459,11 @@ VmaAllocationInfo VulkanBufferManager::CreateBuffer(const VkDeviceSize &Size, co
     return MemoryAllocationInfo;
 }
 
-void VulkanBufferManager::CopyBuffer(const VkBuffer &Source, const VkBuffer &Destination, const VkDeviceSize &Size, const VkQueue &Queue, const std::uint8_t QueueFamilyIndex)
+void VulkanBufferManager::CopyBuffer(const VkBuffer &Source, const VkBuffer &Destination, const VkDeviceSize &Size, const VkQueue &Queue, const std::uint8_t QueueFamilyIndex) const
 {
     VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
     VkCommandPool CommandPool = VK_NULL_HANDLE;
-    InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
+    RenderCoreHelpers::InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
     {
         const VkBufferCopy BufferCopy{
             .size = Size,
@@ -488,10 +471,10 @@ void VulkanBufferManager::CopyBuffer(const VkBuffer &Source, const VkBuffer &Des
 
         vkCmdCopyBuffer(CommandBuffer, Source, Destination, 1u, &BufferCopy);
     }
-    FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
+    RenderCoreHelpers::FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
 }
 
-void VulkanBufferManager::CreateImage(const VkFormat &ImageFormat, const VkExtent2D &Extent, const VkImageTiling &Tiling, const VkImageUsageFlags Usage, const VkMemoryPropertyFlags Flags, VkImage &Image, VmaAllocation &Allocation)
+void VulkanBufferManager::CreateImage(const VkFormat &ImageFormat, const VkExtent2D &Extent, const VkImageTiling &Tiling, const VkImageUsageFlags Usage, const VkMemoryPropertyFlags Flags, VkImage &Image, VmaAllocation &Allocation) const
 {
     if (g_Allocator == VK_NULL_HANDLE)
     {
@@ -518,7 +501,7 @@ void VulkanBufferManager::CreateImage(const VkFormat &ImageFormat, const VkExten
     RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateImage(g_Allocator, &ImageViewCreateInfo, &ImageAllocationCreateInfo, &Image, &Allocation, &AllocationInfo));
 }
 
-void VulkanBufferManager::CreateImageView(const VkImage &Image, const VkFormat &Format, const VkImageAspectFlags &AspectFlags, VkImageView &ImageView)
+void VulkanBufferManager::CreateImageView(const VkImage &Image, const VkFormat &Format, const VkImageAspectFlags &AspectFlags, VkImageView &ImageView) const
 {
     const VkImageViewCreateInfo ImageViewCreateInfo{
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -535,12 +518,12 @@ void VulkanBufferManager::CreateImageView(const VkImage &Image, const VkFormat &
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateImageView(VulkanDeviceManager::Get().GetLogicalDevice(), &ImageViewCreateInfo, nullptr, &ImageView));
 }
 
-void VulkanBufferManager::CreateTextureImageView(VulkanImageAllocation &Allocation)
+void VulkanBufferManager::CreateTextureImageView(VulkanImageAllocation &Allocation) const
 {
     CreateImageView(Allocation.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, Allocation.View);
 }
 
-void VulkanBufferManager::CreateTextureSampler(VulkanImageAllocation &Allocation)
+void VulkanBufferManager::CreateTextureSampler(VulkanImageAllocation &Allocation) const
 {
     if (g_Allocator == VK_NULL_HANDLE)
     {
@@ -571,11 +554,11 @@ void VulkanBufferManager::CreateTextureSampler(VulkanImageAllocation &Allocation
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSampler(VulkanDeviceManager::Get().GetLogicalDevice(), &SamplerCreateInfo, nullptr, &Allocation.Sampler));
 }
 
-void VulkanBufferManager::CopyBufferToImage(const VkBuffer &Source, const VkImage &Destination, const VkExtent2D &Extent, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex)
+void VulkanBufferManager::CopyBufferToImage(const VkBuffer &Source, const VkImage &Destination, const VkExtent2D &Extent, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex) const
 {
     VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
     VkCommandPool CommandPool = VK_NULL_HANDLE;
-    InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
+    RenderCoreHelpers::InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
     {
         const VkBufferImageCopy BufferImageCopy{
             .bufferOffset = 0u,
@@ -591,14 +574,14 @@ void VulkanBufferManager::CopyBufferToImage(const VkBuffer &Source, const VkImag
 
         vkCmdCopyBufferToImage(CommandBuffer, Source, Destination, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1u, &BufferImageCopy);
     }
-    FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
+    RenderCoreHelpers::FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
 }
 
-void VulkanBufferManager::MoveImageLayout(const VkImage &Image, const VkFormat &Format, const VkImageLayout &OldLayout, const VkImageLayout &NewLayout, const VkQueue &Queue, const std::uint8_t QueueFamilyIndex)
+void VulkanBufferManager::MoveImageLayout(const VkImage &Image, const VkFormat &Format, const VkImageLayout &OldLayout, const VkImageLayout &NewLayout, const VkQueue &Queue, const std::uint8_t QueueFamilyIndex) const
 {
     VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
     VkCommandPool CommandPool = VK_NULL_HANDLE;
-    InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
+    RenderCoreHelpers::InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
     {
         VkPipelineStageFlags SourceStage;
         VkPipelineStageFlags DestinationStage;
@@ -658,7 +641,7 @@ void VulkanBufferManager::MoveImageLayout(const VkImage &Image, const VkFormat &
 
         vkCmdPipelineBarrier(CommandBuffer, SourceStage, DestinationStage, 0u, 0u, nullptr, 0u, nullptr, 1u, &Barrier);
     }
-    FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
+    RenderCoreHelpers::FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
 }
 
 void VulkanBufferManager::Shutdown()
@@ -762,6 +745,16 @@ const VkBuffer VulkanBufferManager::GetIndexBuffer(const std::uint64_t ObjectID)
 const std::uint32_t VulkanBufferManager::GetIndicesCount(const std::uint64_t ObjectID) const
 {
     return static_cast<std::uint32_t>(m_Objects.at(ObjectID).IndicesCount);
+}
+
+std::vector<VulkanTextureData> VulkanBufferManager::GetAllocatedTextures() const
+{
+    std::vector<VulkanTextureData> Output;
+    for (auto &[ObjectID, ObjectIter] : m_Objects)
+    {
+        Output.emplace_back(ObjectIter.TextureImage.View, ObjectIter.TextureImage.Sampler);
+    }
+    return Output;
 }
 
 void VulkanBufferManager::CreateSwapChainImageViews(const VkFormat &ImageFormat)

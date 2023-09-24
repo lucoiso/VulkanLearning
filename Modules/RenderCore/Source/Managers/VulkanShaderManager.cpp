@@ -7,10 +7,10 @@
 #include "Utils/RenderCoreHelpers.h"
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <glslang/Public/ResourceLimits.h>
+#include <boost/log/trivial.hpp>
 #include <filesystem>
 #include <fstream>
 #include <format>
-#include <boost/log/trivial.hpp>
 
 using namespace RenderCore;
 
@@ -160,6 +160,7 @@ bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::u
         throw std::runtime_error("Shader file is empty");
     }
 
+    OutSPIRVCode.clear();
     OutSPIRVCode.resize(FileSize / sizeof(uint32_t));
 
     File.seekg(0);

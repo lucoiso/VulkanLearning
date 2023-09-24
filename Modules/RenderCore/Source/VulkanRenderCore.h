@@ -5,25 +5,26 @@
 #pragma once
 
 #include "Types/RenderStateFlags.h"
-#include "Types/BufferRecordParameters.h"
 #include <string_view>
 #include <vector>
 #include <optional>
-#include <GLFW/glfw3.h>
+#include <volk.h>
+
+struct GLFWwindow;
 
 namespace RenderCore
 {
-    class VulkanRender
+    class VulkanRenderCore
     {
     public:
-        VulkanRender();
+        VulkanRenderCore();
 
-        VulkanRender(const VulkanRender &) = delete;
-        VulkanRender &operator=(const VulkanRender &) = delete;
+        VulkanRenderCore(const VulkanRenderCore &) = delete;
+        VulkanRenderCore &operator=(const VulkanRenderCore &) = delete;
 
-        ~VulkanRender();
+        ~VulkanRenderCore();
 
-        static VulkanRender &Get();
+        static VulkanRenderCore &Get();
 
         void Initialize(GLFWwindow *const Window);
         void Shutdown();
@@ -37,7 +38,7 @@ namespace RenderCore
         [[nodiscard]] VkInstance &GetInstance();
         [[nodiscard]] VkSurfaceKHR &GetSurface();
 
-        VulkanRenderStateFlags GetStateFlags() const;
+        VulkanRenderCoreStateFlags GetStateFlags() const;
 
     private:
         std::optional<std::int32_t> TryRequestDrawImage(GLFWwindow *const Window);
@@ -47,13 +48,12 @@ namespace RenderCore
         void InitializeRenderCore(GLFWwindow *const Window);
 
         std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders();
-        VulkanBufferRecordParameters GetBufferRecordParameters(const std::uint32_t ImageIndex, const std::uint64_t ObjectID, GLFWwindow *const Window) const;
 
-        static VulkanRender Instance;
+        static VulkanRenderCore Instance;
 
         VkInstance m_Instance;
         VkSurfaceKHR m_Surface;
-        mutable VulkanRenderStateFlags StateFlags;
+        mutable VulkanRenderCoreStateFlags StateFlags;
 
     #ifdef _DEBUG
         VkDebugUtilsMessengerEXT m_DebugMessenger;
