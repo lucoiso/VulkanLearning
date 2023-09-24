@@ -3,7 +3,7 @@
 // Repo : https://github.com/lucoiso/VulkanLearning
 
 #include "Managers/VulkanShaderManager.h"
-#include "Managers/VulkanRenderSubsystem.h"
+#include "Managers/VulkanDeviceManager.h"
 #include "Utils/RenderCoreHelpers.h"
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <glslang/Public/ResourceLimits.h>
@@ -13,6 +13,8 @@
 #include <boost/log/trivial.hpp>
 
 using namespace RenderCore;
+
+VulkanShaderManager VulkanShaderManager::g_Instance{};
 
 VulkanShaderManager::VulkanShaderManager()
 {
@@ -32,7 +34,7 @@ void VulkanShaderManager::Shutdown()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan shader compiler";
 
-    const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get().GetDevice();
+    const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
     for (auto &[ShaderModule, _] : m_StageInfos)
     {
@@ -42,6 +44,11 @@ void VulkanShaderManager::Shutdown()
         }
     }
     m_StageInfos.clear();
+}
+
+VulkanShaderManager &VulkanShaderManager::Get()
+{
+    return g_Instance;
 }
 
 bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode)
@@ -234,7 +241,7 @@ void VulkanShaderManager::FreeStagedModules(const std::vector<VkPipelineShaderSt
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
 
-    const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get().GetDevice();
+    const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
     for (const VkPipelineShaderStageCreateInfo& StageInfoIter : StagedModules)
     {

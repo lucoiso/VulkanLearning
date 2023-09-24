@@ -11,9 +11,7 @@ include(CTest)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
 set(Boost_NO_WARN_NEW_VERSIONS ON)
-set(QT_LIB_VERSION 6)
 
 set(PROJECT_ROOT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 set(PROJECT_CONFIG_DIRECTORY ${PROJECT_ROOT_DIRECTORY}/Config)
@@ -37,28 +35,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release/bin)
 
 set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/Install" CACHE PATH "Installation Directory")
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(VCPKG_INSTALLED_QT_DIR ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/Qt${QT_LIB_VERSION})
-else()
-    set(VCPKG_INSTALLED_QT_DIR ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/Qt${QT_LIB_VERSION})
-endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-
-set(VCPKG_QT_PLUGINS_DIR ${VCPKG_INSTALLED_QT_DIR}/plugins)
-set(VCPKG_QT_QML_DIR ${VCPKG_INSTALLED_QT_DIR}/qml)
-
 # --------- CMake Global Includes ----------
 include(Modules/CMake/Utils.cmake)
 
 # -------------- Directories ---------------
 add_subdirectory(Modules)
-
-# ------------- Configurations -------------
-find_package(Qt${QT_LIB_VERSION}Core CONFIG REQUIRED)
-
-qt_standard_project_setup()
-
-if(QT_KNOWN_POLICY_QTP0001)
-    qt_policy(SET QTP0001 NEW)
-endif()
-
-configure_file(${PROJECT_CONFIG_DIRECTORY}/qt.conf ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../${CMAKE_BUILD_TYPE}/bin/qt.conf COPYONLY)

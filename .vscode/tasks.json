@@ -50,6 +50,36 @@
                 "isDefault": true
             },
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "CMake Rebuild: Release",
+            "type": "shell",
+            "command": "cmake -DCMAKE_BUILD_TYPE=Release ; cmake --build out/build --clean-first --preset Release",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "CMake Rebuild: Debug",
+            "type": "shell",
+            "command": "cmake -DCMAKE_BUILD_TYPE=Debug ; cmake --build out/build --clean-first --preset Debug",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "CMake Clean",
+            "type": "shell",
+            "command": "cmake --build out/build --target clean",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile"
         }
     ]
 }

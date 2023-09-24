@@ -5,16 +5,13 @@
 #pragma once
 
 #include "RenderCoreModule.h"
-#include <QtQuick/QQuickView>
 #include <string_view>
 #include <cstdint>
 #include <memory>
 
-class QEvent;
-
 namespace RenderCore
 {
-    class RENDERCOREMODULE_API Window : public QQuickView
+    class RENDERCOREMODULE_API Window
     {
         class Impl;
 
@@ -30,15 +27,13 @@ namespace RenderCore
         void Shutdown();
 
         bool IsInitialized() const;
+        bool IsOpen() const;
 
-        virtual void CreateOverlay();
+        void PollEvents();
 
-    protected:
-        void DrawFrame();
-        virtual bool event(QEvent *const Event) override;
+        virtual void CreateOverlay() {};
 
     private:
         std::unique_ptr<Impl> m_Impl;
-        bool m_CanDraw;
     };
 }

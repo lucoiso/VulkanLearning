@@ -9,8 +9,7 @@
 #include <string>
 #include <optional>
 #include <volk.h>
-
-class QQuickWindow;
+#include <GLFW/glfw3.h>
 
 namespace RenderCore
 {
@@ -22,6 +21,8 @@ namespace RenderCore
 
         VulkanDeviceManager();
         ~VulkanDeviceManager();
+
+        static VulkanDeviceManager &Get();
 
         void PickPhysicalDevice();
         void CreateLogicalDevice();
@@ -40,10 +41,24 @@ namespace RenderCore
         [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities() const;
         [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats() const;
         [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes() const;
-        [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment() const;
+        [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment() const;        
 
         [[nodiscard]] bool IsPhysicalDeviceSuitable(const VkPhysicalDevice &Device) const;
-        [[nodiscard]] VulkanDeviceProperties GetPreferredProperties(const QQuickWindow *const Window);
+        [[nodiscard]] bool UpdateDeviceProperties(GLFWwindow *const Window);
+        [[nodiscard]] VulkanDeviceProperties &GetDeviceProperties();
+
+        [[nodiscard]] VkDevice &GetLogicalDevice();
+        [[nodiscard]] VkPhysicalDevice &GetPhysicalDevice();
+
+        [[nodiscard]] std::pair<std::uint8_t, VkQueue> &GetGraphicsQueue();
+        [[nodiscard]] std::pair<std::uint8_t, VkQueue> &GetPresentationQueue();
+        [[nodiscard]] std::pair<std::uint8_t, VkQueue> &GetTransferQueue();
+
+        [[nodiscard]] std::vector<std::uint8_t> &GetUniqueQueueFamilyIndices();
+        [[nodiscard]] std::vector<std::uint32_t> GetUniqueQueueFamilyIndices_u32();
+
+        [[nodiscard]] std::uint32_t GetMinImageCount() const;
+
 
     private:
         bool GetQueueFamilyIndices(std::optional<std::uint8_t> &GraphicsQueueFamilyIndex, std::optional<std::uint8_t> &PresentationQueueFamilyIndex, std::optional<std::uint8_t> &TransferQueueFamilyIndex);
@@ -58,11 +73,15 @@ namespace RenderCore
         void ListAvailablePhysicalDeviceSurfacePresentationModes() const;
 #endif
 
+        static VulkanDeviceManager g_Instance;
+
         VkPhysicalDevice m_PhysicalDevice;
         VkDevice m_Device;
 
         std::pair<std::uint8_t, VkQueue> m_GraphicsQueue;
         std::pair<std::uint8_t, VkQueue> m_PresentationQueue;
         std::pair<std::uint8_t, VkQueue> m_TransferQueue;
+        std::vector<std::uint8_t> m_UniqueQueueFamilyIndices;
+        VulkanDeviceProperties m_DeviceProperties;
     };
 }

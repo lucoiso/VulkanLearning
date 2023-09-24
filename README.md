@@ -10,6 +10,7 @@
 5.  x64 Arch 
 6.  Vulkan SDK
 7.  Git
+8.  Python 3.11
 
 # Setup
 -   Run these commands:  

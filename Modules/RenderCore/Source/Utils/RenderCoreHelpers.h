@@ -7,17 +7,18 @@
 
 #pragma once
 
-#include "Managers/VulkanRenderSubsystem.h"
+#include "Managers/VulkanDeviceManager.h"
 #include "Utils/VulkanConstants.h"
 #include "Utils/VulkanEnumConverter.h"
 #include "Types/VulkanVertex.h"
 #include "Types/VulkanUniformBufferObject.h"
 #include "Types/TextureData.h"
 #include <glm/glm.hpp>
-#include <QQuickWindow>
 #include <numbers>
 #include <boost/log/trivial.hpp>
 #include <volk.h>
+#include <chrono>
+#include <GLFW/glfw3.h>
 
 namespace RenderCore
 {
@@ -27,10 +28,30 @@ namespace RenderCore
         throw std::runtime_error("Vulkan operation failed with result: " + std::string(ResultToString(OperationResult))); \
     }
 
-    static inline VkExtent2D GetWindowExtent(const QQuickWindow *const Window, const VkSurfaceCapabilitiesKHR &Capabilities)
+    static inline std::vector<const char *> GetGLFWExtensions()
     {
-        const std::int32_t Width = Window->width();
-        const std::int32_t Height = Window->height();
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting GLFW extensions";
+
+        std::uint32_t GLFWExtensionsCount = 0u;
+        const char **const GLFWExtensions = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
+
+        const std::vector<const char *> Output(GLFWExtensions, GLFWExtensions + GLFWExtensionsCount);
+
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found extensions:";
+
+        for (const char *const &ExtensionIter : Output)
+        {
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: " << ExtensionIter;
+        }
+
+        return Output;
+    }
+
+    static inline VkExtent2D GetWindowExtent(GLFWwindow *const Window, const VkSurfaceCapabilitiesKHR &Capabilities)
+    {
+        std::int32_t Width = 0u;
+        std::int32_t Height = 0u;
+        glfwGetFramebufferSize(Window, &Width, &Height);
 
         VkExtent2D ActualExtent{
             .width = static_cast<std::uint32_t>(Width),
@@ -211,7 +232,7 @@ namespace RenderCore
 
     static inline void InitializeSingleCommandQueue(VkCommandPool &CommandPool, VkCommandBuffer &CommandBuffer, const std::uint8_t QueueFamilyIndex)
     {
-        const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get().GetDevice();
+        const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
         const VkCommandPoolCreateInfo CommandPoolCreateInfo{
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -259,7 +280,7 @@ namespace RenderCore
         RENDERCORE_CHECK_VULKAN_RESULT(vkQueueSubmit(Queue, 1u, &SubmitInfo, VK_NULL_HANDLE));
         RENDERCORE_CHECK_VULKAN_RESULT(vkQueueWaitIdle(Queue));
 
-        const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get().GetDevice();
+        const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
         vkFreeCommandBuffers(VulkanLogicalDevice, CommandPool, 1u, &CommandBuffer);
         vkDestroyCommandPool(VulkanLogicalDevice, CommandPool, nullptr);
@@ -267,7 +288,7 @@ namespace RenderCore
 
     static inline UniformBufferObject GetUniformBufferObject()
     {
-        const VkExtent2D &SwapChainExtent = VulkanRenderSubsystem::Get().GetDeviceProperties().Extent;
+        const VkExtent2D &SwapChainExtent = VulkanDeviceManager::Get().GetDeviceProperties().Extent;
 
         static auto StartTime = std::chrono::high_resolution_clock::now();
         const auto CurrentTime = std::chrono::high_resolution_clock::now();

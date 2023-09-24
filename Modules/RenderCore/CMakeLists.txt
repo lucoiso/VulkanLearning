@@ -5,15 +5,10 @@
 # ----------- Global Definitions -----------
 set(LIBRARY_NAME RenderCore)
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
-
 # ------------- Library Setup --------------
 set(SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRender.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Window.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanRenderSubsystem.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanShaderManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanCommandsManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanPipelineManager.cpp
@@ -39,7 +34,6 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/BufferRecordParameters.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/RenderStateFlags.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRender.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanRenderSubsystem.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanShaderManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanCommandsManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanPipelineManager.h
@@ -47,11 +41,7 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanDeviceManager.h
 )
 
-find_package(Qt${QT_LIB_VERSION}Core CONFIG REQUIRED)
-find_package(Qt${QT_LIB_VERSION}Gui CONFIG REQUIRED)
-find_package(Qt${QT_LIB_VERSION}Quick CONFIG REQUIRED)
-
-qt_add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
+add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
 
 target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 target_include_directories(${LIBRARY_NAME} PRIVATE
@@ -70,6 +60,8 @@ find_package(volk CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(glslang CONFIG REQUIRED)
 
+find_package(glfw3 CONFIG REQUIRED)
+
 target_link_libraries(${LIBRARY_NAME} PRIVATE
     Boost::log
 
@@ -83,12 +75,8 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE
     glslang::glslang
     glslang::glslang-default-resource-limits
     glslang::SPIRV
-)
 
-target_link_libraries(${LIBRARY_NAME} PUBLIC
-    Qt${QT_LIB_VERSION}::Core
-    Qt${QT_LIB_VERSION}::Gui
-    Qt${QT_LIB_VERSION}::Quick
+    glfw
 )
 
 target_include_directories(${LIBRARY_NAME} PRIVATE
@@ -110,14 +98,5 @@ target_compile_definitions(${LIBRARY_NAME} PUBLIC
     NOMINMAX
     _WIN32_WINNT=0x0601
     GPU_API_DUMP=0
-)
-
-set(QML_FILES
-    QML/Placeholder.qml
-)
-
-qt_add_qml_module(${LIBRARY_NAME}
-    URI ${LIBRARY_NAME}
-    VERSION 1.0
-    QML_FILES ${QML_FILES}
+    VK_NO_PROTOTYPES
 )

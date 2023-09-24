@@ -2,8 +2,8 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanLearning
 
+#include "VulkanRender.h"
 #include "Managers/VulkanDeviceManager.h"
-#include "Managers/VulkanRenderSubsystem.h"
 #include "Utils/VulkanEnumConverter.h"
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
@@ -14,9 +14,16 @@
 
 using namespace RenderCore;
 
+VulkanDeviceManager VulkanDeviceManager::g_Instance{};
+
 VulkanDeviceManager::VulkanDeviceManager()
     : m_PhysicalDevice(VK_NULL_HANDLE)
     , m_Device(VK_NULL_HANDLE)
+    , m_GraphicsQueue()
+    , m_PresentationQueue()
+    , m_TransferQueue()
+    , m_UniqueQueueFamilyIndices()
+    , m_DeviceProperties()
 {
 }
 
@@ -28,6 +35,11 @@ VulkanDeviceManager::~VulkanDeviceManager()
     }
 
     Shutdown();
+}
+
+VulkanDeviceManager &VulkanDeviceManager::Get()
+{
+    return g_Instance;
 }
 
 void VulkanDeviceManager::PickPhysicalDevice()
@@ -47,8 +59,6 @@ void VulkanDeviceManager::PickPhysicalDevice()
     {
         throw std::runtime_error("No suitable Vulkan physical device found.");
     }
-
-    VulkanRenderSubsystem::Get().SetPhysicalDevice(m_PhysicalDevice);
 
 #ifdef _DEBUG
     ListAvailablePhysicalDevices();
@@ -120,14 +130,13 @@ void VulkanDeviceManager::CreateLogicalDevice()
         ++QueueFamilyIndices[m_TransferQueue.first];
     }
 
-    std::vector<std::uint8_t> UniqueQueueFamilyIndicesIDs;
+    m_UniqueQueueFamilyIndices.clear();
     std::unordered_map<std::uint32_t, std::vector<float>> QueuePriorities;
     for (const auto &[Index, Quantity] : QueueFamilyIndices)
     {
-        UniqueQueueFamilyIndicesIDs.push_back(Index);
+        m_UniqueQueueFamilyIndices.push_back(Index);
         QueuePriorities.emplace(Index, std::vector<float>(Quantity, 1.0f));
     }
-    VulkanRenderSubsystem::Get().SetQueueFamilyIndices(UniqueQueueFamilyIndicesIDs);
 
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo;
     for (const auto &QueueFamilyIndex : QueueFamilyIndices)
@@ -154,35 +163,29 @@ void VulkanDeviceManager::CreateLogicalDevice()
         .pEnabledFeatures = &DeviceFeatures};
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_Device));
-    VulkanRenderSubsystem::Get().SetDevice(m_Device);
 
     if (vkGetDeviceQueue(m_Device, m_GraphicsQueue.first, 0u, &m_GraphicsQueue.second);
         m_GraphicsQueue.second == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Failed to get graphics queue.");
     }
-    VulkanRenderSubsystem::Get().RegisterQueue(m_GraphicsQueue.second, m_GraphicsQueue.first, VulkanQueueType::Graphics);
 
     if (vkGetDeviceQueue(m_Device, m_PresentationQueue.first, 0u, &m_PresentationQueue.second);
         m_PresentationQueue.second == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Failed to get presentation queue.");
     }
-    VulkanRenderSubsystem::Get().RegisterQueue(m_PresentationQueue.second, m_PresentationQueue.first, VulkanQueueType::Present);
 
     if (vkGetDeviceQueue(m_Device, m_TransferQueue.first, 0u, &m_TransferQueue.second);
         m_TransferQueue.second == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Failed to get transfer queue.");
     }
-    VulkanRenderSubsystem::Get().RegisterQueue(m_TransferQueue.second, m_TransferQueue.first, VulkanQueueType::Transfer);
 }
 
-VulkanDeviceProperties VulkanDeviceManager::GetPreferredProperties(const QQuickWindow *const Window)
+bool VulkanDeviceManager::UpdateDeviceProperties(GLFWwindow *const Window)
 {
-    VulkanDeviceProperties Output;
-
-    Output.Capabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
+    m_DeviceProperties.Capabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
 
     const std::vector<VkSurfaceFormatKHR> SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats();
     if (SupportedFormats.empty())
@@ -196,16 +199,16 @@ VulkanDeviceProperties VulkanDeviceManager::GetPreferredProperties(const QQuickW
         throw std::runtime_error("No supported presentation modes found.");
     }
 
-    if (Output.Capabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
+    if (m_DeviceProperties.Capabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
     {
-        Output.Extent = Output.Capabilities.currentExtent;
+        m_DeviceProperties.Extent = m_DeviceProperties.Capabilities.currentExtent;
     }
     else
     {
-        Output.Extent = GetWindowExtent(Window, Output.Capabilities);
+        m_DeviceProperties.Extent = GetWindowExtent(Window, m_DeviceProperties.Capabilities);
     }
 
-    Output.Format = SupportedFormats[0];
+    m_DeviceProperties.Format = SupportedFormats[0];
     if (const auto MatchingFormat = std::find_if(SupportedFormats.begin(), SupportedFormats.end(),
                                                  [](const VkSurfaceFormatKHR &Iter)
                                                  {
@@ -213,10 +216,10 @@ VulkanDeviceProperties VulkanDeviceManager::GetPreferredProperties(const QQuickW
                                                  });
         MatchingFormat != SupportedFormats.end())
     {
-        Output.Format = *MatchingFormat;
+        m_DeviceProperties.Format = *MatchingFormat;
     }
 
-    Output.Mode = VK_PRESENT_MODE_FIFO_KHR;
+    m_DeviceProperties.Mode = VK_PRESENT_MODE_FIFO_KHR;
     if (const auto MatchingMode = std::find_if(SupportedPresentationModes.begin(), SupportedPresentationModes.end(),
                                                [](const VkPresentModeKHR &Iter)
                                                {
@@ -224,7 +227,7 @@ VulkanDeviceProperties VulkanDeviceManager::GetPreferredProperties(const QQuickW
                                                });
         MatchingMode != SupportedPresentationModes.end())
     {
-        Output.Mode = *MatchingMode;
+        m_DeviceProperties.Mode = *MatchingMode;
     }
 
     // find preferred depth format
@@ -240,12 +243,60 @@ VulkanDeviceProperties VulkanDeviceManager::GetPreferredProperties(const QQuickW
 
         if (FormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
         {
-            Output.DepthFormat = FormatIter;
+            m_DeviceProperties.DepthFormat = FormatIter;
             break;
         }
     }
 
-    return Output;
+    return m_DeviceProperties.IsValid();
+}
+
+VulkanDeviceProperties &VulkanDeviceManager::GetDeviceProperties()
+{
+    return m_DeviceProperties;
+}
+
+VkDevice &VulkanDeviceManager::GetLogicalDevice()
+{
+    return m_Device;
+}
+
+VkPhysicalDevice &VulkanDeviceManager::GetPhysicalDevice()
+{
+    return m_PhysicalDevice;
+}
+
+std::pair<std::uint8_t, VkQueue> &VulkanDeviceManager::GetGraphicsQueue()
+{
+    return m_GraphicsQueue;
+}
+
+std::pair<std::uint8_t, VkQueue> &VulkanDeviceManager::GetPresentationQueue()
+{
+    return m_PresentationQueue;
+}
+
+std::pair<std::uint8_t, VkQueue> &VulkanDeviceManager::GetTransferQueue()
+{
+    return m_TransferQueue; 
+}
+
+std::vector<std::uint8_t> &VulkanDeviceManager::GetUniqueQueueFamilyIndices()
+{
+    return m_UniqueQueueFamilyIndices;
+}
+
+std::vector<std::uint32_t> VulkanDeviceManager::GetUniqueQueueFamilyIndices_u32()
+{
+    std::vector<std::uint32_t> QueueFamilyIndices_u32(m_UniqueQueueFamilyIndices.size());
+    std::transform(m_UniqueQueueFamilyIndices.begin(), m_UniqueQueueFamilyIndices.end(), QueueFamilyIndices_u32.begin(), [](const std::uint8_t &Index) { return static_cast<std::uint32_t>(Index); });
+    return QueueFamilyIndices_u32;
+}
+
+std::uint32_t VulkanDeviceManager::GetMinImageCount() const
+{
+    const bool bSupportsTripleBuffering = m_DeviceProperties.Capabilities.minImageCount < 3u && m_DeviceProperties.Capabilities.maxImageCount >= 3u;
+    return bSupportsTripleBuffering ? 3u : m_DeviceProperties.Capabilities.minImageCount;
 }
 
 void VulkanDeviceManager::Shutdown()
@@ -278,7 +329,7 @@ bool VulkanDeviceManager::IsInitialized() const
 
 std::vector<VkPhysicalDevice> VulkanDeviceManager::GetAvailablePhysicalDevices() const
 {
-    const VkInstance &VulkanInstance = VulkanRenderSubsystem::Get().GetInstance();
+    const VkInstance &VulkanInstance = VulkanRender::Get().GetInstance();
 
     std::uint32_t DeviceCount = 0u;
     RENDERCORE_CHECK_VULKAN_RESULT(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, nullptr));
@@ -384,7 +435,7 @@ VkSurfaceCapabilitiesKHR VulkanDeviceManager::GetAvailablePhysicalDeviceSurfaceC
     }
 
     VkSurfaceCapabilitiesKHR Output;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, VulkanRenderSubsystem::Get().GetSurface(), &Output));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, VulkanRender::Get().GetSurface(), &Output));
 
     return Output;
 }
@@ -396,7 +447,7 @@ std::vector<VkSurfaceFormatKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceS
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    const VkSurfaceKHR &VulkanSurface = VulkanRenderSubsystem::Get().GetSurface();
+    const VkSurfaceKHR &VulkanSurface = VulkanRender::Get().GetSurface();
 
     std::uint32_t Count;
     RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, VulkanSurface, &Count, nullptr));
@@ -414,7 +465,7 @@ std::vector<VkPresentModeKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceSur
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    const VkSurfaceKHR &VulkanSurface = VulkanRenderSubsystem::Get().GetSurface();
+    const VkSurfaceKHR &VulkanSurface = VulkanRender::Get().GetSurface();
 
     std::uint32_t Count;
     RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, VulkanSurface, &Count, nullptr));
@@ -463,7 +514,7 @@ bool VulkanDeviceManager::GetQueueFamilyIndices(std::optional<std::uint8_t> &Gra
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    const VkSurfaceKHR &VulkanSurface = VulkanRenderSubsystem::Get().GetSurface();
+    const VkSurfaceKHR &VulkanSurface = VulkanRender::Get().GetSurface();
 
     std::uint32_t QueueFamilyCount = 0u;
     vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &QueueFamilyCount, nullptr);

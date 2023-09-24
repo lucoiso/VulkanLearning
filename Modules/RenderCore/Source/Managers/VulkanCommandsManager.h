@@ -21,6 +21,8 @@ namespace RenderCore
         VulkanCommandsManager();
         ~VulkanCommandsManager();
 
+        static VulkanCommandsManager &Get();
+
         void Shutdown();
 
         [[nodiscard]] VkCommandPool CreateCommandPool(const std::uint8_t FamilyQueueIndex);
@@ -39,11 +41,15 @@ namespace RenderCore
         void AllocateCommandBuffer();
         void WaitAndResetFences();
 
+        static VulkanCommandsManager g_Instance;
+
         VkCommandPool m_CommandPool;
         VkCommandBuffer m_CommandBuffer;
         VkSemaphore m_ImageAvailableSemaphore;
         VkSemaphore m_RenderFinishedSemaphore;
         VkFence m_Fence;
         bool m_SynchronizationObjectsCreated;
+
+        std::uint8_t m_FrameIndex;
     };
 }

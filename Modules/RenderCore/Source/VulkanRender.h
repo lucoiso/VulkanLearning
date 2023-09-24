@@ -4,19 +4,12 @@
 
 #pragma once
 
-#include "Managers/VulkanRenderSubsystem.h"
-#include "Managers/VulkanDeviceManager.h"
-#include "Managers/VulkanPipelineManager.h"
-#include "Managers/VulkanBufferManager.h"
-#include "Managers/VulkanCommandsManager.h"
-#include "Managers/VulkanShaderManager.h"
 #include "Types/RenderStateFlags.h"
 #include "Types/BufferRecordParameters.h"
 #include <string_view>
 #include <vector>
 #include <optional>
-
-class QQuickWindow;
+#include <GLFW/glfw3.h>
 
 namespace RenderCore
 {
@@ -30,30 +23,33 @@ namespace RenderCore
 
         ~VulkanRender();
 
-        void Initialize(const QQuickWindow *const Window);
+        static VulkanRender &Get();
+
+        void Initialize(GLFWwindow *const Window);
         void Shutdown();
 
-        void DrawFrame(const QQuickWindow *const Window);
+        void DrawFrame(GLFWwindow *const Window);
         bool IsInitialized() const;
 
         void LoadScene(const std::string_view ModelPath, const std::string_view TexturePath);
         void UnloadScene();
 
+        [[nodiscard]] VkInstance &GetInstance();
+        [[nodiscard]] VkSurfaceKHR &GetSurface();
+
+        VulkanRenderStateFlags GetStateFlags() const;
+
     private:
-        std::optional<std::int32_t> TryRequestDrawImage(const QQuickWindow *const Window);
+        std::optional<std::int32_t> TryRequestDrawImage(GLFWwindow *const Window);
 
         void CreateVulkanInstance();
-        void CreateVulkanSurface(const QQuickWindow *const Window);
-        void InitializeRenderCore(const QQuickWindow *const Window);
+        void CreateVulkanSurface(GLFWwindow *const Window);
+        void InitializeRenderCore(GLFWwindow *const Window);
 
         std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders();
-        VulkanBufferRecordParameters GetBufferRecordParameters(const std::uint32_t ImageIndex, const std::uint64_t ObjectID) const;
+        VulkanBufferRecordParameters GetBufferRecordParameters(const std::uint32_t ImageIndex, const std::uint64_t ObjectID, GLFWwindow *const Window) const;
 
-        VulkanDeviceManager m_DeviceManager;
-        VulkanPipelineManager m_PipelineManager;
-        VulkanBufferManager m_BufferManager;
-        VulkanCommandsManager m_CommandsManager;
-        VulkanShaderManager m_ShaderManager;
+        static VulkanRender Instance;
 
         VkInstance m_Instance;
         VkSurfaceKHR m_Surface;

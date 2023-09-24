@@ -4,11 +4,11 @@
 
 #include "Window.h"
 #include "VulkanRender.h"
+#include "Utils/VulkanConstants.h"
+#include "Utils/RenderCoreHelpers.h"
 #include <stdexcept>
 #include <boost/log/trivial.hpp>
-#include <QTimer>
-#include <QEvent>
-#include <QPluginLoader>
+#include <GLFW/glfw3.h>
 
 using namespace RenderCore;
 
@@ -19,7 +19,7 @@ public:
     Impl &operator=(const Window::Impl &) = delete;
 
     Impl()
-        : m_Render()
+        : m_Window(nullptr)
     {
     }
 
@@ -31,9 +31,12 @@ public:
         }
 
         Shutdown();
+
+        glfwDestroyWindow(m_Window);
+        glfwTerminate();
     }
 
-    bool Initialize(const QQuickWindow *const Window)
+    bool Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title)
     {
         if (IsInitialized())
         {
@@ -42,10 +45,7 @@ public:
 
         try
         {
-            m_Render.Initialize(Window);
-            m_Render.LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
-            
-            return m_Render.IsInitialized();
+            return InitializeGLFW(Width, Height, Title) && InitializeVulkanRender();
         }
         catch (const std::exception &Ex)
         {
@@ -63,30 +63,67 @@ public:
             return;
         }
 
-        m_Render.Shutdown();
+        VulkanRender::Get().Shutdown();
     }
 
     bool IsInitialized() const
     {
-        return m_Render.IsInitialized();
+        return m_Window && VulkanRender::Get().IsInitialized();
     }
 
-    void DrawFrame(const QQuickWindow *const Window)
+    bool IsOpen() const
     {
-        m_Render.DrawFrame(Window);
+        return m_Window && !glfwWindowShouldClose(m_Window);
+    }
+
+    void DrawFrame()
+    {
+        if (!IsInitialized())
+        {
+            return;
+        }
+
+        VulkanRender::Get().DrawFrame(m_Window);
     }
 
 private:
+    bool InitializeGLFW(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title)
+    {
+        if (!glfwInit())
+        {
+            throw std::runtime_error("Failed to initialize GLFW");
+        }
 
-    VulkanRender m_Render;
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+
+        if (m_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr); !m_Window)
+        {
+            throw std::runtime_error("Failed to create GLFW Window");
+        }
+
+        return m_Window != nullptr;
+    }
+
+    bool InitializeVulkanRender()
+    {
+        VulkanRender::Get().Initialize(m_Window);
+
+        if (VulkanDeviceManager::Get().UpdateDeviceProperties(m_Window))
+        {
+            VulkanRender::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);        
+            return VulkanRender::Get().IsInitialized();
+        }
+
+        return false;
+    }
+
+    GLFWwindow *m_Window;
 };
 
 Window::Window()
-    : QQuickView()
-    , m_Impl(std::make_unique<Window::Impl>())
-    , m_CanDraw(false)
+    : m_Impl(std::make_unique<Window::Impl>())
 {
-    CreateOverlay();
 }
 
 Window::~Window()
@@ -106,20 +143,9 @@ bool Window::Initialize(const std::uint16_t Width, const std::uint16_t Height, c
         return false;
     }
 
-    // setSource(QUrl("qrc:/RenderCore/QML/Placeholder.qml"));
-    setResizeMode(QQuickView::SizeRootObjectToView);
-    setTitle(Title.data());
-    setMinimumSize(QSize(Width, Height));
-    show();
-
-    if (m_Impl->Initialize(this))
+    if (m_Impl->Initialize(Width, Height, Title))
     {
-        m_CanDraw = true;
-
-        constexpr std::uint32_t FrameRate = 60u;
-        QTimer *const Timer = new QTimer(this);
-        connect(Timer, &QTimer::timeout, this, &Window::DrawFrame);
-        Timer->start(static_cast<std::int32_t>(1000u / FrameRate));
+        CreateOverlay();
     }
     else
     {
@@ -144,31 +170,20 @@ bool Window::IsInitialized() const
     return m_Impl && m_Impl->IsInitialized();
 }
 
-void Window::CreateOverlay()
+bool Window::IsOpen() const
 {
+    return m_Impl && m_Impl->IsOpen();
 }
 
-void Window::DrawFrame()
+void Window::PollEvents()
 {
     try
     {
-        if (m_CanDraw)
-        {
-            m_Impl->DrawFrame(this);
-        }
+        glfwPollEvents();
+        m_Impl->DrawFrame();
     }
     catch (const std::exception &Ex)
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
     }
-}
-
-bool Window::event(QEvent *const Event)
-{
-    if (Event->type() == QEvent::Close)
-    {
-        m_CanDraw = false;
-    }
-
-    return QQuickWindow::event(Event);
 }

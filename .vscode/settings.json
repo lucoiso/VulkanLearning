@@ -95,7 +95,6 @@
         "random": "cpp",
         "stdfloat": "cpp",
         "valarray": "cpp",
-        "qwindow": "cpp",
         "future": "cpp",
         "queue": "cpp",
         "regex": "cpp",
@@ -105,13 +104,6 @@
         "csetjmp": "cpp",
         "execution": "cpp",
         "scoped_allocator": "cpp",
-        "qlayout": "cpp",
-        "qlineedit": "cpp",
-        "qslider": "cpp",
-        "qapplication": "cpp",
         "string_view": "cpp",
-        "qmainwindow": "cpp",
-        "qquickwindow": "cpp",
-        "qquickview": "cpp"
     }
 }

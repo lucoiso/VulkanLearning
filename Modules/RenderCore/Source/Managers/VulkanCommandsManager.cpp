@@ -3,11 +3,13 @@
 // Repo : https://github.com/lucoiso/VulkanLearning
 
 #include "Managers/VulkanCommandsManager.h"
-#include "Managers/VulkanRenderSubsystem.h"
+#include "Managers/VulkanDeviceManager.h"
 #include "Utils/RenderCoreHelpers.h"
 #include <boost/log/trivial.hpp>
 
 using namespace RenderCore;
+
+VulkanCommandsManager VulkanCommandsManager::g_Instance{};
 
 VulkanCommandsManager::VulkanCommandsManager()
 	: m_CommandPool(VK_NULL_HANDLE)
@@ -16,6 +18,7 @@ VulkanCommandsManager::VulkanCommandsManager()
 	, m_RenderFinishedSemaphore(VK_NULL_HANDLE)
 	, m_Fence(VK_NULL_HANDLE)
 	, m_SynchronizationObjectsCreated(false)
+	, m_FrameIndex(0u)
 {
 }
 
@@ -24,13 +27,18 @@ VulkanCommandsManager::~VulkanCommandsManager()
 	Shutdown();
 }
 
+VulkanCommandsManager &VulkanCommandsManager::Get()
+{
+	return g_Instance;
+}
+
 void VulkanCommandsManager::Shutdown()
 {
 	BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Vulkan commands manager";
 
 	WaitAndResetFences();
 
-	const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get().GetDevice();
+	const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
 	if (m_CommandBuffer != VK_NULL_HANDLE)
 	{
@@ -55,7 +63,7 @@ VkCommandPool VulkanCommandsManager::CreateCommandPool(const std::uint8_t Family
 		.queueFamilyIndex = static_cast<std::uint32_t>(FamilyQueueIndex)};
 
 	VkCommandPool Output = VK_NULL_HANDLE;
-	RENDERCORE_CHECK_VULKAN_RESULT(vkCreateCommandPool(VulkanRenderSubsystem::Get().GetDevice(), &CommandPoolCreateInfo, nullptr, &Output));
+	RENDERCORE_CHECK_VULKAN_RESULT(vkCreateCommandPool(VulkanDeviceManager::Get().GetLogicalDevice(), &CommandPoolCreateInfo, nullptr, &Output));
 
 	return Output;
 }
@@ -76,7 +84,7 @@ void VulkanCommandsManager::CreateSynchronizationObjects()
 		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 		.flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
-	const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get().GetDevice();
+	const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
 	RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSemaphore(VulkanLogicalDevice, &SemaphoreCreateInfo, nullptr, &m_ImageAvailableSemaphore));
 	RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSemaphore(VulkanLogicalDevice, &SemaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphore));
@@ -94,7 +102,7 @@ void VulkanCommandsManager::DestroySynchronizationObjects()
 
 	BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying Vulkan synchronization objects";
 
-	const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get().GetDevice();
+	const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
 	vkDeviceWaitIdle(VulkanLogicalDevice);
 
@@ -156,7 +164,7 @@ std::optional<std::int32_t> VulkanCommandsManager::DrawFrame(const VkSwapchainKH
 	}
 
 	std::uint32_t Output = 0u;
-	const VkResult OperationResult = vkAcquireNextImageKHR(VulkanRenderSubsystem::Get().GetDevice(), SwapChain, Timeout, m_ImageAvailableSemaphore, m_Fence, &Output);
+	const VkResult OperationResult = vkAcquireNextImageKHR(VulkanDeviceManager::Get().GetLogicalDevice(), SwapChain, Timeout, m_ImageAvailableSemaphore, m_Fence, &Output);
 	if (OperationResult != VK_SUCCESS)
 	{
 		if (OperationResult == VK_ERROR_OUT_OF_DATE_KHR || OperationResult == VK_SUBOPTIMAL_KHR)
@@ -225,7 +233,7 @@ void VulkanCommandsManager::RecordCommandBuffers(const VulkanBufferRecordParamet
 
 	if (!Parameters.DescriptorSets.empty())
 	{
-		const VkDescriptorSet &DescriptorSet = Parameters.DescriptorSets[VulkanRenderSubsystem::Get().GetFrameIndex()];
+		const VkDescriptorSet &DescriptorSet = Parameters.DescriptorSets[m_FrameIndex];
 		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Parameters.PipelineLayout, 0u, 1u, &DescriptorSet, 0u, nullptr);
 	}
 	
@@ -299,7 +307,7 @@ void VulkanCommandsManager::SubmitCommandBuffers(const VkQueue &Queue)
 	RENDERCORE_CHECK_VULKAN_RESULT(vkQueueSubmit(Queue, 1u, &SubmitInfo, m_Fence));
     RENDERCORE_CHECK_VULKAN_RESULT(vkQueueWaitIdle(Queue));
 
-	vkFreeCommandBuffers(VulkanRenderSubsystem::Get().GetDevice(), m_CommandPool, 1u, &m_CommandBuffer);
+	vkFreeCommandBuffers(VulkanDeviceManager::Get().GetLogicalDevice(), m_CommandPool, 1u, &m_CommandBuffer);
 	m_CommandBuffer = VK_NULL_HANDLE;
 }
 
@@ -326,18 +334,18 @@ void VulkanCommandsManager::PresentFrame(const VkQueue &Queue, const VkSwapchain
 			throw std::runtime_error("Vulkan operation failed with result: " + std::string(ResultToString(OperationResult)));
 		}
 	}
-
-	VulkanRenderSubsystem::Get().UpdateFrameIndex();
+	
+    m_FrameIndex = (m_FrameIndex + 1u) % g_MaxFramesInFlight;
 }
 
 void VulkanCommandsManager::CreateGraphicsCommandPool()
 {
-	m_CommandPool = CreateCommandPool(VulkanRenderSubsystem::Get().GetQueueFamilyIndexFromType(VulkanQueueType::Graphics));
+	m_CommandPool = CreateCommandPool(VulkanDeviceManager::Get().GetGraphicsQueue().first);
 }
 
 void VulkanCommandsManager::AllocateCommandBuffer()
 {
-	const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get().GetDevice();
+	const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
 	if (m_CommandBuffer != VK_NULL_HANDLE)
 	{
@@ -369,7 +377,7 @@ void VulkanCommandsManager::WaitAndResetFences()
 		return;
 	}
 
-	const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get().GetDevice();
+	const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
 	RENDERCORE_CHECK_VULKAN_RESULT(vkWaitForFences(VulkanLogicalDevice, 1u, &m_Fence, VK_TRUE, Timeout));
 	RENDERCORE_CHECK_VULKAN_RESULT(vkResetFences(VulkanLogicalDevice, 1u, &m_Fence));

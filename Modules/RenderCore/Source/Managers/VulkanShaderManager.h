@@ -11,8 +11,6 @@
 #include <glslang/Public/ShaderLang.h>
 #include <volk.h>
 
-struct GLFWwindow;
-
 namespace RenderCore
 {
     constexpr const char *EntryPoint = "main";
@@ -20,10 +18,15 @@ namespace RenderCore
     class VulkanShaderManager
     {
     public:
+        VulkanShaderManager(const VulkanShaderManager &) = delete;
+        VulkanShaderManager &operator=(const VulkanShaderManager &) = delete;
+
         VulkanShaderManager();
         ~VulkanShaderManager();
 
         void Shutdown();
+
+        static VulkanShaderManager &Get();
 
         bool Compile(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode);
         bool Load(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode);
@@ -39,6 +42,8 @@ namespace RenderCore
         void FreeStagedModules(const std::vector<VkPipelineShaderStageCreateInfo> &StagedModules);
 
     private:
+        static VulkanShaderManager g_Instance;
+
         bool Compile(const std::string_view Source, EShLanguage Language, std::vector<uint32_t> &OutSPIRVCode);
         void StageInfo(const VkShaderModule &Module, EShLanguage Language);
 

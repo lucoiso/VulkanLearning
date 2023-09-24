@@ -24,7 +24,7 @@ namespace RenderCore
         VmaAllocation Allocation;
 
         bool IsValid() const;
-        void DestroyResources(const VmaAllocator &Allocator);
+        void DestroyResources();
     };
 
     struct VulkanBufferAllocation
@@ -33,7 +33,7 @@ namespace RenderCore
         VmaAllocation Allocation;
 
         bool IsValid() const;
-        void DestroyResources(const VmaAllocator &Allocator);
+        void DestroyResources();
     };
 
     struct VulkanObjectAllocation
@@ -44,7 +44,7 @@ namespace RenderCore
         std::uint32_t IndicesCount;
 
         bool IsValid() const;
-        void DestroyResources(const VmaAllocator &Allocator);
+        void DestroyResources();
     };
 
     class VulkanBufferManager
@@ -56,12 +56,16 @@ namespace RenderCore
         VulkanBufferManager();
         ~VulkanBufferManager();
 
+        static VulkanBufferManager &Get();
+
         void CreateMemoryAllocator();
         void CreateSwapChain(const bool bRecreate);
         void CreateFrameBuffers(const VkRenderPass &RenderPass);
         void CreateDepthResources();
 
         std::uint64_t LoadObject(const std::string_view ModelPath, const std::string_view TexturePath);
+
+        static VulkanImageAllocation AllocateTexture(const unsigned char *Data, const std::uint32_t Width, const std::uint32_t Height, const std::size_t AllocationSize);
 
         void DestroyResources(const bool bClearScene);
         void Shutdown();
@@ -75,6 +79,22 @@ namespace RenderCore
         [[nodiscard]] const std::uint32_t GetIndicesCount(const std::uint64_t ObjectID = 0u) const;
         const bool GetObjectTexture(const std::uint64_t ObjectID, VulkanTextureData &TextureData) const;
 
+        static VmaAllocationInfo CreateBuffer(const VkDeviceSize &Size, const VkBufferUsageFlags Usage, const VkMemoryPropertyFlags Flags, VkBuffer &Buffer, VmaAllocation &Allocation);
+
+        static void CopyBuffer(const VkBuffer &Source, const VkBuffer &Destination, const VkDeviceSize &Size, const VkQueue &Queue, const std::uint8_t QueueFamilyIndex);
+
+        static void CreateImage(const VkFormat &ImageFormat, const VkExtent2D &Extent, const VkImageTiling &Tiling, const VkImageUsageFlags Usage, const VkMemoryPropertyFlags Flags, VkImage &Image, VmaAllocation &Allocation);
+
+        static void CreateImageView(const VkImage &Image, const VkFormat &Format, const VkImageAspectFlags &AspectFlags, VkImageView &ImageView);
+
+        static void CreateTextureImageView(VulkanImageAllocation &Allocation);
+
+        static void CreateTextureSampler(VulkanImageAllocation &Allocation);
+
+        static void CopyBufferToImage(const VkBuffer &Source, const VkImage &Destination, const VkExtent2D &Extent, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex);
+
+        static void MoveImageLayout(const VkImage &Image, const VkFormat &Format, const VkImageLayout &OldLayout, const VkImageLayout &NewLayout, const VkQueue &Queue, const std::uint8_t QueueFamilyIndex);
+
     private:
         void CreateVertexBuffers(VulkanObjectAllocation &Object, const std::vector<Vertex> &Vertices) const;
 
@@ -82,25 +102,14 @@ namespace RenderCore
 
         void LoadTexture(VulkanObjectAllocation &Object, const std::string_view TexturePath) const;
 
-        VmaAllocationInfo CreateBuffer(const VkDeviceSize &Size, const VkBufferUsageFlags Usage, const VkMemoryPropertyFlags Flags, VkBuffer &Buffer, VmaAllocation &Allocation) const;
-
-        void CopyBuffer(const VkBuffer &Source, const VkBuffer &Destination, const VkDeviceSize &Size, const VkQueue &Queue, const std::uint8_t QueueFamilyIndex) const;
-
-        void CreateImage(const VkFormat &ImageFormat, const VkExtent2D &Extent, const VkImageTiling &Tiling, const VkImageUsageFlags Usage, const VkMemoryPropertyFlags Flags, VkImage &Image, VmaAllocation &Allocation) const;
-
-        void CreateImageView(const VkImage &Image, const VkFormat &Format, const VkImageAspectFlags &AspectFlags, VkImageView &ImageView) const;
-
-        void CreateTextureSampler(VulkanImageAllocation &Allocation) const;
-
-        void CopyBufferToImage(const VkBuffer &Source, const VkImage &Destination, const VkExtent2D &Extent, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex) const;
-
-        void MoveImageLayout(const VkImage &Image, const VkFormat &Format, const VkImageLayout &OldLayout, const VkImageLayout &NewLayout, const VkQueue &Queue, const std::uint8_t QueueFamilyIndex) const;
-
-        void CreateTextureImageView(VulkanImageAllocation &Allocation) const;
-
         void CreateSwapChainImageViews(const VkFormat &ImageFormat);
 
-        VmaAllocator m_Allocator;
+    public:
+        static VmaAllocator g_Allocator;
+
+    private:
+        static VulkanBufferManager g_Instance;
+
         VkSwapchainKHR m_SwapChain;
         VkSwapchainKHR m_OldSwapChain;
         std::vector<VulkanImageAllocation> m_SwapChainImages;

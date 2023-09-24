@@ -20,12 +20,16 @@ namespace RenderCore
         VulkanPipelineManager();
         ~VulkanPipelineManager();
 
+        static VulkanPipelineManager &Get();
+
         void CreateRenderPass();
         void CreateDefaultRenderPass();
         void CreateGraphicsPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &ShaderStages);
         void CreateDescriptorSetLayout();
         void CreateDescriptorPool();
         void CreateDescriptorSets(const std::vector<VulkanTextureData> &TextureDatas);
+        
+        static void CreateDescriptorSets(const VkDescriptorPool &DescriptorPool, const VkDescriptorSetLayout &DescriptorSetLayout, const std::vector<VulkanTextureData> &TextureDatas, std::vector<VkDescriptorSet> &DescriptorSets);
 
         void Shutdown();
         void DestroyResources();
@@ -39,6 +43,8 @@ namespace RenderCore
         [[nodiscard]] const std::vector<VkDescriptorSet> &GetDescriptorSets() const;
 
     private:
+        static VulkanPipelineManager g_Instance;
+
         VkRenderPass m_RenderPass;
         VkPipeline m_Pipeline;
         VkPipelineLayout m_PipelineLayout;

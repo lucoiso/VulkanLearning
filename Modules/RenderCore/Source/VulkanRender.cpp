@@ -3,6 +3,11 @@
 // Repo : https://github.com/lucoiso/VulkanLearning
 
 #include "VulkanRender.h"
+#include "Managers/VulkanDeviceManager.h"
+#include "Managers/VulkanPipelineManager.h"
+#include "Managers/VulkanBufferManager.h"
+#include "Managers/VulkanCommandsManager.h"
+#include "Managers/VulkanShaderManager.h"
 #include "Utils/VulkanDebugHelpers.h"
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
@@ -10,8 +15,7 @@
 #include <filesystem>
 #include <boost/log/trivial.hpp>
 #include <algorithm>
-#include <QQuickWindow>
-#include <QQuickGraphicsDevice>
+#include <GLFW/glfw3.h>
 
 #ifndef VOLK_IMPLEMENTATION
 #define VOLK_IMPLEMENTATION
@@ -24,13 +28,10 @@
 
 using namespace RenderCore;
 
+VulkanRender VulkanRender::Instance;
+
 VulkanRender::VulkanRender()
-    : m_DeviceManager()
-    , m_PipelineManager()
-    , m_BufferManager()
-    , m_CommandsManager()
-    , m_ShaderManager()
-    , m_Instance(VK_NULL_HANDLE)
+    : m_Instance(VK_NULL_HANDLE)
     , m_Surface(VK_NULL_HANDLE)
     , StateFlags(VulkanRenderStateFlags::NONE)
 #ifdef _DEBUG
@@ -51,7 +52,12 @@ VulkanRender::~VulkanRender()
     Shutdown();
 }
 
-void VulkanRender::Initialize(const QQuickWindow *const Window)
+VulkanRender &VulkanRender::Get()
+{
+    return Instance;
+}
+
+void VulkanRender::Initialize(GLFWwindow *const Window)
 {
     if (IsInitialized())
     {
@@ -93,13 +99,13 @@ void VulkanRender::Shutdown()
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan render";
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkDeviceWaitIdle(VulkanRenderSubsystem::Get().GetDevice()));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkDeviceWaitIdle(VulkanDeviceManager::Get().GetLogicalDevice()));
 
-    m_ShaderManager.Shutdown();
-    m_CommandsManager.Shutdown();
-    m_BufferManager.Shutdown();
-    m_PipelineManager.Shutdown();
-    m_DeviceManager.Shutdown();
+    VulkanShaderManager::Get().Shutdown();
+    VulkanCommandsManager::Get().Shutdown();
+    VulkanBufferManager::Get().Shutdown();
+    VulkanPipelineManager::Get().Shutdown();
+    VulkanDeviceManager::Get().Shutdown();
 
 #ifdef _DEBUG
     if (m_DebugMessenger != VK_NULL_HANDLE)
@@ -118,7 +124,7 @@ void VulkanRender::Shutdown()
     m_Instance = VK_NULL_HANDLE;
 }
 
-void VulkanRender::DrawFrame(const QQuickWindow *const Window)
+void VulkanRender::DrawFrame(GLFWwindow *const Window)
 {
     if (!IsInitialized())
     {
@@ -139,18 +145,18 @@ void VulkanRender::DrawFrame(const QQuickWindow *const Window)
 
         if (!HasFlag(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH) && HasInvalidFlags)
         {
-            m_CommandsManager.DestroySynchronizationObjects();
-            m_BufferManager.DestroyResources(false);
+            VulkanCommandsManager::Get().DestroySynchronizationObjects();
+            VulkanBufferManager::Get().DestroyResources(false);
 
             AddFlags(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH);
         }
         else if (HasFlag(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH) && !HasInvalidFlags)
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
-            m_BufferManager.CreateSwapChain(true);
-            m_BufferManager.CreateDepthResources();
-            m_BufferManager.CreateFrameBuffers(m_PipelineManager.GetRenderPass());
-            m_CommandsManager.CreateSynchronizationObjects();
+            VulkanBufferManager::Get().CreateSwapChain(true);
+            VulkanBufferManager::Get().CreateDepthResources();
+            VulkanBufferManager::Get().CreateFrameBuffers(VulkanPipelineManager::Get().GetRenderPass());
+            VulkanCommandsManager::Get().CreateSynchronizationObjects();
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Buffers updated, starting to draw frames with new surface properties";
 
             RemoveFlags(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH);
@@ -159,13 +165,13 @@ void VulkanRender::DrawFrame(const QQuickWindow *const Window)
     else if (HasFlag(StateFlags, VulkanRenderStateFlags::SCENE_LOADED))
     {
         const std::int32_t IndiceToProcess = ImageIndice.value();
-        const VulkanBufferRecordParameters Parameters = GetBufferRecordParameters(IndiceToProcess, 0u);
+        const VulkanBufferRecordParameters Parameters = GetBufferRecordParameters(IndiceToProcess, 0u, Window);
 
-        m_CommandsManager.RecordCommandBuffers(Parameters);
+        VulkanCommandsManager::Get().RecordCommandBuffers(Parameters);
 
-        const VkQueue &GraphicsQueue = VulkanRenderSubsystem::Get().GetQueueFromType(VulkanQueueType::Graphics);
-        m_CommandsManager.SubmitCommandBuffers(GraphicsQueue);
-        m_CommandsManager.PresentFrame(GraphicsQueue, m_BufferManager.GetSwapChain(), IndiceToProcess);
+        const VkQueue &GraphicsQueue = VulkanDeviceManager::Get().GetGraphicsQueue().second;
+        VulkanCommandsManager::Get().SubmitCommandBuffers(GraphicsQueue);
+        VulkanCommandsManager::Get().PresentFrame(GraphicsQueue, VulkanBufferManager::Get().GetSwapChain(), IndiceToProcess);
 
         AddFlags(StateFlags, VulkanRenderStateFlags::RENDERING);
         RemoveFlags(StateFlags, VulkanRenderStateFlags::PENDING_REFRESH);
@@ -196,26 +202,26 @@ void VulkanRender::LoadScene(const std::string_view ModelPath, const std::string
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
     
-    m_PipelineManager.DestroyResources();
+    VulkanPipelineManager::Get().DestroyResources();
 
-    m_BufferManager.CreateSwapChain(false);
+    VulkanBufferManager::Get().CreateSwapChain(false);
 
-    const std::uint64_t ObjectID = m_BufferManager.LoadObject(ModelPath, TexturePath);
-    m_BufferManager.CreateDepthResources();
+    const std::uint64_t ObjectID = VulkanBufferManager::Get().LoadObject(ModelPath, TexturePath);
+    VulkanBufferManager::Get().CreateDepthResources();
 
-    m_PipelineManager.CreateRenderPass();
-    m_PipelineManager.CreateDescriptorSetLayout();
-    m_PipelineManager.CreateGraphicsPipeline(VulkanRenderSubsystem::Get().GetDefaultShadersStageInfos());
+    VulkanPipelineManager::Get().CreateRenderPass();
+    VulkanPipelineManager::Get().CreateDescriptorSetLayout();
+    VulkanPipelineManager::Get().CreateGraphicsPipeline(VulkanShaderManager::Get().GetStageInfos());
 
-    m_BufferManager.CreateFrameBuffers(m_PipelineManager.GetRenderPass());
+    VulkanBufferManager::Get().CreateFrameBuffers(VulkanPipelineManager::Get().GetRenderPass());
 
     VulkanTextureData TextureData;
-    m_BufferManager.GetObjectTexture(ObjectID, TextureData);
+    VulkanBufferManager::Get().GetObjectTexture(ObjectID, TextureData);
 
-    m_PipelineManager.CreateDescriptorPool();
-    m_PipelineManager.CreateDescriptorSets({ TextureData });
+    VulkanPipelineManager::Get().CreateDescriptorPool();
+    VulkanPipelineManager::Get().CreateDescriptorSets({ TextureData });
 
-    m_CommandsManager.CreateSynchronizationObjects();
+    VulkanCommandsManager::Get().CreateSynchronizationObjects();
 
     AddFlags(StateFlags, VulkanRenderStateFlags::SCENE_LOADED);
 }
@@ -229,16 +235,31 @@ void VulkanRender::UnloadScene()
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading scene...";
 
-    m_CommandsManager.DestroySynchronizationObjects();
-    m_BufferManager.DestroyResources(true);
-    m_PipelineManager.DestroyResources();
+    VulkanCommandsManager::Get().DestroySynchronizationObjects();
+    VulkanBufferManager::Get().DestroyResources(true);
+    VulkanPipelineManager::Get().DestroyResources();
 
     RemoveFlags(StateFlags, VulkanRenderStateFlags::SCENE_LOADED);
 }
 
-std::optional<std::int32_t> VulkanRender::TryRequestDrawImage(const QQuickWindow *const Window)
+VkInstance &VulkanRender::GetInstance()
 {
-    if (!VulkanRenderSubsystem::Get().SetDeviceProperties(m_DeviceManager.GetPreferredProperties(Window)))
+    return m_Instance;
+}
+
+VkSurfaceKHR &VulkanRender::GetSurface()
+{
+    return m_Surface;
+}
+
+VulkanRenderStateFlags VulkanRender::GetStateFlags() const
+{
+    return StateFlags;
+}
+
+std::optional<std::int32_t> VulkanRender::TryRequestDrawImage(GLFWwindow *const Window)
+{
+    if (!VulkanDeviceManager::Get().UpdateDeviceProperties(Window))
     {
         RemoveFlags(StateFlags, VulkanRenderStateFlags::RENDERING);
         AddFlags(StateFlags, VulkanRenderStateFlags::INVALID_PROPERTIES);
@@ -250,7 +271,7 @@ std::optional<std::int32_t> VulkanRender::TryRequestDrawImage(const QQuickWindow
         RemoveFlags(StateFlags, VulkanRenderStateFlags::INVALID_PROPERTIES);
     }
 
-    const std::optional<std::int32_t> Output = m_CommandsManager.DrawFrame(m_BufferManager.GetSwapChain());
+    const std::optional<std::int32_t> Output = VulkanCommandsManager::Get().DrawFrame(VulkanBufferManager::Get().GetSwapChain());
 
     if (!Output.has_value())
     {
@@ -284,7 +305,8 @@ void VulkanRender::CreateVulkanInstance()
         .enabledLayerCount = 0u};
         
     std::vector<const char*> Layers(g_RequiredInstanceLayers.begin(), g_RequiredInstanceLayers.end());
-    std::vector<const char*> Extensions(g_RequiredInstanceExtensions.begin(), g_RequiredInstanceExtensions.end());
+    std::vector<const char*> Extensions = GetGLFWExtensions();
+    Extensions.insert(Extensions.end(), g_RequiredInstanceExtensions.begin(), g_RequiredInstanceExtensions.end());
 
 #ifdef _DEBUG
     const VkValidationFeaturesEXT ValidationFeatures = GetInstanceValidationFeatures();
@@ -304,7 +326,6 @@ void VulkanRender::CreateVulkanInstance()
     CreateInfo.ppEnabledExtensionNames = Extensions.data();
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateInstance(&CreateInfo, nullptr, &m_Instance));
-    VulkanRenderSubsystem::Get().SetInstance(m_Instance);
     volkLoadInstance(m_Instance);
 
 #ifdef _DEBUG
@@ -313,7 +334,7 @@ void VulkanRender::CreateVulkanInstance()
 #endif
 }
 
-void VulkanRender::CreateVulkanSurface(const QQuickWindow *const Window)
+void VulkanRender::CreateVulkanSurface(GLFWwindow *const Window)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan surface";
 
@@ -322,30 +343,17 @@ void VulkanRender::CreateVulkanSurface(const QQuickWindow *const Window)
         throw std::runtime_error("Vulkan instance is invalid.");
     }
 
-#ifdef VK_USE_PLATFORM_WIN32_KHR
-    const VkWin32SurfaceCreateInfoKHR CreateInfo{
-        .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-        .pNext = nullptr,
-        .flags = 0u,
-        .hinstance = GetModuleHandle(nullptr),
-        .hwnd = reinterpret_cast<HWND>(Window->winId())};
-    
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateWin32SurfaceKHR(m_Instance, &CreateInfo, nullptr, &m_Surface));
-#endif
-
-    VulkanRenderSubsystem::Get().SetSurface(m_Surface);
+    RENDERCORE_CHECK_VULKAN_RESULT(glfwCreateWindowSurface(m_Instance, Window, nullptr, &m_Surface));
 }
 
-void VulkanRender::InitializeRenderCore(const QQuickWindow *const Window)
+void VulkanRender::InitializeRenderCore(GLFWwindow *const Window)
 {
-    m_DeviceManager.PickPhysicalDevice();
-    m_DeviceManager.CreateLogicalDevice();
-    volkLoadDevice(VulkanRenderSubsystem::Get().GetDevice());
+    VulkanDeviceManager::Get().PickPhysicalDevice();
+    VulkanDeviceManager::Get().CreateLogicalDevice();
+    volkLoadDevice(VulkanDeviceManager::Get().GetLogicalDevice());
 
-    VulkanRenderSubsystem::Get().SetDeviceProperties(m_DeviceManager.GetPreferredProperties(Window));
-
-    m_BufferManager.CreateMemoryAllocator();
-    VulkanRenderSubsystem::Get().SetDefaultShadersStageInfos(CompileDefaultShaders());
+    VulkanBufferManager::Get().CreateMemoryAllocator();
+    CompileDefaultShaders();
 
     AddFlags(StateFlags, VulkanRenderStateFlags::INITIALIZED);
 }
@@ -357,41 +365,41 @@ std::vector<VkPipelineShaderStageCreateInfo> VulkanRender::CompileDefaultShaders
     
     std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
 
-    const VkDevice &VulkanLogicalDevice = VulkanRenderSubsystem::Get().GetDevice();
+    const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
     for (const char *const &FragmentShaderIter : FragmentShaders)
     {
-        if (std::vector<std::uint32_t> FragmentShaderCode; m_ShaderManager.CompileOrLoadIfExists(FragmentShaderIter, FragmentShaderCode))
+        if (std::vector<std::uint32_t> FragmentShaderCode; VulkanShaderManager::Get().CompileOrLoadIfExists(FragmentShaderIter, FragmentShaderCode))
         {
-            const VkShaderModule FragmentModule = m_ShaderManager.CreateModule(VulkanLogicalDevice, FragmentShaderCode, EShLangFragment);
-            ShaderStages.push_back(m_ShaderManager.GetStageInfo(FragmentModule));
+            const VkShaderModule FragmentModule = VulkanShaderManager::Get().CreateModule(VulkanLogicalDevice, FragmentShaderCode, EShLangFragment);
+            ShaderStages.push_back(VulkanShaderManager::Get().GetStageInfo(FragmentModule));
         }
     }
 
     for (const char *const &VertexShaderIter : VertexShaders)
     {
-        if (std::vector<std::uint32_t> VertexShaderCode; m_ShaderManager.CompileOrLoadIfExists(VertexShaderIter, VertexShaderCode))
+        if (std::vector<std::uint32_t> VertexShaderCode; VulkanShaderManager::Get().CompileOrLoadIfExists(VertexShaderIter, VertexShaderCode))
         {
-            const VkShaderModule VertexModule = m_ShaderManager.CreateModule(VulkanLogicalDevice, VertexShaderCode, EShLangVertex);
-            ShaderStages.push_back(m_ShaderManager.GetStageInfo(VertexModule));
+            const VkShaderModule VertexModule = VulkanShaderManager::Get().CreateModule(VulkanLogicalDevice, VertexShaderCode, EShLangVertex);
+            ShaderStages.push_back(VulkanShaderManager::Get().GetStageInfo(VertexModule));
         }
     }
 
     return ShaderStages;
 }
 
-VulkanBufferRecordParameters VulkanRender::GetBufferRecordParameters(const std::uint32_t ImageIndex, const std::uint64_t ObjectID) const
+VulkanBufferRecordParameters VulkanRender::GetBufferRecordParameters(const std::uint32_t ImageIndex, const std::uint64_t ObjectID, GLFWwindow *const Window) const
 {
     return {
-        .RenderPass = m_PipelineManager.GetRenderPass(),
-        .Pipeline = m_PipelineManager.GetPipeline(),
-        .Extent = VulkanRenderSubsystem::Get().GetDeviceProperties().Extent,
-        .FrameBuffers = m_BufferManager.GetFrameBuffers(),
-        .VertexBuffer = m_BufferManager.GetVertexBuffer(ObjectID),
-        .IndexBuffer = m_BufferManager.GetIndexBuffer(ObjectID),
-        .PipelineLayout = m_PipelineManager.GetPipelineLayout(),
-        .DescriptorSets = m_PipelineManager.GetDescriptorSets(),
-        .IndexCount = m_BufferManager.GetIndicesCount(ObjectID),
+        .RenderPass = VulkanPipelineManager::Get().GetRenderPass(),
+        .Pipeline = VulkanPipelineManager::Get().GetPipeline(),
+        .Extent = VulkanDeviceManager::Get().GetDeviceProperties().Extent,
+        .FrameBuffers = VulkanBufferManager::Get().GetFrameBuffers(),
+        .VertexBuffer = VulkanBufferManager::Get().GetVertexBuffer(ObjectID),
+        .IndexBuffer = VulkanBufferManager::Get().GetIndexBuffer(ObjectID),
+        .PipelineLayout = VulkanPipelineManager::Get().GetPipelineLayout(),
+        .DescriptorSets = VulkanPipelineManager::Get().GetDescriptorSets(),
+        .IndexCount = VulkanBufferManager::Get().GetIndicesCount(ObjectID),
         .ImageIndex = ImageIndex,
         .Offsets = {0u}};
 }
