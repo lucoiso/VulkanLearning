@@ -186,8 +186,7 @@ void VulkanBufferManager::CreateSwapChain()
     std::vector<VkImage> SwapChainImages(Count, VK_NULL_HANDLE);
     RENDERCORE_CHECK_VULKAN_RESULT(vkGetSwapchainImagesKHR(VulkanLogicalDevice, m_SwapChain, &Count, SwapChainImages.data()));
 
-    m_SwapChainImages.clear();
-    m_SwapChainImages.resize(Count);
+    m_SwapChainImages.resize(Count, VulkanImageAllocation());
     for (std::uint32_t Iterator = 0u; Iterator < Count; ++Iterator)
     {
         m_SwapChainImages[Iterator].Image = SwapChainImages[Iterator];
@@ -203,9 +202,7 @@ void VulkanBufferManager::CreateFrameBuffers()
     const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
     const VulkanDeviceProperties &Properties = VulkanDeviceManager::Get().GetDeviceProperties();
 
-    m_FrameBuffers.clear();
     m_FrameBuffers.resize(m_SwapChainImages.size(), VK_NULL_HANDLE);
-
     for (std::uint32_t Iterator = 0u; Iterator < static_cast<std::uint32_t>(m_FrameBuffers.size()); ++Iterator)
     {
         const std::array<VkImageView, 2u> Attachments{
@@ -297,7 +294,7 @@ void VulkanBufferManager::CreateDepthResources()
 
     constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
     constexpr VkImageUsageFlagBits Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    constexpr VkMemoryPropertyFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    constexpr VkMemoryPropertyFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
     constexpr VkImageAspectFlagBits Aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
     constexpr VkImageLayout InitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     constexpr VkImageLayout DestinationLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;

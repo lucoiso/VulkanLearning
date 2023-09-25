@@ -160,8 +160,7 @@ bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::u
         throw std::runtime_error("Shader file is empty");
     }
 
-    OutSPIRVCode.clear();
-    OutSPIRVCode.resize(FileSize / sizeof(uint32_t));
+    OutSPIRVCode.resize(FileSize / sizeof(std::uint32_t), std::uint32_t());
 
     File.seekg(0);
     const std::istream &ReadResult = File.read(reinterpret_cast<char *>(OutSPIRVCode.data()), FileSize); /* Flawfinder: ignore */

@@ -308,7 +308,6 @@ void VulkanPipelineManager::CreateDescriptorSets()
         .descriptorSetCount = static_cast<std::uint32_t>(DescriptorSetLayouts.size()),
         .pSetLayouts = DescriptorSetLayouts.data()};
         
-    m_DescriptorSets.clear();
     m_DescriptorSets.resize(g_MaxFramesInFlight);
     RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, m_DescriptorSets.data()));
 

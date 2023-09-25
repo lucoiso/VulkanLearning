@@ -78,6 +78,9 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE
     glslang::SPIRV
 
     glfw
+
+    Timer
+    Configuration
 )
 
 target_include_directories(${LIBRARY_NAME} PRIVATE

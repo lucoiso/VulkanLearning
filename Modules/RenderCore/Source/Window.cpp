@@ -7,6 +7,7 @@
 #include "Managers/VulkanDeviceManager.h"
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
+#include <Timer/Timer.h>
 #include <stdexcept>
 #include <boost/log/trivial.hpp>
 #include <GLFW/glfw3.h>
@@ -21,6 +22,7 @@ public:
 
     Impl()
         : m_Window(nullptr)
+        , m_DrawTimer(g_FrameRate)
     {
     }
 
@@ -46,15 +48,18 @@ public:
 
         try
         {
-            return InitializeGLFW(Width, Height, Title) && InitializeVulkanRenderCore();
+            if (InitializeGLFW(Width, Height, Title) && InitializeVulkanRenderCore())
+            {
+                m_DrawTimer.Start(std::bind(&Window::Impl::DrawFrame, this));
+            }
         }
         catch (const std::exception &Ex)
         {
             BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
+            Shutdown();
         }
 
-        Shutdown();
-        return false;
+        return IsInitialized();
     }
 
     void Shutdown()
@@ -64,6 +69,7 @@ public:
             return;
         }
 
+        m_DrawTimer.Stop();
         VulkanRenderCore::Get().Shutdown();
     }
 
@@ -120,6 +126,7 @@ private:
     }
 
     GLFWwindow *m_Window;
+    Timer::TimerObject m_DrawTimer;
 };
 
 Window::Window()
@@ -181,7 +188,6 @@ void Window::PollEvents()
     try
     {
         glfwPollEvents();
-        m_Impl->DrawFrame();
     }
     catch (const std::exception &Ex)
     {

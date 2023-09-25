@@ -52,8 +52,7 @@ std::vector<VkLayerProperties> RenderCoreHelpers::GetAvailableInstanceLayers()
     std::uint32_t LayersCount = 0u;
     RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceLayerProperties(&LayersCount, nullptr));
 
-    std::vector<VkLayerProperties> Output;
-    Output.resize(LayersCount);
+    std::vector<VkLayerProperties> Output(LayersCount, VkLayerProperties());
     RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceLayerProperties(&LayersCount, Output.data()));
 
     return Output;
@@ -74,9 +73,8 @@ std::vector<VkExtensionProperties> RenderCoreHelpers::GetAvailableInstanceExtens
 {
     std::uint32_t ExtensionCount = 0u;
     RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionCount, nullptr));
-
-    std::vector<VkExtensionProperties> Output;
-    Output.resize(ExtensionCount);
+    
+    std::vector<VkExtensionProperties> Output(ExtensionCount, VkExtensionProperties());
     RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionCount, Output.data()));
 
     return Output;
@@ -130,8 +128,7 @@ std::vector<VkExtensionProperties> RenderCoreHelpers::GetAvailableLayerExtension
     std::uint32_t ExtensionCount = 0u;
     RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(LayerName.data(), &ExtensionCount, nullptr));
 
-    std::vector<VkExtensionProperties> Output;
-    Output.resize(ExtensionCount);
+    std::vector<VkExtensionProperties> Output(ExtensionCount, VkExtensionProperties());
     RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(LayerName.data(), &ExtensionCount, Output.data()));
 
     return Output;

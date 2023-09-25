@@ -76,6 +76,8 @@ namespace RenderCore
     constexpr std::uint64_t g_BufferMemoryAllocationSize = 65536u;
 
     constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+    constexpr std::uint8_t g_FrameRate = 75u;
 }
 
 #endif
