@@ -128,6 +128,8 @@ void VulkanRenderCore::Shutdown()
 
 void VulkanRenderCore::DrawFrame(GLFWwindow *const Window)
 {
+    std::lock_guard<std::mutex> Lock(m_Mutex);
+
     if (!IsInitialized())
     {
         return;

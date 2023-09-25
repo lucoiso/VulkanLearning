@@ -22,7 +22,7 @@ public:
 
     Impl()
         : m_Window(nullptr)
-        , m_DrawTimer(g_FrameRate)
+        , m_DrawTimer(g_FrameRate, Timer::TAG_Repeating)
     {
     }
 
@@ -50,6 +50,8 @@ public:
         {
             if (InitializeGLFW(Width, Height, Title) && InitializeVulkanRenderCore())
             {
+                LoadScene();
+
                 m_DrawTimer.Start(std::bind(&Window::Impl::DrawFrame, this));
             }
         }
@@ -83,6 +85,7 @@ public:
         return m_Window && !glfwWindowShouldClose(m_Window);
     }
 
+private:
     void DrawFrame()
     {
         if (!IsInitialized())
@@ -93,7 +96,16 @@ public:
         VulkanRenderCore::Get().DrawFrame(m_Window);
     }
 
-private:
+    void LoadScene()
+    {
+        VulkanRenderCore::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+    }
+
+    void UnloadScene()
+    {
+        VulkanRenderCore::Get().UnloadScene();
+    }
+
     bool InitializeGLFW(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title)
     {
         if (!glfwInit())
@@ -118,7 +130,6 @@ private:
 
         if (VulkanDeviceManager::Get().UpdateDeviceProperties(m_Window))
         {
-            VulkanRenderCore::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);        
             return VulkanRenderCore::Get().IsInitialized();
         }
 
