@@ -66,7 +66,7 @@ jobs:
       uses: benchmark-action/github-action-benchmark@v1
       with:
         tool: 'googlecpp'
-        output-file-path: ${{github.workspace}}/build/${{env.BUILD_TYPE}}/bin/application_benchmark_result.json
+        output-file-path: ${{github.workspace}}/out/build/${{env.BUILD_TYPE}}/bin/application_benchmark_result.json
         github-token: ${{ secrets.LUCOISO_PAT }}
         auto-push: true
     
