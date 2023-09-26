@@ -27,7 +27,7 @@ VulkanCommandsManager::VulkanCommandsManager()
 
 VulkanCommandsManager::~VulkanCommandsManager()
 {
-	Shutdown();
+	RenderCoreHelpers::ShutdownManagers();
 }
 
 VulkanCommandsManager &VulkanCommandsManager::Get()

@@ -27,7 +27,7 @@ VulkanShaderManager::~VulkanShaderManager()
         return;
     }
 
-    Shutdown();
+    RenderCoreHelpers::ShutdownManagers();
 }
 
 void VulkanShaderManager::Shutdown()

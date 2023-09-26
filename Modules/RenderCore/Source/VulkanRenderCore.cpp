@@ -8,6 +8,7 @@
 #include "Managers/VulkanBufferManager.h"
 #include "Managers/VulkanCommandsManager.h"
 #include "Managers/VulkanShaderManager.h"
+#include "Utils/RenderCoreHelpers.h"
 #include "Utils/VulkanDebugHelpers.h"
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
@@ -40,18 +41,11 @@ VulkanRenderCore::VulkanRenderCore()
     , m_DebugMessenger(VK_NULL_HANDLE)
 #endif
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render core";
 }
 
 VulkanRenderCore::~VulkanRenderCore()
 {
-    if (!IsInitialized())
-    {
-        return;
-    }
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destructing vulkan render core";
-    Shutdown();
+    RenderCoreHelpers::ShutdownManagers();
 }
 
 VulkanRenderCore &VulkanRenderCore::Get()
@@ -101,14 +95,6 @@ void VulkanRenderCore::Shutdown()
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan render core";
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkDeviceWaitIdle(VulkanDeviceManager::Get().GetLogicalDevice()));
-
-    VulkanShaderManager::Get().Shutdown();
-    VulkanCommandsManager::Get().Shutdown();
-    VulkanBufferManager::Get().Shutdown();
-    VulkanPipelineManager::Get().Shutdown();
-    VulkanDeviceManager::Get().Shutdown();
-
 #ifdef _DEBUG
     if (m_DebugMessenger != VK_NULL_HANDLE)
     {
@@ -128,8 +114,6 @@ void VulkanRenderCore::Shutdown()
 
 void VulkanRenderCore::DrawFrame(GLFWwindow *const Window)
 {
-    std::lock_guard<std::mutex> Lock(m_Mutex);
-
     if (!IsInitialized())
     {
         return;

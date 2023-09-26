@@ -110,5 +110,7 @@ namespace RenderCore
         static void FinishSingleCommandQueue(const VkQueue &Queue, const VkCommandPool &CommandPool, const VkCommandBuffer &CommandBuffer);
 
         static UniformBufferObject GetUniformBufferObject();
+
+        static void ShutdownManagers();
     };
 }

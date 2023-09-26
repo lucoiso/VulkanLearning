@@ -104,12 +104,7 @@ VulkanBufferManager::VulkanBufferManager()
 
 VulkanBufferManager::~VulkanBufferManager()
 {
-    if (!IsInitialized())
-    {
-        return;
-    }
-
-    Shutdown();
+	RenderCoreHelpers::ShutdownManagers();
 }
 
 VulkanBufferManager &VulkanBufferManager::Get()
@@ -294,7 +289,7 @@ void VulkanBufferManager::CreateDepthResources()
 
     constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
     constexpr VkImageUsageFlagBits Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    constexpr VkMemoryPropertyFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+    constexpr VkMemoryPropertyFlags MemoryPropertyFlags = 0u;
     constexpr VkImageAspectFlagBits Aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
     constexpr VkImageLayout InitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     constexpr VkImageLayout DestinationLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;

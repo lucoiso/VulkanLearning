@@ -29,12 +29,7 @@ VulkanDeviceManager::VulkanDeviceManager()
 
 VulkanDeviceManager::~VulkanDeviceManager()
 {
-    if (!IsInitialized())
-    {
-        return;
-    }
-
-    Shutdown();
+    RenderCoreHelpers::ShutdownManagers();
 }
 
 VulkanDeviceManager &VulkanDeviceManager::Get()

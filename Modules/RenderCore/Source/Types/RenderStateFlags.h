@@ -4,32 +4,7 @@
 
 #pragma once
 
-#include <cstdint>
-
-#define DECLARE_BITWISE_OPERATORS(Type)\
-static inline Type operator|(const Type Lhs, const Type Rhs)\
-{\
-    return static_cast<Type>(static_cast<std::uint8_t>(Lhs) | static_cast<std::uint8_t>(Rhs));\
-}\
-static inline Type operator|=(Type& Lhs, const Type Rhs)\
-{\
-    return Lhs = static_cast<Type>(static_cast<std::uint8_t>(Lhs) | static_cast<std::uint8_t>(Rhs));\
-}\
-\
-static inline Type operator&(const Type Lhs, const Type Rhs)\
-{\
-    return static_cast<Type>(static_cast<std::uint8_t>(Lhs) & static_cast<std::uint8_t>(Rhs));\
-}\
-\
-static inline Type operator&=(Type& Lhs, const Type Rhs)\
-{\
-    return Lhs = static_cast<Type>(static_cast<std::uint8_t>(Lhs) & static_cast<std::uint8_t>(Rhs));\
-}\
-\
-static inline Type operator~(const Type Lhs)\
-{\
-    return static_cast<Type>(~static_cast<std::uint8_t>(Lhs));\
-}
+#include "Utils/EnumHelpers.h"
 
 namespace RenderCore
 {
@@ -46,5 +21,3 @@ namespace RenderCore
     };
     DECLARE_BITWISE_OPERATORS(VulkanRenderCoreStateFlags);
 }
-
-#undef DECLARE_BITWISE_OPERATORS

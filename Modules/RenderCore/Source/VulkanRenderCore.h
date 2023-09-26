@@ -8,7 +8,6 @@
 #include <string_view>
 #include <vector>
 #include <optional>
-#include <mutex>
 #include <volk.h>
 
 struct GLFWwindow;
@@ -55,8 +54,6 @@ namespace RenderCore
         VkInstance m_Instance;
         VkSurfaceKHR m_Surface;
         mutable VulkanRenderCoreStateFlags StateFlags;
-
-        std::mutex m_Mutex;
 
     #ifdef _DEBUG
         VkDebugUtilsMessengerEXT m_DebugMessenger;

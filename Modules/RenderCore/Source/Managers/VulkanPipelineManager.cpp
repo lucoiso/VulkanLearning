@@ -6,6 +6,7 @@
 #include "Managers/VulkanDeviceManager.h"
 #include "Managers/VulkanShaderManager.h"
 #include "Managers/VulkanBufferManager.h"
+#include "Utils/RenderCoreHelpers.h"
 #include "Types/VulkanVertex.h"
 #include "Types/VulkanUniformBufferObject.h"
 #include "Utils/RenderCoreHelpers.h"
@@ -29,7 +30,7 @@ VulkanPipelineManager::VulkanPipelineManager()
 
 VulkanPipelineManager::~VulkanPipelineManager()
 {
-    Shutdown();
+    RenderCoreHelpers::ShutdownManagers();
 }
 
 VulkanPipelineManager &VulkanPipelineManager::Get()

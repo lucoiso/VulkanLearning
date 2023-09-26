@@ -3,12 +3,18 @@
 // Repo : https://github.com/lucoiso/VulkanLearning
 
 #include "Utils/RenderCoreHelpers.h"
+#include "VulkanRenderCore.h"
 #include "Managers/VulkanDeviceManager.h"
+#include "Managers/VulkanPipelineManager.h"
+#include "Managers/VulkanBufferManager.h"
+#include "Managers/VulkanCommandsManager.h"
+#include "Managers/VulkanShaderManager.h"
 #include <glm/glm.hpp>
 #include <numbers>
 #include <boost/log/trivial.hpp>
 #include <chrono>
 #include <GLFW/glfw3.h>
+#include "RenderCoreHelpers.h"
 
 using namespace RenderCore;
 
@@ -228,4 +234,21 @@ UniformBufferObject RenderCoreHelpers::GetUniformBufferObject()
     Projection[1][1] *= -1;
 
     return UniformBufferObject{.ModelViewProjection = Projection * View * Model};
+}
+
+void RenderCoreHelpers::ShutdownManagers()
+{
+    static bool s_ShutdownRequested = false;
+    if (s_ShutdownRequested)
+    {
+        return;
+    }
+
+    s_ShutdownRequested = true;
+
+    VulkanShaderManager::Get().Shutdown();
+    VulkanCommandsManager::Get().Shutdown();
+    VulkanBufferManager::Get().Shutdown();
+    VulkanPipelineManager::Get().Shutdown();
+    VulkanDeviceManager::Get().Shutdown();
 }

@@ -30,11 +30,13 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanDebugHelpers.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanConstants.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanEnumConverter.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/EnumHelpers.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/DeviceProperties.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/QueueType.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/ObjectData.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/TextureData.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/RenderStateFlags.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/ApplicationEventFlags.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanShaderManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanCommandsManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanPipelineManager.h
