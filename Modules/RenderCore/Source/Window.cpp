@@ -117,7 +117,7 @@ public:
                 }
 
                 ProcessedEvents.emplace_back(EventFlags);
-                
+
                 if (RenderCoreHelpers::HasFlag(EventFlags, ApplicationEventFlags::DRAW_FRAME))
                 {
                     VulkanRenderCore::Get().DrawFrame(m_Window);
@@ -185,7 +185,7 @@ private:
         Timer::TimerManager::Get().SetTickInterval(std::chrono::milliseconds(DrawFrameTimerInterval));
 
         { // Draw Frame
-            m_DrawTimerID = Timer::TimerManager::Get().StartTimer(Timer::Tags::Repeating, static_cast<std::uint8_t>(ApplicationEventFlags::DRAW_FRAME), DrawFrameTimerInterval, 0u, m_EventIDQueue);
+            m_DrawTimerID = Timer::TimerManager::Get().StartTimer(static_cast<std::uint8_t>(ApplicationEventFlags::DRAW_FRAME), DrawFrameTimerInterval, std::optional<std::uint32_t>(), m_EventIDQueue);
         }
 
         {
