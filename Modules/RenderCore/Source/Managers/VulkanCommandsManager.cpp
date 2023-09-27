@@ -215,7 +215,7 @@ void VulkanCommandsManager::RecordCommandBuffers(const std::uint32_t ImageIndex)
 	const UniformBufferObject UniformBufferObj = RenderCoreHelpers::GetUniformBufferObject();
 
 	const std::vector<VkDeviceSize> Offsets = { 0u };
-	const VkExtent2D Extent = VulkanDeviceManager::Get().GetDeviceProperties().Extent;	
+	const VkExtent2D Extent = VulkanBufferManager::Get().GetSwapChainExtent();	
 
 	const VkViewport Viewport{
 		.x = 0.f,

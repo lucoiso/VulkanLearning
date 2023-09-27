@@ -222,7 +222,7 @@ void RenderCoreHelpers::FinishSingleCommandQueue(const VkQueue &Queue, const VkC
 
 UniformBufferObject RenderCoreHelpers::GetUniformBufferObject()
 {
-    const VkExtent2D &SwapChainExtent = VulkanDeviceManager::Get().GetDeviceProperties().Extent;
+    const VkExtent2D &SwapChainExtent = VulkanBufferManager::Get().GetSwapChainExtent();
 
     static auto StartTime = std::chrono::high_resolution_clock::now();
     const auto CurrentTime = std::chrono::high_resolution_clock::now();

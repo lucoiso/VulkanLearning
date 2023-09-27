@@ -24,6 +24,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #endif
 #include <stb_image.h>
+#include "VulkanBufferManager.h"
 
 using namespace RenderCore;
 
@@ -95,10 +96,12 @@ void VulkanObjectAllocation::DestroyResources()
 VulkanBufferManager::VulkanBufferManager()
     : m_SwapChain(VK_NULL_HANDLE)
     , m_OldSwapChain(VK_NULL_HANDLE)
+    , m_SwapChainExtent({0u, 0u})
     , m_SwapChainImages({})
     , m_DepthImage()
     , m_FrameBuffers({})
     , m_Objects({})
+    , m_ObjectIDCounter(0u)
 {
 }
 
@@ -146,6 +149,7 @@ void VulkanBufferManager::CreateSwapChain()
     const std::uint32_t QueueFamilyIndicesCount = static_cast<std::uint32_t>(QueueFamilyIndices.size());
 
     m_OldSwapChain = m_SwapChain;
+    m_SwapChainExtent = Properties.Extent;
 
     const VkSwapchainCreateInfoKHR SwapChainCreateInfo{
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -153,7 +157,7 @@ void VulkanBufferManager::CreateSwapChain()
         .minImageCount = VulkanDeviceManager::Get().GetMinImageCount(),
         .imageFormat = Properties.Format.format,
         .imageColorSpace = Properties.Format.colorSpace,
-        .imageExtent = Properties.Extent,
+        .imageExtent = m_SwapChainExtent,
         .imageArrayLayers = 1u,
         .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         .imageSharingMode = QueueFamilyIndicesCount > 1u ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
@@ -209,12 +213,31 @@ void VulkanBufferManager::CreateFrameBuffers()
             .renderPass = VulkanPipelineManager::Get().GetRenderPass(),
             .attachmentCount = static_cast<std::uint32_t>(Attachments.size()),
             .pAttachments = Attachments.data(),
-            .width = Properties.Extent.width,
-            .height = Properties.Extent.height,
+            .width = m_SwapChainExtent.width,
+            .height = m_SwapChainExtent.height,
             .layers = 1u};
 
         RENDERCORE_CHECK_VULKAN_RESULT(vkCreateFramebuffer(VulkanLogicalDevice, &FrameBufferCreateInfo, nullptr, &m_FrameBuffers[Iterator]));
     }
+}
+
+void VulkanBufferManager::CreateDepthResources()
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan depth resources";
+
+    const VulkanDeviceProperties &Properties = VulkanDeviceManager::Get().GetDeviceProperties();
+    const std::pair<std::uint8_t, VkQueue> &GraphicsQueue = VulkanDeviceManager::Get().GetGraphicsQueue();
+
+    constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
+    constexpr VkImageUsageFlagBits Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    constexpr VkMemoryPropertyFlags MemoryPropertyFlags = 0u;
+    constexpr VkImageAspectFlagBits Aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+    constexpr VkImageLayout InitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    constexpr VkImageLayout DestinationLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    CreateImage(Properties.DepthFormat, m_SwapChainExtent, Tiling, Usage, MemoryPropertyFlags, m_DepthImage.Image, m_DepthImage.Allocation);
+    CreateImageView(m_DepthImage.Image, Properties.DepthFormat, Aspect, m_DepthImage.View);
+    MoveImageLayout(m_DepthImage.Image, Properties.DepthFormat, InitialLayout, DestinationLayout, GraphicsQueue.second, GraphicsQueue.first);
 }
 
 void VulkanBufferManager::CreateVertexBuffers(VulkanObjectAllocation &Object, const std::vector<Vertex> &Vertices) const
@@ -280,25 +303,6 @@ void VulkanBufferManager::CreateIndexBuffers(VulkanObjectAllocation &Object, con
     vmaDestroyBuffer(g_Allocator, StagingBuffer, StagingBufferMemory);
 }
 
-void VulkanBufferManager::CreateDepthResources()
-{
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan depth resources";
-
-    const VulkanDeviceProperties &Properties = VulkanDeviceManager::Get().GetDeviceProperties();
-    const std::pair<std::uint8_t, VkQueue> &GraphicsQueue = VulkanDeviceManager::Get().GetGraphicsQueue();
-
-    constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
-    constexpr VkImageUsageFlagBits Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    constexpr VkMemoryPropertyFlags MemoryPropertyFlags = 0u;
-    constexpr VkImageAspectFlagBits Aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
-    constexpr VkImageLayout InitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    constexpr VkImageLayout DestinationLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    CreateImage(Properties.DepthFormat, Properties.Extent, Tiling, Usage, MemoryPropertyFlags, m_DepthImage.Image, m_DepthImage.Allocation);
-    CreateImageView(m_DepthImage.Image, Properties.DepthFormat, Aspect, m_DepthImage.View);
-    MoveImageLayout(m_DepthImage.Image, Properties.DepthFormat, InitialLayout, DestinationLayout, GraphicsQueue.second, GraphicsQueue.first);
-}
-
 std::uint64_t VulkanBufferManager::LoadObject(const std::string_view ModelPath, const std::string_view TexturePath)
 {
     Assimp::Importer Importer;
@@ -311,8 +315,7 @@ std::uint64_t VulkanBufferManager::LoadObject(const std::string_view ModelPath, 
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded model from path: '" << ModelPath << "'";
 
-    static std::atomic<std::uint64_t> ObjectID = 0u;
-    const std::uint64_t NewID = ObjectID.fetch_add(1u);
+    const std::uint64_t NewID = m_ObjectIDCounter.fetch_add(1u);
 
     std::vector<Vertex> Vertices;
     std::vector<std::uint32_t> Indices;
@@ -706,6 +709,11 @@ bool VulkanBufferManager::IsInitialized() const
 const VkSwapchainKHR &VulkanBufferManager::GetSwapChain() const
 {
     return m_SwapChain;
+}
+
+const VkExtent2D &VulkanBufferManager::GetSwapChainExtent() const
+{
+    return m_SwapChainExtent;
 }
 
 const std::vector<VkImage> VulkanBufferManager::GetSwapChainImages() const

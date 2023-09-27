@@ -9,6 +9,7 @@
 #include <vector>
 #include <string_view>
 #include <unordered_map>
+#include <atomic>
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
@@ -72,6 +73,7 @@ namespace RenderCore
 
         bool IsInitialized() const;
         [[nodiscard]] const VkSwapchainKHR &GetSwapChain() const;
+        [[nodiscard]] const VkExtent2D &GetSwapChainExtent() const;
         [[nodiscard]] const std::vector<VkImage> GetSwapChainImages() const;
         [[nodiscard]] const std::vector<VkFramebuffer> &GetFrameBuffers() const;
         [[nodiscard]] const VkBuffer GetVertexBuffer(const std::uint64_t ObjectID = 0u) const;
@@ -112,9 +114,11 @@ namespace RenderCore
 
         VkSwapchainKHR m_SwapChain;
         VkSwapchainKHR m_OldSwapChain;
+        VkExtent2D m_SwapChainExtent;
         std::vector<VulkanImageAllocation> m_SwapChainImages;
         VulkanImageAllocation m_DepthImage;
         std::vector<VkFramebuffer> m_FrameBuffers;
         std::unordered_map<std::uint64_t, VulkanObjectAllocation> m_Objects;
+        std::atomic<std::uint64_t> m_ObjectIDCounter;
     };
 }

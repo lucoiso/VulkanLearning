@@ -125,20 +125,22 @@ void VulkanRenderCore::DrawFrame(GLFWwindow *const Window)
     }
 
     const std::optional<std::int32_t> ImageIndice = TryRequestDrawImage(Window);
-    const bool HasInvalidFlags = RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::INVALID_PROPERTIES) || RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::INVALID_RESOURCES);
 
-    if (!ImageIndice.has_value() || RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH) || HasInvalidFlags)
+    if (!ImageIndice.has_value())
     {
         RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::RENDERING);
 
-        if (!RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH) && HasInvalidFlags)
+        if (!RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH))
         {
             VulkanCommandsManager::Get().DestroySynchronizationObjects();
             VulkanBufferManager::Get().DestroyResources(false);
 
             RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH);
         }
-        else if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH) && !HasInvalidFlags)
+    }
+    else if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::SCENE_LOADED))
+    {
+        if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH))
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
             VulkanBufferManager::Get().CreateSwapChain();
@@ -149,15 +151,14 @@ void VulkanRenderCore::DrawFrame(GLFWwindow *const Window)
 
             RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH);
         }
-    }
-    else if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::SCENE_LOADED))
-    {
-        VulkanCommandsManager::Get().RecordCommandBuffers(ImageIndice.value());
-        VulkanCommandsManager::Get().SubmitCommandBuffers();
-        VulkanCommandsManager::Get().PresentFrame(ImageIndice.value());
+        else if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::SCENE_LOADED))
+        {
+            VulkanCommandsManager::Get().RecordCommandBuffers(ImageIndice.value());
+            VulkanCommandsManager::Get().SubmitCommandBuffers();
+            VulkanCommandsManager::Get().PresentFrame(ImageIndice.value());
 
-        RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::RENDERING);
-        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH);
+            RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::RENDERING);
+        }
     }
 }
 
