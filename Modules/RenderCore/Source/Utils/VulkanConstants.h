@@ -78,6 +78,10 @@ namespace RenderCore
     constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
     constexpr std::uint8_t g_FrameRate = 75u;
+
+    constexpr std::array<VkClearValue, 2> g_ClearValues{
+		VkClearValue{.color = {0.25f, 0.25f, 0.5f, 1.0f}},
+		VkClearValue{.depthStencil = {1.0f, 0u}}};
 }
 
 #endif

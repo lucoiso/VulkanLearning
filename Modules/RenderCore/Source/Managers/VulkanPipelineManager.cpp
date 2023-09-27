@@ -30,7 +30,7 @@ VulkanPipelineManager::VulkanPipelineManager()
 
 VulkanPipelineManager::~VulkanPipelineManager()
 {
-    RenderCoreHelpers::ShutdownManagers();
+	Shutdown();
 }
 
 VulkanPipelineManager &VulkanPipelineManager::Get()

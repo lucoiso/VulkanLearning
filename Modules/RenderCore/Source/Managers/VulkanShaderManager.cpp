@@ -17,17 +17,13 @@ using namespace RenderCore;
 VulkanShaderManager VulkanShaderManager::g_Instance{};
 
 VulkanShaderManager::VulkanShaderManager()
+    : m_StageInfos()
 {
 }
 
 VulkanShaderManager::~VulkanShaderManager()
 {
-    if (m_StageInfos.empty())
-    {
-        return;
-    }
-
-    RenderCoreHelpers::ShutdownManagers();
+	Shutdown();
 }
 
 void VulkanShaderManager::Shutdown()

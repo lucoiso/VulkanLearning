@@ -9,6 +9,7 @@
 #include "Utils/RenderCoreHelpers.h"
 #include "Utils/VulkanConstants.h"
 #include <boost/log/trivial.hpp>
+#include "VulkanCommandsManager.h"
 
 using namespace RenderCore;
 
@@ -27,7 +28,7 @@ VulkanCommandsManager::VulkanCommandsManager()
 
 VulkanCommandsManager::~VulkanCommandsManager()
 {
-	RenderCoreHelpers::ShutdownManagers();
+	Shutdown();
 }
 
 VulkanCommandsManager &VulkanCommandsManager::Get()
@@ -198,11 +199,6 @@ void VulkanCommandsManager::RecordCommandBuffers(const std::uint32_t ImageIndex)
 
 	RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(m_CommandBuffer, &CommandBufferBeginInfo));
 
-	const std::array<VkClearValue, 2> ClearValues{
-		VkClearValue{.color = {0.25f, 0.25f, 0.5f, 1.0f}},
-		VkClearValue{.depthStencil = {1.0f, 0u}}};
-
-
 	const VkRenderPass &RenderPass = VulkanPipelineManager::Get().GetRenderPass();
 	const VkPipeline &Pipeline = VulkanPipelineManager::Get().GetPipeline();
 	const VkPipelineLayout &PipelineLayout = VulkanPipelineManager::Get().GetPipelineLayout();
@@ -239,8 +235,8 @@ void VulkanCommandsManager::RecordCommandBuffers(const std::uint32_t ImageIndex)
 			.renderArea = {
 				.offset = {0, 0},
 				.extent = Extent},
-			.clearValueCount = static_cast<std::uint32_t>(ClearValues.size()),
-			.pClearValues = ClearValues.data()};
+			.clearValueCount = static_cast<std::uint32_t>(g_ClearValues.size()),
+			.pClearValues = g_ClearValues.data()};
 
 		vkCmdBeginRenderPass(m_CommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		bActiveRenderPass = true;

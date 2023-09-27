@@ -107,7 +107,7 @@ VulkanBufferManager::VulkanBufferManager()
 
 VulkanBufferManager::~VulkanBufferManager()
 {
-	RenderCoreHelpers::ShutdownManagers();
+	Shutdown();
 }
 
 VulkanBufferManager &VulkanBufferManager::Get()

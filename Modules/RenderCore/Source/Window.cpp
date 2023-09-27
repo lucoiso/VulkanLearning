@@ -143,7 +143,7 @@ public:
 private:
     static void GLFWWindowCloseRequested(GLFWwindow *const Window)
     {
-        RenderCoreHelpers::ShutdownManagers();
+        VulkanRenderCore::Get().Shutdown();        
         glfwSetWindowShouldClose(Window, GLFW_TRUE);
     }
 
@@ -185,7 +185,12 @@ private:
         Timer::TimerManager::Get().SetTickInterval(std::chrono::milliseconds(DrawFrameTimerInterval));
 
         { // Draw Frame
-            m_DrawTimerID = Timer::TimerManager::Get().StartTimer(static_cast<std::uint8_t>(ApplicationEventFlags::DRAW_FRAME), DrawFrameTimerInterval, std::optional<std::uint32_t>(), m_EventIDQueue);
+            const Timer::TimerParameters DrawFrameTimerParameters {
+                .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::DRAW_FRAME),
+                .Interval = DrawFrameTimerInterval,
+                .RepeatCount = std::nullopt};
+
+            m_DrawTimerID = Timer::TimerManager::Get().StartTimer(DrawFrameTimerParameters, m_EventIDQueue);
         }
 
         {

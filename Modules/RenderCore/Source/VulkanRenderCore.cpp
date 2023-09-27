@@ -45,7 +45,7 @@ VulkanRenderCore::VulkanRenderCore()
 
 VulkanRenderCore::~VulkanRenderCore()
 {
-    RenderCoreHelpers::ShutdownManagers();
+    Shutdown();
 }
 
 VulkanRenderCore &VulkanRenderCore::Get()
@@ -89,8 +89,15 @@ void VulkanRenderCore::Shutdown()
     {
         return;
     }
-
+    
     RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::INITIALIZED);
+
+    VulkanShaderManager::Get().Shutdown();
+    VulkanCommandsManager::Get().Shutdown();
+    VulkanBufferManager::Get().Shutdown();
+    VulkanPipelineManager::Get().Shutdown();
+    VulkanDeviceManager::Get().Shutdown();
+
     RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::SHUTDOWN);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan render core";
