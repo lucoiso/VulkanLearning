@@ -4,16 +4,15 @@
 
 #pragma once
 
-#include "Utils/EnumHelpers.h"
-
 namespace RenderCore
 {    
     enum class ApplicationEventFlags : std::uint8_t
     {
-        NONE                    = 0,
-        DRAW_FRAME              = 1 << 0,
-        LOAD_SCENE              = 1 << 1,
-        UNLOAD_SCENE            = 1 << 2
+        NONE,
+        DRAW_FRAME,
+        LOAD_SCENE,
+        UNLOAD_SCENE,
+
+        MAX
     };
-    DECLARE_BITWISE_OPERATORS(ApplicationEventFlags);
 }

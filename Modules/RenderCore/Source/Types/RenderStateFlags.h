@@ -10,14 +10,11 @@ namespace RenderCore
 {
     enum class VulkanRenderCoreStateFlags : std::uint8_t
     {
-        NONE                = 0,
-        INITIALIZED         = 1 << 0,
-        SCENE_LOADED        = 1 << 1,
-        RENDERING           = 1 << 2,
-        PENDING_REFRESH     = 1 << 3,
-        SHUTDOWN            = 1 << 4,
-        INVALID_RESOURCES   = 1 << 5,
-        INVALID_PROPERTIES  = 1 << 6,
+        NONE                                = 0,
+        INITIALIZED                         = 1 << 0,
+        PENDING_DEVICE_PROPERTIES_UPDATE    = 1 << 1,
+        PENDING_RESOURCES_DESTRUCTION       = 1 << 2,
+        PENDING_RESOURCES_CREATION          = 1 << 3,
     };
     DECLARE_BITWISE_OPERATORS(VulkanRenderCoreStateFlags);
 }

@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <set>
+#include "VulkanDeviceManager.h"
 
 using namespace RenderCore;
 
@@ -320,7 +321,6 @@ bool VulkanDeviceManager::IsInitialized() const
         && m_PresentationQueue.second != VK_NULL_HANDLE
         && m_TransferQueue.second != VK_NULL_HANDLE;
 }
-
 
 std::vector<VkPhysicalDevice> VulkanDeviceManager::GetAvailablePhysicalDevices() const
 {

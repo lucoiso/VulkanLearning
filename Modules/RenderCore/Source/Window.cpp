@@ -7,6 +7,7 @@
 #include "Managers/VulkanDeviceManager.h"
 #include "Utils/VulkanConstants.h"
 #include "Utils/RenderCoreHelpers.h"
+#include "Utils/GLFWCallbacks.h"
 #include "Types/ApplicationEventFlags.h"
 #include <Timer/TimerManager.h>
 #include <stdexcept>
@@ -104,34 +105,45 @@ public:
         try
         {
             std::lock_guard<std::mutex> Lock(m_Mutex);
-            std::vector<ApplicationEventFlags> ProcessedEvents;
+            std::unordered_map<ApplicationEventFlags, std::uint8_t> ProcessedEvents;
+
+            for (std::uint8_t Iterator = 0u; Iterator < std::underlying_type<ApplicationEventFlags>::type(ApplicationEventFlags::MAX); ++Iterator)
+            {
+                ProcessedEvents.emplace(static_cast<ApplicationEventFlags>(Iterator), 0u);
+            }
 
             while (!m_EventIDQueue.empty())
             {
                 const ApplicationEventFlags EventFlags = static_cast<ApplicationEventFlags>(m_EventIDQueue.front());
                 m_EventIDQueue.pop();
 
-                if (std::find(ProcessedEvents.begin(), ProcessedEvents.end(), EventFlags) != ProcessedEvents.end())
+                switch (EventFlags)
                 {
-                    continue;
-                }
-
-                ProcessedEvents.emplace_back(EventFlags);
-
-                if (RenderCoreHelpers::HasFlag(EventFlags, ApplicationEventFlags::DRAW_FRAME))
+                case ApplicationEventFlags::DRAW_FRAME:
                 {
+                    if (ProcessedEvents[EventFlags] > 0u)
+                    {
+                        break;
+                    }
+
                     VulkanRenderCore::Get().DrawFrame(m_Window);
+                    break;
                 }
-
-                if (RenderCoreHelpers::HasFlag(EventFlags, ApplicationEventFlags::LOAD_SCENE))
+                case ApplicationEventFlags::LOAD_SCENE:
                 {
                     VulkanRenderCore::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+                    break;
                 }
-
-                if (RenderCoreHelpers::HasFlag(EventFlags, ApplicationEventFlags::UNLOAD_SCENE))
+                case ApplicationEventFlags::UNLOAD_SCENE:
                 {
                     VulkanRenderCore::Get().UnloadScene();
+                    break;
                 }
+                default:
+                    break;
+                }
+
+                ++ProcessedEvents[EventFlags];
             }
         }
         catch (const std::exception &Ex)
@@ -141,11 +153,6 @@ public:
     }
 
 private:
-    static void GLFWWindowCloseRequested(GLFWwindow *const Window)
-    {
-        VulkanRenderCore::Get().Shutdown();        
-        glfwSetWindowShouldClose(Window, GLFW_TRUE);
-    }
 
     bool InitializeGLFW(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title)
     {
@@ -163,6 +170,9 @@ private:
         }
 
         glfwSetWindowCloseCallback(m_Window, &GLFWWindowCloseRequested);
+        glfwSetWindowSizeCallback(m_Window, &GLFWWindowResized);
+        glfwSetKeyCallback(m_Window, &GLFWKeyCallback);
+        glfwSetErrorCallback(&GLFWErrorCallback);
 
         return m_Window != nullptr;
     }

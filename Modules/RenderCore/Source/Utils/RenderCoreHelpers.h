@@ -99,6 +99,12 @@ namespace RenderCore
             return (Lhs & Rhs) == Rhs;
         }
 
+        template <typename T1, typename T2>
+        static constexpr bool HasAnyFlag(const T1 Lhs, const T2 Rhs)
+        {
+            return static_cast<std::uint8_t>(Lhs & Rhs) != 0u;
+        }
+
         template <typename T>
         static constexpr bool HasAnyFlag(const T Lhs)
         {

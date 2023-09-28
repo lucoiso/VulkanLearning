@@ -31,6 +31,7 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanConstants.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanEnumConverter.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/EnumHelpers.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/GLFWCallbacks.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/DeviceProperties.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/QueueType.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/ObjectData.h

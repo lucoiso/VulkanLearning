@@ -147,7 +147,7 @@ std::optional<std::int32_t> VulkanCommandsManager::DrawFrame()
 {
 	if (!m_SynchronizationObjectsCreated)
 	{
-		return -1;
+		return std::nullopt;
 	}
 
 	WaitAndResetFences();
@@ -178,7 +178,7 @@ std::optional<std::int32_t> VulkanCommandsManager::DrawFrame()
 				WaitAndResetFences();
 			}
 
-			return std::optional<std::int32_t>();
+			return std::nullopt;
 		}
 		else if (OperationResult != VK_SUBOPTIMAL_KHR)
 		{

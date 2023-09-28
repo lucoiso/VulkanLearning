@@ -98,8 +98,6 @@ void VulkanRenderCore::Shutdown()
     VulkanPipelineManager::Get().Shutdown();
     VulkanDeviceManager::Get().Shutdown();
 
-    RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::SHUTDOWN);
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan render core";
 
 #ifdef _DEBUG
@@ -131,23 +129,33 @@ void VulkanRenderCore::DrawFrame(GLFWwindow *const Window)
         throw std::runtime_error("Window is invalid");
     }
 
-    const std::optional<std::int32_t> ImageIndice = TryRequestDrawImage(Window);
+    constexpr VulkanRenderCoreStateFlags InvalidStatesToRender = VulkanRenderCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
+                                                                 VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION;
 
-    if (!ImageIndice.has_value())
+    if (RenderCoreHelpers::HasAnyFlag(StateFlags, InvalidStatesToRender))
     {
-        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::RENDERING);
-
-        if (!RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH))
+        if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
             VulkanCommandsManager::Get().DestroySynchronizationObjects();
             VulkanBufferManager::Get().DestroyResources(false);
 
-            RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH);
+            RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+            RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION);
+        }
+
+        if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
+        {
+            if (VulkanDeviceManager::Get().UpdateDeviceProperties(Window))
+            {
+                BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Device properties updated, starting to draw frames with new properties";
+                RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);                
+            }
         }
     }
-    else if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::SCENE_LOADED))
+    
+    if (!RenderCoreHelpers::HasAnyFlag(StateFlags, InvalidStatesToRender))
     {
-        if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH))
+        if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION))
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
             VulkanBufferManager::Get().CreateSwapChain();
@@ -156,15 +164,14 @@ void VulkanRenderCore::DrawFrame(GLFWwindow *const Window)
             VulkanCommandsManager::Get().CreateSynchronizationObjects();
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Buffers updated, starting to draw frames with new surface properties";
 
-            RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_REFRESH);
+            RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION);
         }
-        else if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::SCENE_LOADED))
+        
+        if (const std::optional<std::int32_t> ImageIndice = TryRequestDrawImage(Window); ImageIndice.has_value())
         {
             VulkanCommandsManager::Get().RecordCommandBuffers(ImageIndice.value());
             VulkanCommandsManager::Get().SubmitCommandBuffers();
             VulkanCommandsManager::Get().PresentFrame(ImageIndice.value());
-
-            RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::RENDERING);
         }
     }
 }
@@ -210,8 +217,6 @@ void VulkanRenderCore::LoadScene(const std::string_view ModelPath, const std::st
     VulkanPipelineManager::Get().CreateDescriptorSets();
 
     VulkanCommandsManager::Get().CreateSynchronizationObjects();
-
-    RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::SCENE_LOADED);
 }
 
 void VulkanRenderCore::UnloadScene()
@@ -226,8 +231,6 @@ void VulkanRenderCore::UnloadScene()
     VulkanCommandsManager::Get().DestroySynchronizationObjects();
     VulkanBufferManager::Get().DestroyResources(true);
     VulkanPipelineManager::Get().DestroyResources();
-
-    RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::SCENE_LOADED);
 }
 
 VkInstance &VulkanRenderCore::GetInstance()
@@ -247,28 +250,27 @@ VulkanRenderCoreStateFlags VulkanRenderCore::GetStateFlags() const
 
 std::optional<std::int32_t> VulkanRenderCore::TryRequestDrawImage(GLFWwindow *const Window)
 {
-    if (!VulkanDeviceManager::Get().UpdateDeviceProperties(Window))
+    if (!VulkanDeviceManager::Get().GetDeviceProperties().IsValid())
     {
-        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::RENDERING);
-        RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::INVALID_PROPERTIES);
+        RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+        RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
 
-        return std::optional<std::int32_t>();
+        return std::nullopt;
     }
     else
     {
-        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::INVALID_PROPERTIES);
+        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
     }
 
     const std::optional<std::int32_t> Output = VulkanCommandsManager::Get().DrawFrame();
 
     if (!Output.has_value())
     {
-        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::RENDERING);
-        RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::INVALID_RESOURCES);
+        RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
     }
     else
     {
-        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::INVALID_RESOURCES);
+        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
     }
 
     return Output;
