@@ -351,6 +351,11 @@ void VulkanPipelineManager::Shutdown()
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan pipelines";
 
     DestroyResources();
+}
+
+void VulkanPipelineManager::DestroyResources()
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan pipelines resources";
 
     const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
@@ -371,13 +376,6 @@ void VulkanPipelineManager::Shutdown()
         vkDestroyPipelineCache(VulkanLogicalDevice, m_PipelineCache, nullptr);
         m_PipelineCache = VK_NULL_HANDLE;
     }
-}
-
-void VulkanPipelineManager::DestroyResources()
-{
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan pipelines resources";
-
-    const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
     if (m_RenderPass != VK_NULL_HANDLE)
     {

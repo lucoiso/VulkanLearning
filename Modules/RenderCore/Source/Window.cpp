@@ -54,7 +54,6 @@ public:
         {
             if (InitializeGLFW(Width, Height, Title) && InitializeVulkanRenderCore())
             {
-                VulkanRenderCore::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
                 RegisterTimers();
             }
         }
@@ -205,13 +204,21 @@ private:
 
         {
             // Load Scene: Testing Only
-            // constexpr std::uint32_t LoadSceneTimerDelayMs = 5000u;
-            // Timer::TimerManager::Get().StartTimer(Timer::Tags::SingleTime, static_cast<std::uint8_t>(ApplicationEventFlags::LOAD_SCENE), LoadSceneTimerDelayMs, m_EventIDQueue);
+            constexpr Timer::TimerParameters LoadSceneTimerParameters {
+                .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::LOAD_SCENE),
+                .Interval = 3000u,
+                .RepeatCount = 0u};
+
+            Timer::TimerManager::Get().StartTimer(LoadSceneTimerParameters, m_EventIDQueue);
         }
 
         { // Unload Scene: Testing Only
-          // constexpr std::uint32_t UnloadSceneTimerDelayMs = 10000u;
-          // Timer::TimerManager::Get().StartTimer(Timer::Tags::SingleTime, static_cast<std::uint8_t>(ApplicationEventFlags::UNLOAD_SCENE), UnloadSceneTimerDelayMs, m_EventIDQueue);
+            constexpr Timer::TimerParameters UnLoadSceneTimerParameters {
+                .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::UNLOAD_SCENE),
+                .Interval = 5000u,
+                .RepeatCount = 0u};
+
+            Timer::TimerManager::Get().StartTimer(UnLoadSceneTimerParameters, m_EventIDQueue);
         }
     }
 

@@ -65,6 +65,7 @@ namespace RenderCore
         void CreateDepthResources();
 
         std::uint64_t LoadObject(const std::string_view ModelPath, const std::string_view TexturePath);
+        void UnLoadObject(const std::uint64_t ObjectID);
 
         VulkanImageAllocation AllocateTexture(const unsigned char *Data, const std::uint32_t Width, const std::uint32_t Height, const std::size_t AllocationSize) const;
 
@@ -107,7 +108,7 @@ namespace RenderCore
         void CreateSwapChainImageViews(const VkFormat &ImageFormat);
 
     public:
-        static VmaAllocator g_Allocator;
+        static VmaAllocator s_Allocator;
 
     private:
         static VulkanBufferManager g_Instance;

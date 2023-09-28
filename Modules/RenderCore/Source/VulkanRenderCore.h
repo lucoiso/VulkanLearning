@@ -58,5 +58,7 @@ namespace RenderCore
     #ifdef _DEBUG
         VkDebugUtilsMessengerEXT m_DebugMessenger;
     #endif
+
+        std::uint32_t m_ObjectID;
     };
 }
