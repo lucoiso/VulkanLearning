@@ -1,10 +1,10 @@
 # Author: Lucas Vilas-Boas
 # Year: 2023
-# Repo: https://github.com/lucoiso/VulkanLearning
+# Repo: https://github.com/lucoiso/VulkanRender
 
 # ------------ Project Settings ------------
 cmake_minimum_required(VERSION 3.26.4)
-project(VulkanProject VERSION 0.0.1 LANGUAGES CXX)
+project(VulkanRender VERSION 0.0.1 LANGUAGES CXX)
 include(CTest)
 
 # ----------- Global Definitions -----------

@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2023
-// Repo : https://github.com/lucoiso/VulkanLearning
+// Repo : https://github.com/lucoiso/VulkanRender
 
 #ifndef RENDERCOREMODULE_H
 #define RENDERCOREMODULE_H

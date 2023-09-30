@@ -1,6 +1,6 @@
-[![VulkanLearning CMake Workflow](https://github.com/lucoiso/VulkanLearning/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/lucoiso/VulkanLearning/actions/workflows/cmake-single-platform.yml)
+[![VulkanRender CMake Workflow](https://github.com/lucoiso/VulkanRender/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/lucoiso/VulkanRender/actions/workflows/cmake-single-platform.yml)
 
-![image](https://github.com/lucoiso/VulkanLearning/assets/77353979/9a63384b-6add-4d37-ae2c-bcde3fe271e8)
+![image](https://github.com/lucoiso/VulkanRender/assets/77353979/9a63384b-6add-4d37-ae2c-bcde3fe271e8)
 
 # Dependencies
 1.  Vcpkg 
@@ -15,7 +15,7 @@
 # Setup
 -   Run these commands:  
 ```
-git clone https://github.com/lucoiso/VulkanLearning.git
-cd VulkanLearning
+git clone https://github.com/lucoiso/VulkanRender.git
+cd VulkanRender
 git submodule update --init --recursive
 ```

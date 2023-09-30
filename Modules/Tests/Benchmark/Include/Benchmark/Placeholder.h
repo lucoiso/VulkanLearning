@@ -1,14 +1,14 @@
 // Author: Lucas Vilas-Boas
 // Year : 2023
-// Repo : https://github.com/lucoiso/VulkanLearning
+// Repo : https://github.com/lucoiso/VulkanRender
 
 #pragma once
 
 #include <benchmark/benchmark.h>
 
-static void Placeholder(benchmark::State& state)
+static void Placeholder(benchmark::State& State)
 {
-    for (const auto& _ : state)
+    for (const auto& _ : State)
     {
     }
 }
