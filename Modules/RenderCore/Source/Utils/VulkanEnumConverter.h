@@ -16,13 +16,13 @@ namespace RenderCore
     constexpr const char* ToChars(auto Argument)
     {
         std::array<char, 16> Buffer;
-        auto                 Result = std::to_chars(Buffer.data(), Buffer.data() + Buffer.size(), Argument);
 
-        if (Result.ec == std::errc())
+        if (auto Result = std::to_chars(Buffer.data(), Buffer.data() + Buffer.size(), Argument);
+            Result.ec == std::errc())
         {
             *Result.ptr              = '\0';
             const auto DynamicBuffer = new char[Buffer.size()];
-            std::copy(Buffer.begin(), Buffer.end(), DynamicBuffer);
+            std::ranges::copy(Buffer, DynamicBuffer);
             return DynamicBuffer;
         }
         return nullptr;

@@ -45,10 +45,10 @@ void VulkanPipelineManager::CreateRenderPass()
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render pass";
 
-    const VulkanDeviceProperties& DeviceProperties = VulkanDeviceManager::Get().GetDeviceProperties();
+    const auto& [Format, DepthFormat, Mode, Extent, Capabilities] = VulkanDeviceManager::Get().GetDeviceProperties();
 
     const VkAttachmentDescription ColorAttachmentDescription{
-        .format = DeviceProperties.Format.format,
+        .format = Format.format,
         .samples = g_MSAASamples,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -61,7 +61,7 @@ void VulkanPipelineManager::CreateRenderPass()
     constexpr VkAttachmentReference ColorAttachmentReference{.attachment = 0u, .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
     const VkAttachmentDescription DepthAttachmentDescription{
-        .format = DeviceProperties.DepthFormat,
+        .format = DepthFormat,
         .samples = g_MSAASamples,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,

@@ -21,7 +21,7 @@ namespace RenderCore
         Window(const Window&)            = delete;
         Window& operator=(const Window&) = delete;
 
-        ~Window();
+        virtual ~Window();
 
         bool Initialize(std::uint16_t Width, std::uint16_t Height, std::string_view Title);
         void Shutdown() const;
@@ -33,7 +33,7 @@ namespace RenderCore
 
         virtual void CreateOverlay()
         {
-        };
+        }
 
     private:
         std::unique_ptr<Impl> m_Impl;

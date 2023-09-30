@@ -81,7 +81,7 @@ void VulkanRenderCore::Initialize(GLFWwindow* const Window)
 
     CreateVulkanInstance();
     CreateVulkanSurface(Window);
-    InitializeRenderCore(Window);
+    InitializeRenderCore();
 }
 
 void VulkanRenderCore::Shutdown()
@@ -182,7 +182,7 @@ void VulkanRenderCore::DrawFrame(GLFWwindow* const Window) const
 
     if (!RenderCoreHelpers::HasAnyFlag(StateFlags, InvalidStatesToRender))
     {
-        if (const std::optional<std::int32_t> ImageIndice = TryRequestDrawImage(Window);
+        if (const std::optional<std::int32_t> ImageIndice = TryRequestDrawImage();
             ImageIndice.has_value())
         {
             VulkanCommandsManager::Get().RecordCommandBuffers(ImageIndice.value());
@@ -251,7 +251,7 @@ VulkanRenderCoreStateFlags VulkanRenderCore::GetStateFlags() const
     return StateFlags;
 }
 
-std::optional<std::int32_t> VulkanRenderCore::TryRequestDrawImage(GLFWwindow* const Window) const
+std::optional<std::int32_t> VulkanRenderCore::TryRequestDrawImage() const
 {
     if (!VulkanDeviceManager::Get().GetDeviceProperties().IsValid())
     {
@@ -333,7 +333,7 @@ void VulkanRenderCore::CreateVulkanSurface(GLFWwindow* const Window)
     RENDERCORE_CHECK_VULKAN_RESULT(glfwCreateWindowSurface(m_Instance, Window, nullptr, &m_Surface));
 }
 
-void VulkanRenderCore::InitializeRenderCore(GLFWwindow* const Window) const
+void VulkanRenderCore::InitializeRenderCore() const
 {
     VulkanDeviceManager::Get().PickPhysicalDevice();
     VulkanDeviceManager::Get().CreateLogicalDevice();

@@ -5,10 +5,10 @@
 #include <RenderCore/Window.h>
 #include <memory>
 
-int main(int Argc, char* Argv[])
+int main([[maybe_unused]] int Argc, [[maybe_unused]] char* Argv[])
 {
-    const auto Window = std::make_unique<RenderCore::Window>();
-    if (Window->Initialize(600u, 600u, "Vulkan Project"))
+    if (const auto Window = std::make_unique<RenderCore::Window>();
+        Window->Initialize(600u, 600u, "Vulkan Project"))
     {
         while (Window->IsOpen())
         {

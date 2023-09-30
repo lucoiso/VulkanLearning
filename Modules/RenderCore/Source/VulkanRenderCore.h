@@ -41,11 +41,11 @@ namespace RenderCore
         VulkanRenderCoreStateFlags GetStateFlags() const;
 
     private:
-        std::optional<std::int32_t> TryRequestDrawImage(GLFWwindow* Window) const;
+        std::optional<std::int32_t> TryRequestDrawImage() const;
 
         void CreateVulkanInstance();
         void CreateVulkanSurface(GLFWwindow* Window);
-        void InitializeRenderCore(GLFWwindow* Window) const;
+        void InitializeRenderCore() const;
 
         static std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders();
 

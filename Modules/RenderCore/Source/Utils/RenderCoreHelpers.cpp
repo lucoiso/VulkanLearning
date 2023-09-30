@@ -61,9 +61,9 @@ std::vector<VkLayerProperties> RenderCoreHelpers::GetAvailableInstanceLayers()
 std::vector<std::string> RenderCoreHelpers::GetAvailableInstanceLayersNames()
 {
     std::vector<std::string> Output;
-    for (const VkLayerProperties& LayerIter : GetAvailableInstanceLayers())
+    for (const auto& [LayerName, SpecVer, ImplVer, Descr] : GetAvailableInstanceLayers())
     {
-        Output.emplace_back(LayerIter.layerName);
+        Output.emplace_back(LayerName);
     }
 
     return Output;
@@ -83,9 +83,9 @@ std::vector<VkExtensionProperties> RenderCoreHelpers::GetAvailableInstanceExtens
 std::vector<std::string> RenderCoreHelpers::GetAvailableInstanceExtensionsNames()
 {
     std::vector<std::string> Output;
-    for (const VkExtensionProperties& ExtensionIter : GetAvailableInstanceExtensions())
+    for (const auto& [ExtName, SpecVer] : GetAvailableInstanceExtensions())
     {
-        Output.emplace_back(ExtensionIter.extensionName);
+        Output.emplace_back(ExtName);
     }
 
     return Output;
@@ -96,12 +96,12 @@ void RenderCoreHelpers::ListAvailableInstanceLayers()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available instance layers...";
 
-    for (const VkLayerProperties& LayerIter : GetAvailableInstanceLayers())
+    for (const auto& [LayerName, SpecVer, ImplVer, Descr] : GetAvailableInstanceLayers())
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Name: " << LayerIter.layerName;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Description: " << LayerIter.description;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Spec Version: " << LayerIter.specVersion;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Implementation Version: " << LayerIter.implementationVersion << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Name: " << LayerName;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Description: " << Descr;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Spec Version: " << SpecVer;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Implementation Version: " << ImplVer << std::endl;
     }
 }
 
@@ -109,18 +109,18 @@ void RenderCoreHelpers::ListAvailableInstanceExtensions()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available instance extensions...";
 
-    for (const VkExtensionProperties& ExtensionIter : GetAvailableInstanceExtensions())
+    for (const auto& [ExtName, SpecVer] : GetAvailableInstanceExtensions())
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Name: " << ExtensionIter.extensionName;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Spec Version: " << ExtensionIter.specVersion << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Name: " << ExtName;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Spec Version: " << SpecVer << std::endl;
     }
 }
 #endif
 
 std::vector<VkExtensionProperties> RenderCoreHelpers::GetAvailableLayerExtensions(const std::string_view LayerName)
 {
-    const std::vector<std::string> AvailableLayers = GetAvailableInstanceLayersNames();
-    if (std::find(AvailableLayers.begin(), AvailableLayers.end(), LayerName) == AvailableLayers.end())
+    if (const std::vector<std::string> AvailableLayers = GetAvailableInstanceLayersNames();
+        std::ranges::find(AvailableLayers, LayerName) == AvailableLayers.end())
     {
         return std::vector<VkExtensionProperties>();
     }
@@ -137,9 +137,9 @@ std::vector<VkExtensionProperties> RenderCoreHelpers::GetAvailableLayerExtension
 std::vector<std::string> RenderCoreHelpers::GetAvailableLayerExtensionsNames(const std::string_view LayerName)
 {
     std::vector<std::string> Output;
-    for (const VkExtensionProperties& ExtensionIter : GetAvailableLayerExtensions(LayerName))
+    for (const auto& [ExtName, SpecVer] : GetAvailableLayerExtensions(LayerName))
     {
-        Output.emplace_back(ExtensionIter.extensionName);
+        Output.emplace_back(ExtName);
     }
 
     return Output;
@@ -150,10 +150,10 @@ void RenderCoreHelpers::ListAvailableInstanceLayerExtensions(const std::string_v
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available layer '" << LayerName << "' extensions...";
 
-    for (const VkExtensionProperties& ExtensionIter : GetAvailableLayerExtensions(LayerName))
+    for (const auto& [ExtName, SpecVer] : GetAvailableLayerExtensions(LayerName))
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Name: " << ExtensionIter.extensionName;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Spec Version: " << ExtensionIter.specVersion << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Name: " << ExtName;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Spec Version: " << SpecVer << std::endl;
     }
 }
 #endif
@@ -210,7 +210,7 @@ void RenderCoreHelpers::FinishSingleCommandQueue(const VkQueue& Queue, const VkC
 
 UniformBufferObject RenderCoreHelpers::GetUniformBufferObject()
 {
-    const VkExtent2D& SwapChainExtent = VulkanBufferManager::Get().GetSwapChainExtent();
+    const auto& [Width, Height] = VulkanBufferManager::Get().GetSwapChainExtent();
 
     static auto StartTime   = std::chrono::high_resolution_clock::now();
     const auto  CurrentTime = std::chrono::high_resolution_clock::now();
@@ -218,7 +218,7 @@ UniformBufferObject RenderCoreHelpers::GetUniformBufferObject()
 
     const glm::mat4 Model      = rotate(glm::mat4(1.f), Time * glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
     const glm::mat4 View       = lookAt(glm::vec3(2.f, 2.f, 2.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f));
-    glm::mat4       Projection = glm::perspective(glm::radians(45.0f), SwapChainExtent.width / static_cast<float>(SwapChainExtent.height), 0.1f, 10.f);
+    glm::mat4       Projection = glm::perspective(glm::radians(45.0f), Width / static_cast<float>(Height), 0.1f, 10.f);
     Projection[1][1] *= -1;
 
     return UniformBufferObject{.ModelViewProjection = Projection * View * Model};

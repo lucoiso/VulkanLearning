@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <fstream>
 #include <format>
+#include <ranges>
 
 using namespace RenderCore;
 
@@ -31,7 +32,7 @@ void VulkanShaderManager::Shutdown()
 
     const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    for (auto& [ShaderModule, _] : m_StageInfos)
+    for (const auto& ShaderModule : m_StageInfos | std::views::keys)
     {
         if (ShaderModule != VK_NULL_HANDLE)
         {
@@ -206,7 +207,7 @@ VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(const VkShader
 std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
 {
     std::vector<VkShaderModule> Output;
-    for (const auto& [ShaderModule, _] : m_StageInfos)
+    for (const auto& ShaderModule : m_StageInfos | std::views::keys)
     {
         Output.push_back(ShaderModule);
     }
@@ -217,7 +218,7 @@ std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
 std::vector<VkPipelineShaderStageCreateInfo> VulkanShaderManager::GetStageInfos() const
 {
     std::vector<VkPipelineShaderStageCreateInfo> Output;
-    for (const auto& [_, StageInfo] : m_StageInfos)
+    for (const auto& StageInfo : m_StageInfos | std::views::values)
     {
         Output.push_back(StageInfo);
     }
@@ -231,6 +232,7 @@ void VulkanShaderManager::FreeStagedModules(const std::vector<VkPipelineShaderSt
 
     const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
+    // ReSharper disable once CppUseStructuredBinding
     for (const VkPipelineShaderStageCreateInfo& StageInfoIter : StagedModules)
     {
         if (StageInfoIter.module != VK_NULL_HANDLE)

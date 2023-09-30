@@ -130,14 +130,9 @@ void VulkanDeviceManager::CreateLogicalDevice()
     }
 
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo;
-    for (const auto& QueueFamilyIndex : QueueFamilyIndices)
+    for (const auto& [Index, Count] : QueueFamilyIndices)
     {
-        QueueCreateInfo.push_back({
-            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-            .queueFamilyIndex = QueueFamilyIndex.first,
-            .queueCount = QueueFamilyIndex.second,
-            .pQueuePriorities = QueuePriorities.at(QueueFamilyIndex.second).data()
-        });
+        QueueCreateInfo.push_back({.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, .queueFamilyIndex = Index, .queueCount = Count, .pQueuePriorities = QueuePriorities.at(Index).data()});
     }
 
     constexpr VkPhysicalDeviceFeatures DeviceFeatures{.samplerAnisotropy = VK_TRUE};
@@ -200,33 +195,30 @@ bool VulkanDeviceManager::UpdateDeviceProperties(GLFWwindow* const Window)
     }
 
     m_DeviceProperties.Format = SupportedFormats[0];
-    if (const auto MatchingFormat = std::find_if(SupportedFormats.begin(),
-                                                 SupportedFormats.end(),
-                                                 [](const VkSurfaceFormatKHR& Iter)
-                                                 {
-                                                     return Iter.format == VK_FORMAT_B8G8R8A8_SRGB && Iter.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-                                                 });
+    if (const auto                                                                    MatchingFormat = std::ranges::find_if(SupportedFormats,
+                                                                                                                            [](const VkSurfaceFormatKHR& Iter)
+                                                                                                                            {
+                                                                                                                                return Iter.format == VK_FORMAT_B8G8R8A8_SRGB && Iter.colorSpace ==
+                                                                                                                                    VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+                                                                                                                            });
         MatchingFormat != SupportedFormats.end())
     {
         m_DeviceProperties.Format = *MatchingFormat;
     }
 
     m_DeviceProperties.Mode = VK_PRESENT_MODE_FIFO_KHR;
-    if (const auto MatchingMode = std::find_if(SupportedPresentationModes.begin(),
-                                               SupportedPresentationModes.end(),
-                                               [](const VkPresentModeKHR& Iter)
-                                               {
-                                                   return Iter == VK_PRESENT_MODE_MAILBOX_KHR;
-                                               });
+    if (const auto                                                                MatchingMode = std::ranges::find_if(SupportedPresentationModes,
+                                                                                                                      [](const VkPresentModeKHR& Iter)
+                                                                                                                      {
+                                                                                                                          return Iter == VK_PRESENT_MODE_MAILBOX_KHR;
+                                                                                                                      });
         MatchingMode != SupportedPresentationModes.end())
     {
         m_DeviceProperties.Mode = *MatchingMode;
     }
 
-    // find preferred depth format
-    const std::vector PreferredDepthFormats = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
-
-    for (const VkFormat& FormatIter : PreferredDepthFormats)
+    for (const std::vector PreferredDepthFormats = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
+         const VkFormat&   FormatIter : PreferredDepthFormats)
     {
         VkFormatProperties FormatProperties;
         vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, FormatIter, &FormatProperties);
@@ -279,13 +271,12 @@ std::vector<std::uint8_t>& VulkanDeviceManager::GetUniqueQueueFamilyIndices()
 std::vector<std::uint32_t> VulkanDeviceManager::GetUniqueQueueFamilyIndices_u32()
 {
     std::vector<std::uint32_t> QueueFamilyIndices_u32(m_UniqueQueueFamilyIndices.size());
-    std::transform(m_UniqueQueueFamilyIndices.begin(),
-                   m_UniqueQueueFamilyIndices.end(),
-                   QueueFamilyIndices_u32.begin(),
-                   [](const std::uint8_t& Index)
-                   {
-                       return static_cast<std::uint32_t>(Index);
-                   });
+    std::ranges::transform(m_UniqueQueueFamilyIndices,
+                           QueueFamilyIndices_u32.begin(),
+                           [](const std::uint8_t& Index)
+                           {
+                               return static_cast<std::uint32_t>(Index);
+                           });
     return QueueFamilyIndices_u32;
 }
 
@@ -371,8 +362,8 @@ std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDevi
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    const std::vector<std::string> AvailableLayers = GetAvailablePhysicalDeviceLayersNames();
-    if (std::find(AvailableLayers.begin(), AvailableLayers.end(), LayerName) == AvailableLayers.end())
+    if (const std::vector<std::string> AvailableLayers = GetAvailablePhysicalDeviceLayersNames();
+        std::ranges::find(AvailableLayers, LayerName) == AvailableLayers.end())
     {
         return std::vector<VkExtensionProperties>();
     }
@@ -389,6 +380,7 @@ std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDevi
 std::vector<std::string> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensionsNames() const
 {
     std::vector<std::string> Output;
+    // ReSharper disable once CppUseStructuredBinding
     for (const VkExtensionProperties& ExtensionIter : GetAvailablePhysicalDeviceExtensions())
     {
         Output.emplace_back(ExtensionIter.extensionName);
@@ -400,6 +392,7 @@ std::vector<std::string> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensio
 std::vector<std::string> VulkanDeviceManager::GetAvailablePhysicalDeviceLayerExtensionsNames(const std::string_view LayerName) const
 {
     std::vector<std::string> Output;
+    // ReSharper disable once CppUseStructuredBinding
     for (const VkExtensionProperties& ExtensionIter : GetAvailablePhysicalDeviceLayerExtensions(LayerName))
     {
         Output.emplace_back(ExtensionIter.extensionName);
@@ -411,6 +404,7 @@ std::vector<std::string> VulkanDeviceManager::GetAvailablePhysicalDeviceLayerExt
 std::vector<std::string> VulkanDeviceManager::GetAvailablePhysicalDeviceLayersNames() const
 {
     std::vector<std::string> Output;
+    // ReSharper disable once CppUseStructuredBinding
     for (const VkLayerProperties& LayerIter : GetAvailablePhysicalDeviceLayers())
     {
         Output.emplace_back(LayerIter.layerName);
@@ -568,10 +562,10 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceExtensions() const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device extensions...";
 
-    for (const VkExtensionProperties& ExtensionIter : GetAvailablePhysicalDeviceExtensions())
+    for (const auto& [ExtName, SpecVer] : GetAvailablePhysicalDeviceExtensions())
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << ExtensionIter.extensionName;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << ExtensionIter.specVersion << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << ExtName;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << SpecVer << std::endl;
     }
 }
 
@@ -579,12 +573,12 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceLayers() const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device layers...";
 
-    for (const VkLayerProperties& LayerIter : GetAvailablePhysicalDeviceLayers())
+    for (const auto& [LayerName, SpecVer, ImplVer, Descr] : GetAvailablePhysicalDeviceLayers())
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << LayerIter.layerName;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << LayerIter.specVersion;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Implementation Version: " << LayerIter.implementationVersion;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Description: " << LayerIter.description << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << LayerName;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << SpecVer;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Implementation Version: " << ImplVer;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Description: " << Descr << std::endl;
     }
 }
 
@@ -592,10 +586,10 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceLayerExtensions(const std::
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device layer '" << LayerName << "' extensions...";
 
-    for (const VkExtensionProperties& ExtensionIter : GetAvailablePhysicalDeviceLayerExtensions(LayerName))
+    for (const auto& [ExtName, SpecVer] : GetAvailablePhysicalDeviceLayerExtensions(LayerName))
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << ExtensionIter.extensionName;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << ExtensionIter.specVersion << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << ExtName;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << SpecVer << std::endl;
     }
 }
 
@@ -603,6 +597,7 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceSurfaceCapabilities() const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device surface capabilities...";
 
+    // ReSharper disable once CppUseStructuredBinding
     const VkSurfaceCapabilitiesKHR SurfaceCapabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min Image Count: " << SurfaceCapabilities.minImageCount;
@@ -621,10 +616,10 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceSurfaceFormats() const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device surface formats...";
 
-    for (const VkSurfaceFormatKHR& FormatIter : GetAvailablePhysicalDeviceSurfaceFormats())
+    for (const auto& [Format, ColorSpace] : GetAvailablePhysicalDeviceSurfaceFormats())
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Format: " << SurfaceFormatToString(FormatIter.format);
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Color Space: " << ColorSpaceModeToString(FormatIter.colorSpace) << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Format: " << SurfaceFormatToString(Format);
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Color Space: " << ColorSpaceModeToString(ColorSpace) << std::endl;
     }
 }
 

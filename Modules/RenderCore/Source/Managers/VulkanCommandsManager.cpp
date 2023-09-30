@@ -159,14 +159,14 @@ std::optional<std::int32_t> VulkanCommandsManager::DrawFrame() const
         throw std::runtime_error("Vulkan fence is invalid.");
     }
 
-    std::uint32_t  Output          = 0u;
-    const VkResult OperationResult = vkAcquireNextImageKHR(VulkanDeviceManager::Get().GetLogicalDevice(),
-                                                           VulkanBufferManager::Get().GetSwapChain(),
-                                                           Timeout,
-                                                           m_ImageAvailableSemaphore,
-                                                           m_Fence,
-                                                           &Output);
-    if (OperationResult != VK_SUCCESS)
+    std::uint32_t Output = 0u;
+    if (const VkResult OperationResult = vkAcquireNextImageKHR(VulkanDeviceManager::Get().GetLogicalDevice(),
+                                                               VulkanBufferManager::Get().GetSwapChain(),
+                                                               Timeout,
+                                                               m_ImageAvailableSemaphore,
+                                                               m_Fence,
+                                                               &Output);
+        OperationResult != VK_SUCCESS)
     {
         if (OperationResult == VK_ERROR_OUT_OF_DATE_KHR || OperationResult == VK_SUBOPTIMAL_KHR)
         {

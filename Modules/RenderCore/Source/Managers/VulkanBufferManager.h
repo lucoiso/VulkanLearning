@@ -74,11 +74,11 @@ namespace RenderCore
         static bool                                     IsInitialized();
         [[nodiscard]] const VkSwapchainKHR&             GetSwapChain() const;
         [[nodiscard]] const VkExtent2D&                 GetSwapChainExtent() const;
-        [[nodiscard]] const std::vector<VkImage>        GetSwapChainImages() const;
+        [[nodiscard]] std::vector<VkImage>              GetSwapChainImages() const;
         [[nodiscard]] const std::vector<VkFramebuffer>& GetFrameBuffers() const;
-        [[nodiscard]] const VkBuffer                    GetVertexBuffer(std::uint64_t ObjectID = 0u) const;
-        [[nodiscard]] const VkBuffer                    GetIndexBuffer(std::uint64_t ObjectID = 0u) const;
-        [[nodiscard]] const std::uint32_t               GetIndicesCount(std::uint64_t ObjectID = 0u) const;
+        [[nodiscard]] VkBuffer                          GetVertexBuffer(std::uint64_t ObjectID = 0u) const;
+        [[nodiscard]] VkBuffer                          GetIndexBuffer(std::uint64_t ObjectID = 0u) const;
+        [[nodiscard]] std::uint32_t                     GetIndicesCount(std::uint64_t ObjectID = 0u) const;
         [[nodiscard]] std::vector<VulkanTextureData>    GetAllocatedTextures() const;
 
         static VmaAllocationInfo CreateBuffer(const VkDeviceSize& Size, VkBufferUsageFlags Usage, VkMemoryPropertyFlags Flags, VkBuffer& Buffer, VmaAllocation& Allocation);
