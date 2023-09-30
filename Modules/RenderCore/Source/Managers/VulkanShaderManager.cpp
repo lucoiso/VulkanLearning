@@ -17,22 +17,21 @@ using namespace RenderCore;
 VulkanShaderManager VulkanShaderManager::g_Instance{};
 
 VulkanShaderManager::VulkanShaderManager()
-    : m_StageInfos()
 {
 }
 
 VulkanShaderManager::~VulkanShaderManager()
 {
-	Shutdown();
+    Shutdown();
 }
 
 void VulkanShaderManager::Shutdown()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan shader compiler";
 
-    const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    for (auto &[ShaderModule, _] : m_StageInfos)
+    for (auto& [ShaderModule, _] : m_StageInfos)
     {
         if (ShaderModule != VK_NULL_HANDLE)
         {
@@ -42,14 +41,14 @@ void VulkanShaderManager::Shutdown()
     m_StageInfos.clear();
 }
 
-VulkanShaderManager &VulkanShaderManager::Get()
+VulkanShaderManager& VulkanShaderManager::Get()
 {
     return g_Instance;
 }
 
-bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode)
+bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode)
 {
-    EShLanguage Language = EShLangVertex;
+    EShLanguage                 Language = EShLangVertex;
     const std::filesystem::path Path(Source);
 
     if (const std::filesystem::path Extension = Path.extension();
@@ -103,7 +102,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uin
     }
 
     std::stringstream ShaderSource;
-    std::ifstream File(Path);
+    std::ifstream     File(Path);
     if (!File.is_open())
     {
         throw std::runtime_error("Failed to open shader file: " + Path.string());
@@ -116,13 +115,13 @@ bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uin
     if (bResult)
     {
         const std::string SPIRVPath = std::format("{}.spv", Source);
-        std::ofstream SPIRVFile(SPIRVPath, std::ios::binary);
+        std::ofstream     SPIRVFile(SPIRVPath, std::ios::binary);
         if (!SPIRVFile.is_open())
         {
             throw std::runtime_error("Failed to open SPIRV file: " + SPIRVPath);
         }
 
-        SPIRVFile << std::string(reinterpret_cast<const char *>(OutSPIRVCode.data()), OutSPIRVCode.size() * sizeof(uint32_t));
+        SPIRVFile << std::string(reinterpret_cast<const char*>(OutSPIRVCode.data()), OutSPIRVCode.size() * sizeof(uint32_t));
         SPIRVFile.close();
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compiled, generated SPIR-V shader file: " << SPIRVPath;
@@ -131,10 +130,10 @@ bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uin
     return bResult;
 }
 
-bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::uint32_t> &OutSPIRVCode)
+bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::uint32_t>& OutSPIRVCode)
 {
-    std::filesystem::path Path(Source);
-    if (!std::filesystem::exists(Path))
+    const std::filesystem::path Path(Source);
+    if (!exists(Path))
     {
         const std::string ErrMessage = "Shader file does not exist" + std::string(Source);
         throw std::runtime_error(ErrMessage);
@@ -149,7 +148,7 @@ bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::u
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading shader: " << Source;
 
-    const size_t FileSize = static_cast<size_t>(File.tellg());
+    const size_t FileSize = File.tellg();
 
     if (FileSize == 0)
     {
@@ -159,27 +158,23 @@ bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::u
     OutSPIRVCode.resize(FileSize / sizeof(std::uint32_t), std::uint32_t());
 
     File.seekg(0);
-    const std::istream &ReadResult = File.read(reinterpret_cast<char *>(OutSPIRVCode.data()), FileSize); /* Flawfinder: ignore */
+    const std::istream& ReadResult = File.read(reinterpret_cast<char*>(OutSPIRVCode.data()), FileSize); /* Flawfinder: ignore */
     File.close();
 
     return !ReadResult.fail();
 }
 
-bool VulkanShaderManager::CompileOrLoadIfExists(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode)
+bool VulkanShaderManager::CompileOrLoadIfExists(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode)
 {
-    if (const std::string CompiledShaderPath = std::format("{}.spv", Source); std::filesystem::exists(CompiledShaderPath))
+    if (const std::string CompiledShaderPath = std::format("{}.spv", Source);
+        std::filesystem::exists(CompiledShaderPath))
     {
         return Load(CompiledShaderPath, OutSPIRVCode);
     }
-    else
-    {
-        return Compile(Source, OutSPIRVCode);
-    }
-
-    return false;
+    return Compile(Source, OutSPIRVCode);
 }
 
-VkShaderModule VulkanShaderManager::CreateModule(const VkDevice &Device, const std::vector<std::uint32_t> &SPIRVCode, EShLanguage Language)
+VkShaderModule VulkanShaderManager::CreateModule(const VkDevice& Device, const std::vector<std::uint32_t>& SPIRVCode, const EShLanguage Language)
 {
     if (Device == VK_NULL_HANDLE)
     {
@@ -193,10 +188,7 @@ VkShaderModule VulkanShaderManager::CreateModule(const VkDevice &Device, const s
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating shader module...";
 
-    const VkShaderModuleCreateInfo CreateInfo{
-        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        .codeSize = SPIRVCode.size() * sizeof(std::uint32_t),
-        .pCode = SPIRVCode.data()};
+    const VkShaderModuleCreateInfo CreateInfo{.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, .codeSize = SPIRVCode.size() * sizeof(std::uint32_t), .pCode = SPIRVCode.data()};
 
     VkShaderModule Output;
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateShaderModule(Device, &CreateInfo, nullptr, &Output));
@@ -206,7 +198,7 @@ VkShaderModule VulkanShaderManager::CreateModule(const VkDevice &Device, const s
     return Output;
 }
 
-VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(const VkShaderModule &Module)
+VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(const VkShaderModule& Module) const
 {
     return m_StageInfos.at(Module);
 }
@@ -214,7 +206,7 @@ VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(const VkShader
 std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
 {
     std::vector<VkShaderModule> Output;
-    for (const auto &[ShaderModule, _] : m_StageInfos)
+    for (const auto& [ShaderModule, _] : m_StageInfos)
     {
         Output.push_back(ShaderModule);
     }
@@ -225,7 +217,7 @@ std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
 std::vector<VkPipelineShaderStageCreateInfo> VulkanShaderManager::GetStageInfos() const
 {
     std::vector<VkPipelineShaderStageCreateInfo> Output;
-    for (const auto &[_, StageInfo] : m_StageInfos)
+    for (const auto& [_, StageInfo] : m_StageInfos)
     {
         Output.push_back(StageInfo);
     }
@@ -233,11 +225,11 @@ std::vector<VkPipelineShaderStageCreateInfo> VulkanShaderManager::GetStageInfos(
     return Output;
 }
 
-void VulkanShaderManager::FreeStagedModules(const std::vector<VkPipelineShaderStageCreateInfo> &StagedModules)
+void VulkanShaderManager::FreeStagedModules(const std::vector<VkPipelineShaderStageCreateInfo>& StagedModules)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
 
-    const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
     for (const VkPipelineShaderStageCreateInfo& StageInfoIter : StagedModules)
     {
@@ -253,13 +245,13 @@ void VulkanShaderManager::FreeStagedModules(const std::vector<VkPipelineShaderSt
     }
 }
 
-bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Language, std::vector<std::uint32_t> &OutSPIRVCode)
+bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Language, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     glslang::InitializeProcess();
 
     glslang::TShader Shader(Language);
 
-    const char *ShaderContent = Source.data();
+    const char* ShaderContent = Source.data();
     Shader.setStringsWithLengths(&ShaderContent, nullptr, 1);
 
     Shader.setEntryPoint(EntryPoint);
@@ -268,10 +260,10 @@ bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Lan
     Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
     Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
 
-    const TBuiltInResource *Resources = GetDefaultResources();
-    const EShMessages MessageFlags = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
+    const TBuiltInResource* Resources    = GetDefaultResources();
+    constexpr auto          MessageFlags = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
 
-    if (!Shader.parse(Resources, 450, EProfile::ECoreProfile, false, true, MessageFlags))
+    if (!Shader.parse(Resources, 450, ECoreProfile, false, true, MessageFlags))
     {
         glslang::FinalizeProcess();
         const std::string InfoLog("Info Log: " + std::string(Shader.getInfoLog()));
@@ -295,10 +287,11 @@ bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Lan
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n" << Source;
 
     spv::SpvBuildLogger Logger;
-    glslang::GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
+    GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
     glslang::FinalizeProcess();
 
-    if (const std::string_view GeneratedLogs = Logger.getAllMessages(); !GeneratedLogs.empty())
+    if (const std::string_view GeneratedLogs = Logger.getAllMessages();
+        !GeneratedLogs.empty())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compilation result log:\n" << GeneratedLogs;
     }
@@ -306,7 +299,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Lan
     return !OutSPIRVCode.empty();
 }
 
-void VulkanShaderManager::StageInfo(const VkShaderModule &Module, EShLanguage Language)
+void VulkanShaderManager::StageInfo(const VkShaderModule& Module, const EShLanguage Language)
 {
     if (Module == VK_NULL_HANDLE)
     {
@@ -314,64 +307,61 @@ void VulkanShaderManager::StageInfo(const VkShaderModule &Module, EShLanguage La
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Staging shader info...";
-    
-    VkPipelineShaderStageCreateInfo StageInfo{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .module = Module,
-        .pName = EntryPoint};
+
+    VkPipelineShaderStageCreateInfo StageInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, .module = Module, .pName = EntryPoint};
 
     switch (Language)
     {
-    case EShLangVertex:
-        StageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-        break;
+        case EShLangVertex:
+            StageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+            break;
 
-    case EShLangFragment:
-        StageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        break;
+        case EShLangFragment:
+            StageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+            break;
 
-    case EShLangCompute:
-        StageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-        break;
+        case EShLangCompute:
+            StageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+            break;
 
-    case EShLangGeometry:
-        StageInfo.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
-        break;
+        case EShLangGeometry:
+            StageInfo.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
+            break;
 
-    case EShLangTessControl:
-        StageInfo.stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
-        break;
+        case EShLangTessControl:
+            StageInfo.stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+            break;
 
-    case EShLangTessEvaluation:
-        StageInfo.stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
-        break;
+        case EShLangTessEvaluation:
+            StageInfo.stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+            break;
 
-    case EShLangRayGen:
-        StageInfo.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-        break;
+        case EShLangRayGen:
+            StageInfo.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+            break;
 
-    case EShLangIntersect:
-        StageInfo.stage = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
-        break;
+        case EShLangIntersect:
+            StageInfo.stage = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+            break;
 
-    case EShLangAnyHit:
-        StageInfo.stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
-        break;
+        case EShLangAnyHit:
+            StageInfo.stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+            break;
 
-    case EShLangClosestHit:
-        StageInfo.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-        break;
+        case EShLangClosestHit:
+            StageInfo.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+            break;
 
-    case EShLangMiss:
-        StageInfo.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
-        break;
+        case EShLangMiss:
+            StageInfo.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
+            break;
 
-    case EShLangCallable:
-        StageInfo.stage = VK_SHADER_STAGE_CALLABLE_BIT_KHR;
-        break;
+        case EShLangCallable:
+            StageInfo.stage = VK_SHADER_STAGE_CALLABLE_BIT_KHR;
+            break;
 
-    default:
-        throw std::runtime_error("Unsupported shader language");
+        default:
+            throw std::runtime_error("Unsupported shader language");
     }
 
     m_StageInfos.emplace(Module, StageInfo);

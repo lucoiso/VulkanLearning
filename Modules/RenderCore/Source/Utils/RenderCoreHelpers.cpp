@@ -11,22 +11,21 @@
 #include <boost/log/trivial.hpp>
 #include <chrono>
 #include <GLFW/glfw3.h>
-#include "RenderCoreHelpers.h"
 
 using namespace RenderCore;
 
-std::vector<const char *> RenderCoreHelpers::GetGLFWExtensions()
+std::vector<const char*> RenderCoreHelpers::GetGLFWExtensions()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting GLFW extensions";
 
-    std::uint32_t GLFWExtensionsCount = 0u;
-    const char **const GLFWExtensions = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
+    std::uint32_t      GLFWExtensionsCount = 0u;
+    const char** const GLFWExtensions      = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
 
-    const std::vector<const char *> Output(GLFWExtensions, GLFWExtensions + GLFWExtensionsCount);
+    const std::vector Output(GLFWExtensions, GLFWExtensions + GLFWExtensionsCount);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found extensions:";
 
-    for (const char *const &ExtensionIter : Output)
+    for (const char* const & ExtensionIter : Output)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: " << ExtensionIter;
     }
@@ -34,17 +33,15 @@ std::vector<const char *> RenderCoreHelpers::GetGLFWExtensions()
     return Output;
 }
 
-VkExtent2D RenderCoreHelpers::GetWindowExtent(GLFWwindow *const Window, const VkSurfaceCapabilitiesKHR &Capabilities)
+VkExtent2D RenderCoreHelpers::GetWindowExtent(GLFWwindow* const Window, const VkSurfaceCapabilitiesKHR& Capabilities)
 {
-    std::int32_t Width = 0u;
+    std::int32_t Width  = 0u;
     std::int32_t Height = 0u;
     glfwGetFramebufferSize(Window, &Width, &Height);
 
-    VkExtent2D ActualExtent{
-        .width = static_cast<std::uint32_t>(Width),
-        .height = static_cast<std::uint32_t>(Height)};
+    VkExtent2D ActualExtent{.width = static_cast<std::uint32_t>(Width), .height = static_cast<std::uint32_t>(Height)};
 
-    ActualExtent.width = std::clamp(ActualExtent.width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
+    ActualExtent.width  = std::clamp(ActualExtent.width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
     ActualExtent.height = std::clamp(ActualExtent.height, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
 
     return ActualExtent;
@@ -55,7 +52,7 @@ std::vector<VkLayerProperties> RenderCoreHelpers::GetAvailableInstanceLayers()
     std::uint32_t LayersCount = 0u;
     RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceLayerProperties(&LayersCount, nullptr));
 
-    std::vector<VkLayerProperties> Output(LayersCount, VkLayerProperties());
+    std::vector Output(LayersCount, VkLayerProperties());
     RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceLayerProperties(&LayersCount, Output.data()));
 
     return Output;
@@ -64,7 +61,7 @@ std::vector<VkLayerProperties> RenderCoreHelpers::GetAvailableInstanceLayers()
 std::vector<std::string> RenderCoreHelpers::GetAvailableInstanceLayersNames()
 {
     std::vector<std::string> Output;
-    for (const VkLayerProperties &LayerIter : GetAvailableInstanceLayers())
+    for (const VkLayerProperties& LayerIter : GetAvailableInstanceLayers())
     {
         Output.emplace_back(LayerIter.layerName);
     }
@@ -76,8 +73,8 @@ std::vector<VkExtensionProperties> RenderCoreHelpers::GetAvailableInstanceExtens
 {
     std::uint32_t ExtensionCount = 0u;
     RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionCount, nullptr));
-    
-    std::vector<VkExtensionProperties> Output(ExtensionCount, VkExtensionProperties());
+
+    std::vector Output(ExtensionCount, VkExtensionProperties());
     RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionCount, Output.data()));
 
     return Output;
@@ -86,7 +83,7 @@ std::vector<VkExtensionProperties> RenderCoreHelpers::GetAvailableInstanceExtens
 std::vector<std::string> RenderCoreHelpers::GetAvailableInstanceExtensionsNames()
 {
     std::vector<std::string> Output;
-    for (const VkExtensionProperties &ExtensionIter : GetAvailableInstanceExtensions())
+    for (const VkExtensionProperties& ExtensionIter : GetAvailableInstanceExtensions())
     {
         Output.emplace_back(ExtensionIter.extensionName);
     }
@@ -99,7 +96,7 @@ void RenderCoreHelpers::ListAvailableInstanceLayers()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available instance layers...";
 
-    for (const VkLayerProperties &LayerIter : GetAvailableInstanceLayers())
+    for (const VkLayerProperties& LayerIter : GetAvailableInstanceLayers())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Name: " << LayerIter.layerName;
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Description: " << LayerIter.description;
@@ -112,7 +109,7 @@ void RenderCoreHelpers::ListAvailableInstanceExtensions()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available instance extensions...";
 
-    for (const VkExtensionProperties &ExtensionIter : GetAvailableInstanceExtensions())
+    for (const VkExtensionProperties& ExtensionIter : GetAvailableInstanceExtensions())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Name: " << ExtensionIter.extensionName;
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Spec Version: " << ExtensionIter.specVersion << std::endl;
@@ -131,7 +128,7 @@ std::vector<VkExtensionProperties> RenderCoreHelpers::GetAvailableLayerExtension
     std::uint32_t ExtensionCount = 0u;
     RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(LayerName.data(), &ExtensionCount, nullptr));
 
-    std::vector<VkExtensionProperties> Output(ExtensionCount, VkExtensionProperties());
+    std::vector Output(ExtensionCount, VkExtensionProperties());
     RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateInstanceExtensionProperties(LayerName.data(), &ExtensionCount, Output.data()));
 
     return Output;
@@ -140,7 +137,7 @@ std::vector<VkExtensionProperties> RenderCoreHelpers::GetAvailableLayerExtension
 std::vector<std::string> RenderCoreHelpers::GetAvailableLayerExtensionsNames(const std::string_view LayerName)
 {
     std::vector<std::string> Output;
-    for (const VkExtensionProperties &ExtensionIter : GetAvailableLayerExtensions(LayerName))
+    for (const VkExtensionProperties& ExtensionIter : GetAvailableLayerExtensions(LayerName))
     {
         Output.emplace_back(ExtensionIter.extensionName);
     }
@@ -153,7 +150,7 @@ void RenderCoreHelpers::ListAvailableInstanceLayerExtensions(const std::string_v
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available layer '" << LayerName << "' extensions...";
 
-    for (const VkExtensionProperties &ExtensionIter : GetAvailableLayerExtensions(LayerName))
+    for (const VkExtensionProperties& ExtensionIter : GetAvailableLayerExtensions(LayerName))
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Name: " << ExtensionIter.extensionName;
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Spec Version: " << ExtensionIter.specVersion << std::endl;
@@ -161,21 +158,19 @@ void RenderCoreHelpers::ListAvailableInstanceLayerExtensions(const std::string_v
 }
 #endif
 
-void RenderCoreHelpers::InitializeSingleCommandQueue(VkCommandPool &CommandPool, VkCommandBuffer &CommandBuffer, const std::uint8_t QueueFamilyIndex)
+void RenderCoreHelpers::InitializeSingleCommandQueue(VkCommandPool& CommandPool, VkCommandBuffer& CommandBuffer, const std::uint8_t QueueFamilyIndex)
 {
-    const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
     const VkCommandPoolCreateInfo CommandPoolCreateInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-        .queueFamilyIndex = static_cast<std::uint32_t>(QueueFamilyIndex)};
+        .queueFamilyIndex = static_cast<std::uint32_t>(QueueFamilyIndex)
+    };
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateCommandPool(VulkanLogicalDevice, &CommandPoolCreateInfo, nullptr, &CommandPool));
 
-    const VkCommandBufferBeginInfo CommandBufferBeginInfo{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-    };
+    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,};
 
     const VkCommandBufferAllocateInfo CommandBufferAllocateInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -188,7 +183,7 @@ void RenderCoreHelpers::InitializeSingleCommandQueue(VkCommandPool &CommandPool,
     RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
 }
 
-void RenderCoreHelpers::FinishSingleCommandQueue(const VkQueue &Queue, const VkCommandPool &CommandPool, const VkCommandBuffer &CommandBuffer)
+void RenderCoreHelpers::FinishSingleCommandQueue(const VkQueue& Queue, const VkCommandPool& CommandPool, const VkCommandBuffer& CommandBuffer)
 {
     if (CommandPool == VK_NULL_HANDLE)
     {
@@ -202,16 +197,12 @@ void RenderCoreHelpers::FinishSingleCommandQueue(const VkQueue &Queue, const VkC
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkEndCommandBuffer(CommandBuffer));
 
-    const VkSubmitInfo SubmitInfo{
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .commandBufferCount = 1u,
-        .pCommandBuffers = &CommandBuffer,
-    };
+    const VkSubmitInfo SubmitInfo{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO, .commandBufferCount = 1u, .pCommandBuffers = &CommandBuffer,};
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkQueueSubmit(Queue, 1u, &SubmitInfo, VK_NULL_HANDLE));
     RENDERCORE_CHECK_VULKAN_RESULT(vkQueueWaitIdle(Queue));
 
-    const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
     vkFreeCommandBuffers(VulkanLogicalDevice, CommandPool, 1u, &CommandBuffer);
     vkDestroyCommandPool(VulkanLogicalDevice, CommandPool, nullptr);
@@ -219,15 +210,15 @@ void RenderCoreHelpers::FinishSingleCommandQueue(const VkQueue &Queue, const VkC
 
 UniformBufferObject RenderCoreHelpers::GetUniformBufferObject()
 {
-    const VkExtent2D &SwapChainExtent = VulkanBufferManager::Get().GetSwapChainExtent();
+    const VkExtent2D& SwapChainExtent = VulkanBufferManager::Get().GetSwapChainExtent();
 
-    static auto StartTime = std::chrono::high_resolution_clock::now();
-    const auto CurrentTime = std::chrono::high_resolution_clock::now();
-    const float Time = std::chrono::duration<float, std::chrono::seconds::period>(CurrentTime - StartTime).count();
+    static auto StartTime   = std::chrono::high_resolution_clock::now();
+    const auto  CurrentTime = std::chrono::high_resolution_clock::now();
+    const float Time        = std::chrono::duration<float>(CurrentTime - StartTime).count();
 
-    const glm::mat4 Model = glm::rotate(glm::mat4(1.f), Time * glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
-    const glm::mat4 View = glm::lookAt(glm::vec3(2.f, 2.f, 2.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f));
-    glm::mat4 Projection = glm::perspective(glm::radians(45.0f), SwapChainExtent.width / (float)SwapChainExtent.height, 0.1f, 10.f);
+    const glm::mat4 Model      = rotate(glm::mat4(1.f), Time * glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
+    const glm::mat4 View       = lookAt(glm::vec3(2.f, 2.f, 2.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f));
+    glm::mat4       Projection = glm::perspective(glm::radians(45.0f), SwapChainExtent.width / static_cast<float>(SwapChainExtent.height), 0.1f, 10.f);
     Projection[1][1] *= -1;
 
     return UniformBufferObject{.ModelViewProjection = Projection * View * Model};

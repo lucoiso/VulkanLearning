@@ -24,12 +24,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #endif
 #include <stb_image.h>
-#include "VulkanBufferManager.h"
 
 using namespace RenderCore;
 
 VulkanBufferManager VulkanBufferManager::g_Instance{};
-VmaAllocator VulkanBufferManager::s_Allocator(VK_NULL_HANDLE);
+VmaAllocator        VulkanBufferManager::s_Allocator(VK_NULL_HANDLE);
 
 bool VulkanImageAllocation::IsValid() const
 {
@@ -41,11 +40,11 @@ void VulkanImageAllocation::DestroyResources()
     if (Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
     {
         vmaDestroyImage(VulkanBufferManager::s_Allocator, Image, Allocation);
-        Image = VK_NULL_HANDLE;
+        Image      = VK_NULL_HANDLE;
         Allocation = VK_NULL_HANDLE;
     }
 
-    const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
     if (View != VK_NULL_HANDLE)
     {
@@ -81,7 +80,7 @@ void VulkanBufferAllocation::DestroyResources()
 
         vmaDestroyBuffer(VulkanBufferManager::s_Allocator, Buffer, Allocation);
         Allocation = VK_NULL_HANDLE;
-        Buffer = VK_NULL_HANDLE;
+        Buffer     = VK_NULL_HANDLE;
     }
 }
 
@@ -100,22 +99,22 @@ void VulkanObjectAllocation::DestroyResources()
 
 VulkanBufferManager::VulkanBufferManager()
     : m_SwapChain(VK_NULL_HANDLE)
-    , m_OldSwapChain(VK_NULL_HANDLE)
-    , m_SwapChainExtent({0u, 0u})
-    , m_SwapChainImages({})
-    , m_DepthImage()
-    , m_FrameBuffers({})
-    , m_Objects({})
-    , m_ObjectIDCounter(0u)
+  , m_OldSwapChain(VK_NULL_HANDLE)
+  , m_SwapChainExtent({0u, 0u})
+  , m_SwapChainImages({})
+  , m_DepthImage()
+  , m_FrameBuffers({})
+  , m_Objects({})
+  , m_ObjectIDCounter(0u)
 {
 }
 
 VulkanBufferManager::~VulkanBufferManager()
 {
-	Shutdown();
+    Shutdown();
 }
 
-VulkanBufferManager &VulkanBufferManager::Get()
+VulkanBufferManager& VulkanBufferManager::Get()
 {
     return g_Instance;
 }
@@ -124,9 +123,7 @@ void VulkanBufferManager::CreateMemoryAllocator()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan memory allocator";
 
-    const VmaVulkanFunctions VulkanFunctions{
-        .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
-        .vkGetDeviceProcAddr = vkGetDeviceProcAddr};
+    const VmaVulkanFunctions VulkanFunctions{.vkGetInstanceProcAddr = vkGetInstanceProcAddr, .vkGetDeviceProcAddr = vkGetDeviceProcAddr};
 
     const VmaAllocatorCreateInfo AllocatorInfo{
         .flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT,
@@ -139,7 +136,8 @@ void VulkanBufferManager::CreateMemoryAllocator()
         .pVulkanFunctions = &VulkanFunctions,
         .instance = VulkanRenderCore::Get().GetInstance(),
         .vulkanApiVersion = VK_API_VERSION_1_0,
-        .pTypeExternalMemoryHandleTypes = nullptr};
+        .pTypeExternalMemoryHandleTypes = nullptr
+    };
 
     RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateAllocator(&AllocatorInfo, &s_Allocator));
 }
@@ -148,12 +146,12 @@ void VulkanBufferManager::CreateSwapChain()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain";
 
-    const VulkanDeviceProperties &Properties = VulkanDeviceManager::Get().GetDeviceProperties();
+    const VulkanDeviceProperties& Properties = VulkanDeviceManager::Get().GetDeviceProperties();
 
-    const std::vector<std::uint32_t> QueueFamilyIndices = VulkanDeviceManager::Get().GetUniqueQueueFamilyIndices_u32();
-    const std::uint32_t QueueFamilyIndicesCount = static_cast<std::uint32_t>(QueueFamilyIndices.size());
+    const std::vector<std::uint32_t> QueueFamilyIndices      = VulkanDeviceManager::Get().GetUniqueQueueFamilyIndices_u32();
+    const std::uint32_t              QueueFamilyIndicesCount = QueueFamilyIndices.size();
 
-    m_OldSwapChain = m_SwapChain;
+    m_OldSwapChain    = m_SwapChain;
     m_SwapChainExtent = Properties.Extent;
 
     const VkSwapchainCreateInfoKHR SwapChainCreateInfo{
@@ -172,9 +170,10 @@ void VulkanBufferManager::CreateSwapChain()
         .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         .presentMode = Properties.Mode,
         .clipped = VK_TRUE,
-        .oldSwapchain = m_OldSwapChain};
+        .oldSwapchain = m_OldSwapChain
+    };
 
-    const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSwapchainKHR(VulkanLogicalDevice, &SwapChainCreateInfo, nullptr, &m_SwapChain));
 
@@ -203,15 +202,13 @@ void VulkanBufferManager::CreateFrameBuffers()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan frame buffers";
 
-    const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
-    const VulkanDeviceProperties &Properties = VulkanDeviceManager::Get().GetDeviceProperties();
+    const VkDevice&               VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    const VulkanDeviceProperties& Properties          = VulkanDeviceManager::Get().GetDeviceProperties();
 
     m_FrameBuffers.resize(m_SwapChainImages.size(), VK_NULL_HANDLE);
     for (std::uint32_t Iterator = 0u; Iterator < static_cast<std::uint32_t>(m_FrameBuffers.size()); ++Iterator)
     {
-        const std::array<VkImageView, 2u> Attachments{
-            m_SwapChainImages[Iterator].View,
-            m_DepthImage.View};
+        const std::array Attachments{m_SwapChainImages[Iterator].View, m_DepthImage.View};
 
         const VkFramebufferCreateInfo FrameBufferCreateInfo{
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -220,7 +217,8 @@ void VulkanBufferManager::CreateFrameBuffers()
             .pAttachments = Attachments.data(),
             .width = m_SwapChainExtent.width,
             .height = m_SwapChainExtent.height,
-            .layers = 1u};
+            .layers = 1u
+        };
 
         RENDERCORE_CHECK_VULKAN_RESULT(vkCreateFramebuffer(VulkanLogicalDevice, &FrameBufferCreateInfo, nullptr, &m_FrameBuffers[Iterator]));
     }
@@ -230,22 +228,22 @@ void VulkanBufferManager::CreateDepthResources()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan depth resources";
 
-    const VulkanDeviceProperties &Properties = VulkanDeviceManager::Get().GetDeviceProperties();
-    const std::pair<std::uint8_t, VkQueue> &GraphicsQueue = VulkanDeviceManager::Get().GetGraphicsQueue();
+    const VulkanDeviceProperties&           Properties    = VulkanDeviceManager::Get().GetDeviceProperties();
+    const std::pair<std::uint8_t, VkQueue>& GraphicsQueue = VulkanDeviceManager::Get().GetGraphicsQueue();
 
-    constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
-    constexpr VkImageUsageFlagBits Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    constexpr VkImageTiling         Tiling              = VK_IMAGE_TILING_OPTIMAL;
+    constexpr VkImageUsageFlagBits  Usage               = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     constexpr VkMemoryPropertyFlags MemoryPropertyFlags = 0u;
-    constexpr VkImageAspectFlagBits Aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
-    constexpr VkImageLayout InitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    constexpr VkImageLayout DestinationLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    constexpr VkImageAspectFlagBits Aspect              = VK_IMAGE_ASPECT_DEPTH_BIT;
+    constexpr VkImageLayout         InitialLayout       = VK_IMAGE_LAYOUT_UNDEFINED;
+    constexpr VkImageLayout         DestinationLayout   = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     CreateImage(Properties.DepthFormat, m_SwapChainExtent, Tiling, Usage, MemoryPropertyFlags, m_DepthImage.Image, m_DepthImage.Allocation);
     CreateImageView(m_DepthImage.Image, Properties.DepthFormat, Aspect, m_DepthImage.View);
     MoveImageLayout(m_DepthImage.Image, Properties.DepthFormat, InitialLayout, DestinationLayout, GraphicsQueue.second, GraphicsQueue.first);
 }
 
-void VulkanBufferManager::CreateVertexBuffers(VulkanObjectAllocation &Object, const std::vector<Vertex> &Vertices) const
+void VulkanBufferManager::CreateVertexBuffers(VulkanObjectAllocation& Object, const std::vector<Vertex>& Vertices)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan vertex buffers";
 
@@ -254,21 +252,21 @@ void VulkanBufferManager::CreateVertexBuffers(VulkanObjectAllocation &Object, co
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
 
-    const std::pair<std::uint8_t, VkQueue> &TransferQueue = VulkanDeviceManager::Get().GetTransferQueue();
+    const std::pair<std::uint8_t, VkQueue>& TransferQueue = VulkanDeviceManager::Get().GetTransferQueue();
 
-    constexpr VkBufferUsageFlags SourceUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    constexpr VkBufferUsageFlags    SourceUsageFlags          = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-    constexpr VkBufferUsageFlags DestinationUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    constexpr VkBufferUsageFlags    DestinationUsageFlags          = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = 0u;
 
     const VkDeviceSize BufferSize = Vertices.size() * sizeof(Vertex);
 
-    VkBuffer StagingBuffer;
-    VmaAllocation StagingBufferMemory;
+    VkBuffer                StagingBuffer;
+    VmaAllocation           StagingBufferMemory;
     const VmaAllocationInfo StagingInfo = CreateBuffer(BufferSize, SourceUsageFlags, SourceMemoryPropertyFlags, StagingBuffer, StagingBufferMemory);
 
-    std::memcpy(StagingInfo.pMappedData, Vertices.data(), static_cast<std::size_t>(BufferSize));
+    std::memcpy(StagingInfo.pMappedData, Vertices.data(), BufferSize);
 
     CreateBuffer(BufferSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.VertexBuffer.Buffer, Object.VertexBuffer.Allocation);
     CopyBuffer(StagingBuffer, Object.VertexBuffer.Buffer, BufferSize, TransferQueue.second, TransferQueue.first);
@@ -276,7 +274,7 @@ void VulkanBufferManager::CreateVertexBuffers(VulkanObjectAllocation &Object, co
     vmaDestroyBuffer(s_Allocator, StagingBuffer, StagingBufferMemory);
 }
 
-void VulkanBufferManager::CreateIndexBuffers(VulkanObjectAllocation &Object, const std::vector<std::uint32_t> &Indices) const
+void VulkanBufferManager::CreateIndexBuffers(VulkanObjectAllocation& Object, const std::vector<std::uint32_t>& Indices)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
 
@@ -285,21 +283,21 @@ void VulkanBufferManager::CreateIndexBuffers(VulkanObjectAllocation &Object, con
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
 
-    const std::pair<std::uint8_t, VkQueue> &TransferQueue = VulkanDeviceManager::Get().GetTransferQueue();
+    const std::pair<std::uint8_t, VkQueue>& TransferQueue = VulkanDeviceManager::Get().GetTransferQueue();
 
-    constexpr VkBufferUsageFlags SourceUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    constexpr VkBufferUsageFlags    SourceUsageFlags          = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-    constexpr VkBufferUsageFlags DestinationUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    constexpr VkBufferUsageFlags    DestinationUsageFlags          = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = 0u;
 
     const VkDeviceSize BufferSize = Indices.size() * sizeof(std::uint32_t);
 
-    VkBuffer StagingBuffer;
-    VmaAllocation StagingBufferMemory;
+    VkBuffer                StagingBuffer;
+    VmaAllocation           StagingBufferMemory;
     const VmaAllocationInfo StagingInfo = CreateBuffer(BufferSize, SourceUsageFlags, SourceMemoryPropertyFlags, StagingBuffer, StagingBufferMemory);
 
-    std::memcpy(StagingInfo.pMappedData, Indices.data(), static_cast<std::size_t>(BufferSize));
+    std::memcpy(StagingInfo.pMappedData, Indices.data(), BufferSize);
     RENDERCORE_CHECK_VULKAN_RESULT(vmaFlushAllocation(s_Allocator, StagingBufferMemory, 0u, BufferSize));
 
     CreateBuffer(BufferSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.IndexBuffer.Buffer, Object.IndexBuffer.Allocation);
@@ -310,8 +308,8 @@ void VulkanBufferManager::CreateIndexBuffers(VulkanObjectAllocation &Object, con
 
 std::uint64_t VulkanBufferManager::LoadObject(const std::string_view ModelPath, const std::string_view TexturePath)
 {
-    Assimp::Importer Importer;
-    const aiScene *const Scene = Importer.ReadFile(ModelPath.data(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType);
+    Assimp::Importer     Importer;
+    const aiScene* const Scene = Importer.ReadFile(ModelPath.data(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType);
 
     if (!Scene || Scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !Scene->mRootNode)
     {
@@ -322,30 +320,27 @@ std::uint64_t VulkanBufferManager::LoadObject(const std::string_view ModelPath, 
 
     const std::uint64_t NewID = m_ObjectIDCounter.fetch_add(1u);
 
-    std::vector<Vertex> Vertices;
+    std::vector<Vertex>        Vertices;
     std::vector<std::uint32_t> Indices;
 
-    const std::vector<aiMesh *> Meshes(Scene->mMeshes, Scene->mMeshes + Scene->mNumMeshes);
-    for (const aiMesh *MeshIter : Meshes)
+    const std::vector Meshes(Scene->mMeshes, Scene->mMeshes + Scene->mNumMeshes);
+    for (const aiMesh* MeshIter : Meshes)
     {
         for (std::uint32_t Iterator = 0u; Iterator < MeshIter->mNumVertices; ++Iterator)
         {
             const aiVector3D Position = MeshIter->mVertices[Iterator];
-            aiVector3D TextureCoord(0.f);
+            aiVector3D       TextureCoord(0.f);
 
             if (MeshIter->mTextureCoords != nullptr)
             {
                 TextureCoord = MeshIter->mTextureCoords[0][Iterator];
             }
 
-            Vertices.emplace_back(
-                glm::vec3(Position.x, Position.y, Position.z),
-                glm::vec3(1.f, 1.f, 1.f),
-                glm::vec2(TextureCoord.x, TextureCoord.y));
+            Vertices.emplace_back(glm::vec3(Position.x, Position.y, Position.z), glm::vec3(1.f, 1.f, 1.f), glm::vec2(TextureCoord.x, TextureCoord.y));
         }
 
-        const std::vector<aiFace> Faces(MeshIter->mFaces, MeshIter->mFaces + MeshIter->mNumFaces);
-        for (const aiFace &Face : Faces)
+        const std::vector Faces(MeshIter->mFaces, MeshIter->mFaces + MeshIter->mNumFaces);
+        for (const aiFace& Face : Faces)
         {
             for (std::uint32_t FaceIterator = 0u; FaceIterator < Face.mNumIndices; ++FaceIterator)
             {
@@ -375,34 +370,32 @@ void VulkanBufferManager::UnLoadObject(const std::uint64_t ObjectID)
     m_Objects.erase(ObjectID);
 }
 
-VulkanImageAllocation VulkanBufferManager::AllocateTexture(const unsigned char *Data, const std::uint32_t Width, const std::uint32_t Height, const std::size_t AllocationSize) const
+VulkanImageAllocation VulkanBufferManager::AllocateTexture(const unsigned char* Data, const std::uint32_t Width, const std::uint32_t Height, const std::size_t AllocationSize)
 {
     VulkanImageAllocation ImageAllocation;
 
-    constexpr VkBufferUsageFlags SourceUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    constexpr VkBufferUsageFlags    SourceUsageFlags          = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-    constexpr VkBufferUsageFlags DestinationUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    constexpr VkBufferUsageFlags    DestinationUsageFlags          = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
     constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
 
-    VkBuffer StagingBuffer;
-    VmaAllocation StagingBufferMemory;
+    VkBuffer                StagingBuffer;
+    VmaAllocation           StagingBufferMemory;
     const VmaAllocationInfo StagingInfo = CreateBuffer(AllocationSize, SourceUsageFlags, SourceMemoryPropertyFlags, StagingBuffer, StagingBufferMemory);
 
     std::memcpy(StagingInfo.pMappedData, Data, AllocationSize);
 
-    constexpr VkFormat ImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
-    constexpr VkImageLayout InitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    constexpr VkImageLayout MiddleLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    constexpr VkFormat      ImageFormat       = VK_FORMAT_R8G8B8A8_SRGB;
+    constexpr VkImageLayout InitialLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
+    constexpr VkImageLayout MiddleLayout      = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     constexpr VkImageLayout DestinationLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    const VkExtent2D Extent{
-        .width = Width,
-        .height = Height};
+    const VkExtent2D Extent{.width = Width, .height = Height};
 
-    const std::pair<std::uint8_t, VkQueue> &GraphicsQueue = VulkanDeviceManager::Get().GetGraphicsQueue();
+    const std::pair<std::uint8_t, VkQueue>& GraphicsQueue = VulkanDeviceManager::Get().GetGraphicsQueue();
 
     CreateImage(ImageFormat, Extent, Tiling, DestinationUsageFlags, DestinationMemoryPropertyFlags, ImageAllocation.Image, ImageAllocation.Allocation);
     MoveImageLayout(ImageAllocation.Image, ImageFormat, InitialLayout, MiddleLayout, GraphicsQueue.second, GraphicsQueue.first);
@@ -416,7 +409,7 @@ VulkanImageAllocation VulkanBufferManager::AllocateTexture(const unsigned char *
     return ImageAllocation;
 }
 
-void VulkanBufferManager::LoadTexture(VulkanObjectAllocation &Object, const std::string_view TexturePath) const
+void VulkanBufferManager::LoadTexture(VulkanObjectAllocation& Object, const std::string_view TexturePath)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan texture image";
 
@@ -425,8 +418,8 @@ void VulkanBufferManager::LoadTexture(VulkanObjectAllocation &Object, const std:
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
 
-    std::int32_t Width = -1;
-    std::int32_t Height = -1;
+    std::int32_t Width    = -1;
+    std::int32_t Height   = -1;
     std::int32_t Channels = -1;
 
     std::string UsedTexturePath = TexturePath.data();
@@ -435,8 +428,8 @@ void VulkanBufferManager::LoadTexture(VulkanObjectAllocation &Object, const std:
         UsedTexturePath = EMPTY_TEX;
     }
 
-    stbi_uc *const ImagePixels = stbi_load(UsedTexturePath.c_str(), &Width, &Height, &Channels, STBI_rgb_alpha);
-    const VkDeviceSize AllocationSize = Width * Height * 4;
+    const stbi_uc* const ImagePixels    = stbi_load(UsedTexturePath.c_str(), &Width, &Height, &Channels, STBI_rgb_alpha);
+    const VkDeviceSize   AllocationSize = Width * Height * 4;
 
     if (!ImagePixels)
     {
@@ -445,24 +438,19 @@ void VulkanBufferManager::LoadTexture(VulkanObjectAllocation &Object, const std:
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded image from path: '" << TexturePath << "'";
 
-    Object.TextureImage = AllocateTexture(static_cast<const unsigned char *>(ImagePixels), static_cast<std::uint32_t>(Width), static_cast<std::uint32_t>(Height), static_cast<std::size_t>(AllocationSize));
+    Object.TextureImage = AllocateTexture(ImagePixels, static_cast<std::uint32_t>(Width), static_cast<std::uint32_t>(Height), AllocationSize);
 }
 
-VmaAllocationInfo VulkanBufferManager::CreateBuffer(const VkDeviceSize &Size, const VkBufferUsageFlags Usage, const VkMemoryPropertyFlags Flags, VkBuffer &Buffer, VmaAllocation &Allocation) const
+VmaAllocationInfo VulkanBufferManager::CreateBuffer(const VkDeviceSize& Size, const VkBufferUsageFlags Usage, const VkMemoryPropertyFlags Flags, VkBuffer& Buffer, VmaAllocation& Allocation)
 {
     if (s_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
 
-    const VkBufferCreateInfo BufferCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .size = Size,
-        .usage = Usage};
+    const VkBufferCreateInfo BufferCreateInfo{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = Size, .usage = Usage};
 
-    const VmaAllocationCreateInfo AllocationCreateInfo{
-        .flags = Flags,
-        .usage = VMA_MEMORY_USAGE_AUTO};
+    const VmaAllocationCreateInfo AllocationCreateInfo{.flags = Flags, .usage = VMA_MEMORY_USAGE_AUTO};
 
     VmaAllocationInfo MemoryAllocationInfo;
     RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateBuffer(s_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &Buffer, &Allocation, &MemoryAllocationInfo));
@@ -470,22 +458,26 @@ VmaAllocationInfo VulkanBufferManager::CreateBuffer(const VkDeviceSize &Size, co
     return MemoryAllocationInfo;
 }
 
-void VulkanBufferManager::CopyBuffer(const VkBuffer &Source, const VkBuffer &Destination, const VkDeviceSize &Size, const VkQueue &Queue, const std::uint8_t QueueFamilyIndex) const
+void VulkanBufferManager::CopyBuffer(const VkBuffer& Source, const VkBuffer& Destination, const VkDeviceSize& Size, const VkQueue& Queue, const std::uint8_t QueueFamilyIndex)
 {
     VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
-    VkCommandPool CommandPool = VK_NULL_HANDLE;
+    VkCommandPool   CommandPool   = VK_NULL_HANDLE;
     RenderCoreHelpers::InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
     {
-        const VkBufferCopy BufferCopy{
-            .size = Size,
-        };
+        const VkBufferCopy BufferCopy{.size = Size,};
 
         vkCmdCopyBuffer(CommandBuffer, Source, Destination, 1u, &BufferCopy);
     }
     RenderCoreHelpers::FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
 }
 
-void VulkanBufferManager::CreateImage(const VkFormat &ImageFormat, const VkExtent2D &Extent, const VkImageTiling &Tiling, const VkImageUsageFlags Usage, const VkMemoryPropertyFlags Flags, VkImage &Image, VmaAllocation &Allocation) const
+void VulkanBufferManager::CreateImage(const VkFormat&             ImageFormat,
+                                      const VkExtent2D&           Extent,
+                                      const VkImageTiling&        Tiling,
+                                      const VkImageUsageFlags     Usage,
+                                      const VkMemoryPropertyFlags Flags,
+                                      VkImage&                    Image,
+                                      VmaAllocation&              Allocation)
 {
     if (s_Allocator == VK_NULL_HANDLE)
     {
@@ -502,39 +494,35 @@ void VulkanBufferManager::CreateImage(const VkFormat &ImageFormat, const VkExten
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .tiling = Tiling,
         .usage = Usage,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+    };
 
-    const VmaAllocationCreateInfo ImageAllocationCreateInfo{
-        .flags = Flags,
-        .usage = VMA_MEMORY_USAGE_AUTO};
+    const VmaAllocationCreateInfo ImageAllocationCreateInfo{.flags = Flags, .usage = VMA_MEMORY_USAGE_AUTO};
 
     VmaAllocationInfo AllocationInfo;
     RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateImage(s_Allocator, &ImageViewCreateInfo, &ImageAllocationCreateInfo, &Image, &Allocation, &AllocationInfo));
 }
 
-void VulkanBufferManager::CreateImageView(const VkImage &Image, const VkFormat &Format, const VkImageAspectFlags &AspectFlags, VkImageView &ImageView) const
+void VulkanBufferManager::CreateImageView(const VkImage& Image, const VkFormat& Format, const VkImageAspectFlags& AspectFlags, VkImageView& ImageView)
 {
     const VkImageViewCreateInfo ImageViewCreateInfo{
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .image = Image,
         .viewType = VK_IMAGE_VIEW_TYPE_2D,
         .format = Format,
-        .components = {
-            .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .a = VK_COMPONENT_SWIZZLE_IDENTITY},
-        .subresourceRange = {.aspectMask = AspectFlags, .baseMipLevel = 0u, .levelCount = 1u, .baseArrayLayer = 0u, .layerCount = 1u}};
+        .components = {.r = VK_COMPONENT_SWIZZLE_IDENTITY, .g = VK_COMPONENT_SWIZZLE_IDENTITY, .b = VK_COMPONENT_SWIZZLE_IDENTITY, .a = VK_COMPONENT_SWIZZLE_IDENTITY},
+        .subresourceRange = {.aspectMask = AspectFlags, .baseMipLevel = 0u, .levelCount = 1u, .baseArrayLayer = 0u, .layerCount = 1u}
+    };
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateImageView(VulkanDeviceManager::Get().GetLogicalDevice(), &ImageViewCreateInfo, nullptr, &ImageView));
 }
 
-void VulkanBufferManager::CreateTextureImageView(VulkanImageAllocation &Allocation) const
+void VulkanBufferManager::CreateTextureImageView(VulkanImageAllocation& Allocation)
 {
     CreateImageView(Allocation.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, Allocation.View);
 }
 
-void VulkanBufferManager::CreateTextureSampler(VulkanImageAllocation &Allocation) const
+void VulkanBufferManager::CreateTextureSampler(VulkanImageAllocation& Allocation)
 {
     if (s_Allocator == VK_NULL_HANDLE)
     {
@@ -560,38 +548,41 @@ void VulkanBufferManager::CreateTextureSampler(VulkanImageAllocation &Allocation
         .minLod = 0.f,
         .maxLod = FLT_MAX,
         .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-        .unnormalizedCoordinates = VK_FALSE};
+        .unnormalizedCoordinates = VK_FALSE
+    };
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSampler(VulkanDeviceManager::Get().GetLogicalDevice(), &SamplerCreateInfo, nullptr, &Allocation.Sampler));
 }
 
-void VulkanBufferManager::CopyBufferToImage(const VkBuffer &Source, const VkImage &Destination, const VkExtent2D &Extent, const VkQueue &Queue, const std::uint32_t QueueFamilyIndex) const
+void VulkanBufferManager::CopyBufferToImage(const VkBuffer& Source, const VkImage& Destination, const VkExtent2D& Extent, const VkQueue& Queue, const std::uint32_t QueueFamilyIndex)
 {
     VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
-    VkCommandPool CommandPool = VK_NULL_HANDLE;
+    VkCommandPool   CommandPool   = VK_NULL_HANDLE;
     RenderCoreHelpers::InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
     {
         const VkBufferImageCopy BufferImageCopy{
             .bufferOffset = 0u,
             .bufferRowLength = 0u,
             .bufferImageHeight = 0u,
-            .imageSubresource = {
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .mipLevel = 0u,
-                .baseArrayLayer = 0u,
-                .layerCount = 1u},
+            .imageSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .mipLevel = 0u, .baseArrayLayer = 0u, .layerCount = 1u},
             .imageOffset = {.x = 0u, .y = 0u, .z = 0u},
-            .imageExtent = {.width = Extent.width, .height = Extent.height, .depth = 1u}};
+            .imageExtent = {.width = Extent.width, .height = Extent.height, .depth = 1u}
+        };
 
         vkCmdCopyBufferToImage(CommandBuffer, Source, Destination, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1u, &BufferImageCopy);
     }
     RenderCoreHelpers::FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
 }
 
-void VulkanBufferManager::MoveImageLayout(const VkImage &Image, const VkFormat &Format, const VkImageLayout &OldLayout, const VkImageLayout &NewLayout, const VkQueue &Queue, const std::uint8_t QueueFamilyIndex) const
+void VulkanBufferManager::MoveImageLayout(const VkImage&       Image,
+                                          const VkFormat&      Format,
+                                          const VkImageLayout& OldLayout,
+                                          const VkImageLayout& NewLayout,
+                                          const VkQueue&       Queue,
+                                          const std::uint8_t   QueueFamilyIndex)
 {
     VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
-    VkCommandPool CommandPool = VK_NULL_HANDLE;
+    VkCommandPool   CommandPool   = VK_NULL_HANDLE;
     RenderCoreHelpers::InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
     {
         VkPipelineStageFlags SourceStage;
@@ -604,12 +595,8 @@ void VulkanBufferManager::MoveImageLayout(const VkImage &Image, const VkFormat &
             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .image = Image,
-            .subresourceRange = {
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .baseMipLevel = 0u,
-                .levelCount = 1u,
-                .baseArrayLayer = 0u,
-                .layerCount = 1u}};
+            .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0u, .levelCount = 1u, .baseArrayLayer = 0u, .layerCount = 1u}
+        };
 
         if (NewLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
         {
@@ -626,7 +613,7 @@ void VulkanBufferManager::MoveImageLayout(const VkImage &Image, const VkFormat &
             Barrier.srcAccessMask = 0;
             Barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-            SourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            SourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             DestinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         }
         else if (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
@@ -634,7 +621,7 @@ void VulkanBufferManager::MoveImageLayout(const VkImage &Image, const VkFormat &
             Barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             Barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-            SourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            SourceStage      = VK_PIPELINE_STAGE_TRANSFER_BIT;
             DestinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         }
         else if (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
@@ -642,7 +629,7 @@ void VulkanBufferManager::MoveImageLayout(const VkImage &Image, const VkFormat &
             Barrier.srcAccessMask = 0;
             Barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-            SourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            SourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             DestinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         }
         else
@@ -664,7 +651,7 @@ void VulkanBufferManager::Shutdown()
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Vulkan buffer manager";
 
-    const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
     if (m_SwapChain != VK_NULL_HANDLE)
     {
@@ -688,15 +675,15 @@ void VulkanBufferManager::DestroyResources(const bool bClearScene)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying Vulkan buffer manager resources";
 
-    const VkDevice &VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    for (VulkanImageAllocation &ImageViewIter : m_SwapChainImages)
+    for (VulkanImageAllocation& ImageViewIter : m_SwapChainImages)
     {
         ImageViewIter.DestroyResources();
     }
     m_SwapChainImages.clear();
 
-    for (VkFramebuffer &FrameBufferIter : m_FrameBuffers)
+    for (VkFramebuffer& FrameBufferIter : m_FrameBuffers)
     {
         if (FrameBufferIter != VK_NULL_HANDLE)
         {
@@ -710,24 +697,24 @@ void VulkanBufferManager::DestroyResources(const bool bClearScene)
 
     if (bClearScene)
     {
-        for (auto &[ObjectID, ObjectIter] : m_Objects)
+        for (auto& [ObjectID, ObjectIter] : m_Objects)
         {
             ObjectIter.DestroyResources();
         }
     }
 }
 
-bool VulkanBufferManager::IsInitialized() const
+bool VulkanBufferManager::IsInitialized()
 {
     return s_Allocator != VK_NULL_HANDLE;
 }
 
-const VkSwapchainKHR &VulkanBufferManager::GetSwapChain() const
+const VkSwapchainKHR& VulkanBufferManager::GetSwapChain() const
 {
     return m_SwapChain;
 }
 
-const VkExtent2D &VulkanBufferManager::GetSwapChainExtent() const
+const VkExtent2D& VulkanBufferManager::GetSwapChainExtent() const
 {
     return m_SwapChainExtent;
 }
@@ -735,7 +722,7 @@ const VkExtent2D &VulkanBufferManager::GetSwapChainExtent() const
 const std::vector<VkImage> VulkanBufferManager::GetSwapChainImages() const
 {
     std::vector<VkImage> SwapChainImages;
-    for (const VulkanImageAllocation &ImageIter : m_SwapChainImages)
+    for (const VulkanImageAllocation& ImageIter : m_SwapChainImages)
     {
         SwapChainImages.push_back(ImageIter.Image);
     }
@@ -743,7 +730,7 @@ const std::vector<VkImage> VulkanBufferManager::GetSwapChainImages() const
     return SwapChainImages;
 }
 
-const std::vector<VkFramebuffer> &VulkanBufferManager::GetFrameBuffers() const
+const std::vector<VkFramebuffer>& VulkanBufferManager::GetFrameBuffers() const
 {
     return m_FrameBuffers;
 }
@@ -775,23 +762,23 @@ const std::uint32_t VulkanBufferManager::GetIndicesCount(const std::uint64_t Obj
         return 0u;
     }
 
-    return static_cast<std::uint32_t>(m_Objects.at(ObjectID).IndicesCount);
+    return m_Objects.at(ObjectID).IndicesCount;
 }
 
 std::vector<VulkanTextureData> VulkanBufferManager::GetAllocatedTextures() const
 {
     std::vector<VulkanTextureData> Output;
-    for (auto &[ObjectID, ObjectIter] : m_Objects)
+    for (auto& [ObjectID, ObjectIter] : m_Objects)
     {
         Output.emplace_back(ObjectIter.TextureImage.View, ObjectIter.TextureImage.Sampler);
     }
     return Output;
 }
 
-void VulkanBufferManager::CreateSwapChainImageViews(const VkFormat &ImageFormat)
+void VulkanBufferManager::CreateSwapChainImageViews(const VkFormat& ImageFormat)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan swap chain image views";
-    for (VulkanImageAllocation &ImageIter : m_SwapChainImages)
+    for (VulkanImageAllocation& ImageIter : m_SwapChainImages)
     {
         CreateImageView(ImageIter.Image, ImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, ImageIter.View);
     }

@@ -17,9 +17,11 @@ namespace RenderCore
 
         Vertex() = default;
 
-        Vertex(const glm::vec3 &InPosition, const glm::vec3 &InColor, const glm::vec2 &InTextureCoordinate)
+        Vertex(const glm::vec3& InPosition, const glm::vec3& InColor, const glm::vec2& InTextureCoordinate)
             : Position(InPosition)
-            , Color(InColor)
-            , TextureCoordinate(InTextureCoordinate) {}
+          , Color(InColor)
+          , TextureCoordinate(InTextureCoordinate)
+        {
+        }
     };
 }

@@ -3,7 +3,7 @@
 # Repo: https://github.com/lucoiso/VulkanLearning
 
 # ------------ Project Settings ------------
-cmake_minimum_required(VERSION 3.27.4)
+cmake_minimum_required(VERSION 3.26.4)
 project(VulkanProject VERSION 0.0.1 LANGUAGES CXX)
 include(CTest)
 

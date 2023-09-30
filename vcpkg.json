@@ -1,17 +1,51 @@
 {
-    "name": "vulkan-project",
-    "version-string": "0.0.1",
-    "dependencies": [
-        { "name": "glfw3",                      "platform": "windows & x64" },
-        { "name": "boost-log",                  "platform": "windows & x64" },
-        { "name": "boost-json",                 "platform": "windows & x64" },
-        { "name": "boost-test",                 "platform": "windows & x64" },
-        { "name": "benchmark",                  "platform": "windows & x64" },
-        { "name": "glm",                        "platform": "windows & x64" },
-        { "name": "stb",                        "platform": "windows & x64" },
-        { "name": "assimp",                     "platform": "windows & x64" },
-        { "name": "volk",                       "platform": "windows & x64" },
-        { "name": "vulkan-memory-allocator",    "platform": "windows & x64" },
-        { "name": "glslang",                    "platform": "windows & x64" }
-    ]
+  "name": "vulkan-project",
+  "version-string": "0.0.1",
+  "dependencies": [
+    {
+      "name": "glfw3",
+      "platform": "windows & x64"
+    },
+    {
+      "name": "boost-log",
+      "platform": "windows & x64"
+    },
+    {
+      "name": "boost-json",
+      "platform": "windows & x64"
+    },
+    {
+      "name": "boost-test",
+      "platform": "windows & x64"
+    },
+    {
+      "name": "benchmark",
+      "platform": "windows & x64"
+    },
+    {
+      "name": "glm",
+      "platform": "windows & x64"
+    },
+    {
+      "name": "stb",
+      "platform": "windows & x64"
+    },
+    {
+      "name": "assimp",
+      "platform": "windows & x64"
+    },
+    {
+      "name": "volk",
+      "platform": "windows & x64"
+    },
+    {
+      "name": "vulkan-memory-allocator",
+      "platform": "windows & x64"
+    },
+    {
+      "name": "glslang",
+      "platform": "windows & x64"
+    }
+  ],
+  "builtin-baseline": "c6d6efed3e9b4242765bfe1b5c5befffd85f7b92"
 }

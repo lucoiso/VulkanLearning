@@ -5,9 +5,9 @@
 #include <RenderCore/Window.h>
 #include <memory>
 
-int main(int Argc, char *Argv[])
+int main(int Argc, char* Argv[])
 {
-    const std::unique_ptr<RenderCore::Window> Window = std::make_unique<RenderCore::Window>();
+    const auto Window = std::make_unique<RenderCore::Window>();
     if (Window->Initialize(600u, 600u, "Vulkan Project"))
     {
         while (Window->IsOpen())

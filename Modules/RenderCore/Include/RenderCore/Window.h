@@ -18,20 +18,22 @@ namespace RenderCore
     public:
         Window();
 
-        Window(const Window &) = delete;
-        Window &operator=(const Window &) = delete;
+        Window(const Window&)            = delete;
+        Window& operator=(const Window&) = delete;
 
         ~Window();
 
-        bool Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title);
-        void Shutdown();
+        bool Initialize(std::uint16_t Width, std::uint16_t Height, std::string_view Title);
+        void Shutdown() const;
 
         bool IsInitialized() const;
         bool IsOpen() const;
 
-        void PollEvents();
+        void PollEvents() const;
 
-        virtual void CreateOverlay() {};
+        virtual void CreateOverlay()
+        {
+        };
 
     private:
         std::unique_ptr<Impl> m_Impl;

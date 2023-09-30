@@ -12,11 +12,14 @@ namespace RenderCore
     struct VulkanTextureData
     {
         VkImageView ImageView;
-        VkSampler Sampler;
+        VkSampler   Sampler;
 
         VulkanTextureData() = default;
-        VulkanTextureData(VkImageView imageView, VkSampler sampler)
+
+        VulkanTextureData(const VkImageView imageView, const VkSampler sampler)
             : ImageView(imageView)
-            , Sampler(sampler) {}
+          , Sampler(sampler)
+        {
+        }
     };
 }

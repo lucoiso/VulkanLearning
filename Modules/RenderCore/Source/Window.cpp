@@ -19,14 +19,13 @@ using namespace RenderCore;
 class Window::Impl
 {
 public:
-    Impl(const Window::Impl &) = delete;
-    Impl &operator=(const Window::Impl &) = delete;
+    Impl(const Impl&)            = delete;
+    Impl& operator=(const Impl&) = delete;
 
     Impl()
         : m_Window(nullptr)
-        , m_DrawTimerID(0u)
-        , m_EventIDQueue()
-        , m_MainThreadID(std::this_thread::get_id())
+      , m_DrawTimerID(0u)
+      , m_MainThreadID(std::this_thread::get_id())
     {
     }
 
@@ -57,7 +56,7 @@ public:
                 RegisterTimers();
             }
         }
-        catch (const std::exception &Ex)
+        catch (const std::exception& Ex)
         {
             BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
             Shutdown();
@@ -73,7 +72,7 @@ public:
             return;
         }
 
-        std::lock_guard<std::mutex> Lock(m_Mutex);
+        std::lock_guard Lock(m_Mutex);
 
         Timer::TimerManager::Get().StopTimer(m_DrawTimerID);
         while (!m_EventIDQueue.empty())
@@ -103,56 +102,55 @@ public:
 
         try
         {
-            std::lock_guard<std::mutex> Lock(m_Mutex);
+            std::lock_guard                                         Lock(m_Mutex);
             std::unordered_map<ApplicationEventFlags, std::uint8_t> ProcessedEvents;
 
-            for (std::uint8_t Iterator = 0u; Iterator < std::underlying_type<ApplicationEventFlags>::type(ApplicationEventFlags::MAX); ++Iterator)
+            for (std::uint8_t Iterator = 0u; Iterator < static_cast<std::underlying_type_t<ApplicationEventFlags>>(ApplicationEventFlags::MAX); ++Iterator)
             {
                 ProcessedEvents.emplace(static_cast<ApplicationEventFlags>(Iterator), 0u);
             }
 
             while (!m_EventIDQueue.empty())
             {
-                const ApplicationEventFlags EventFlags = static_cast<ApplicationEventFlags>(m_EventIDQueue.front());
+                const auto EventFlags = static_cast<ApplicationEventFlags>(m_EventIDQueue.front());
                 m_EventIDQueue.pop();
 
                 switch (EventFlags)
                 {
-                case ApplicationEventFlags::DRAW_FRAME:
-                {
-                    if (ProcessedEvents[EventFlags] > 0u)
-                    {
-                        break;
-                    }
+                    case ApplicationEventFlags::DRAW_FRAME:
+                        {
+                            if (ProcessedEvents[EventFlags] > 0u)
+                            {
+                                break;
+                            }
 
-                    VulkanRenderCore::Get().DrawFrame(m_Window);
-                    break;
-                }
-                case ApplicationEventFlags::LOAD_SCENE:
-                {
-                    VulkanRenderCore::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
-                    break;
-                }
-                case ApplicationEventFlags::UNLOAD_SCENE:
-                {
-                    VulkanRenderCore::Get().UnloadScene();
-                    break;
-                }
-                default:
-                    break;
+                            VulkanRenderCore::Get().DrawFrame(m_Window);
+                            break;
+                        }
+                    case ApplicationEventFlags::LOAD_SCENE:
+                        {
+                            VulkanRenderCore::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+                            break;
+                        }
+                    case ApplicationEventFlags::UNLOAD_SCENE:
+                        {
+                            VulkanRenderCore::Get().UnloadScene();
+                            break;
+                        }
+                    default:
+                        break;
                 }
 
                 ++ProcessedEvents[EventFlags];
             }
         }
-        catch (const std::exception &Ex)
+        catch (const std::exception& Ex)
         {
             BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
         }
     }
 
 private:
-
     bool InitializeGLFW(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title)
     {
         if (!glfwInit())
@@ -163,7 +161,8 @@ private:
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        if (m_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr); !m_Window)
+        if (m_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr);
+            !m_Window)
         {
             throw std::runtime_error("Failed to create GLFW Window");
         }
@@ -176,7 +175,7 @@ private:
         return m_Window != nullptr;
     }
 
-    bool InitializeVulkanRenderCore()
+    bool InitializeVulkanRenderCore() const
     {
         VulkanRenderCore::Get().Initialize(m_Window);
 
@@ -193,44 +192,41 @@ private:
         constexpr std::uint32_t DrawFrameTimerInterval = 1000u / (g_FrameRate > 0 ? g_FrameRate : 1u);
         Timer::TimerManager::Get().SetTickInterval(std::chrono::milliseconds(DrawFrameTimerInterval));
 
-        { // Draw Frame
-            const Timer::TimerParameters DrawFrameTimerParameters {
+        {
+            // Draw Frame
+            constexpr Timer::TimerParameters DrawFrameTimerParameters{
                 .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::DRAW_FRAME),
                 .Interval = DrawFrameTimerInterval,
-                .RepeatCount = std::nullopt};
+                .RepeatCount = std::nullopt
+            };
 
             m_DrawTimerID = Timer::TimerManager::Get().StartTimer(DrawFrameTimerParameters, m_EventIDQueue);
         }
 
         {
             // Load Scene: Testing Only
-            constexpr Timer::TimerParameters LoadSceneTimerParameters {
-                .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::LOAD_SCENE),
-                .Interval = 3000u,
-                .RepeatCount = 0u};
+            constexpr Timer::TimerParameters LoadSceneTimerParameters{.EventID = static_cast<std::uint8_t>(ApplicationEventFlags::LOAD_SCENE), .Interval = 3000u, .RepeatCount = 0u};
 
             Timer::TimerManager::Get().StartTimer(LoadSceneTimerParameters, m_EventIDQueue);
         }
 
-        { // Unload Scene: Testing Only
-            constexpr Timer::TimerParameters UnLoadSceneTimerParameters {
-                .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::UNLOAD_SCENE),
-                .Interval = 5000u,
-                .RepeatCount = 0u};
+        {
+            // Unload Scene: Testing Only
+            constexpr Timer::TimerParameters UnLoadSceneTimerParameters{.EventID = static_cast<std::uint8_t>(ApplicationEventFlags::UNLOAD_SCENE), .Interval = 5000u, .RepeatCount = 0u};
 
             Timer::TimerManager::Get().StartTimer(UnLoadSceneTimerParameters, m_EventIDQueue);
         }
     }
 
-    GLFWwindow *m_Window;
-    std::uint64_t m_DrawTimerID;
+    GLFWwindow*              m_Window;
+    std::uint64_t            m_DrawTimerID;
     std::queue<std::uint8_t> m_EventIDQueue;
-    std::mutex m_Mutex;
-    std::thread::id m_MainThreadID;
+    std::mutex               m_Mutex;
+    std::thread::id          m_MainThreadID;
 };
 
 Window::Window()
-    : m_Impl(std::make_unique<Window::Impl>())
+    : m_Impl(std::make_unique<Impl>())
 {
 }
 
@@ -263,7 +259,7 @@ bool Window::Initialize(const std::uint16_t Width, const std::uint16_t Height, c
     return IsInitialized();
 }
 
-void Window::Shutdown()
+void Window::Shutdown() const
 {
     if (!IsInitialized())
     {
@@ -283,7 +279,7 @@ bool Window::IsOpen() const
     return m_Impl && m_Impl->IsOpen();
 }
 
-void Window::PollEvents()
+void Window::PollEvents() const
 {
     try
     {
@@ -294,7 +290,7 @@ void Window::PollEvents()
             m_Impl->ProcessEvents();
         }
     }
-    catch (const std::exception &Ex)
+    catch (const std::exception& Ex)
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
     }

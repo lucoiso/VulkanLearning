@@ -5,46 +5,45 @@
 #pragma once
 
 #include <vector>
-#include <string_view>
 #include <unordered_map>
 #include <glslang/Public/ShaderLang.h>
 #include <volk.h>
 
 namespace RenderCore
 {
-    constexpr const char *EntryPoint = "main";
+    constexpr const char* EntryPoint = "main";
 
     class VulkanShaderManager
     {
     public:
-        VulkanShaderManager(const VulkanShaderManager &) = delete;
-        VulkanShaderManager &operator=(const VulkanShaderManager &) = delete;
+        VulkanShaderManager(const VulkanShaderManager&)            = delete;
+        VulkanShaderManager& operator=(const VulkanShaderManager&) = delete;
 
         VulkanShaderManager();
         ~VulkanShaderManager();
 
         void Shutdown();
 
-        static VulkanShaderManager &Get();
+        static VulkanShaderManager& Get();
 
-        bool Compile(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode);
-        bool Load(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode);
-        
-        bool CompileOrLoadIfExists(const std::string_view Source, std::vector<uint32_t> &OutSPIRVCode);
+        static bool Compile(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
+        static bool Load(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
 
-        VkShaderModule CreateModule(const VkDevice &Device, const std::vector<uint32_t> &SPIRVCode, EShLanguage Language);
-        VkPipelineShaderStageCreateInfo GetStageInfo(const VkShaderModule &Module);
+        static bool CompileOrLoadIfExists(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
 
-        std::vector<VkShaderModule> GetShaderModules() const;
+        VkShaderModule                  CreateModule(const VkDevice& Device, const std::vector<uint32_t>& SPIRVCode, EShLanguage Language);
+        VkPipelineShaderStageCreateInfo GetStageInfo(const VkShaderModule& Module) const;
+
+        std::vector<VkShaderModule>                  GetShaderModules() const;
         std::vector<VkPipelineShaderStageCreateInfo> GetStageInfos() const;
 
-        void FreeStagedModules(const std::vector<VkPipelineShaderStageCreateInfo> &StagedModules);
+        void FreeStagedModules(const std::vector<VkPipelineShaderStageCreateInfo>& StagedModules);
 
     private:
         static VulkanShaderManager g_Instance;
 
-        bool Compile(const std::string_view Source, EShLanguage Language, std::vector<uint32_t> &OutSPIRVCode);
-        void StageInfo(const VkShaderModule &Module, EShLanguage Language);
+        static bool Compile(std::string_view Source, EShLanguage Language, std::vector<uint32_t>& OutSPIRVCode);
+        void        StageInfo(const VkShaderModule& Module, EShLanguage Language);
 
         std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> m_StageInfos;
     };

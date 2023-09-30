@@ -15,40 +15,40 @@ namespace RenderCore
     class VulkanCommandsManager
     {
     public:
-        VulkanCommandsManager(const VulkanCommandsManager &) = delete;
-        VulkanCommandsManager &operator=(const VulkanCommandsManager &) = delete;
+        VulkanCommandsManager(const VulkanCommandsManager&)            = delete;
+        VulkanCommandsManager& operator=(const VulkanCommandsManager&) = delete;
 
         VulkanCommandsManager();
         ~VulkanCommandsManager();
 
-        static VulkanCommandsManager &Get();
+        static VulkanCommandsManager& Get();
 
         void Shutdown();
 
-        [[nodiscard]] VkCommandPool CreateCommandPool(const std::uint8_t FamilyQueueIndex);
+        [[nodiscard]] static VkCommandPool CreateCommandPool(std::uint8_t FamilyQueueIndex);
 
         void CreateSynchronizationObjects();
         void DestroySynchronizationObjects();
 
-        std::optional<std::int32_t> DrawFrame();
+        std::optional<std::int32_t> DrawFrame() const;
 
-        void RecordCommandBuffers(const std::uint32_t ImageIndex);
+        void RecordCommandBuffers(std::uint32_t ImageIndex);
         void SubmitCommandBuffers();
-        void PresentFrame(const std::uint32_t ImageIndice);
+        void PresentFrame(std::uint32_t ImageIndice);
 
     private:
         void CreateGraphicsCommandPool();
         void AllocateCommandBuffer();
-        void WaitAndResetFences();
+        void WaitAndResetFences() const;
 
         static VulkanCommandsManager g_Instance;
 
-        VkCommandPool m_CommandPool;
+        VkCommandPool   m_CommandPool;
         VkCommandBuffer m_CommandBuffer;
-        VkSemaphore m_ImageAvailableSemaphore;
-        VkSemaphore m_RenderFinishedSemaphore;
-        VkFence m_Fence;
-        bool m_SynchronizationObjectsCreated;
+        VkSemaphore     m_ImageAvailableSemaphore;
+        VkSemaphore     m_RenderFinishedSemaphore;
+        VkFence         m_Fence;
+        bool            m_SynchronizationObjectsCreated;
 
         std::uint8_t m_FrameIndex;
     };

@@ -19,45 +19,45 @@ namespace RenderCore
     public:
         VulkanRenderCore();
 
-        VulkanRenderCore(const VulkanRenderCore &) = delete;
-        VulkanRenderCore &operator=(const VulkanRenderCore &) = delete;
+        VulkanRenderCore(const VulkanRenderCore&)            = delete;
+        VulkanRenderCore& operator=(const VulkanRenderCore&) = delete;
 
         ~VulkanRenderCore();
 
-        static VulkanRenderCore &Get();
+        static VulkanRenderCore& Get();
 
-        void Initialize(GLFWwindow *const Window);
+        void Initialize(GLFWwindow* Window);
         void Shutdown();
 
-        void DrawFrame(GLFWwindow *const Window);
+        void DrawFrame(GLFWwindow* Window) const;
         bool IsInitialized() const;
 
-        void LoadScene(const std::string_view ModelPath, const std::string_view TexturePath);
-        void UnloadScene();
+        void LoadScene(std::string_view ModelPath, std::string_view TexturePath);
+        void UnloadScene() const;
 
-        [[nodiscard]] VkInstance &GetInstance();
-        [[nodiscard]] VkSurfaceKHR &GetSurface();
+        [[nodiscard]] VkInstance&   GetInstance();
+        [[nodiscard]] VkSurfaceKHR& GetSurface();
 
         VulkanRenderCoreStateFlags GetStateFlags() const;
 
     private:
-        std::optional<std::int32_t> TryRequestDrawImage(GLFWwindow *const Window);
+        std::optional<std::int32_t> TryRequestDrawImage(GLFWwindow* Window) const;
 
         void CreateVulkanInstance();
-        void CreateVulkanSurface(GLFWwindow *const Window);
-        void InitializeRenderCore(GLFWwindow *const Window);
+        void CreateVulkanSurface(GLFWwindow* Window);
+        void InitializeRenderCore(GLFWwindow* Window) const;
 
-        std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders();
+        static std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders();
 
-        static VulkanRenderCore Instance;
+        static VulkanRenderCore g_Instance;
 
-        VkInstance m_Instance;
-        VkSurfaceKHR m_Surface;
+        VkInstance                         m_Instance;
+        VkSurfaceKHR                       m_Surface;
         mutable VulkanRenderCoreStateFlags StateFlags;
 
-    #ifdef _DEBUG
+        #ifdef _DEBUG
         VkDebugUtilsMessengerEXT m_DebugMessenger;
-    #endif
+        #endif
 
         std::uint32_t m_ObjectID;
     };
