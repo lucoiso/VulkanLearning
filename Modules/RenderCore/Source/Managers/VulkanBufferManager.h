@@ -68,7 +68,7 @@ namespace RenderCore
 
         static VulkanImageAllocation AllocateTexture(const unsigned char* Data, std::uint32_t Width, std::uint32_t Height, std::size_t AllocationSize);
 
-        void DestroyResources(bool bClearScene);
+        void DestroyResources(bool ClearScene);
         void Shutdown();
 
         static bool                                     IsInitialized();
@@ -113,7 +113,7 @@ namespace RenderCore
         void CreateSwapChainImageViews(const VkFormat& ImageFormat);
 
     public:
-        static VmaAllocator s_Allocator;
+        static VmaAllocator g_Allocator;
 
     private:
         static VulkanBufferManager g_Instance;

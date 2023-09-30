@@ -29,7 +29,7 @@
 using namespace RenderCore;
 
 VulkanBufferManager VulkanBufferManager::g_Instance{};
-VmaAllocator        VulkanBufferManager::s_Allocator(VK_NULL_HANDLE);
+VmaAllocator        VulkanBufferManager::g_Allocator(VK_NULL_HANDLE);
 
 bool VulkanImageAllocation::IsValid() const
 {
@@ -40,7 +40,7 @@ void VulkanImageAllocation::DestroyResources()
 {
     if (Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
     {
-        vmaDestroyImage(VulkanBufferManager::s_Allocator, Image, Allocation);
+        vmaDestroyImage(VulkanBufferManager::g_Allocator, Image, Allocation);
         Image      = VK_NULL_HANDLE;
         Allocation = VK_NULL_HANDLE;
     }
@@ -76,10 +76,10 @@ void VulkanBufferAllocation::DestroyResources()
     {
         if (Allocation->GetMappedData() != nullptr)
         {
-            vmaUnmapMemory(VulkanBufferManager::s_Allocator, Allocation);
+            vmaUnmapMemory(VulkanBufferManager::g_Allocator, Allocation);
         }
 
-        vmaDestroyBuffer(VulkanBufferManager::s_Allocator, Buffer, Allocation);
+        vmaDestroyBuffer(VulkanBufferManager::g_Allocator, Buffer, Allocation);
         Allocation = VK_NULL_HANDLE;
         Buffer     = VK_NULL_HANDLE;
     }
@@ -140,7 +140,7 @@ void VulkanBufferManager::CreateMemoryAllocator()
         .pTypeExternalMemoryHandleTypes = nullptr
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateAllocator(&AllocatorInfo, &s_Allocator));
+    RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateAllocator(&AllocatorInfo, &g_Allocator));
 }
 
 void VulkanBufferManager::CreateSwapChain()
@@ -150,7 +150,7 @@ void VulkanBufferManager::CreateSwapChain()
     // ReSharper disable once CppUseStructuredBinding
     const VulkanDeviceProperties& Properties = VulkanDeviceManager::Get().GetDeviceProperties();
 
-    const std::vector<std::uint32_t> QueueFamilyIndices      = VulkanDeviceManager::Get().GetUniqueQueueFamilyIndices_u32();
+    const std::vector<std::uint32_t> QueueFamilyIndices      = VulkanDeviceManager::Get().GetUniqueQueueFamilyIndicesU32();
     const std::uint32_t              QueueFamilyIndicesCount = QueueFamilyIndices.size();
 
     m_OldSwapChain    = m_SwapChain;
@@ -249,7 +249,7 @@ void VulkanBufferManager::CreateVertexBuffers(VulkanObjectAllocation& Object, co
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan vertex buffers";
 
-    if (s_Allocator == VK_NULL_HANDLE)
+    if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
@@ -274,14 +274,14 @@ void VulkanBufferManager::CreateVertexBuffers(VulkanObjectAllocation& Object, co
     CreateBuffer(BufferSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.VertexBuffer.Buffer, Object.VertexBuffer.Allocation);
     CopyBuffer(StagingBuffer, Object.VertexBuffer.Buffer, BufferSize, Queue, FamilyIndex);
 
-    vmaDestroyBuffer(s_Allocator, StagingBuffer, StagingBufferMemory);
+    vmaDestroyBuffer(g_Allocator, StagingBuffer, StagingBufferMemory);
 }
 
 void VulkanBufferManager::CreateIndexBuffers(VulkanObjectAllocation& Object, const std::vector<std::uint32_t>& Indices)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
 
-    if (s_Allocator == VK_NULL_HANDLE)
+    if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
@@ -303,12 +303,12 @@ void VulkanBufferManager::CreateIndexBuffers(VulkanObjectAllocation& Object, con
     const VmaAllocationInfo StagingInfo = CreateBuffer(BufferSize, SourceUsageFlags, SourceMemoryPropertyFlags, StagingBuffer, StagingBufferMemory);
 
     std::memcpy(StagingInfo.pMappedData, Indices.data(), BufferSize);
-    RENDERCORE_CHECK_VULKAN_RESULT(vmaFlushAllocation(s_Allocator, StagingBufferMemory, 0u, BufferSize));
+    RENDERCORE_CHECK_VULKAN_RESULT(vmaFlushAllocation(g_Allocator, StagingBufferMemory, 0u, BufferSize));
 
     CreateBuffer(BufferSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.IndexBuffer.Buffer, Object.IndexBuffer.Allocation);
     CopyBuffer(StagingBuffer, Object.IndexBuffer.Buffer, BufferSize, Queue, FamilyIndex);
 
-    vmaDestroyBuffer(s_Allocator, StagingBuffer, StagingBufferMemory);
+    vmaDestroyBuffer(g_Allocator, StagingBuffer, StagingBufferMemory);
 }
 
 std::uint64_t VulkanBufferManager::LoadObject(const std::string_view ModelPath, const std::string_view TexturePath)
@@ -411,7 +411,7 @@ VulkanImageAllocation VulkanBufferManager::AllocateTexture(const unsigned char* 
 
     CreateTextureImageView(ImageAllocation);
     CreateTextureSampler(ImageAllocation);
-    vmaDestroyBuffer(s_Allocator, StagingBuffer, StagingBufferMemory);
+    vmaDestroyBuffer(g_Allocator, StagingBuffer, StagingBufferMemory);
 
     return ImageAllocation;
 }
@@ -420,7 +420,7 @@ void VulkanBufferManager::LoadTexture(VulkanObjectAllocation& Object, const std:
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan texture image";
 
-    if (s_Allocator == VK_NULL_HANDLE)
+    if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
@@ -450,7 +450,7 @@ void VulkanBufferManager::LoadTexture(VulkanObjectAllocation& Object, const std:
 
 VmaAllocationInfo VulkanBufferManager::CreateBuffer(const VkDeviceSize& Size, const VkBufferUsageFlags Usage, const VkMemoryPropertyFlags Flags, VkBuffer& Buffer, VmaAllocation& Allocation)
 {
-    if (s_Allocator == VK_NULL_HANDLE)
+    if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
@@ -460,7 +460,7 @@ VmaAllocationInfo VulkanBufferManager::CreateBuffer(const VkDeviceSize& Size, co
     const VmaAllocationCreateInfo AllocationCreateInfo{.flags = Flags, .usage = VMA_MEMORY_USAGE_AUTO};
 
     VmaAllocationInfo MemoryAllocationInfo;
-    RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateBuffer(s_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &Buffer, &Allocation, &MemoryAllocationInfo));
+    RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateBuffer(g_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &Buffer, &Allocation, &MemoryAllocationInfo));
 
     return MemoryAllocationInfo;
 }
@@ -486,7 +486,7 @@ void VulkanBufferManager::CreateImage(const VkFormat&             ImageFormat,
                                       VkImage&                    Image,
                                       VmaAllocation&              Allocation)
 {
-    if (s_Allocator == VK_NULL_HANDLE)
+    if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
@@ -507,7 +507,7 @@ void VulkanBufferManager::CreateImage(const VkFormat&             ImageFormat,
     const VmaAllocationCreateInfo ImageAllocationCreateInfo{.flags = Flags, .usage = VMA_MEMORY_USAGE_AUTO};
 
     VmaAllocationInfo AllocationInfo;
-    RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateImage(s_Allocator, &ImageViewCreateInfo, &ImageAllocationCreateInfo, &Image, &Allocation, &AllocationInfo));
+    RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateImage(g_Allocator, &ImageViewCreateInfo, &ImageAllocationCreateInfo, &Image, &Allocation, &AllocationInfo));
 }
 
 void VulkanBufferManager::CreateImageView(const VkImage& Image, const VkFormat& Format, const VkImageAspectFlags& AspectFlags, VkImageView& ImageView)
@@ -531,13 +531,13 @@ void VulkanBufferManager::CreateTextureImageView(VulkanImageAllocation& Allocati
 
 void VulkanBufferManager::CreateTextureSampler(VulkanImageAllocation& Allocation)
 {
-    if (s_Allocator == VK_NULL_HANDLE)
+    if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
 
     VkPhysicalDeviceProperties DeviceProperties;
-    vkGetPhysicalDeviceProperties(s_Allocator->GetPhysicalDevice(), &DeviceProperties);
+    vkGetPhysicalDeviceProperties(g_Allocator->GetPhysicalDevice(), &DeviceProperties);
 
     const VkSamplerCreateInfo SamplerCreateInfo{
         .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -674,11 +674,11 @@ void VulkanBufferManager::Shutdown()
 
     DestroyResources(true);
 
-    vmaDestroyAllocator(s_Allocator);
-    s_Allocator = VK_NULL_HANDLE;
+    vmaDestroyAllocator(g_Allocator);
+    g_Allocator = VK_NULL_HANDLE;
 }
 
-void VulkanBufferManager::DestroyResources(const bool bClearScene)
+void VulkanBufferManager::DestroyResources(const bool ClearScene)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying Vulkan buffer manager resources";
 
@@ -702,7 +702,7 @@ void VulkanBufferManager::DestroyResources(const bool bClearScene)
 
     m_DepthImage.DestroyResources();
 
-    if (bClearScene)
+    if (ClearScene)
     {
         for (auto& ObjectIter : m_Objects | std::views::values)
         {
@@ -713,7 +713,7 @@ void VulkanBufferManager::DestroyResources(const bool bClearScene)
 
 bool VulkanBufferManager::IsInitialized()
 {
-    return s_Allocator != VK_NULL_HANDLE;
+    return g_Allocator != VK_NULL_HANDLE;
 }
 
 const VkSwapchainKHR& VulkanBufferManager::GetSwapChain() const
@@ -775,9 +775,9 @@ std::uint32_t VulkanBufferManager::GetIndicesCount(const std::uint64_t ObjectID)
 std::vector<VulkanTextureData> VulkanBufferManager::GetAllocatedTextures() const
 {
     std::vector<VulkanTextureData> Output;
-    for (const auto& ObjectIter : m_Objects | std::views::values)
+    for (const auto& [TextureImage, VertexBuffer, IndexBuffer, IndicesCount] : m_Objects | std::views::values)
     {
-        Output.emplace_back(ObjectIter.TextureImage.View, ObjectIter.TextureImage.Sampler);
+        Output.emplace_back(TextureImage.View, TextureImage.Sampler);
     }
     return Output;
 }

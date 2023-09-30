@@ -36,7 +36,7 @@ VulkanRenderCore VulkanRenderCore::g_Instance;
 VulkanRenderCore::VulkanRenderCore()
     : m_Instance(VK_NULL_HANDLE)
   , m_Surface(VK_NULL_HANDLE)
-  , StateFlags(VulkanRenderCoreStateFlags::NONE)
+  , m_StateFlags(VulkanRenderCoreStateFlags::NONE)
     #ifdef _DEBUG
   , m_DebugMessenger(VK_NULL_HANDLE)
     #endif
@@ -91,7 +91,7 @@ void VulkanRenderCore::Shutdown()
         return;
     }
 
-    RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::INITIALIZED);
+    RenderCoreHelpers::RemoveFlags(m_StateFlags, VulkanRenderCoreStateFlags::INITIALIZED);
 
     VulkanShaderManager::Get().Shutdown();
     VulkanCommandsManager::Get().Shutdown();
@@ -133,39 +133,39 @@ void VulkanRenderCore::DrawFrame(GLFWwindow* const Window) const
     constexpr VulkanRenderCoreStateFlags InvalidStatesToRender = VulkanRenderCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE | VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION |
         VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION | VulkanRenderCoreStateFlags::PENDING_PIPELINE_REFRESH;
 
-    if (RenderCoreHelpers::HasAnyFlag(StateFlags, InvalidStatesToRender))
+    if (RenderCoreHelpers::HasAnyFlag(m_StateFlags, InvalidStatesToRender))
     {
-        if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION))
+        if (RenderCoreHelpers::HasFlag(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
             VulkanCommandsManager::Get().DestroySynchronizationObjects();
             VulkanBufferManager::Get().DestroyResources(false);
             VulkanPipelineManager::Get().DestroyResources();
 
-            RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-            RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION);
+            RenderCoreHelpers::RemoveFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+            RenderCoreHelpers::AddFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION);
         }
 
-        if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
+        if (RenderCoreHelpers::HasFlag(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
         {
             if (VulkanDeviceManager::Get().UpdateDeviceProperties(Window))
             {
                 BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Device properties updated, starting to draw frames with new properties";
-                RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+                RenderCoreHelpers::RemoveFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
             }
         }
 
-        if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION))
+        if (RenderCoreHelpers::HasFlag(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION))
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
             VulkanBufferManager::Get().CreateSwapChain();
             VulkanBufferManager::Get().CreateDepthResources();
             VulkanCommandsManager::Get().CreateSynchronizationObjects();
 
-            RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION);
-            RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_PIPELINE_REFRESH);
+            RenderCoreHelpers::RemoveFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION);
+            RenderCoreHelpers::AddFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_PIPELINE_REFRESH);
         }
 
-        if (RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::PENDING_PIPELINE_REFRESH))
+        if (RenderCoreHelpers::HasFlag(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_PIPELINE_REFRESH))
         {
             VulkanPipelineManager::Get().CreateRenderPass();
             VulkanPipelineManager::Get().CreateDescriptorSetLayout();
@@ -176,11 +176,11 @@ void VulkanRenderCore::DrawFrame(GLFWwindow* const Window) const
             VulkanPipelineManager::Get().CreateDescriptorPool();
             VulkanPipelineManager::Get().CreateDescriptorSets();
 
-            RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_PIPELINE_REFRESH);
+            RenderCoreHelpers::RemoveFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_PIPELINE_REFRESH);
         }
     }
 
-    if (!RenderCoreHelpers::HasAnyFlag(StateFlags, InvalidStatesToRender))
+    if (!RenderCoreHelpers::HasAnyFlag(m_StateFlags, InvalidStatesToRender))
     {
         if (const std::optional<std::int32_t> ImageIndice = TryRequestDrawImage();
             ImageIndice.has_value())
@@ -194,7 +194,7 @@ void VulkanRenderCore::DrawFrame(GLFWwindow* const Window) const
 
 bool VulkanRenderCore::IsInitialized() const
 {
-    return RenderCoreHelpers::HasFlag(StateFlags, VulkanRenderCoreStateFlags::INITIALIZED);
+    return RenderCoreHelpers::HasFlag(m_StateFlags, VulkanRenderCoreStateFlags::INITIALIZED);
 }
 
 void VulkanRenderCore::LoadScene(const std::string_view ModelPath, const std::string_view TexturePath)
@@ -218,8 +218,8 @@ void VulkanRenderCore::LoadScene(const std::string_view ModelPath, const std::st
 
     m_ObjectID = VulkanBufferManager::Get().LoadObject(ModelPath, TexturePath);
 
-    RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-    RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION);
+    RenderCoreHelpers::AddFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    RenderCoreHelpers::AddFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION);
 }
 
 void VulkanRenderCore::UnloadScene() const
@@ -233,7 +233,7 @@ void VulkanRenderCore::UnloadScene() const
 
     VulkanBufferManager::Get().UnLoadObject(m_ObjectID);
 
-    RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    RenderCoreHelpers::AddFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
 }
 
 VkInstance& VulkanRenderCore::GetInstance()
@@ -248,29 +248,29 @@ VkSurfaceKHR& VulkanRenderCore::GetSurface()
 
 VulkanRenderCoreStateFlags VulkanRenderCore::GetStateFlags() const
 {
-    return StateFlags;
+    return m_StateFlags;
 }
 
 std::optional<std::int32_t> VulkanRenderCore::TryRequestDrawImage() const
 {
     if (!VulkanDeviceManager::Get().GetDeviceProperties().IsValid())
     {
-        RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
-        RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        RenderCoreHelpers::AddFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+        RenderCoreHelpers::AddFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
 
         return std::nullopt;
     }
-    RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+    RenderCoreHelpers::RemoveFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
 
     const std::optional<std::int32_t> Output = VulkanCommandsManager::Get().DrawFrame();
 
     if (!Output.has_value())
     {
-        RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        RenderCoreHelpers::AddFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
     }
     else
     {
-        RenderCoreHelpers::RemoveFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        RenderCoreHelpers::RemoveFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
     }
 
     return Output;
@@ -342,8 +342,8 @@ void VulkanRenderCore::InitializeRenderCore() const
     VulkanBufferManager::Get().CreateMemoryAllocator();
     CompileDefaultShaders();
 
-    RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::INITIALIZED);
-    RenderCoreHelpers::AddFlags(StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION);
+    RenderCoreHelpers::AddFlags(m_StateFlags, VulkanRenderCoreStateFlags::INITIALIZED);
+    RenderCoreHelpers::AddFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION);
 }
 
 std::vector<VkPipelineShaderStageCreateInfo> VulkanRenderCore::CompileDefaultShaders()

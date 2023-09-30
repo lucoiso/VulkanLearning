@@ -11,6 +11,7 @@
 
 namespace RenderCore
 {
+    // ReSharper disable once CppClassCanBeFinal
     class RENDERCOREMODULE_API Window
     {
         class Impl;

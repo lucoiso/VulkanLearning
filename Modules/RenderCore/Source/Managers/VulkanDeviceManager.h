@@ -57,7 +57,7 @@ namespace RenderCore
         [[nodiscard]] std::pair<std::uint8_t, VkQueue>& GetTransferQueue();
 
         [[nodiscard]] std::vector<std::uint8_t>& GetUniqueQueueFamilyIndices();
-        [[nodiscard]] std::vector<std::uint32_t> GetUniqueQueueFamilyIndices_u32();
+        [[nodiscard]] std::vector<std::uint32_t> GetUniqueQueueFamilyIndicesU32();
 
         [[nodiscard]] std::uint32_t GetMinImageCount() const;
 

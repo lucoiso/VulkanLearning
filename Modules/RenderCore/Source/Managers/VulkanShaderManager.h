@@ -11,7 +11,7 @@
 
 namespace RenderCore
 {
-    constexpr const char* EntryPoint = "main";
+    constexpr const char* g_EntryPoint = "main";
 
     class VulkanShaderManager
     {

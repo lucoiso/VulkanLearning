@@ -53,7 +53,7 @@ namespace RenderCore
 
         VkInstance                         m_Instance;
         VkSurfaceKHR                       m_Surface;
-        mutable VulkanRenderCoreStateFlags StateFlags;
+        mutable VulkanRenderCoreStateFlags m_StateFlags;
 
         #ifdef _DEBUG
         VkDebugUtilsMessengerEXT m_DebugMessenger;

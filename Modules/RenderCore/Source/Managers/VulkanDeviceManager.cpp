@@ -268,22 +268,22 @@ std::vector<std::uint8_t>& VulkanDeviceManager::GetUniqueQueueFamilyIndices()
     return m_UniqueQueueFamilyIndices;
 }
 
-std::vector<std::uint32_t> VulkanDeviceManager::GetUniqueQueueFamilyIndices_u32()
+std::vector<std::uint32_t> VulkanDeviceManager::GetUniqueQueueFamilyIndicesU32()
 {
-    std::vector<std::uint32_t> QueueFamilyIndices_u32(m_UniqueQueueFamilyIndices.size());
+    std::vector<std::uint32_t> QueueFamilyIndicesU32(m_UniqueQueueFamilyIndices.size());
     std::ranges::transform(m_UniqueQueueFamilyIndices,
-                           QueueFamilyIndices_u32.begin(),
+                           QueueFamilyIndicesU32.begin(),
                            [](const std::uint8_t& Index)
                            {
                                return static_cast<std::uint32_t>(Index);
                            });
-    return QueueFamilyIndices_u32;
+    return QueueFamilyIndicesU32;
 }
 
 std::uint32_t VulkanDeviceManager::GetMinImageCount() const
 {
-    const bool bSupportsTripleBuffering = m_DeviceProperties.Capabilities.minImageCount < 3u && m_DeviceProperties.Capabilities.maxImageCount >= 3u;
-    return bSupportsTripleBuffering ? 3u : m_DeviceProperties.Capabilities.minImageCount;
+    const bool SupportsTripleBuffering = m_DeviceProperties.Capabilities.minImageCount < 3u && m_DeviceProperties.Capabilities.maxImageCount >= 3u;
+    return SupportsTripleBuffering ? 3u : m_DeviceProperties.Capabilities.minImageCount;
 }
 
 void VulkanDeviceManager::Shutdown()

@@ -112,8 +112,8 @@ bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uin
     ShaderSource << File.rdbuf();
     File.close();
 
-    const bool bResult = Compile(ShaderSource.str(), Language, OutSPIRVCode);
-    if (bResult)
+    const bool Result = Compile(ShaderSource.str(), Language, OutSPIRVCode);
+    if (Result)
     {
         const std::string SPIRVPath = std::format("{}.spv", Source);
         std::ofstream     SPIRVFile(SPIRVPath, std::ios::binary);
@@ -128,7 +128,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uin
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compiled, generated SPIR-V shader file: " << SPIRVPath;
     }
 
-    return bResult;
+    return Result;
 }
 
 bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::uint32_t>& OutSPIRVCode)
@@ -247,7 +247,7 @@ void VulkanShaderManager::FreeStagedModules(const std::vector<VkPipelineShaderSt
     }
 }
 
-bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Language, std::vector<std::uint32_t>& OutSPIRVCode)
+bool VulkanShaderManager::Compile(const std::string_view Source, const EShLanguage Language, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     glslang::InitializeProcess();
 
@@ -256,8 +256,8 @@ bool VulkanShaderManager::Compile(const std::string_view Source, EShLanguage Lan
     const char* ShaderContent = Source.data();
     Shader.setStringsWithLengths(&ShaderContent, nullptr, 1);
 
-    Shader.setEntryPoint(EntryPoint);
-    Shader.setSourceEntryPoint(EntryPoint);
+    Shader.setEntryPoint(g_EntryPoint);
+    Shader.setSourceEntryPoint(g_EntryPoint);
     Shader.setEnvInput(glslang::EShSourceGlsl, Language, glslang::EShClientVulkan, 1);
     Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
     Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
@@ -310,7 +310,7 @@ void VulkanShaderManager::StageInfo(const VkShaderModule& Module, const EShLangu
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Staging shader info...";
 
-    VkPipelineShaderStageCreateInfo StageInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, .module = Module, .pName = EntryPoint};
+    VkPipelineShaderStageCreateInfo StageInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, .module = Module, .pName = g_EntryPoint};
 
     switch (Language)
     {

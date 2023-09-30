@@ -162,7 +162,7 @@ std::optional<std::int32_t> VulkanCommandsManager::DrawFrame() const
     std::uint32_t Output = 0u;
     if (const VkResult OperationResult = vkAcquireNextImageKHR(VulkanDeviceManager::Get().GetLogicalDevice(),
                                                                VulkanBufferManager::Get().GetSwapChain(),
-                                                               Timeout,
+                                                               g_Timeout,
                                                                m_ImageAvailableSemaphore,
                                                                m_Fence,
                                                                &Output);
@@ -217,7 +217,7 @@ void VulkanCommandsManager::RecordCommandBuffers(const std::uint32_t ImageIndex)
 
     const VkRect2D Scissor{.offset = {0, 0}, .extent = Extent};
 
-    bool bActiveRenderPass = false;
+    bool ActiveRenderPass = false;
     if (RenderPass != VK_NULL_HANDLE && !FrameBuffers.empty())
     {
         const VkRenderPassBeginInfo RenderPassBeginInfo{
@@ -230,7 +230,7 @@ void VulkanCommandsManager::RecordCommandBuffers(const std::uint32_t ImageIndex)
         };
 
         vkCmdBeginRenderPass(m_CommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-        bActiveRenderPass = true;
+        ActiveRenderPass = true;
     }
 
     if (Pipeline != VK_NULL_HANDLE)
@@ -246,29 +246,29 @@ void VulkanCommandsManager::RecordCommandBuffers(const std::uint32_t ImageIndex)
 
     vkCmdPushConstants(m_CommandBuffer, PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0u, sizeof(UniformBufferObject), &UniformBufferObj);
 
-    bool bActiveVertexBinding = false;
+    bool ActiveVertexBinding = false;
     if (VertexBuffer != VK_NULL_HANDLE)
     {
         vkCmdBindVertexBuffers(m_CommandBuffer, 0u, 1u, &VertexBuffer, Offsets.data());
-        bActiveVertexBinding = true;
+        ActiveVertexBinding = true;
     }
 
-    bool bActiveIndexBinding = false;
+    bool ActiveIndexBinding = false;
     if (IndexBuffer != VK_NULL_HANDLE)
     {
         vkCmdBindIndexBuffer(m_CommandBuffer, IndexBuffer, 0u, VK_INDEX_TYPE_UINT32);
-        bActiveIndexBinding = true;
+        ActiveIndexBinding = true;
     }
 
     vkCmdSetViewport(m_CommandBuffer, 0u, 1u, &Viewport);
     vkCmdSetScissor(m_CommandBuffer, 0u, 1u, &Scissor);
 
-    if (bActiveRenderPass && bActiveVertexBinding && bActiveIndexBinding)
+    if (ActiveRenderPass && ActiveVertexBinding && ActiveIndexBinding)
     {
         vkCmdDrawIndexed(m_CommandBuffer, IndexCount, 1u, 0u, 0u, 0u);
     }
 
-    if (bActiveRenderPass)
+    if (ActiveRenderPass)
     {
         vkCmdEndRenderPass(m_CommandBuffer);
     }
@@ -368,6 +368,6 @@ void VulkanCommandsManager::WaitAndResetFences() const
 
     const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkWaitForFences(VulkanLogicalDevice, 1u, &m_Fence, VK_TRUE, Timeout));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkWaitForFences(VulkanLogicalDevice, 1u, &m_Fence, VK_TRUE, g_Timeout));
     RENDERCORE_CHECK_VULKAN_RESULT(vkResetFences(VulkanLogicalDevice, 1u, &m_Fence));
 }
