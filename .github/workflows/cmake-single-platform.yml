@@ -47,7 +47,7 @@ jobs:
 
     - name: Configure Packages
       run: |
-        vcpkg install --dry-run --allow-unsupported --clean-after-build --triplet x64-windows-${{env.BUILD_TYPE}}
+        vcpkg install --dry-run --triplet x64-windows-${{env.BUILD_TYPE}}
 
     - name: Build Project
       run: |

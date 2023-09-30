@@ -24,7 +24,7 @@
         {
             "label": "Vcpkg Install",
             "type": "shell",
-            "command": "vcpkg install --allow-unsupported --clean-after-build --triplet x64-windows",
+            "command": "vcpkg install --clean-after-build --triplet x64-windows",
             "group": {                
                 "kind": "build",
                 "isDefault": true
