@@ -31,7 +31,9 @@ namespace RenderCore
 
         static bool CompileOrLoadIfExists(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
 
+        // ReSharper disable once CppFunctionIsNotImplemented
         VkShaderModule                  CreateModule(const VkDevice& Device, const std::vector<uint32_t>& SPIRVCode, EShLanguage Language);
+
         VkPipelineShaderStageCreateInfo GetStageInfo(const VkShaderModule& Module) const;
 
         std::vector<VkShaderModule>                  GetShaderModules() const;
@@ -42,7 +44,10 @@ namespace RenderCore
     private:
         static VulkanShaderManager g_Instance;
 
+        // ReSharper disable once CppFunctionIsNotImplemented
         static bool Compile(std::string_view Source, EShLanguage Language, std::vector<uint32_t>& OutSPIRVCode);
+
+        // ReSharper disable once CppFunctionIsNotImplemented
         void        StageInfo(const VkShaderModule& Module, EShLanguage Language);
 
         std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> m_StageInfos;
