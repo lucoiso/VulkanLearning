@@ -81,9 +81,14 @@ void VulkanCommandsManager::CreateSynchronizationObjects()
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan synchronization objects";
 
-    constexpr VkSemaphoreCreateInfo SemaphoreCreateInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+    constexpr VkSemaphoreCreateInfo SemaphoreCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+    };
 
-    constexpr VkFenceCreateInfo FenceCreateInfo{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT};
+    constexpr VkFenceCreateInfo FenceCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+        .flags = VK_FENCE_CREATE_SIGNALED_BIT
+    };
 
     const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
@@ -195,7 +200,10 @@ void VulkanCommandsManager::RecordCommandBuffers(const std::uint32_t ImageIndex)
 {
     AllocateCommandBuffer();
 
-    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+    };
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(m_CommandBuffer, &CommandBufferBeginInfo));
 
@@ -210,12 +218,27 @@ void VulkanCommandsManager::RecordCommandBuffers(const std::uint32_t ImageIndex)
     const std::uint32_t               IndexCount       = VulkanBufferManager::Get().GetIndicesCount();
     const UniformBufferObject         UniformBufferObj = RenderCoreHelpers::GetUniformBufferObject();
 
-    const std::vector<VkDeviceSize> Offsets = {0u};
-    const VkExtent2D                Extent  = VulkanBufferManager::Get().GetSwapChainExtent();
+    const std::vector<VkDeviceSize> Offsets = {
+        0u
+    };
+    const VkExtent2D Extent = VulkanBufferManager::Get().GetSwapChainExtent();
 
-    const VkViewport Viewport{.x = 0.f, .y = 0.f, .width = static_cast<float>(Extent.width), .height = static_cast<float>(Extent.height), .minDepth = 0.f, .maxDepth = 1.f};
+    const VkViewport Viewport{
+        .x = 0.f,
+        .y = 0.f,
+        .width = static_cast<float>(Extent.width),
+        .height = static_cast<float>(Extent.height),
+        .minDepth = 0.f,
+        .maxDepth = 1.f
+    };
 
-    const VkRect2D Scissor{.offset = {0, 0}, .extent = Extent};
+    const VkRect2D Scissor{
+        .offset = {
+            0,
+            0
+        },
+        .extent = Extent
+    };
 
     bool ActiveRenderPass = false;
     if (RenderPass != VK_NULL_HANDLE && !FrameBuffers.empty())
@@ -224,7 +247,13 @@ void VulkanCommandsManager::RecordCommandBuffers(const std::uint32_t ImageIndex)
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .renderPass = RenderPass,
             .framebuffer = FrameBuffers[ImageIndex],
-            .renderArea = {.offset = {0, 0}, .extent = Extent},
+            .renderArea = {
+                .offset = {
+                    0,
+                    0
+                },
+                .extent = Extent
+            },
             .clearValueCount = static_cast<std::uint32_t>(g_ClearValues.size()),
             .pClearValues = g_ClearValues.data()
         };
@@ -280,7 +309,9 @@ void VulkanCommandsManager::SubmitCommandBuffers()
 {
     WaitAndResetFences();
 
-    constexpr VkPipelineStageFlags WaitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    constexpr VkPipelineStageFlags WaitStages[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+    };
 
     const VkSubmitInfo SubmitInfo{
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,

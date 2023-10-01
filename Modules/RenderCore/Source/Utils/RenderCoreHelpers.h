@@ -53,15 +53,36 @@ namespace RenderCore
 
         static constexpr std::array<VkVertexInputBindingDescription, 1> GetBindingDescriptors()
         {
-            return {VkVertexInputBindingDescription{.binding = 0u, .stride = sizeof(Vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
+            return {
+                VkVertexInputBindingDescription{
+                    .binding = 0u,
+                    .stride = sizeof(Vertex),
+                    .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+                }
+            };
         }
 
         static constexpr std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions()
         {
             return {
-                VkVertexInputAttributeDescription{.location = 0u, .binding = 0u, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, Position)},
-                VkVertexInputAttributeDescription{.location = 1u, .binding = 0u, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, Color)},
-                VkVertexInputAttributeDescription{.location = 2u, .binding = 0u, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, TextureCoordinate)}
+                VkVertexInputAttributeDescription{
+                    .location = 0u,
+                    .binding = 0u,
+                    .format = VK_FORMAT_R32G32B32_SFLOAT,
+                    .offset = offsetof(Vertex, Position)
+                },
+                VkVertexInputAttributeDescription{
+                    .location = 1u,
+                    .binding = 0u,
+                    .format = VK_FORMAT_R32G32B32_SFLOAT,
+                    .offset = offsetof(Vertex, Color)
+                },
+                VkVertexInputAttributeDescription{
+                    .location = 2u,
+                    .binding = 0u,
+                    .format = VK_FORMAT_R32G32_SFLOAT,
+                    .offset = offsetof(Vertex, TextureCoordinate)
+                }
             };
         }
 

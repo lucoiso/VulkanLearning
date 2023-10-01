@@ -101,7 +101,10 @@ void VulkanObjectAllocation::DestroyResources()
 VulkanBufferManager::VulkanBufferManager()
     : m_SwapChain(VK_NULL_HANDLE)
   , m_OldSwapChain(VK_NULL_HANDLE)
-  , m_SwapChainExtent({0u, 0u})
+  , m_SwapChainExtent({
+        0u,
+        0u
+    })
   , m_SwapChainImages({})
   , m_DepthImage()
   , m_FrameBuffers({})
@@ -124,7 +127,10 @@ void VulkanBufferManager::CreateMemoryAllocator()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan memory allocator";
 
-    const VmaVulkanFunctions VulkanFunctions{.vkGetInstanceProcAddr = vkGetInstanceProcAddr, .vkGetDeviceProcAddr = vkGetDeviceProcAddr};
+    const VmaVulkanFunctions VulkanFunctions{
+        .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+        .vkGetDeviceProcAddr = vkGetDeviceProcAddr
+    };
 
     const VmaAllocatorCreateInfo AllocatorInfo{
         .flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT,
@@ -209,7 +215,10 @@ void VulkanBufferManager::CreateFrameBuffers()
     m_FrameBuffers.resize(m_SwapChainImages.size(), VK_NULL_HANDLE);
     for (std::uint32_t Iterator = 0u; Iterator < static_cast<std::uint32_t>(m_FrameBuffers.size()); ++Iterator)
     {
-        const std::array Attachments{m_SwapChainImages[Iterator].View, m_DepthImage.View};
+        const std::array Attachments{
+            m_SwapChainImages[Iterator].View,
+            m_DepthImage.View
+        };
 
         const VkFramebufferCreateInfo FrameBufferCreateInfo{
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -354,7 +363,9 @@ std::uint64_t VulkanBufferManager::LoadObject(const std::string_view ModelPath, 
         }
     }
 
-    VulkanObjectAllocation NewObject{.IndicesCount = static_cast<std::uint32_t>(Indices.size())};
+    VulkanObjectAllocation NewObject{
+        .IndicesCount = static_cast<std::uint32_t>(Indices.size())
+    };
     CreateVertexBuffers(NewObject, Vertices);
     CreateIndexBuffers(NewObject, Indices);
     LoadTexture(NewObject, TexturePath);
@@ -400,7 +411,10 @@ VulkanImageAllocation VulkanBufferManager::AllocateTexture(const unsigned char* 
     constexpr VkImageLayout MiddleLayout      = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     constexpr VkImageLayout DestinationLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    const VkExtent2D Extent{.width = Width, .height = Height};
+    const VkExtent2D Extent{
+        .width = Width,
+        .height = Height
+    };
 
     const auto& [FamilyIndex, Queue] = VulkanDeviceManager::Get().GetGraphicsQueue();
 
@@ -455,9 +469,16 @@ VmaAllocationInfo VulkanBufferManager::CreateBuffer(const VkDeviceSize& Size, co
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
 
-    const VkBufferCreateInfo BufferCreateInfo{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = Size, .usage = Usage};
+    const VkBufferCreateInfo BufferCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .size = Size,
+        .usage = Usage
+    };
 
-    const VmaAllocationCreateInfo AllocationCreateInfo{.flags = Flags, .usage = VMA_MEMORY_USAGE_AUTO};
+    const VmaAllocationCreateInfo AllocationCreateInfo{
+        .flags = Flags,
+        .usage = VMA_MEMORY_USAGE_AUTO
+    };
 
     VmaAllocationInfo MemoryAllocationInfo;
     RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateBuffer(g_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &Buffer, &Allocation, &MemoryAllocationInfo));
@@ -471,7 +492,9 @@ void VulkanBufferManager::CopyBuffer(const VkBuffer& Source, const VkBuffer& Des
     VkCommandPool   CommandPool   = VK_NULL_HANDLE;
     RenderCoreHelpers::InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
     {
-        const VkBufferCopy BufferCopy{.size = Size,};
+        const VkBufferCopy BufferCopy{
+            .size = Size,
+        };
 
         vkCmdCopyBuffer(CommandBuffer, Source, Destination, 1u, &BufferCopy);
     }
@@ -495,7 +518,11 @@ void VulkanBufferManager::CreateImage(const VkFormat&             ImageFormat,
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .imageType = VK_IMAGE_TYPE_2D,
         .format = ImageFormat,
-        .extent = {.width = Extent.width, .height = Extent.height, .depth = 1u},
+        .extent = {
+            .width = Extent.width,
+            .height = Extent.height,
+            .depth = 1u
+        },
         .mipLevels = 1u,
         .arrayLayers = 1u,
         .samples = VK_SAMPLE_COUNT_1_BIT,
@@ -504,7 +531,10 @@ void VulkanBufferManager::CreateImage(const VkFormat&             ImageFormat,
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
     };
 
-    const VmaAllocationCreateInfo ImageAllocationCreateInfo{.flags = Flags, .usage = VMA_MEMORY_USAGE_AUTO};
+    const VmaAllocationCreateInfo ImageAllocationCreateInfo{
+        .flags = Flags,
+        .usage = VMA_MEMORY_USAGE_AUTO
+    };
 
     VmaAllocationInfo AllocationInfo;
     RENDERCORE_CHECK_VULKAN_RESULT(vmaCreateImage(g_Allocator, &ImageViewCreateInfo, &ImageAllocationCreateInfo, &Image, &Allocation, &AllocationInfo));
@@ -517,8 +547,19 @@ void VulkanBufferManager::CreateImageView(const VkImage& Image, const VkFormat& 
         .image = Image,
         .viewType = VK_IMAGE_VIEW_TYPE_2D,
         .format = Format,
-        .components = {.r = VK_COMPONENT_SWIZZLE_IDENTITY, .g = VK_COMPONENT_SWIZZLE_IDENTITY, .b = VK_COMPONENT_SWIZZLE_IDENTITY, .a = VK_COMPONENT_SWIZZLE_IDENTITY},
-        .subresourceRange = {.aspectMask = AspectFlags, .baseMipLevel = 0u, .levelCount = 1u, .baseArrayLayer = 0u, .layerCount = 1u}
+        .components = {
+            .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .a = VK_COMPONENT_SWIZZLE_IDENTITY
+        },
+        .subresourceRange = {
+            .aspectMask = AspectFlags,
+            .baseMipLevel = 0u,
+            .levelCount = 1u,
+            .baseArrayLayer = 0u,
+            .layerCount = 1u
+        }
     };
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateImageView(VulkanDeviceManager::Get().GetLogicalDevice(), &ImageViewCreateInfo, nullptr, &ImageView));
@@ -571,9 +612,22 @@ void VulkanBufferManager::CopyBufferToImage(const VkBuffer& Source, const VkImag
             .bufferOffset = 0u,
             .bufferRowLength = 0u,
             .bufferImageHeight = 0u,
-            .imageSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .mipLevel = 0u, .baseArrayLayer = 0u, .layerCount = 1u},
-            .imageOffset = {.x = 0u, .y = 0u, .z = 0u},
-            .imageExtent = {.width = Extent.width, .height = Extent.height, .depth = 1u}
+            .imageSubresource = {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .mipLevel = 0u,
+                .baseArrayLayer = 0u,
+                .layerCount = 1u
+            },
+            .imageOffset = {
+                .x = 0u,
+                .y = 0u,
+                .z = 0u
+            },
+            .imageExtent = {
+                .width = Extent.width,
+                .height = Extent.height,
+                .depth = 1u
+            }
         };
 
         vkCmdCopyBufferToImage(CommandBuffer, Source, Destination, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1u, &BufferImageCopy);
@@ -602,7 +656,13 @@ void VulkanBufferManager::MoveImageLayout(const VkImage&       Image,
             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .image = Image,
-            .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0u, .levelCount = 1u, .baseArrayLayer = 0u, .layerCount = 1u}
+            .subresourceRange = {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0u,
+                .levelCount = 1u,
+                .baseArrayLayer = 0u,
+                .layerCount = 1u
+            }
         };
 
         if (NewLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)

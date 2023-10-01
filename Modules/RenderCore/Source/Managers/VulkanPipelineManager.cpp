@@ -58,7 +58,10 @@ void VulkanPipelineManager::CreateRenderPass()
         .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
     };
 
-    constexpr VkAttachmentReference ColorAttachmentReference{.attachment = 0u, .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+    constexpr VkAttachmentReference ColorAttachmentReference{
+        .attachment = 0u,
+        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    };
 
     const VkAttachmentDescription DepthAttachmentDescription{
         .format = DepthFormat,
@@ -71,7 +74,10 @@ void VulkanPipelineManager::CreateRenderPass()
         .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
     };
 
-    constexpr VkAttachmentReference DepthAttachmentReference{.attachment = 1u, .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+    constexpr VkAttachmentReference DepthAttachmentReference{
+        .attachment = 1u,
+        .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+    };
 
     // ReSharper disable once CppVariableCanBeMadeConstexpr
     const VkSubpassDescription SubpassDescription{
@@ -90,7 +96,10 @@ void VulkanPipelineManager::CreateRenderPass()
         .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
     };
 
-    const std::array AttachmentDescriptions{ColorAttachmentDescription, DepthAttachmentDescription};
+    const std::array AttachmentDescriptions{
+        ColorAttachmentDescription,
+        DepthAttachmentDescription
+    };
 
     const VkRenderPassCreateInfo RenderPassCreateInfo{
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
@@ -191,7 +200,12 @@ void VulkanPipelineManager::CreateGraphicsPipeline()
         .logicOp = VK_LOGIC_OP_COPY,
         .attachmentCount = 1u,
         .pAttachments = &ColorBlendAttachmentStates,
-        .blendConstants = {0.f, 0.f, 0.f, 0.f}
+        .blendConstants = {
+            0.f,
+            0.f,
+            0.f,
+            0.f
+        }
     };
 
     constexpr VkPipelineDynamicStateCreateInfo DynamicState{
@@ -200,7 +214,11 @@ void VulkanPipelineManager::CreateGraphicsPipeline()
         .pDynamicStates = g_DynamicStates.data()
     };
 
-    constexpr VkPushConstantRange PushConstantRange{.stageFlags = VK_SHADER_STAGE_VERTEX_BIT, .offset = 0u, .size = sizeof(UniformBufferObject)};
+    constexpr VkPushConstantRange PushConstantRange{
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        .offset = 0u,
+        .size = sizeof(UniformBufferObject)
+    };
 
     const VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -214,7 +232,9 @@ void VulkanPipelineManager::CreateGraphicsPipeline()
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineLayout(VulkanLogicalDevice, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 
-    constexpr VkPipelineCacheCreateInfo PipelineCacheCreateInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
+    constexpr VkPipelineCacheCreateInfo PipelineCacheCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO
+    };
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineCache(VulkanLogicalDevice, &PipelineCacheCreateInfo, nullptr, &m_PipelineCache));
 
@@ -260,8 +280,13 @@ void VulkanPipelineManager::CreateDescriptorSetLayout()
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
 
     const std::vector LayoutBindings{
-        VkDescriptorSetLayoutBinding
-        {.binding = 0u, .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1u, .stageFlags = VK_SHADER_STAGE_VERTEX_BIT, .pImmutableSamplers = nullptr},
+        VkDescriptorSetLayoutBinding{
+            .binding = 0u,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1u,
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+            .pImmutableSamplers = nullptr
+        },
         VkDescriptorSetLayoutBinding{
             .binding = 1u,
             .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -285,8 +310,14 @@ void VulkanPipelineManager::CreateDescriptorPool()
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor pool";
 
     const std::vector DescriptorPoolSizes{
-        VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = g_MaxFramesInFlight},
-        VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = g_MaxFramesInFlight}
+        VkDescriptorPoolSize{
+            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = g_MaxFramesInFlight
+        },
+        VkDescriptorPoolSize{
+            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount = g_MaxFramesInFlight
+        }
     };
 
     const VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo{
@@ -322,7 +353,11 @@ void VulkanPipelineManager::CreateDescriptorSets()
         std::vector<VkDescriptorImageInfo> ImageInfos{};
         for (const VulkanTextureData& TextureDataIter : VulkanBufferManager::Get().GetAllocatedTextures())
         {
-            ImageInfos.push_back(VkDescriptorImageInfo{.sampler = TextureDataIter.Sampler, .imageView = TextureDataIter.ImageView, .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+            ImageInfos.push_back(VkDescriptorImageInfo{
+                .sampler = TextureDataIter.Sampler,
+                .imageView = TextureDataIter.ImageView,
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            });
         }
 
         std::vector<VkWriteDescriptorSet> WriteDescriptors{};

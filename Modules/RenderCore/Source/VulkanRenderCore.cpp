@@ -19,10 +19,6 @@
 #endif
 // ReSharper disable once CppUnusedIncludeDirective
 #include <volk.h>
-
-#ifndef GLFW_INCLUDE_VULKAN
-#define GLFW_INCLUDE_VULKAN
-#endif
 #include <GLFW/glfw3.h>
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
@@ -289,7 +285,12 @@ void VulkanRenderCore::CreateVulkanInstance()
         .apiVersion = VK_API_VERSION_1_0
     };
 
-    VkInstanceCreateInfo CreateInfo{.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, .pNext = nullptr, .pApplicationInfo = &AppInfo, .enabledLayerCount = 0u};
+    VkInstanceCreateInfo CreateInfo{
+        .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+        .pNext = nullptr,
+        .pApplicationInfo = &AppInfo,
+        .enabledLayerCount = 0u
+    };
 
     std::vector              Layers(g_RequiredInstanceLayers.begin(), g_RequiredInstanceLayers.end());
     std::vector<const char*> Extensions = RenderCoreHelpers::GetGLFWExtensions();
@@ -348,8 +349,12 @@ void VulkanRenderCore::InitializeRenderCore() const
 
 std::vector<VkPipelineShaderStageCreateInfo> VulkanRenderCore::CompileDefaultShaders()
 {
-    constexpr std::array FragmentShaders{DEBUG_SHADER_FRAG};
-    constexpr std::array VertexShaders{DEBUG_SHADER_VERT};
+    constexpr std::array FragmentShaders{
+        DEBUG_SHADER_FRAG
+    };
+    constexpr std::array VertexShaders{
+        DEBUG_SHADER_VERT
+    };
 
     std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
 

@@ -132,10 +132,17 @@ void VulkanDeviceManager::CreateLogicalDevice()
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo;
     for (const auto& [Index, Count] : QueueFamilyIndices)
     {
-        QueueCreateInfo.push_back({.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, .queueFamilyIndex = Index, .queueCount = Count, .pQueuePriorities = QueuePriorities.at(Index).data()});
+        QueueCreateInfo.push_back({
+            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            .queueFamilyIndex = Index,
+            .queueCount = Count,
+            .pQueuePriorities = QueuePriorities.at(Index).data()
+        });
     }
 
-    constexpr VkPhysicalDeviceFeatures DeviceFeatures{.samplerAnisotropy = VK_TRUE};
+    constexpr VkPhysicalDeviceFeatures DeviceFeatures{
+        .samplerAnisotropy = VK_TRUE
+    };
 
     const VkDeviceCreateInfo DeviceCreateInfo{
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
@@ -217,8 +224,12 @@ bool VulkanDeviceManager::UpdateDeviceProperties(GLFWwindow* const Window)
         m_DeviceProperties.Mode = *MatchingMode;
     }
 
-    for (const std::vector PreferredDepthFormats = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
-         const VkFormat&   FormatIter : PreferredDepthFormats)
+    for (const std::vector PreferredDepthFormats = {
+             VK_FORMAT_D32_SFLOAT,
+             VK_FORMAT_D32_SFLOAT_S8_UINT,
+             VK_FORMAT_D24_UNORM_S8_UINT
+         };
+         const VkFormat& FormatIter : PreferredDepthFormats)
     {
         VkFormatProperties FormatProperties;
         vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, FormatIter, &FormatProperties);

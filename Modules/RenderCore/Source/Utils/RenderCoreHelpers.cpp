@@ -39,7 +39,10 @@ VkExtent2D RenderCoreHelpers::GetWindowExtent(GLFWwindow* const Window, const Vk
     std::int32_t Height = 0u;
     glfwGetFramebufferSize(Window, &Width, &Height);
 
-    VkExtent2D ActualExtent{.width = static_cast<std::uint32_t>(Width), .height = static_cast<std::uint32_t>(Height)};
+    VkExtent2D ActualExtent{
+        .width = static_cast<std::uint32_t>(Width),
+        .height = static_cast<std::uint32_t>(Height)
+    };
 
     ActualExtent.width  = std::clamp(ActualExtent.width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
     ActualExtent.height = std::clamp(ActualExtent.height, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
@@ -170,7 +173,10 @@ void RenderCoreHelpers::InitializeSingleCommandQueue(VkCommandPool& CommandPool,
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateCommandPool(VulkanLogicalDevice, &CommandPoolCreateInfo, nullptr, &CommandPool));
 
-    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,};
+    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+    };
 
     const VkCommandBufferAllocateInfo CommandBufferAllocateInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -197,7 +203,11 @@ void RenderCoreHelpers::FinishSingleCommandQueue(const VkQueue& Queue, const VkC
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkEndCommandBuffer(CommandBuffer));
 
-    const VkSubmitInfo SubmitInfo{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO, .commandBufferCount = 1u, .pCommandBuffers = &CommandBuffer,};
+    const VkSubmitInfo SubmitInfo{
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .commandBufferCount = 1u,
+        .pCommandBuffers = &CommandBuffer,
+    };
 
     RENDERCORE_CHECK_VULKAN_RESULT(vkQueueSubmit(Queue, 1u, &SubmitInfo, VK_NULL_HANDLE));
     RENDERCORE_CHECK_VULKAN_RESULT(vkQueueWaitIdle(Queue));
@@ -221,5 +231,7 @@ UniformBufferObject RenderCoreHelpers::GetUniformBufferObject()
     glm::mat4       Projection = glm::perspective(glm::radians(45.0f), Width / static_cast<float>(Height), 0.1f, 10.f);
     Projection[1][1] *= -1;
 
-    return UniformBufferObject{.ModelViewProjection = Projection * View * Model};
+    return UniformBufferObject{
+        .ModelViewProjection = Projection * View * Model
+    };
 }

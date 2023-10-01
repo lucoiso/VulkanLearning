@@ -24,14 +24,25 @@ namespace RenderCore
         "VK_LAYER_LUNARG_api_dump"
     };
     #else
-    constexpr std::array g_DebugInstanceLayers = {"VK_LAYER_KHRONOS_validation"};
+    constexpr std::array g_DebugInstanceLayers = {
+        "VK_LAYER_KHRONOS_validation"
+    };
 
-    constexpr std::array g_DebugDeviceLayers = {"VK_LAYER_KHRONOS_validation"};
+    constexpr std::array g_DebugDeviceLayers = {
+        "VK_LAYER_KHRONOS_validation"
+    };
     #endif
 
-    constexpr std::array g_DebugInstanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME, "VK_EXT_debug_report", "VK_EXT_validation_features"};
+    constexpr std::array g_DebugInstanceExtensions = {
+        VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+        "VK_EXT_debug_report",
+        "VK_EXT_validation_features"
+    };
 
-    constexpr std::array g_DebugDeviceExtensions = {"VK_EXT_validation_cache", "VK_EXT_tooling_info"};
+    constexpr std::array g_DebugDeviceExtensions = {
+        "VK_EXT_validation_cache",
+        "VK_EXT_tooling_info"
+    };
 
     constexpr std::array g_EnabledInstanceValidationFeatures = {
         // VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
@@ -48,9 +59,14 @@ namespace RenderCore
 
     constexpr std::array<const char*, 0> g_RequiredInstanceExtensions = {};
 
-    constexpr std::array g_RequiredDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    constexpr std::array g_RequiredDeviceExtensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
 
-    constexpr std::array g_DynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    constexpr std::array g_DynamicStates = {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+    };
 
     constexpr std::uint8_t g_MaxFramesInFlight = 1u;
 
@@ -60,7 +76,22 @@ namespace RenderCore
 
     constexpr std::uint8_t g_FrameRate = 75u;
 
-    constexpr std::array g_ClearValues{VkClearValue{.color = {0.25f, 0.25f, 0.5f, 1.0f}}, VkClearValue{.depthStencil = {1.0f, 0u}}};
+    constexpr std::array g_ClearValues{
+        VkClearValue{
+            .color = {
+                0.25f,
+                0.25f,
+                0.5f,
+                1.0f
+            }
+        },
+        VkClearValue{
+            .depthStencil = {
+                1.0f,
+                0u
+            }
+        }
+    };
 }
 
 #endif

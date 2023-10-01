@@ -42,12 +42,8 @@ jobs:
       uses: humbletim/setup-vulkan-sdk@v1.2.0
       with:
         vulkan-query-version: latest
-        vulkan-components: Vulkan-Headers, Vulkan-Loader
+        vulkan-components: Vulkan-Headers
         vulkan-use-cache: true
-
-    - name: Configure Packages
-      run: |
-        vcpkg install --dry-run --triplet x64-windows-${{env.BUILD_TYPE}}
 
     - name: Build Project
       run: |

@@ -9,7 +9,7 @@
 #include "Utils/RenderCoreHelpers.h"
 #include "Utils/GLFWCallbacks.h"
 #include "Types/ApplicationEventFlags.h"
-#include <Timer/TimerManager.h>
+#include <Timer/Manager.h>
 #include <stdexcept>
 #include <boost/log/trivial.hpp>
 #include <GLFW/glfw3.h>
@@ -74,7 +74,7 @@ public:
 
         std::lock_guard Lock(m_Mutex);
 
-        Timer::TimerManager::Get().StopTimer(m_DrawTimerID);
+        Timer::Manager::Get().StopTimer(m_DrawTimerID);
         while (!m_EventIDQueue.empty())
         {
             m_EventIDQueue.pop();
@@ -189,32 +189,39 @@ private:
 
     void RegisterTimers()
     {
-        constexpr std::uint32_t DrawFrameTimerInterval = 1000u / (g_FrameRate > 0 ? g_FrameRate : 1u);
-        Timer::TimerManager::Get().SetTickInterval(std::chrono::milliseconds(DrawFrameTimerInterval));
+        Timer::Manager::Get().SetTickInterval(std::chrono::milliseconds(1));
 
         {
             // Draw Frame
-            constexpr Timer::TimerParameters DrawFrameTimerParameters{
+            constexpr Timer::Parameters DrawFrameTimerParameters{
                 .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::DRAW_FRAME),
-                .Interval = DrawFrameTimerInterval,
+                .Interval = 1000u / (g_FrameRate > 0 ? g_FrameRate : 1u),
                 .RepeatCount = std::nullopt
             };
 
-            m_DrawTimerID = Timer::TimerManager::Get().StartTimer(DrawFrameTimerParameters, m_EventIDQueue);
+            m_DrawTimerID = Timer::Manager::Get().StartTimer(DrawFrameTimerParameters, m_EventIDQueue);
         }
 
         {
             // Load Scene: Testing Only
-            constexpr Timer::TimerParameters LoadSceneTimerParameters{.EventID = static_cast<std::uint8_t>(ApplicationEventFlags::LOAD_SCENE), .Interval = 3000u, .RepeatCount = 0u};
+            constexpr Timer::Parameters LoadSceneTimerParameters{
+                .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::LOAD_SCENE),
+                .Interval = 3000u,
+                .RepeatCount = 0
+            };
 
-            Timer::TimerManager::Get().StartTimer(LoadSceneTimerParameters, m_EventIDQueue);
+            Timer::Manager::Get().StartTimer(LoadSceneTimerParameters, m_EventIDQueue);
         }
 
         {
             // Unload Scene: Testing Only
-            constexpr Timer::TimerParameters UnLoadSceneTimerParameters{.EventID = static_cast<std::uint8_t>(ApplicationEventFlags::UNLOAD_SCENE), .Interval = 5000u, .RepeatCount = 0u};
+            constexpr Timer::Parameters UnLoadSceneTimerParameters{
+                .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::UNLOAD_SCENE),
+                .Interval = 5000u,
+                .RepeatCount = 0u
+            };
 
-            Timer::TimerManager::Get().StartTimer(UnLoadSceneTimerParameters, m_EventIDQueue);
+            Timer::Manager::Get().StartTimer(UnLoadSceneTimerParameters, m_EventIDQueue);
         }
     }
 

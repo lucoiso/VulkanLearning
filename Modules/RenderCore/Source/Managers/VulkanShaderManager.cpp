@@ -189,7 +189,11 @@ VkShaderModule VulkanShaderManager::CreateModule(const VkDevice& Device, const s
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating shader module...";
 
-    const VkShaderModuleCreateInfo CreateInfo{.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, .codeSize = SPIRVCode.size() * sizeof(std::uint32_t), .pCode = SPIRVCode.data()};
+    const VkShaderModuleCreateInfo CreateInfo{
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .codeSize = SPIRVCode.size() * sizeof(std::uint32_t),
+        .pCode = SPIRVCode.data()
+    };
 
     VkShaderModule Output;
     RENDERCORE_CHECK_VULKAN_RESULT(vkCreateShaderModule(Device, &CreateInfo, nullptr, &Output));
@@ -310,7 +314,11 @@ void VulkanShaderManager::StageInfo(const VkShaderModule& Module, const EShLangu
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Staging shader info...";
 
-    VkPipelineShaderStageCreateInfo StageInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, .module = Module, .pName = g_EntryPoint};
+    VkPipelineShaderStageCreateInfo StageInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .module = Module,
+        .pName = g_EntryPoint
+    };
 
     switch (Language)
     {
