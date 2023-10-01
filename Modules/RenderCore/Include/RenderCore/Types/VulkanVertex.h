@@ -17,10 +17,10 @@ namespace RenderCore
 
         Vertex() = default;
 
-        Vertex(const glm::vec3& InPosition, const glm::vec3& InColor, const glm::vec2& InTextureCoordinate)
-            : Position(InPosition)
-          , Color(InColor)
-          , TextureCoordinate(InTextureCoordinate)
+        Vertex(glm::vec3 const& InPosition, glm::vec3 const& InColor, glm::vec2 const& InTextureCoordinate)
+            : Position(InPosition),
+              Color(InColor),
+              TextureCoordinate(InTextureCoordinate)
         {
         }
     };

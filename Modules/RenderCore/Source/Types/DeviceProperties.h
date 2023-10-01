@@ -18,10 +18,10 @@ namespace RenderCore
 
         [[nodiscard]] bool IsValid() const
         {
-            return Extent.height != 0u && Extent.width != 0u;
+            return Extent.height != 0U && Extent.width != 0U;
         }
 
-        bool operator!=(const VulkanDeviceProperties& Other) const
+        bool operator!=(VulkanDeviceProperties const& Other) const
         {
             return Format.format != Other.Format.format || Format.colorSpace != Other.Format.colorSpace || DepthFormat != Other.DepthFormat || Mode != Other.Mode || Extent.height != Other.Extent.
                 height || Extent.width != Other.Extent.width || Capabilities.currentExtent.height != Other.Capabilities.currentExtent.height || Capabilities.currentExtent.width != Other.Capabilities.

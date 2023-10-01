@@ -15,10 +15,11 @@ namespace RenderCore
     class VulkanCommandsManager final // NOLINT(cppcoreguidelines-special-member-functions)
     {
     public:
-        VulkanCommandsManager(const VulkanCommandsManager&)            = delete;
-        VulkanCommandsManager& operator=(const VulkanCommandsManager&) = delete;
-
         VulkanCommandsManager();
+
+        VulkanCommandsManager(VulkanCommandsManager const&)            = delete;
+        VulkanCommandsManager& operator=(VulkanCommandsManager const&) = delete;
+
         ~VulkanCommandsManager();
 
         static VulkanCommandsManager& Get();
@@ -40,8 +41,6 @@ namespace RenderCore
         void CreateGraphicsCommandPool();
         void AllocateCommandBuffer();
         void WaitAndResetFences() const;
-
-        static VulkanCommandsManager g_Instance;
 
         VkCommandPool m_CommandPool;
         VkCommandBuffer m_CommandBuffer;

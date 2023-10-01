@@ -13,27 +13,32 @@
 
 using namespace RenderCore;
 
-VulkanPipelineManager VulkanPipelineManager::g_Instance{};
-
 VulkanPipelineManager::VulkanPipelineManager()
-    : m_RenderPass(VK_NULL_HANDLE)
-  , m_Pipeline(VK_NULL_HANDLE)
-  , m_PipelineLayout(VK_NULL_HANDLE)
-  , m_PipelineCache(VK_NULL_HANDLE)
-  , m_DescriptorPool(VK_NULL_HANDLE)
-  , m_DescriptorSetLayout(VK_NULL_HANDLE)
-  , m_DescriptorSets({})
+    : m_RenderPass(VK_NULL_HANDLE),
+      m_Pipeline(VK_NULL_HANDLE),
+      m_PipelineLayout(VK_NULL_HANDLE),
+      m_PipelineCache(VK_NULL_HANDLE),
+      m_DescriptorPool(VK_NULL_HANDLE),
+      m_DescriptorSetLayout(VK_NULL_HANDLE),
+      m_DescriptorSets({})
 {
 }
 
 VulkanPipelineManager::~VulkanPipelineManager()
 {
-    Shutdown();
+    try
+    {
+        Shutdown();
+    }
+    catch (...)
+    {
+    }
 }
 
 VulkanPipelineManager& VulkanPipelineManager::Get()
 {
-    return g_Instance;
+    static VulkanPipelineManager Instance{};
+    return Instance;
 }
 
 void VulkanPipelineManager::CreateRenderPass()
@@ -45,9 +50,9 @@ void VulkanPipelineManager::CreateRenderPass()
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render pass";
 
-    const auto& [Format, DepthFormat, Mode, Extent, Capabilities] = VulkanDeviceManager::Get().GetDeviceProperties();
+    auto const& [Format, DepthFormat, Mode, Extent, Capabilities] = VulkanDeviceManager::Get().GetDeviceProperties();
 
-    const VkAttachmentDescription ColorAttachmentDescription{
+    VkAttachmentDescription const ColorAttachmentDescription{
         .format = Format.format,
         .samples = g_MSAASamples,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -59,11 +64,11 @@ void VulkanPipelineManager::CreateRenderPass()
     };
 
     constexpr VkAttachmentReference ColorAttachmentReference{
-        .attachment = 0u,
+        .attachment = 0U,
         .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     };
 
-    const VkAttachmentDescription DepthAttachmentDescription{
+    VkAttachmentDescription const DepthAttachmentDescription{
         .format = DepthFormat,
         .samples = g_MSAASamples,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -75,58 +80,57 @@ void VulkanPipelineManager::CreateRenderPass()
     };
 
     constexpr VkAttachmentReference DepthAttachmentReference{
-        .attachment = 1u,
+        .attachment = 1U,
         .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
     };
 
-    // ReSharper disable once CppVariableCanBeMadeConstexpr
-    const VkSubpassDescription SubpassDescription{
+    VkSubpassDescription const SubpassDescription{
         .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-        .colorAttachmentCount = 1u,
+        .colorAttachmentCount = 1U,
         .pColorAttachments = &ColorAttachmentReference,
         .pDepthStencilAttachment = &DepthAttachmentReference
     };
 
     constexpr VkSubpassDependency SubpassDependency{
         .srcSubpass = VK_SUBPASS_EXTERNAL,
-        .dstSubpass = 0u,
+        .dstSubpass = 0U,
         .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
         .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-        .srcAccessMask = 0u,
+        .srcAccessMask = 0U,
         .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
     };
 
-    const std::array AttachmentDescriptions{
+    std::array const AttachmentDescriptions{
         ColorAttachmentDescription,
         DepthAttachmentDescription
     };
 
-    const VkRenderPassCreateInfo RenderPassCreateInfo{
+    VkRenderPassCreateInfo const RenderPassCreateInfo{
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
         .attachmentCount = static_cast<std::uint32_t>(AttachmentDescriptions.size()),
         .pAttachments = AttachmentDescriptions.data(),
-        .subpassCount = 1u,
+        .subpassCount = 1U,
         .pSubpasses = &SubpassDescription,
-        .dependencyCount = 1u,
+        .dependencyCount = 1U,
         .pDependencies = &SubpassDependency
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateRenderPass(VulkanDeviceManager::Get().GetLogicalDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass))
+    RenderCoreHelpers::CheckVulkanResult(vkCreateRenderPass(VulkanDeviceManager::Get().GetLogicalDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass));
 }
 
 void VulkanPipelineManager::CreateDefaultRenderPass()
 {
     constexpr VkRenderPassCreateInfo RenderPassCreateInfo{
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-        .attachmentCount = 0u,
+        .attachmentCount = 0U,
         .pAttachments = nullptr,
-        .subpassCount = 0u,
+        .subpassCount = 0U,
         .pSubpasses = nullptr,
-        .dependencyCount = 0u,
+        .dependencyCount = 0U,
         .pDependencies = nullptr
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateRenderPass(VulkanDeviceManager::Get().GetLogicalDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass))
+    RenderCoreHelpers::CheckVulkanResult(vkCreateRenderPass(VulkanDeviceManager::Get().GetLogicalDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass));
 }
 
 void VulkanPipelineManager::CreateGraphicsPipeline()
@@ -134,9 +138,9 @@ void VulkanPipelineManager::CreateGraphicsPipeline()
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan graphics pipeline";
 
     constexpr auto BindingDescription = RenderCoreHelpers::GetBindingDescriptors();
-    const auto AttributeDescriptions  = RenderCoreHelpers::GetAttributeDescriptions();
+    auto const AttributeDescriptions  = RenderCoreHelpers::GetAttributeDescriptions();
 
-    const VkPipelineVertexInputStateCreateInfo VertexInputState{
+    VkPipelineVertexInputStateCreateInfo const VertexInputState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         .vertexBindingDescriptionCount = static_cast<std::uint32_t>(BindingDescription.size()),
         .pVertexBindingDescriptions = BindingDescription.data(),
@@ -152,9 +156,9 @@ void VulkanPipelineManager::CreateGraphicsPipeline()
 
     constexpr VkPipelineViewportStateCreateInfo ViewportState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-        .viewportCount = 1u,
+        .viewportCount = 1U,
         .pViewports = nullptr,
-        .scissorCount = 1u,
+        .scissorCount = 1U,
         .pScissors = nullptr
     };
 
@@ -166,17 +170,17 @@ void VulkanPipelineManager::CreateGraphicsPipeline()
         .cullMode = VK_CULL_MODE_BACK_BIT,
         .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .depthBiasEnable = VK_FALSE,
-        .depthBiasConstantFactor = 0.f,
-        .depthBiasClamp = 0.f,
-        .depthBiasSlopeFactor = 0.f,
-        .lineWidth = 1.f
+        .depthBiasConstantFactor = 0.F,
+        .depthBiasClamp = 0.F,
+        .depthBiasSlopeFactor = 0.F,
+        .lineWidth = 1.F
     };
 
     constexpr VkPipelineMultisampleStateCreateInfo MultisampleState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .rasterizationSamples = g_MSAASamples,
         .sampleShadingEnable = VK_FALSE,
-        .minSampleShading = 1.f,
+        .minSampleShading = 1.F,
         .pSampleMask = nullptr,
         .alphaToCoverageEnable = VK_FALSE,
         .alphaToOneEnable = VK_FALSE
@@ -193,18 +197,17 @@ void VulkanPipelineManager::CreateGraphicsPipeline()
         .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
     };
 
-    // ReSharper disable once CppVariableCanBeMadeConstexpr
-    const VkPipelineColorBlendStateCreateInfo ColorBlendState{
+    VkPipelineColorBlendStateCreateInfo const ColorBlendState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
         .logicOpEnable = VK_FALSE,
         .logicOp = VK_LOGIC_OP_COPY,
-        .attachmentCount = 1u,
+        .attachmentCount = 1U,
         .pAttachments = &ColorBlendAttachmentStates,
         .blendConstants = {
-            0.f,
-            0.f,
-            0.f,
-            0.f
+            0.F,
+            0.F,
+            0.F,
+            0.F
         }
     };
 
@@ -216,27 +219,27 @@ void VulkanPipelineManager::CreateGraphicsPipeline()
 
     constexpr VkPushConstantRange PushConstantRange{
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-        .offset = 0u,
+        .offset = 0U,
         .size = sizeof(UniformBufferObject)
     };
 
-    const VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo{
+    VkPipelineLayoutCreateInfo const PipelineLayoutCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .setLayoutCount = 1u,
+        .setLayoutCount = 1U,
         .pSetLayouts = &m_DescriptorSetLayout,
-        .pushConstantRangeCount = 1u,
+        .pushConstantRangeCount = 1U,
         .pPushConstantRanges = &PushConstantRange
     };
 
-    const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineLayout(VulkanLogicalDevice, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout))
+    RenderCoreHelpers::CheckVulkanResult(vkCreatePipelineLayout(VulkanLogicalDevice, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 
     constexpr VkPipelineCacheCreateInfo PipelineCacheCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineCache(VulkanLogicalDevice, &PipelineCacheCreateInfo, nullptr, &m_PipelineCache))
+    RenderCoreHelpers::CheckVulkanResult(vkCreatePipelineCache(VulkanLogicalDevice, &PipelineCacheCreateInfo, nullptr, &m_PipelineCache));
 
     constexpr VkPipelineDepthStencilStateCreateInfo DepthStencilState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
@@ -247,13 +250,13 @@ void VulkanPipelineManager::CreateGraphicsPipeline()
         .stencilTestEnable = VK_FALSE,
         .front = VkStencilOpState{},
         .back = VkStencilOpState{},
-        .minDepthBounds = 0.f,
-        .maxDepthBounds = 1.f
+        .minDepthBounds = 0.F,
+        .maxDepthBounds = 1.F
     };
 
-    const std::vector<VkPipelineShaderStageCreateInfo> ShaderStages = VulkanShaderManager::Get().GetStageInfos();
+    std::vector<VkPipelineShaderStageCreateInfo> const ShaderStages = VulkanShaderManager::Get().GetStageInfos();
 
-    const VkGraphicsPipelineCreateInfo GraphicsPipelineCreateInfo{
+    VkGraphicsPipelineCreateInfo const GraphicsPipelineCreateInfo{
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .stageCount = static_cast<std::uint32_t>(ShaderStages.size()),
         .pStages = ShaderStages.data(),
@@ -267,49 +270,49 @@ void VulkanPipelineManager::CreateGraphicsPipeline()
         .pDynamicState = &DynamicState,
         .layout = m_PipelineLayout,
         .renderPass = m_RenderPass,
-        .subpass = 0u,
+        .subpass = 0U,
         .basePipelineHandle = VK_NULL_HANDLE,
         .basePipelineIndex = -1
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateGraphicsPipelines(VulkanLogicalDevice, VK_NULL_HANDLE, 1u, &GraphicsPipelineCreateInfo, nullptr, &m_Pipeline))
+    RenderCoreHelpers::CheckVulkanResult(vkCreateGraphicsPipelines(VulkanLogicalDevice, VK_NULL_HANDLE, 1U, &GraphicsPipelineCreateInfo, nullptr, &m_Pipeline));
 }
 
 void VulkanPipelineManager::CreateDescriptorSetLayout()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
 
-    const std::vector LayoutBindings{
+    std::vector const LayoutBindings{
         VkDescriptorSetLayoutBinding{
-            .binding = 0u,
+            .binding = 0U,
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = 1u,
+            .descriptorCount = 1U,
             .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
             .pImmutableSamplers = nullptr
         },
         VkDescriptorSetLayoutBinding{
-            .binding = 1u,
+            .binding = 1U,
             .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount = 1u,
+            .descriptorCount = 1U,
             .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
             .pImmutableSamplers = nullptr
         }
     };
 
-    const VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutInfo{
+    VkDescriptorSetLayoutCreateInfo const DescriptorSetLayoutInfo{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
         .bindingCount = static_cast<std::uint32_t>(LayoutBindings.size()),
         .pBindings = LayoutBindings.data()
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorSetLayout(VulkanDeviceManager::Get().GetLogicalDevice(), &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout))
+    RenderCoreHelpers::CheckVulkanResult(vkCreateDescriptorSetLayout(VulkanDeviceManager::Get().GetLogicalDevice(), &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout));
 }
 
 void VulkanPipelineManager::CreateDescriptorPool()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor pool";
 
-    const std::vector DescriptorPoolSizes{
+    std::vector const DescriptorPoolSizes{
         VkDescriptorPoolSize{
             .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             .descriptorCount = g_MaxFramesInFlight
@@ -320,25 +323,25 @@ void VulkanPipelineManager::CreateDescriptorPool()
         }
     };
 
-    const VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo{
+    VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         .maxSets = g_MaxFramesInFlight,
         .poolSizeCount = static_cast<std::uint32_t>(DescriptorPoolSizes.size()),
         .pPoolSizes = DescriptorPoolSizes.data()
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorPool(VulkanDeviceManager::Get().GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool))
+    RenderCoreHelpers::CheckVulkanResult(vkCreateDescriptorPool(VulkanDeviceManager::Get().GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool));
 }
 
 void VulkanPipelineManager::CreateDescriptorSets()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor sets";
 
-    const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    const std::vector DescriptorSetLayouts(g_MaxFramesInFlight, m_DescriptorSetLayout);
+    std::vector const DescriptorSetLayouts(g_MaxFramesInFlight, m_DescriptorSetLayout);
 
-    const VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo{
+    VkDescriptorSetAllocateInfo const DescriptorSetAllocateInfo{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
         .descriptorPool = m_DescriptorPool,
         .descriptorSetCount = static_cast<std::uint32_t>(DescriptorSetLayouts.size()),
@@ -346,12 +349,12 @@ void VulkanPipelineManager::CreateDescriptorSets()
     };
 
     m_DescriptorSets.resize(g_MaxFramesInFlight);
-    RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, m_DescriptorSets.data()))
+    RenderCoreHelpers::CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, m_DescriptorSets.data()));
 
-    for (std::uint32_t Iterator = 0u; Iterator < g_MaxFramesInFlight; ++Iterator)
+    for (std::uint32_t Iterator = 0U; Iterator < g_MaxFramesInFlight; ++Iterator)
     {
         std::vector<VkDescriptorImageInfo> ImageInfos{};
-        for (const VulkanTextureData& TextureDataIter : VulkanBufferManager::Get().GetAllocatedTextures())
+        for (VulkanTextureData const& TextureDataIter : VulkanBufferManager::Get().GetAllocatedTextures())
         {
             ImageInfos.push_back(VkDescriptorImageInfo{
                 .sampler = TextureDataIter.Sampler,
@@ -367,8 +370,8 @@ void VulkanPipelineManager::CreateDescriptorSets()
             WriteDescriptors.push_back(VkWriteDescriptorSet{
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .dstSet = m_DescriptorSets[Iterator],
-                .dstBinding = 1u,
-                .dstArrayElement = 0u,
+                .dstBinding = 1U,
+                .dstArrayElement = 0U,
                 .descriptorCount = static_cast<std::uint32_t>(ImageInfos.size()),
                 .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 .pImageInfo = ImageInfos.data(),
@@ -379,7 +382,7 @@ void VulkanPipelineManager::CreateDescriptorSets()
 
         if (!WriteDescriptors.empty())
         {
-            vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(WriteDescriptors.size()), WriteDescriptors.data(), 0u, nullptr);
+            vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(WriteDescriptors.size()), WriteDescriptors.data(), 0U, nullptr);
         }
     }
 }
@@ -395,7 +398,7 @@ void VulkanPipelineManager::DestroyResources()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan pipelines resources";
 
-    const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
     if (m_Pipeline != VK_NULL_HANDLE)
     {
@@ -436,37 +439,37 @@ void VulkanPipelineManager::DestroyResources()
     m_DescriptorSets.clear();
 }
 
-const VkRenderPass& VulkanPipelineManager::GetRenderPass() const
+VkRenderPass const& VulkanPipelineManager::GetRenderPass() const
 {
     return m_RenderPass;
 }
 
-const VkPipeline& VulkanPipelineManager::GetPipeline() const
+VkPipeline const& VulkanPipelineManager::GetPipeline() const
 {
     return m_Pipeline;
 }
 
-const VkPipelineLayout& VulkanPipelineManager::GetPipelineLayout() const
+VkPipelineLayout const& VulkanPipelineManager::GetPipelineLayout() const
 {
     return m_PipelineLayout;
 }
 
-const VkPipelineCache& VulkanPipelineManager::GetPipelineCache() const
+VkPipelineCache const& VulkanPipelineManager::GetPipelineCache() const
 {
     return m_PipelineCache;
 }
 
-const VkDescriptorSetLayout& VulkanPipelineManager::GetDescriptorSetLayout() const
+VkDescriptorSetLayout const& VulkanPipelineManager::GetDescriptorSetLayout() const
 {
     return m_DescriptorSetLayout;
 }
 
-const VkDescriptorPool& VulkanPipelineManager::GetDescriptorPool() const
+VkDescriptorPool const& VulkanPipelineManager::GetDescriptorPool() const
 {
     return m_DescriptorPool;
 }
 
-const std::vector<VkDescriptorSet>& VulkanPipelineManager::GetDescriptorSets() const
+std::vector<VkDescriptorSet> const& VulkanPipelineManager::GetDescriptorSets() const
 {
     return m_DescriptorSets;
 }

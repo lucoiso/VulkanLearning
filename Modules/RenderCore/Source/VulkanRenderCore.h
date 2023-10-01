@@ -19,8 +19,8 @@ namespace RenderCore
     public:
         VulkanRenderCore();
 
-        VulkanRenderCore(const VulkanRenderCore&)            = delete;
-        VulkanRenderCore& operator=(const VulkanRenderCore&) = delete;
+        VulkanRenderCore(VulkanRenderCore const&)            = delete;
+        VulkanRenderCore& operator=(VulkanRenderCore const&) = delete;
 
         ~VulkanRenderCore();
 
@@ -48,8 +48,6 @@ namespace RenderCore
         void InitializeRenderCore() const;
 
         static std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders();
-
-        static VulkanRenderCore g_Instance;
 
         VkInstance m_Instance;
         VkSurfaceKHR m_Surface;

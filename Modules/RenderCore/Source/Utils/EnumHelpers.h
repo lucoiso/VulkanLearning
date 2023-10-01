@@ -2,32 +2,37 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRender
 
-// ReSharper disable CppClangTidyBugproneMacroParentheses
 #pragma once
 
 #include <cstdint>
+#include <type_traits>
 
-#define DECLARE_BITWISE_OPERATORS(Type)\
-constexpr static inline Type operator|(const Type Lhs, const Type Rhs)\
-{\
-    return static_cast<Type>(static_cast<std::uint8_t>(Lhs) | static_cast<std::uint8_t>(Rhs));\
-}\
-constexpr static inline Type operator|=(Type& Lhs, const Type Rhs)\
-{\
-    return Lhs = static_cast<Type>(static_cast<std::uint8_t>(Lhs) | static_cast<std::uint8_t>(Rhs));\
-}\
-\
-constexpr static inline Type operator&(const Type Lhs, const Type Rhs)\
-{\
-    return static_cast<Type>(static_cast<std::uint8_t>(Lhs) & static_cast<std::uint8_t>(Rhs));\
-}\
-\
-constexpr static inline Type operator&=(Type& Lhs, const Type Rhs)\
-{\
-    return Lhs = static_cast<Type>(static_cast<std::uint8_t>(Lhs) & static_cast<std::uint8_t>(Rhs));\
-}\
-\
-constexpr static inline Type operator~(const Type Lhs)\
-{\
-    return static_cast<Type>(~static_cast<std::uint8_t>(Lhs));\
+template <typename T>
+constexpr T operator|(T const Lhs, T const Rhs)
+{
+    return static_cast<T>(static_cast<std::underlying_type_t<T>>(Lhs) | static_cast<std::underlying_type_t<T>>(Rhs));
+}
+
+template <typename T>
+constexpr T operator|=(T& Lhs, T const Rhs)
+{
+    return Lhs = static_cast<T>(static_cast<std::underlying_type_t<T>>(Lhs) | static_cast<std::underlying_type_t<T>>(Rhs));
+}
+
+template <typename T>
+constexpr T operator&(T const Lhs, T const Rhs)
+{
+    return static_cast<T>(static_cast<std::underlying_type_t<T>>(Lhs) & static_cast<std::underlying_type_t<T>>(Rhs));
+}
+
+template <typename T>
+constexpr T operator&=(T& Lhs, T const Rhs)
+{
+    return Lhs = static_cast<T>(static_cast<std::underlying_type_t<T>>(Lhs) & static_cast<std::underlying_type_t<T>>(Rhs));
+}
+
+template <typename T>
+constexpr T operator~(T const Lhs)
+{
+    return static_cast<T>(~static_cast<std::underlying_type_t<T>>(Lhs));
 }

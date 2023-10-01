@@ -9,26 +9,28 @@
 
 #include <array>
 #include <charconv>
+#include <span>
 #include <volk.h>
 
 namespace RenderCore
 {
-    constexpr const char* ToChars(auto Argument)
+    constexpr char const* ToChars(auto const Argument)
     {
-        std::array<char, 16u> Buffer;
+        std::array<char, 16U> Buffer{};
+        std::span const BufferSpan(Buffer.data(), Buffer.size());
 
-        if (auto Result = std::to_chars(Buffer.data(), Buffer.data() + Buffer.size(), Argument);
+        if (auto Result = std::to_chars(BufferSpan.begin(), BufferSpan.end(), Argument);
             Result.ec == std::errc())
         {
-            *Result.ptr              = '\0';
-            const auto DynamicBuffer = new char[Buffer.size()];
+            *Result.ptr               = '\0';
+            auto* const DynamicBuffer = new char[Buffer.size()];  // NOLINT(cppcoreguidelines-owning-memory)
             std::ranges::copy(Buffer, DynamicBuffer);
             return DynamicBuffer;
         }
         return nullptr;
     }
 
-    constexpr const char* ResultToString(const VkResult Input)
+    constexpr char const* ResultToString(VkResult const Input)
     {
         switch (Input) // NOLINT(clang-diagnostic-switch-enum)
         {
@@ -131,7 +133,7 @@ namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    constexpr const char* SurfaceFormatToString(const VkFormat Input)
+    constexpr char const* SurfaceFormatToString(VkFormat const Input)
     {
         switch (Input) // NOLINT(clang-diagnostic-switch-enum)
         {
@@ -638,7 +640,7 @@ namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    constexpr const char* ColorSpaceModeToString(const VkColorSpaceKHR Input)
+    constexpr char const* ColorSpaceModeToString(VkColorSpaceKHR const Input)
     {
         switch (Input) // NOLINT(clang-diagnostic-switch-enum)
         {
@@ -681,7 +683,7 @@ namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    constexpr const char* PresentationModeToString(const VkPresentModeKHR Input)
+    constexpr char const* PresentationModeToString(VkPresentModeKHR const Input)
     {
         switch (Input) // NOLINT(clang-diagnostic-switch-enum)
         {
@@ -704,7 +706,7 @@ namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    constexpr const char* TransformFlagToString(const VkSurfaceTransformFlagBitsKHR Input)
+    constexpr char const* TransformFlagToString(VkSurfaceTransformFlagBitsKHR const Input)
     {
         switch (Input) // NOLINT(clang-diagnostic-switch-enum)
         {
@@ -733,7 +735,7 @@ namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    constexpr const char* CompositeAlphaFlagToString(const VkCompositeAlphaFlagsKHR Input)
+    constexpr char const* CompositeAlphaFlagToString(VkCompositeAlphaFlagsKHR const Input)
     {
         switch (Input)
         {
@@ -752,7 +754,7 @@ namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    constexpr const char* ImageUsageFlagToString(const VkImageUsageFlagBits Input)
+    constexpr char const* ImageUsageFlagToString(VkImageUsageFlagBits const Input)
     {
         switch (Input) // NOLINT(clang-diagnostic-switch-enum)
         {

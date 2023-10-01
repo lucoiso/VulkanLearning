@@ -17,10 +17,11 @@ namespace RenderCore
     class VulkanDeviceManager final // NOLINT(cppcoreguidelines-special-member-functions)
     {
     public:
-        VulkanDeviceManager(const VulkanDeviceManager&)            = delete;
-        VulkanDeviceManager& operator=(const VulkanDeviceManager&) = delete;
-
         VulkanDeviceManager();
+
+        VulkanDeviceManager(VulkanDeviceManager const&)            = delete;
+        VulkanDeviceManager& operator=(VulkanDeviceManager const&) = delete;
+
         ~VulkanDeviceManager();
 
         static VulkanDeviceManager& Get();
@@ -44,7 +45,7 @@ namespace RenderCore
         [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes() const;
         [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment() const;
 
-        [[nodiscard]] static bool IsPhysicalDeviceSuitable(const VkPhysicalDevice& Device);
+        [[nodiscard]] static bool IsPhysicalDeviceSuitable(VkPhysicalDevice const& Device);
 
         bool UpdateDeviceProperties(GLFWwindow* Window);
         [[nodiscard]] VulkanDeviceProperties& GetDeviceProperties();
@@ -75,8 +76,6 @@ namespace RenderCore
         void ListAvailablePhysicalDeviceSurfaceFormats() const;
         void ListAvailablePhysicalDeviceSurfacePresentationModes() const;
         #endif
-
-        static VulkanDeviceManager g_Instance;
 
         VkPhysicalDevice m_PhysicalDevice;
         VkDevice m_Device;

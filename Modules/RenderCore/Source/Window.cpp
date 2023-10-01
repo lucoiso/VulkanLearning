@@ -19,13 +19,11 @@ using namespace RenderCore;
 class Window::Impl final // NOLINT(cppcoreguidelines-special-member-functions)
 {
 public:
-    Impl(const Impl&)            = delete;
-    Impl& operator=(const Impl&) = delete;
+    Impl(Impl const&)            = delete;
+    Impl& operator=(Impl const&) = delete;
 
     Impl()
-        : m_Window(nullptr)
-      , m_DrawTimerID(0u)
-      , m_MainThreadID(std::this_thread::get_id())
+        : m_MainThreadID(std::this_thread::get_id())
     {
     }
 
@@ -42,7 +40,7 @@ public:
         glfwTerminate();
     }
 
-    bool Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title)
+    bool Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title)
     {
         if (IsInitialized())
         {
@@ -56,7 +54,7 @@ public:
                 RegisterTimers();
             }
         }
-        catch (const std::exception& Ex)
+        catch (std::exception const& Ex)
         {
             BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
             Shutdown();
@@ -72,7 +70,7 @@ public:
             return;
         }
 
-        std::lock_guard Lock(m_Mutex);
+        std::lock_guard const Lock(m_Mutex);
 
         Timer::Manager::Get().StopTimer(m_DrawTimerID);
         while (!m_EventIDQueue.empty())
@@ -90,7 +88,7 @@ public:
 
     [[nodiscard]] bool IsOpen() const
     {
-        return m_Window && !glfwWindowShouldClose(m_Window);
+        return m_Window != nullptr && glfwWindowShouldClose(m_Window) == 0;
     }
 
     void ProcessEvents()
@@ -102,24 +100,24 @@ public:
 
         try
         {
-            std::lock_guard Lock(m_Mutex);
+            std::lock_guard const Lock(m_Mutex);
             std::unordered_map<ApplicationEventFlags, std::uint8_t> ProcessedEvents;
 
-            for (std::uint8_t Iterator = 0u; Iterator < static_cast<std::underlying_type_t<ApplicationEventFlags>>(ApplicationEventFlags::MAX); ++Iterator)
+            for (std::uint8_t Iterator = 0U; Iterator < static_cast<std::underlying_type_t<ApplicationEventFlags>>(ApplicationEventFlags::MAX); ++Iterator)
             {
-                ProcessedEvents.emplace(static_cast<ApplicationEventFlags>(Iterator), 0u);
+                ProcessedEvents.emplace(static_cast<ApplicationEventFlags>(Iterator), 0U);
             }
 
             while (!m_EventIDQueue.empty())
             {
-                const auto EventFlags = static_cast<ApplicationEventFlags>(m_EventIDQueue.front());
+                auto const EventFlags = static_cast<ApplicationEventFlags>(m_EventIDQueue.front());
                 m_EventIDQueue.pop();
 
                 switch (EventFlags) // NOLINT(clang-diagnostic-switch-enum)
                 {
                     case ApplicationEventFlags::DRAW_FRAME:
                         {
-                            if (ProcessedEvents[EventFlags] > 0u)
+                            if (ProcessedEvents[EventFlags] > 0U)
                             {
                                 break;
                             }
@@ -144,16 +142,16 @@ public:
                 ++ProcessedEvents[EventFlags];
             }
         }
-        catch (const std::exception& Ex)
+        catch (std::exception const& Ex)
         {
             BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
         }
     }
 
 private:
-    bool InitializeGLFW(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title)
+    bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title)
     {
-        if (!glfwInit())
+        if (glfwInit() == 0)
         {
             throw std::runtime_error("Failed to initialize GLFW");
         }
@@ -162,7 +160,7 @@ private:
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
         if (m_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr);
-            !m_Window)
+            m_Window == nullptr)
         {
             throw std::runtime_error("Failed to create GLFW Window");
         }
@@ -195,7 +193,7 @@ private:
             // Draw Frame
             constexpr Timer::Parameters DrawFrameTimerParameters{
                 .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::DRAW_FRAME),
-                .Interval = 1000u / (g_FrameRate > 0 ? g_FrameRate : 1u),
+                .Interval = 1000U / (g_FrameRate > 0 ? g_FrameRate : 1U),
                 .RepeatCount = std::nullopt
             };
 
@@ -206,7 +204,7 @@ private:
             // Load Scene: Testing Only
             constexpr Timer::Parameters LoadSceneTimerParameters{
                 .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::LOAD_SCENE),
-                .Interval = 3000u,
+                .Interval = 3000U,
                 .RepeatCount = 0
             };
 
@@ -217,16 +215,20 @@ private:
             // Unload Scene: Testing Only
             constexpr Timer::Parameters UnLoadSceneTimerParameters{
                 .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::UNLOAD_SCENE),
-                .Interval = 5000u,
-                .RepeatCount = 0u
+                .Interval = 5000U,
+                .RepeatCount = 0U
             };
 
             Timer::Manager::Get().StartTimer(UnLoadSceneTimerParameters, m_EventIDQueue);
         }
     }
 
-    GLFWwindow* m_Window;
-    std::uint64_t m_DrawTimerID;
+    GLFWwindow* m_Window{
+        nullptr
+    };
+    std::uint64_t m_DrawTimerID{
+        0U
+    };
     std::queue<std::uint8_t> m_EventIDQueue;
     std::mutex m_Mutex;
     std::thread::id m_MainThreadID;
@@ -244,10 +246,16 @@ Window::~Window()
         return;
     }
 
-    Shutdown();
+    try
+    {
+        Shutdown();
+    }
+    catch (...)
+    {
+    }
 }
 
-bool Window::Initialize(const std::uint16_t Width, const std::uint16_t Height, const std::string_view Title)
+bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title)
 {
     if (IsInitialized())
     {
@@ -297,7 +305,7 @@ void Window::PollEvents() const
             m_Impl->ProcessEvents();
         }
     }
-    catch (const std::exception& Ex)
+    catch (std::exception const& Ex)
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
     }

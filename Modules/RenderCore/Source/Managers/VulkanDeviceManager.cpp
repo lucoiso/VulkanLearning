@@ -14,30 +14,35 @@
 
 using namespace RenderCore;
 
-VulkanDeviceManager VulkanDeviceManager::g_Instance{};
-
 VulkanDeviceManager::VulkanDeviceManager()
-    : m_PhysicalDevice(VK_NULL_HANDLE)
-  , m_Device(VK_NULL_HANDLE)
-  , m_DeviceProperties()
+    : m_PhysicalDevice(VK_NULL_HANDLE),
+      m_Device(VK_NULL_HANDLE),
+      m_DeviceProperties()
 {
 }
 
 VulkanDeviceManager::~VulkanDeviceManager()
 {
-    Shutdown();
+    try
+    {
+        Shutdown();
+    }
+    catch (...)
+    {
+    }
 }
 
 VulkanDeviceManager& VulkanDeviceManager::Get()
 {
-    return g_Instance;
+    static VulkanDeviceManager Instance{};
+    return Instance;
 }
 
 void VulkanDeviceManager::PickPhysicalDevice()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Picking a physical device";
 
-    for (const VkPhysicalDevice& DeviceIter : GetAvailablePhysicalDevices())
+    for (VkPhysicalDevice const& DeviceIter : GetAvailablePhysicalDevices())
     {
         if (m_PhysicalDevice == VK_NULL_HANDLE && IsPhysicalDeviceSuitable(DeviceIter))
         {
@@ -55,12 +60,12 @@ void VulkanDeviceManager::PickPhysicalDevice()
     ListAvailablePhysicalDevices();
     ListAvailablePhysicalDeviceLayers();
 
-    for (const char* const & RequiredLayerIter : g_RequiredDeviceLayers)
+    for (char const* const & RequiredLayerIter : g_RequiredDeviceLayers)
     {
         ListAvailablePhysicalDeviceLayerExtensions(RequiredLayerIter);
     }
 
-    for (const char* const & DebugLayerIter : g_DebugDeviceLayers)
+    for (char const* const & DebugLayerIter : g_DebugDeviceLayers)
     {
         ListAvailablePhysicalDeviceLayerExtensions(DebugLayerIter);
     }
@@ -102,10 +107,10 @@ void VulkanDeviceManager::CreateLogicalDevice()
     #endif
 
     std::unordered_map<std::uint8_t, std::uint8_t> QueueFamilyIndices;
-    QueueFamilyIndices.emplace(m_GraphicsQueue.first, 1u);
+    QueueFamilyIndices.emplace(m_GraphicsQueue.first, 1U);
     if (!QueueFamilyIndices.contains(m_PresentationQueue.first))
     {
-        QueueFamilyIndices.emplace(m_PresentationQueue.first, 1u);
+        QueueFamilyIndices.emplace(m_PresentationQueue.first, 1U);
     }
     else
     {
@@ -114,7 +119,7 @@ void VulkanDeviceManager::CreateLogicalDevice()
 
     if (!QueueFamilyIndices.contains(m_TransferQueue.first))
     {
-        QueueFamilyIndices.emplace(m_TransferQueue.first, 1u);
+        QueueFamilyIndices.emplace(m_TransferQueue.first, 1U);
     }
     else
     {
@@ -123,14 +128,14 @@ void VulkanDeviceManager::CreateLogicalDevice()
 
     m_UniqueQueueFamilyIndices.clear();
     std::unordered_map<std::uint32_t, std::vector<float>> QueuePriorities;
-    for (const auto& [Index, Quantity] : QueueFamilyIndices)
+    for (auto const& [Index, Quantity] : QueueFamilyIndices)
     {
         m_UniqueQueueFamilyIndices.push_back(Index);
-        QueuePriorities.emplace(Index, std::vector(Quantity, 1.0f));
+        QueuePriorities.emplace(Index, std::vector(Quantity, 1.0F));
     }
 
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo;
-    for (const auto& [Index, Count] : QueueFamilyIndices)
+    for (auto const& [Index, Count] : QueueFamilyIndices)
     {
         QueueCreateInfo.push_back({
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -144,7 +149,7 @@ void VulkanDeviceManager::CreateLogicalDevice()
         .samplerAnisotropy = VK_TRUE
     };
 
-    const VkDeviceCreateInfo DeviceCreateInfo{
+    VkDeviceCreateInfo const DeviceCreateInfo{
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .queueCreateInfoCount = static_cast<std::uint32_t>(QueueCreateInfo.size()),
         .pQueueCreateInfos = QueueCreateInfo.data(),
@@ -155,21 +160,21 @@ void VulkanDeviceManager::CreateLogicalDevice()
         .pEnabledFeatures = &DeviceFeatures
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_Device))
+    RenderCoreHelpers::CheckVulkanResult(vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_Device));
 
-    if (vkGetDeviceQueue(m_Device, m_GraphicsQueue.first, 0u, &m_GraphicsQueue.second);
+    if (vkGetDeviceQueue(m_Device, m_GraphicsQueue.first, 0U, &m_GraphicsQueue.second);
         m_GraphicsQueue.second == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Failed to get graphics queue.");
     }
 
-    if (vkGetDeviceQueue(m_Device, m_PresentationQueue.first, 0u, &m_PresentationQueue.second);
+    if (vkGetDeviceQueue(m_Device, m_PresentationQueue.first, 0U, &m_PresentationQueue.second);
         m_PresentationQueue.second == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Failed to get presentation queue.");
     }
 
-    if (vkGetDeviceQueue(m_Device, m_TransferQueue.first, 0u, &m_TransferQueue.second);
+    if (vkGetDeviceQueue(m_Device, m_TransferQueue.first, 0U, &m_TransferQueue.second);
         m_TransferQueue.second == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Failed to get transfer queue.");
@@ -180,13 +185,13 @@ bool VulkanDeviceManager::UpdateDeviceProperties(GLFWwindow* const Window)
 {
     m_DeviceProperties.Capabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
 
-    const std::vector<VkSurfaceFormatKHR> SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats();
+    std::vector<VkSurfaceFormatKHR> const SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats();
     if (SupportedFormats.empty())
     {
         throw std::runtime_error("No supported surface formats found.");
     }
 
-    const std::vector<VkPresentModeKHR> SupportedPresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes();
+    std::vector<VkPresentModeKHR> const SupportedPresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes();
     if (SupportedFormats.empty())
     {
         throw std::runtime_error("No supported presentation modes found.");
@@ -202,8 +207,8 @@ bool VulkanDeviceManager::UpdateDeviceProperties(GLFWwindow* const Window)
     }
 
     m_DeviceProperties.Format = SupportedFormats[0];
-    if (const auto MatchingFormat = std::ranges::find_if(SupportedFormats,
-                                                         [](const VkSurfaceFormatKHR& Iter)
+    if (auto const MatchingFormat = std::ranges::find_if(SupportedFormats,
+                                                         [](VkSurfaceFormatKHR const& Iter)
                                                          {
                                                              return Iter.format == VK_FORMAT_B8G8R8A8_SRGB && Iter.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
                                                          });
@@ -213,8 +218,8 @@ bool VulkanDeviceManager::UpdateDeviceProperties(GLFWwindow* const Window)
     }
 
     m_DeviceProperties.Mode = VK_PRESENT_MODE_FIFO_KHR;
-    if (const auto MatchingMode = std::ranges::find_if(SupportedPresentationModes,
-                                                       [](const VkPresentModeKHR& Iter)
+    if (auto const MatchingMode = std::ranges::find_if(SupportedPresentationModes,
+                                                       [](VkPresentModeKHR const& Iter)
                                                        {
                                                            return Iter == VK_PRESENT_MODE_MAILBOX_KHR;
                                                        });
@@ -223,17 +228,17 @@ bool VulkanDeviceManager::UpdateDeviceProperties(GLFWwindow* const Window)
         m_DeviceProperties.Mode = *MatchingMode;
     }
 
-    for (const std::vector PreferredDepthFormats = {
+    for (std::vector const PreferredDepthFormats = {
              VK_FORMAT_D32_SFLOAT,
              VK_FORMAT_D32_SFLOAT_S8_UINT,
              VK_FORMAT_D24_UNORM_S8_UINT
          };
-         const VkFormat& FormatIter : PreferredDepthFormats)
+         VkFormat const& FormatIter : PreferredDepthFormats)
     {
         VkFormatProperties FormatProperties;
         vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, FormatIter, &FormatProperties);
 
-        if (FormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+        if ((FormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) != 0U)
         {
             m_DeviceProperties.DepthFormat = FormatIter;
             break;
@@ -283,7 +288,7 @@ std::vector<std::uint32_t> VulkanDeviceManager::GetUniqueQueueFamilyIndicesU32()
     std::vector<std::uint32_t> QueueFamilyIndicesU32(m_UniqueQueueFamilyIndices.size());
     std::ranges::transform(m_UniqueQueueFamilyIndices,
                            QueueFamilyIndicesU32.begin(),
-                           [](const std::uint8_t& Index)
+                           [](std::uint8_t const& Index)
                            {
                                return static_cast<std::uint32_t>(Index);
                            });
@@ -292,8 +297,8 @@ std::vector<std::uint32_t> VulkanDeviceManager::GetUniqueQueueFamilyIndicesU32()
 
 std::uint32_t VulkanDeviceManager::GetMinImageCount() const
 {
-    const bool SupportsTripleBuffering = m_DeviceProperties.Capabilities.minImageCount < 3u && m_DeviceProperties.Capabilities.maxImageCount >= 3u;
-    return SupportsTripleBuffering ? 3u : m_DeviceProperties.Capabilities.minImageCount;
+    bool const SupportsTripleBuffering = m_DeviceProperties.Capabilities.minImageCount < 3U && m_DeviceProperties.Capabilities.maxImageCount >= 3U;
+    return SupportsTripleBuffering ? 3U : m_DeviceProperties.Capabilities.minImageCount;
 }
 
 void VulkanDeviceManager::Shutdown()
@@ -322,13 +327,13 @@ bool VulkanDeviceManager::IsInitialized() const
 
 std::vector<VkPhysicalDevice> VulkanDeviceManager::GetAvailablePhysicalDevices()
 {
-    const VkInstance& VulkanInstance = VulkanRenderCore::Get().GetInstance();
+    VkInstance const& VulkanInstance = VulkanRenderCore::Get().GetInstance();
 
-    std::uint32_t DeviceCount = 0u;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, nullptr))
+    std::uint32_t DeviceCount = 0U;
+    RenderCoreHelpers::CheckVulkanResult(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, nullptr));
 
     std::vector<VkPhysicalDevice> Output(DeviceCount, VK_NULL_HANDLE);
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, Output.data()))
+    RenderCoreHelpers::CheckVulkanResult(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, Output.data()));
 
     return Output;
 }
@@ -340,11 +345,11 @@ std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDevi
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    std::uint32_t ExtensionsCount;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, nullptr))
+    std::uint32_t ExtensionsCount = 0;
+    RenderCoreHelpers::CheckVulkanResult(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, nullptr));
 
     std::vector<VkExtensionProperties> Output(ExtensionsCount);
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, Output.data()))
+    RenderCoreHelpers::CheckVulkanResult(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, Output.data()));
 
     return Output;
 }
@@ -356,33 +361,33 @@ std::vector<VkLayerProperties> VulkanDeviceManager::GetAvailablePhysicalDeviceLa
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    std::uint32_t LayersCount;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceLayerProperties(m_PhysicalDevice, &LayersCount, nullptr))
+    std::uint32_t LayersCount = 0;
+    RenderCoreHelpers::CheckVulkanResult(vkEnumerateDeviceLayerProperties(m_PhysicalDevice, &LayersCount, nullptr));
 
     std::vector<VkLayerProperties> Output(LayersCount);
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceLayerProperties(m_PhysicalDevice, &LayersCount, Output.data()))
+    RenderCoreHelpers::CheckVulkanResult(vkEnumerateDeviceLayerProperties(m_PhysicalDevice, &LayersCount, Output.data()));
 
     return Output;
 }
 
-std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDeviceLayerExtensions(const std::string_view LayerName) const
+std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDeviceLayerExtensions(std::string_view const LayerName) const
 {
     if (m_PhysicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    if (const std::vector<std::string> AvailableLayers = GetAvailablePhysicalDeviceLayersNames();
+    if (std::vector<std::string> const AvailableLayers = GetAvailablePhysicalDeviceLayersNames();
         std::ranges::find(AvailableLayers, LayerName) == AvailableLayers.end())
     {
         return {};
     }
 
-    std::uint32_t ExtensionsCount;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, LayerName.data(), &ExtensionsCount, nullptr))
+    std::uint32_t ExtensionsCount = 0;
+    RenderCoreHelpers::CheckVulkanResult(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, LayerName.data(), &ExtensionsCount, nullptr));
 
     std::vector<VkExtensionProperties> Output(ExtensionsCount);
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, LayerName.data(), &ExtensionsCount, Output.data()))
+    RenderCoreHelpers::CheckVulkanResult(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, LayerName.data(), &ExtensionsCount, Output.data()));
 
     return Output;
 }
@@ -390,8 +395,7 @@ std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDevi
 std::vector<std::string> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensionsNames() const
 {
     std::vector<std::string> Output;
-    // ReSharper disable once CppUseStructuredBinding
-    for (const VkExtensionProperties& ExtensionIter : GetAvailablePhysicalDeviceExtensions())
+    for (VkExtensionProperties const& ExtensionIter : GetAvailablePhysicalDeviceExtensions())
     {
         Output.emplace_back(ExtensionIter.extensionName);
     }
@@ -399,11 +403,10 @@ std::vector<std::string> VulkanDeviceManager::GetAvailablePhysicalDeviceExtensio
     return Output;
 }
 
-std::vector<std::string> VulkanDeviceManager::GetAvailablePhysicalDeviceLayerExtensionsNames(const std::string_view LayerName) const
+std::vector<std::string> VulkanDeviceManager::GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view const LayerName) const
 {
     std::vector<std::string> Output;
-    // ReSharper disable once CppUseStructuredBinding
-    for (const VkExtensionProperties& ExtensionIter : GetAvailablePhysicalDeviceLayerExtensions(LayerName))
+    for (VkExtensionProperties const& ExtensionIter : GetAvailablePhysicalDeviceLayerExtensions(LayerName))
     {
         Output.emplace_back(ExtensionIter.extensionName);
     }
@@ -414,8 +417,7 @@ std::vector<std::string> VulkanDeviceManager::GetAvailablePhysicalDeviceLayerExt
 std::vector<std::string> VulkanDeviceManager::GetAvailablePhysicalDeviceLayersNames() const
 {
     std::vector<std::string> Output;
-    // ReSharper disable once CppUseStructuredBinding
-    for (const VkLayerProperties& LayerIter : GetAvailablePhysicalDeviceLayers())
+    for (VkLayerProperties const& LayerIter : GetAvailablePhysicalDeviceLayers())
     {
         Output.emplace_back(LayerIter.layerName);
     }
@@ -431,7 +433,7 @@ VkSurfaceCapabilitiesKHR VulkanDeviceManager::GetAvailablePhysicalDeviceSurfaceC
     }
 
     VkSurfaceCapabilitiesKHR Output;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, VulkanRenderCore::Get().GetSurface(), &Output))
+    RenderCoreHelpers::CheckVulkanResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, VulkanRenderCore::Get().GetSurface(), &Output));
 
     return Output;
 }
@@ -443,13 +445,13 @@ std::vector<VkSurfaceFormatKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceS
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    const VkSurfaceKHR& VulkanSurface = VulkanRenderCore::Get().GetSurface();
+    VkSurfaceKHR const& VulkanSurface = VulkanRenderCore::Get().GetSurface();
 
-    std::uint32_t Count = 0u;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, VulkanSurface, &Count, nullptr))
+    std::uint32_t Count = 0U;
+    RenderCoreHelpers::CheckVulkanResult(vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, VulkanSurface, &Count, nullptr));
 
     std::vector Output(Count, VkSurfaceFormatKHR());
-    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, VulkanSurface, &Count, Output.data()))
+    RenderCoreHelpers::CheckVulkanResult(vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, VulkanSurface, &Count, Output.data()));
 
     return Output;
 }
@@ -461,13 +463,13 @@ std::vector<VkPresentModeKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceSur
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    const VkSurfaceKHR& VulkanSurface = VulkanRenderCore::Get().GetSurface();
+    VkSurfaceKHR const& VulkanSurface = VulkanRenderCore::Get().GetSurface();
 
-    std::uint32_t Count = 0u;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, VulkanSurface, &Count, nullptr))
+    std::uint32_t Count = 0U;
+    RenderCoreHelpers::CheckVulkanResult(vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, VulkanSurface, &Count, nullptr));
 
     std::vector Output(Count, VkPresentModeKHR());
-    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, VulkanSurface, &Count, Output.data()))
+    RenderCoreHelpers::CheckVulkanResult(vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, VulkanSurface, &Count, Output.data()));
 
     return Output;
 }
@@ -485,7 +487,7 @@ VkDeviceSize VulkanDeviceManager::GetMinUniformBufferOffsetAlignment() const
     return DeviceProperties.limits.minUniformBufferOffsetAlignment;
 }
 
-bool VulkanDeviceManager::IsPhysicalDeviceSuitable(const VkPhysicalDevice& Device)
+bool VulkanDeviceManager::IsPhysicalDeviceSuitable(VkPhysicalDevice const& Device)
 {
     if (Device == VK_NULL_HANDLE)
     {
@@ -498,7 +500,7 @@ bool VulkanDeviceManager::IsPhysicalDeviceSuitable(const VkPhysicalDevice& Devic
     VkPhysicalDeviceFeatures SupportedFeatures;
     vkGetPhysicalDeviceFeatures(Device, &SupportedFeatures);
 
-    return DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && SupportedFeatures.samplerAnisotropy;
+    return DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && SupportedFeatures.samplerAnisotropy != 0U;
 }
 
 bool VulkanDeviceManager::GetQueueFamilyIndices(std::optional<std::uint8_t>& GraphicsQueueFamilyIndex,
@@ -512,30 +514,30 @@ bool VulkanDeviceManager::GetQueueFamilyIndices(std::optional<std::uint8_t>& Gra
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    const VkSurfaceKHR& VulkanSurface = VulkanRenderCore::Get().GetSurface();
+    VkSurfaceKHR const& VulkanSurface = VulkanRenderCore::Get().GetSurface();
 
-    std::uint32_t QueueFamilyCount = 0u;
+    std::uint32_t QueueFamilyCount = 0U;
     vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &QueueFamilyCount, nullptr);
 
     std::vector<VkQueueFamilyProperties> QueueFamilies(QueueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &QueueFamilyCount, QueueFamilies.data());
 
-    for (std::uint32_t Iterator = 0u; Iterator < QueueFamilyCount; ++Iterator)
+    for (std::uint32_t Iterator = 0U; Iterator < QueueFamilyCount; ++Iterator)
     {
-        if (!GraphicsQueueFamilyIndex.has_value() && QueueFamilies[Iterator].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        if (!GraphicsQueueFamilyIndex.has_value() && (QueueFamilies[Iterator].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0U)
         {
             GraphicsQueueFamilyIndex = static_cast<std::uint8_t>(Iterator);
         }
-        else if (!TransferQueueFamilyIndex.has_value() && QueueFamilies[Iterator].queueFlags & VK_QUEUE_TRANSFER_BIT)
+        else if (!TransferQueueFamilyIndex.has_value() && (QueueFamilies[Iterator].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0U)
         {
             TransferQueueFamilyIndex = static_cast<std::uint8_t>(Iterator);
         }
         else if (!PresentationQueueFamilyIndex.has_value())
         {
-            VkBool32 PresentationSupport = false;
-            RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDevice, Iterator, VulkanSurface, &PresentationSupport))
+            VkBool32 PresentationSupport = 0U;
+            RenderCoreHelpers::CheckVulkanResult(vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDevice, Iterator, VulkanSurface, &PresentationSupport));
 
-            if (PresentationSupport)
+            if (PresentationSupport != 0U)
             {
                 PresentationQueueFamilyIndex = static_cast<std::uint8_t>(Iterator);
             }
@@ -555,7 +557,7 @@ void VulkanDeviceManager::ListAvailablePhysicalDevices()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical devices...";
 
-    for (const VkPhysicalDevice& DeviceIter : GetAvailablePhysicalDevices())
+    for (VkPhysicalDevice const& DeviceIter : GetAvailablePhysicalDevices())
     {
         VkPhysicalDeviceProperties DeviceProperties;
         vkGetPhysicalDeviceProperties(DeviceIter, &DeviceProperties);
@@ -572,7 +574,7 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceExtensions() const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device extensions...";
 
-    for (const auto& [ExtName, SpecVer] : GetAvailablePhysicalDeviceExtensions())
+    for (auto const& [ExtName, SpecVer] : GetAvailablePhysicalDeviceExtensions())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << ExtName;
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << SpecVer << std::endl;
@@ -583,7 +585,7 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceLayers() const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device layers...";
 
-    for (const auto& [LayerName, SpecVer, ImplVer, Descr] : GetAvailablePhysicalDeviceLayers())
+    for (auto const& [LayerName, SpecVer, ImplVer, Descr] : GetAvailablePhysicalDeviceLayers())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << LayerName;
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << SpecVer;
@@ -592,11 +594,11 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceLayers() const
     }
 }
 
-void VulkanDeviceManager::ListAvailablePhysicalDeviceLayerExtensions(const std::string_view LayerName) const
+void VulkanDeviceManager::ListAvailablePhysicalDeviceLayerExtensions(std::string_view const LayerName) const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device layer '" << LayerName << "' extensions...";
 
-    for (const auto& [ExtName, SpecVer] : GetAvailablePhysicalDeviceLayerExtensions(LayerName))
+    for (auto const& [ExtName, SpecVer] : GetAvailablePhysicalDeviceLayerExtensions(LayerName))
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << ExtName;
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << SpecVer << std::endl;
@@ -607,8 +609,7 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceSurfaceCapabilities() const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device surface capabilities...";
 
-    // ReSharper disable once CppUseStructuredBinding
-    const VkSurfaceCapabilitiesKHR SurfaceCapabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
+    VkSurfaceCapabilitiesKHR const SurfaceCapabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min Image Count: " << SurfaceCapabilities.minImageCount;
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max Image Count: " << SurfaceCapabilities.maxImageCount;
@@ -626,7 +627,7 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceSurfaceFormats() const
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device surface formats...";
 
-    for (const auto& [Format, ColorSpace] : GetAvailablePhysicalDeviceSurfaceFormats())
+    for (auto const& [Format, ColorSpace] : GetAvailablePhysicalDeviceSurfaceFormats())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Format: " << SurfaceFormatToString(Format);
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Color Space: " << ColorSpaceModeToString(ColorSpace) << std::endl;
@@ -637,7 +638,7 @@ void VulkanDeviceManager::ListAvailablePhysicalDeviceSurfacePresentationModes() 
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device presentation modes...";
 
-    for (const VkPresentModeKHR& FormatIter : GetAvailablePhysicalDeviceSurfacePresentationModes())
+    for (VkPresentModeKHR const& FormatIter : GetAvailablePhysicalDeviceSurfacePresentationModes())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Mode: " << PresentationModeToString(FormatIter);
     }

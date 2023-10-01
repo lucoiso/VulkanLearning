@@ -17,6 +17,4 @@ namespace RenderCore
         PENDING_RESOURCES_CREATION       = 1 << 3,
         PENDING_PIPELINE_REFRESH         = 1 << 4,
     };
-
-    DECLARE_BITWISE_OPERATORS(VulkanRenderCoreStateFlags);
 }

@@ -16,9 +16,9 @@ namespace RenderCore
 
         VulkanTextureData() = default;
 
-        VulkanTextureData(const VkImageView InView, const VkSampler InSampler)
-            : ImageView(InView)
-          , Sampler(InSampler)
+        VulkanTextureData(VkImageView const InView, VkSampler const InSampler)
+            : ImageView(InView),
+              Sampler(InSampler)
         {
         }
     };

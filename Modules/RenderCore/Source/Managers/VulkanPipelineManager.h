@@ -12,10 +12,11 @@ namespace RenderCore
     class VulkanPipelineManager final // NOLINT(cppcoreguidelines-special-member-functions)
     {
     public:
-        VulkanPipelineManager(const VulkanPipelineManager&)            = delete;
-        VulkanPipelineManager& operator=(const VulkanPipelineManager&) = delete;
-
         VulkanPipelineManager();
+
+        VulkanPipelineManager(VulkanPipelineManager const&)            = delete;
+        VulkanPipelineManager& operator=(VulkanPipelineManager const&) = delete;
+
         ~VulkanPipelineManager();
 
         static VulkanPipelineManager& Get();
@@ -30,17 +31,15 @@ namespace RenderCore
         void Shutdown();
         void DestroyResources();
 
-        [[nodiscard]] const VkRenderPass& GetRenderPass() const;
-        [[nodiscard]] const VkPipeline& GetPipeline() const;
-        [[nodiscard]] const VkPipelineLayout& GetPipelineLayout() const;
-        [[nodiscard]] const VkPipelineCache& GetPipelineCache() const;
-        [[nodiscard]] const VkDescriptorSetLayout& GetDescriptorSetLayout() const;
-        [[nodiscard]] const VkDescriptorPool& GetDescriptorPool() const;
-        [[nodiscard]] const std::vector<VkDescriptorSet>& GetDescriptorSets() const;
+        [[nodiscard]] VkRenderPass const& GetRenderPass() const;
+        [[nodiscard]] VkPipeline const& GetPipeline() const;
+        [[nodiscard]] VkPipelineLayout const& GetPipelineLayout() const;
+        [[nodiscard]] VkPipelineCache const& GetPipelineCache() const;
+        [[nodiscard]] VkDescriptorSetLayout const& GetDescriptorSetLayout() const;
+        [[nodiscard]] VkDescriptorPool const& GetDescriptorPool() const;
+        [[nodiscard]] std::vector<VkDescriptorSet> const& GetDescriptorSets() const;
 
     private:
-        static VulkanPipelineManager g_Instance;
-
         VkRenderPass m_RenderPass;
         VkPipeline m_Pipeline;
         VkPipelineLayout m_PipelineLayout;

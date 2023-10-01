@@ -11,7 +11,6 @@
 
 namespace RenderCore
 {
-    // ReSharper disable once CppClassCanBeFinal
     class RENDERCOREMODULE_API Window // NOLINT(cppcoreguidelines-special-member-functions)
     {
         class Impl;
@@ -19,8 +18,8 @@ namespace RenderCore
     public:
         Window();
 
-        Window(const Window&)            = delete;
-        Window& operator=(const Window&) = delete;
+        Window(Window const&)            = delete;
+        Window& operator=(Window const&) = delete;
 
         virtual ~Window();
 

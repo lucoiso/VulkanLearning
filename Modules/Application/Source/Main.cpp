@@ -7,8 +7,8 @@
 
 int main([[maybe_unused]] int Argc, [[maybe_unused]] char* Argv[])
 {
-    if (const auto Window = std::make_unique<RenderCore::Window>();
-        Window->Initialize(600u, 600u, "Vulkan Project"))
+    if (auto const Window = std::make_unique<RenderCore::Window>();
+        Window->Initialize(600U, 600U, "Vulkan Project"))
     {
         while (Window->IsOpen())
         {

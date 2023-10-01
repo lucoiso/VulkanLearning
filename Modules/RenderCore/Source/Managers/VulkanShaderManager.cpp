@@ -2,7 +2,6 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRender
 
-// ReSharper disable CppMemberFunctionMayBeStatic
 #include "Managers/VulkanShaderManager.h"
 #include "Managers/VulkanDeviceManager.h"
 #include "Utils/RenderCoreHelpers.h"
@@ -16,8 +15,6 @@
 
 using namespace RenderCore;
 
-VulkanShaderManager VulkanShaderManager::g_Instance{};
-
 VulkanShaderManager::VulkanShaderManager()
     : m_StageInfos({})
 {
@@ -25,16 +22,22 @@ VulkanShaderManager::VulkanShaderManager()
 
 VulkanShaderManager::~VulkanShaderManager()
 {
-    Shutdown();
+    try
+    {
+        Shutdown();
+    }
+    catch (...)
+    {
+    }
 }
 
 void VulkanShaderManager::Shutdown()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan shader compiler";
 
-    const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    for (const auto& ShaderModule : m_StageInfos | std::views::keys)
+    for (auto const& ShaderModule : m_StageInfos | std::views::keys)
     {
         if (ShaderModule != VK_NULL_HANDLE)
         {
@@ -46,15 +49,16 @@ void VulkanShaderManager::Shutdown()
 
 VulkanShaderManager& VulkanShaderManager::Get()
 {
-    return g_Instance;
+    static VulkanShaderManager Instance{};
+    return Instance;
 }
 
-bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode)
+bool VulkanShaderManager::Compile(std::string_view const Source, std::vector<uint32_t>& OutSPIRVCode)
 {
     EShLanguage Language = EShLangVertex;
-    const std::filesystem::path Path(Source);
+    std::filesystem::path const Path(Source);
 
-    if (const std::filesystem::path Extension = Path.extension();
+    if (std::filesystem::path const Extension = Path.extension();
         Extension == ".frag")
     {
         Language = EShLangFragment;
@@ -114,17 +118,17 @@ bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uin
     ShaderSource << File.rdbuf();
     File.close();
 
-    const bool Result = Compile(ShaderSource.str(), Language, OutSPIRVCode);
+    bool const Result = Compile(ShaderSource.str(), Language, OutSPIRVCode);
     if (Result)
     {
-        const std::string SPIRVPath = std::format("{}.spv", Source);
+        std::string const SPIRVPath = std::format("{}.spv", Source);
         std::ofstream SPIRVFile(SPIRVPath, std::ios::binary);
         if (!SPIRVFile.is_open())
         {
             throw std::runtime_error("Failed to open SPIRV file: " + SPIRVPath);
         }
 
-        SPIRVFile << std::string(reinterpret_cast<const char*>(OutSPIRVCode.data()), OutSPIRVCode.size() * sizeof(uint32_t));
+        SPIRVFile << std::string(reinterpret_cast<char const*>(OutSPIRVCode.data()), OutSPIRVCode.size() * sizeof(uint32_t));
         SPIRVFile.close();
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compiled, generated SPIR-V shader file: " << SPIRVPath;
@@ -133,26 +137,25 @@ bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uin
     return Result;
 }
 
-// ReSharper disable once CppMemberFunctionMayBeStatic
-bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::uint32_t>& OutSPIRVCode) const
+bool VulkanShaderManager::Load(std::string_view const Source, std::vector<std::uint32_t>& OutSPIRVCode)
 {
-    const std::filesystem::path Path(Source);
+    std::filesystem::path const Path(Source);
     if (!exists(Path))
     {
-        const std::string ErrMessage = "Shader file does not exist" + std::string(Source);
+        std::string const ErrMessage = "Shader file does not exist" + std::string(Source);
         throw std::runtime_error(ErrMessage);
     }
 
     std::ifstream File(Path, std::ios::ate | std::ios::binary);
     if (!File.is_open())
     {
-        const std::string ErrMessage = "Failed to open shader file" + std::string(Source);
+        std::string const ErrMessage = "Failed to open shader file" + std::string(Source);
         throw std::runtime_error(ErrMessage);
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading shader: " << Source;
 
-    const size_t FileSize = File.tellg();
+    size_t const FileSize = File.tellg();
 
     if (FileSize == 0)
     {
@@ -162,15 +165,15 @@ bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::u
     OutSPIRVCode.resize(FileSize / sizeof(std::uint32_t), std::uint32_t());
 
     File.seekg(0);
-    const std::istream& ReadResult = File.read(reinterpret_cast<char*>(OutSPIRVCode.data()), static_cast<std::streamsize>(FileSize)); /* Flawfinder: ignore */
+    std::istream const& ReadResult = File.read(reinterpret_cast<char*>(OutSPIRVCode.data()), static_cast<std::streamsize>(FileSize)); /* Flawfinder: ignore */
     File.close();
 
     return !ReadResult.fail();
 }
 
-bool VulkanShaderManager::CompileOrLoadIfExists(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode)
+bool VulkanShaderManager::CompileOrLoadIfExists(std::string_view const Source, std::vector<uint32_t>& OutSPIRVCode)
 {
-    if (const std::string CompiledShaderPath = std::format("{}.spv", Source);
+    if (std::string const CompiledShaderPath = std::format("{}.spv", Source);
         std::filesystem::exists(CompiledShaderPath))
     {
         return Load(CompiledShaderPath, OutSPIRVCode);
@@ -178,7 +181,7 @@ bool VulkanShaderManager::CompileOrLoadIfExists(const std::string_view Source, s
     return Compile(Source, OutSPIRVCode);
 }
 
-VkShaderModule VulkanShaderManager::CreateModule(const VkDevice& Device, const std::vector<std::uint32_t>& SPIRVCode, const EShLanguage Language)
+VkShaderModule VulkanShaderManager::CreateModule(VkDevice const& Device, std::vector<std::uint32_t> const& SPIRVCode, EShLanguage const Language)
 {
     if (Device == VK_NULL_HANDLE)
     {
@@ -192,21 +195,21 @@ VkShaderModule VulkanShaderManager::CreateModule(const VkDevice& Device, const s
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating shader module...";
 
-    const VkShaderModuleCreateInfo CreateInfo{
+    VkShaderModuleCreateInfo const CreateInfo{
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         .codeSize = SPIRVCode.size() * sizeof(std::uint32_t),
         .pCode = SPIRVCode.data()
     };
 
-    VkShaderModule Output;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateShaderModule(Device, &CreateInfo, nullptr, &Output))
+    VkShaderModule Output = nullptr;
+    RenderCoreHelpers::CheckVulkanResult(vkCreateShaderModule(Device, &CreateInfo, nullptr, &Output));
 
     StageInfo(Output, Language);
 
     return Output;
 }
 
-VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(const VkShaderModule& Module) const
+VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(VkShaderModule const& Module) const
 {
     return m_StageInfos.at(Module);
 }
@@ -214,7 +217,7 @@ VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(const VkShader
 std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
 {
     std::vector<VkShaderModule> Output;
-    for (const auto& ShaderModule : m_StageInfos | std::views::keys)
+    for (auto const& ShaderModule : m_StageInfos | std::views::keys)
     {
         Output.push_back(ShaderModule);
     }
@@ -225,7 +228,7 @@ std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
 std::vector<VkPipelineShaderStageCreateInfo> VulkanShaderManager::GetStageInfos() const
 {
     std::vector<VkPipelineShaderStageCreateInfo> Output;
-    for (const auto& StageInfo : m_StageInfos | std::views::values)
+    for (auto const& StageInfo : m_StageInfos | std::views::values)
     {
         Output.push_back(StageInfo);
     }
@@ -233,14 +236,13 @@ std::vector<VkPipelineShaderStageCreateInfo> VulkanShaderManager::GetStageInfos(
     return Output;
 }
 
-void VulkanShaderManager::FreeStagedModules(const std::vector<VkPipelineShaderStageCreateInfo>& StagedModules)
+void VulkanShaderManager::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const& StagedModules)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
 
-    const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    // ReSharper disable once CppUseStructuredBinding
-    for (const VkPipelineShaderStageCreateInfo& StageInfoIter : StagedModules)
+    for (VkPipelineShaderStageCreateInfo const& StageInfoIter : StagedModules)
     {
         if (StageInfoIter.module != VK_NULL_HANDLE)
         {
@@ -254,13 +256,13 @@ void VulkanShaderManager::FreeStagedModules(const std::vector<VkPipelineShaderSt
     }
 }
 
-bool VulkanShaderManager::Compile(const std::string_view Source, const EShLanguage Language, std::vector<std::uint32_t>& OutSPIRVCode)
+bool VulkanShaderManager::Compile(std::string_view const Source, EShLanguage const Language, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     glslang::InitializeProcess();
 
     glslang::TShader Shader(Language);
 
-    const char* ShaderContent = Source.data();
+    char const* ShaderContent = Source.data();
     Shader.setStringsWithLengths(&ShaderContent, nullptr, 1);
 
     Shader.setEntryPoint(g_EntryPoint);
@@ -269,15 +271,15 @@ bool VulkanShaderManager::Compile(const std::string_view Source, const EShLangua
     Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
     Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
 
-    const TBuiltInResource* Resources = GetDefaultResources();
+    TBuiltInResource const* Resources = GetDefaultResources();
     constexpr auto MessageFlags       = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
 
     if (!Shader.parse(Resources, 450, ECoreProfile, false, true, MessageFlags))
     {
         glslang::FinalizeProcess();
-        const std::string InfoLog("Info Log: " + std::string(Shader.getInfoLog()));
-        const std::string DebugLog("Debug Log: " + std::string(Shader.getInfoDebugLog()));
-        const std::string ErrMessage = std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog);
+        std::string const InfoLog("Info Log: " + std::string(Shader.getInfoLog()));
+        std::string const DebugLog("Debug Log: " + std::string(Shader.getInfoDebugLog()));
+        std::string const ErrMessage = std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog);
         throw std::runtime_error(ErrMessage);
     }
 
@@ -287,9 +289,9 @@ bool VulkanShaderManager::Compile(const std::string_view Source, const EShLangua
     if (!Program.link(MessageFlags))
     {
         glslang::FinalizeProcess();
-        const std::string InfoLog("Info Log: " + std::string(Program.getInfoLog()));
-        const std::string DebugLog("Debug Log: " + std::string(Program.getInfoDebugLog()));
-        const std::string ErrMessage = std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog);
+        std::string const InfoLog("Info Log: " + std::string(Program.getInfoLog()));
+        std::string const DebugLog("Debug Log: " + std::string(Program.getInfoDebugLog()));
+        std::string const ErrMessage = std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog);
         throw std::runtime_error(ErrMessage);
     }
 
@@ -299,7 +301,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, const EShLangua
     GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
     glslang::FinalizeProcess();
 
-    if (const std::string GeneratedLogs = Logger.getAllMessages();
+    if (std::string const GeneratedLogs = Logger.getAllMessages();
         !GeneratedLogs.empty())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compilation result log:\n" << GeneratedLogs;
@@ -308,7 +310,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, const EShLangua
     return !OutSPIRVCode.empty();
 }
 
-void VulkanShaderManager::StageInfo(const VkShaderModule& Module, const EShLanguage Language)
+void VulkanShaderManager::StageInfo(VkShaderModule const& Module, EShLanguage const Language)
 {
     if (Module == VK_NULL_HANDLE)
     {

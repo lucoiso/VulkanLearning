@@ -17,17 +17,17 @@ namespace RenderCore
         glfwSetWindowShouldClose(Window, GLFW_TRUE);
     }
 
-    static void GLFWWindowResized(GLFWwindow* const Window, [[maybe_unused]] const std::int32_t Width, [[maybe_unused]] const std::int32_t Height)
+    static void GLFWWindowResized(GLFWwindow* const Window, [[maybe_unused]] std::int32_t const Width, [[maybe_unused]] std::int32_t const Height)
     {
         VulkanDeviceManager::Get().UpdateDeviceProperties(Window);
     }
 
-    static void GLFWErrorCallback(const std::int32_t Error, const char* const Description)
+    static void GLFWErrorCallback(std::int32_t const Error, char const* const Description)
     {
         BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: GLFW Error: " << Error << " - " << Description;
     }
 
-    static void GLFWKeyCallback(GLFWwindow* const Window, const std::int32_t Key, [[maybe_unused]] const std::int32_t Scancode, const std::int32_t Action, [[maybe_unused]] const int Mods)
+    static void GLFWKeyCallback(GLFWwindow* const Window, std::int32_t const Key, [[maybe_unused]] std::int32_t const Scancode, std::int32_t const Action, [[maybe_unused]] int const Mods)
     {
         if (Key == GLFW_KEY_ESCAPE && Action == GLFW_PRESS)
         {

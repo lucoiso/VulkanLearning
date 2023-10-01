@@ -14,15 +14,15 @@ namespace RenderCore
     public:
         static VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT MessageSeverity,
                                                                            VkDebugUtilsMessageTypeFlagsEXT MessageType,
-                                                                           const VkDebugUtilsMessengerCallbackDataEXT* CallbackData,
+                                                                           VkDebugUtilsMessengerCallbackDataEXT const* CallbackData,
                                                                            void* UserData);
 
         static VkResult CreateDebugUtilsMessenger(VkInstance Instance,
-                                                  const VkDebugUtilsMessengerCreateInfoEXT* CreateInfo,
-                                                  const VkAllocationCallbacks* Allocator,
+                                                  VkDebugUtilsMessengerCreateInfoEXT const* CreateInfo,
+                                                  VkAllocationCallbacks const* Allocator,
                                                   VkDebugUtilsMessengerEXT* DebugMessenger);
 
-        static void DestroyDebugUtilsMessenger(VkInstance Instance, VkDebugUtilsMessengerEXT DebugMessenger, const VkAllocationCallbacks* Allocator);
+        static void DestroyDebugUtilsMessenger(VkInstance Instance, VkDebugUtilsMessengerEXT DebugMessenger, VkAllocationCallbacks const* Allocator);
 
         static VkValidationFeaturesEXT GetInstanceValidationFeatures();
 

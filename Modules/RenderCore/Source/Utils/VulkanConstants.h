@@ -53,11 +53,11 @@ namespace RenderCore
     };
     #endif
 
-    constexpr std::array<const char*, 0u> g_RequiredInstanceLayers = {};
+    constexpr std::array<char const*, 0U> g_RequiredInstanceLayers = {};
 
-    constexpr std::array<const char*, 0u> g_RequiredDeviceLayers = {};
+    constexpr std::array<char const*, 0U> g_RequiredDeviceLayers = {};
 
-    constexpr std::array<const char*, 0u> g_RequiredInstanceExtensions = {};
+    constexpr std::array<char const*, 0U> g_RequiredInstanceExtensions = {};
 
     constexpr std::array g_RequiredDeviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -68,29 +68,29 @@ namespace RenderCore
         VK_DYNAMIC_STATE_SCISSOR
     };
 
-    constexpr std::uint8_t g_MaxFramesInFlight = 1u;
+    constexpr std::uint8_t g_MaxFramesInFlight = 1U;
 
-    constexpr std::uint64_t g_BufferMemoryAllocationSize = 65536u;
+    constexpr std::uint64_t g_BufferMemoryAllocationSize = 65536U;
 
     constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-    constexpr std::uint8_t g_FrameRate = 75u;
+    constexpr std::uint8_t g_FrameRate = 75U;
 
     constexpr std::array g_ClearValues{
         VkClearValue{
             .color = {
                 {
-                    0.25f,
-                    0.25f,
-                    0.5f,
-                    1.f
+                    0.25F,
+                    0.25F,
+                    0.5F,
+                    1.F
                 }
             }
         },
         VkClearValue{
             .depthStencil = {
-                1.0f,
-                0u
+                1.0F,
+                0U
             }
         }
     };
