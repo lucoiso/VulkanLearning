@@ -33,7 +33,6 @@ jobs:
         with:
           fetch-depth: 0
           submodules: 'recursive'
-      - uses: lukka/get-cmake@latest
 
       - name: Install Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0
@@ -42,18 +41,14 @@ jobs:
           vulkan-components: Vulkan-Headers
           vulkan-use-cache: true
 
-      - name: Setup VCPKG
-        with:
-          cmakeListsTxtPath: '${{github.workspace}}/CMakeLists.txt'
-          configurePreset: ${{env.BUILD_TYPE}}
-          buildPreset: ${{env.BUILD_TYPE}}
-
       - name: Run VCPKG
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgDirectory: ${{env.VCPKG_ROOT}}
           vcpkgGitCommitId: ${{env.VCPKG_BUILTIN_BASELINE}}
           vcpkgJsonGlob: '**/vcpkg.json'
+
+      - uses: lukka/get-cmake@latest
 
       - name: Run CMake
         uses: lukka/run-cmake@v10
