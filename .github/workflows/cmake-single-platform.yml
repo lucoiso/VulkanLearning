@@ -13,9 +13,9 @@ env:
   VCPKG_BUILTIN_BASELINE: 5a38b5ec0eee3d1a1a6faab5e944617fee2697cf
   VCPKG_ENABLE_METRICS: 1
   VCPKG_DEFAULT_TRIPLET: x64-windows-release
-  VCPKG_DEFAULT_BINARY_CACHE: ${{env.VCPKG_ROOT}}/bincache
+  VCPKG_DEFAULT_BINARY_CACHE: ${{github.workspace}}/vcpkg/bincache
   VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
-  OUTPUT_DIRECTORY: ${{env.OUTPUT_DIRECTORY}}
+  OUTPUT_DIRECTORY: out/build
 
 permissions:
   actions: read
