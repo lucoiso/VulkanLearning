@@ -16,14 +16,14 @@ namespace RenderCore
 {
     constexpr char const* ToChars(auto const Argument)
     {
-        std::array<char, 16U> Buffer{};
+        std::array<char, 16U> Buffer {};
         std::span const BufferSpan(Buffer.data(), Buffer.size());
 
-        if (auto Result = std::to_chars(BufferSpan.begin(), BufferSpan.end(), Argument);
+        if (auto Result = std::to_chars(BufferSpan.data(), BufferSpan.data() + BufferSpan.size(), Argument);
             Result.ec == std::errc())
         {
             *Result.ptr               = '\0';
-            auto* const DynamicBuffer = new char[Buffer.size()];  // NOLINT(cppcoreguidelines-owning-memory)
+            auto* const DynamicBuffer = new char[Buffer.size()];
             std::ranges::copy(Buffer, DynamicBuffer);
             return DynamicBuffer;
         }
@@ -32,7 +32,7 @@ namespace RenderCore
 
     constexpr char const* ResultToString(VkResult const Input)
     {
-        switch (Input) // NOLINT(clang-diagnostic-switch-enum)
+        switch (Input)
         {
             case VK_SUCCESS:
                 return "VK_SUCCESS";
@@ -135,7 +135,7 @@ namespace RenderCore
 
     constexpr char const* SurfaceFormatToString(VkFormat const Input)
     {
-        switch (Input) // NOLINT(clang-diagnostic-switch-enum)
+        switch (Input)
         {
             case VK_FORMAT_UNDEFINED:
                 return "VK_FORMAT_UNDEFINED";
@@ -642,7 +642,7 @@ namespace RenderCore
 
     constexpr char const* ColorSpaceModeToString(VkColorSpaceKHR const Input)
     {
-        switch (Input) // NOLINT(clang-diagnostic-switch-enum)
+        switch (Input)
         {
             case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR:
                 return "VK_COLOR_SPACE_SRGB_NONLINEAR_KHR";
@@ -685,7 +685,7 @@ namespace RenderCore
 
     constexpr char const* PresentationModeToString(VkPresentModeKHR const Input)
     {
-        switch (Input) // NOLINT(clang-diagnostic-switch-enum)
+        switch (Input)
         {
             case VK_PRESENT_MODE_IMMEDIATE_KHR:
                 return "VK_PRESENT_MODE_IMMEDIATE_KHR";
@@ -708,7 +708,7 @@ namespace RenderCore
 
     constexpr char const* TransformFlagToString(VkSurfaceTransformFlagBitsKHR const Input)
     {
-        switch (Input) // NOLINT(clang-diagnostic-switch-enum)
+        switch (Input)
         {
             case VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR:
                 return "VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR";
@@ -756,7 +756,7 @@ namespace RenderCore
 
     constexpr char const* ImageUsageFlagToString(VkImageUsageFlagBits const Input)
     {
-        switch (Input) // NOLINT(clang-diagnostic-switch-enum)
+        switch (Input)
         {
             case VK_IMAGE_USAGE_TRANSFER_SRC_BIT:
                 return "VK_IMAGE_USAGE_TRANSFER_SRC_BIT";
@@ -798,6 +798,6 @@ namespace RenderCore
 
         return ToChars(static_cast<std::uint8_t>(Input));
     }
-}
+}// namespace RenderCore
 
 #endif

@@ -3,8 +3,8 @@
 # Repo: https://github.com/lucoiso/VulkanRender
 
 # ------------ Module Settings -------------
-enable_testing()
+ENABLE_TESTING()
 
 # -------------- Directories ---------------
-add_subdirectory(Benchmark)
-add_subdirectory(Unit)
+ADD_SUBDIRECTORY(Benchmark)
+ADD_SUBDIRECTORY(Unit)

@@ -4,12 +4,12 @@
 
 #pragma once
 
-#include "Types/VulkanVertex.h"
 #include "Types/TextureData.h"
-#include <vector>
+#include "Types/VulkanVertex.h"
+#include <atomic>
 #include <string_view>
 #include <unordered_map>
-#include <atomic>
+#include <vector>
 #include <vk_mem_alloc.h>
 
 struct GLFWwindow;
@@ -47,7 +47,7 @@ namespace RenderCore
         void DestroyResources();
     };
 
-    class VulkanBufferManager final // NOLINT(cppcoreguidelines-special-member-functions)
+    class VulkanBufferManager final
     {
     public:
         VulkanBufferManager();
@@ -114,7 +114,7 @@ namespace RenderCore
 
         void CreateSwapChainImageViews(VkFormat const& ImageFormat);
 
-        VmaAllocator m_Allocator{};
+        VmaAllocator m_Allocator {};
         VkSwapchainKHR m_SwapChain;
         VkSwapchainKHR m_OldSwapChain;
         VkExtent2D m_SwapChainExtent;
@@ -124,4 +124,4 @@ namespace RenderCore
         std::unordered_map<std::uint64_t, VulkanObjectAllocation> m_Objects;
         std::atomic<std::uint64_t> m_ObjectIDCounter;
     };
-}
+}// namespace RenderCore

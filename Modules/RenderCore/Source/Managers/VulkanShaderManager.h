@@ -4,16 +4,16 @@
 
 #pragma once
 
-#include <vector>
-#include <unordered_map>
 #include <glslang/Public/ShaderLang.h>
+#include <unordered_map>
+#include <vector>
 #include <volk.h>
 
 namespace RenderCore
 {
     constexpr char const* g_EntryPoint = "main";
 
-    class VulkanShaderManager final // NOLINT(cppcoreguidelines-special-member-functions)
+    class VulkanShaderManager final
     {
     public:
         VulkanShaderManager();
@@ -47,4 +47,4 @@ namespace RenderCore
 
         std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> m_StageInfos;
     };
-}
+}// namespace RenderCore

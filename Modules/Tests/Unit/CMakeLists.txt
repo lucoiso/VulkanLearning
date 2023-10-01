@@ -3,23 +3,23 @@
 # Repo: https://github.com/lucoiso/VulkanRender
 
 # ----------- Global Definitions -----------
-set(LIBRARY_NAME Unit)
+SET(LIBRARY_NAME Unit)
 
 # ------------- Library Setup --------------
-set(SOURCE_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Unit.cpp
+SET(SOURCE_FILES
+	${CMAKE_CURRENT_SOURCE_DIR}/Source/Unit.cpp
 )
 
-set(INCLUDE_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Placeholder.h
+SET(INCLUDE_FILES
+	${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Placeholder.h
 )
 
-add_executable(${LIBRARY_NAME} ${SOURCE_FILES} ${INCLUDE_FILES})
-target_include_directories(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME})
-add_test(NAME ${LIBRARY_NAME} COMMAND $<TARGET_FILE:${LIBRARY_NAME}>)
+ADD_EXECUTABLE(${LIBRARY_NAME} ${SOURCE_FILES} ${INCLUDE_FILES})
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME})
+ADD_TEST(NAME ${LIBRARY_NAME} COMMAND $<TARGET_FILE:${LIBRARY_NAME}>)
 
-find_package(Boost REQUIRED COMPONENTS system)
+FIND_PACKAGE(Boost REQUIRED COMPONENTS system)
 
-target_link_libraries(${LIBRARY_NAME} PRIVATE
-    Boost::system
+TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
+					  Boost::system
 )

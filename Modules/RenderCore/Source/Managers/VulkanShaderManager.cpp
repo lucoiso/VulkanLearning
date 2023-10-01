@@ -5,12 +5,12 @@
 #include "Managers/VulkanShaderManager.h"
 #include "Managers/VulkanDeviceManager.h"
 #include "Utils/RenderCoreHelpers.h"
-#include <glslang/SPIRV/GlslangToSpv.h>
-#include <glslang/Public/ResourceLimits.h>
 #include <boost/log/trivial.hpp>
 #include <filesystem>
-#include <fstream>
 #include <format>
+#include <fstream>
+#include <glslang/Public/ResourceLimits.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
 #include <ranges>
 
 using namespace RenderCore;
@@ -37,7 +37,7 @@ void VulkanShaderManager::Shutdown()
 
     VkDevice const& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    for (auto const& ShaderModule : m_StageInfos | std::views::keys)
+    for (auto const& ShaderModule: m_StageInfos | std::views::keys)
     {
         if (ShaderModule != VK_NULL_HANDLE)
         {
@@ -49,7 +49,7 @@ void VulkanShaderManager::Shutdown()
 
 VulkanShaderManager& VulkanShaderManager::Get()
 {
-    static VulkanShaderManager Instance{};
+    static VulkanShaderManager Instance {};
     return Instance;
 }
 
@@ -195,11 +195,10 @@ VkShaderModule VulkanShaderManager::CreateModule(VkDevice const& Device, std::ve
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating shader module...";
 
-    VkShaderModuleCreateInfo const CreateInfo{
-        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        .codeSize = SPIRVCode.size() * sizeof(std::uint32_t),
-        .pCode = SPIRVCode.data()
-    };
+    VkShaderModuleCreateInfo const CreateInfo {
+            .sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .codeSize = SPIRVCode.size() * sizeof(std::uint32_t),
+            .pCode    = SPIRVCode.data()};
 
     VkShaderModule Output = nullptr;
     RenderCoreHelpers::CheckVulkanResult(vkCreateShaderModule(Device, &CreateInfo, nullptr, &Output));
@@ -217,7 +216,7 @@ VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(VkShaderModule
 std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
 {
     std::vector<VkShaderModule> Output;
-    for (auto const& ShaderModule : m_StageInfos | std::views::keys)
+    for (auto const& ShaderModule: m_StageInfos | std::views::keys)
     {
         Output.push_back(ShaderModule);
     }
@@ -228,7 +227,7 @@ std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
 std::vector<VkPipelineShaderStageCreateInfo> VulkanShaderManager::GetStageInfos() const
 {
     std::vector<VkPipelineShaderStageCreateInfo> Output;
-    for (auto const& StageInfo : m_StageInfos | std::views::values)
+    for (auto const& StageInfo: m_StageInfos | std::views::values)
     {
         Output.push_back(StageInfo);
     }
@@ -242,7 +241,7 @@ void VulkanShaderManager::FreeStagedModules(std::vector<VkPipelineShaderStageCre
 
     VkDevice const& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    for (VkPipelineShaderStageCreateInfo const& StageInfoIter : StagedModules)
+    for (VkPipelineShaderStageCreateInfo const& StageInfoIter: StagedModules)
     {
         if (StageInfoIter.module != VK_NULL_HANDLE)
         {
@@ -295,7 +294,8 @@ bool VulkanShaderManager::Compile(std::string_view const Source, EShLanguage con
         throw std::runtime_error(ErrMessage);
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n" << Source;
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n"
+                             << Source;
 
     spv::SpvBuildLogger Logger;
     GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
@@ -304,7 +304,8 @@ bool VulkanShaderManager::Compile(std::string_view const Source, EShLanguage con
     if (std::string const GeneratedLogs = Logger.getAllMessages();
         !GeneratedLogs.empty())
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compilation result log:\n" << GeneratedLogs;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compilation result log:\n"
+                                 << GeneratedLogs;
     }
 
     return !OutSPIRVCode.empty();
@@ -319,13 +320,12 @@ void VulkanShaderManager::StageInfo(VkShaderModule const& Module, EShLanguage co
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Staging shader info...";
 
-    VkPipelineShaderStageCreateInfo StageInfo{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .module = Module,
-        .pName = g_EntryPoint
-    };
+    VkPipelineShaderStageCreateInfo StageInfo {
+            .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .module = Module,
+            .pName  = g_EntryPoint};
 
-    switch (Language) // NOLINT(clang-diagnostic-switch-enum)
+    switch (Language)
     {
         case EShLangVertex:
             StageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;

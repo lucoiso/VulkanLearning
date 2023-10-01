@@ -3,20 +3,20 @@
 // Repo : https://github.com/lucoiso/VulkanRender
 
 #include "Window.h"
-#include "VulkanRenderCore.h"
 #include "Managers/VulkanDeviceManager.h"
-#include "Utils/VulkanConstants.h"
-#include "Utils/RenderCoreHelpers.h"
-#include "Utils/GLFWCallbacks.h"
 #include "Types/ApplicationEventFlags.h"
-#include <Timer/Manager.h>
-#include <stdexcept>
-#include <boost/log/trivial.hpp>
+#include "Utils/GLFWCallbacks.h"
+#include "Utils/RenderCoreHelpers.h"
+#include "Utils/VulkanConstants.h"
+#include "VulkanRenderCore.h"
 #include <GLFW/glfw3.h>
+#include <Timer/Manager.h>
+#include <boost/log/trivial.hpp>
+#include <stdexcept>
 
 using namespace RenderCore;
 
-class Window::Impl final // NOLINT(cppcoreguidelines-special-member-functions)
+class Window::Impl final
 {
 public:
     Impl(Impl const&)            = delete;
@@ -113,28 +113,25 @@ public:
                 auto const EventFlags = static_cast<ApplicationEventFlags>(m_EventIDQueue.front());
                 m_EventIDQueue.pop();
 
-                switch (EventFlags) // NOLINT(clang-diagnostic-switch-enum)
+                switch (EventFlags)
                 {
-                    case ApplicationEventFlags::DRAW_FRAME:
+                    case ApplicationEventFlags::DRAW_FRAME: {
+                        if (ProcessedEvents[EventFlags] > 0U)
                         {
-                            if (ProcessedEvents[EventFlags] > 0U)
-                            {
-                                break;
-                            }
+                            break;
+                        }
 
-                            VulkanRenderCore::Get().DrawFrame(m_Window);
-                            break;
-                        }
-                    case ApplicationEventFlags::LOAD_SCENE:
-                        {
-                            VulkanRenderCore::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
-                            break;
-                        }
-                    case ApplicationEventFlags::UNLOAD_SCENE:
-                        {
-                            VulkanRenderCore::Get().UnloadScene();
-                            break;
-                        }
+                        VulkanRenderCore::Get().DrawFrame(m_Window);
+                        break;
+                    }
+                    case ApplicationEventFlags::LOAD_SCENE: {
+                        VulkanRenderCore::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+                        break;
+                    }
+                    case ApplicationEventFlags::UNLOAD_SCENE: {
+                        VulkanRenderCore::Get().UnloadScene();
+                        break;
+                    }
                     default:
                         break;
                 }
@@ -191,44 +188,39 @@ private:
 
         {
             // Draw Frame
-            constexpr Timer::Parameters DrawFrameTimerParameters{
-                .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::DRAW_FRAME),
-                .Interval = 1000U / (g_FrameRate > 0 ? g_FrameRate : 1U),
-                .RepeatCount = std::nullopt
-            };
+            constexpr Timer::Parameters DrawFrameTimerParameters {
+                    .EventID     = static_cast<std::uint8_t>(ApplicationEventFlags::DRAW_FRAME),
+                    .Interval    = 1000U / (g_FrameRate > 0 ? g_FrameRate : 1U),
+                    .RepeatCount = std::nullopt};
 
             m_DrawTimerID = Timer::Manager::Get().StartTimer(DrawFrameTimerParameters, m_EventIDQueue);
         }
 
         {
             // Load Scene: Testing Only
-            constexpr Timer::Parameters LoadSceneTimerParameters{
-                .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::LOAD_SCENE),
-                .Interval = 3000U,
-                .RepeatCount = 0
-            };
+            constexpr Timer::Parameters LoadSceneTimerParameters {
+                    .EventID     = static_cast<std::uint8_t>(ApplicationEventFlags::LOAD_SCENE),
+                    .Interval    = 3000U,
+                    .RepeatCount = 0};
 
             Timer::Manager::Get().StartTimer(LoadSceneTimerParameters, m_EventIDQueue);
         }
 
         {
             // Unload Scene: Testing Only
-            constexpr Timer::Parameters UnLoadSceneTimerParameters{
-                .EventID = static_cast<std::uint8_t>(ApplicationEventFlags::UNLOAD_SCENE),
-                .Interval = 5000U,
-                .RepeatCount = 0U
-            };
+            constexpr Timer::Parameters UnLoadSceneTimerParameters {
+                    .EventID     = static_cast<std::uint8_t>(ApplicationEventFlags::UNLOAD_SCENE),
+                    .Interval    = 5000U,
+                    .RepeatCount = 0U};
 
             Timer::Manager::Get().StartTimer(UnLoadSceneTimerParameters, m_EventIDQueue);
         }
     }
 
-    GLFWwindow* m_Window{
-        nullptr
-    };
-    std::uint64_t m_DrawTimerID{
-        0U
-    };
+    GLFWwindow* m_Window {
+            nullptr};
+    std::uint64_t m_DrawTimerID {
+            0U};
     std::queue<std::uint8_t> m_EventIDQueue;
     std::mutex m_Mutex;
     std::thread::id m_MainThreadID;

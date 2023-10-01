@@ -11,4 +11,5 @@ BOOST_AUTO_TEST_CASE(Placeholder)
 {
     BOOST_TEST(true);
 }
+
 #undef BOOST_TEST_MODULE

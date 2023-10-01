@@ -5,13 +5,14 @@
 #pragma once
 
 #include "RenderCoreModule.h"
-#include <string_view>
 #include <cstdint>
 #include <memory>
+#include <string_view>
 
 namespace RenderCore
 {
-    class RENDERCOREMODULE_API Window // NOLINT(cppcoreguidelines-special-member-functions)
+    class RENDERCOREMODULE_API Window
+
     {
         class Impl;
 
@@ -38,4 +39,4 @@ namespace RenderCore
     private:
         std::unique_ptr<Impl> m_Impl;
     };
-}
+}// namespace RenderCore

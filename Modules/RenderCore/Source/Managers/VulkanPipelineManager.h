@@ -9,7 +9,7 @@
 
 namespace RenderCore
 {
-    class VulkanPipelineManager final // NOLINT(cppcoreguidelines-special-member-functions)
+    class VulkanPipelineManager final
     {
     public:
         VulkanPipelineManager();
@@ -48,4 +48,4 @@ namespace RenderCore
         VkDescriptorSetLayout m_DescriptorSetLayout;
         std::vector<VkDescriptorSet> m_DescriptorSets;
     };
-}
+}// namespace RenderCore

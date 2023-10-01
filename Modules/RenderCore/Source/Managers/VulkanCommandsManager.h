@@ -12,7 +12,7 @@ namespace RenderCore
 {
     constexpr std::uint32_t g_Timeout = std::numeric_limits<std::uint32_t>::max();
 
-    class VulkanCommandsManager final // NOLINT(cppcoreguidelines-special-member-functions)
+    class VulkanCommandsManager final
     {
     public:
         VulkanCommandsManager();
@@ -51,4 +51,4 @@ namespace RenderCore
 
         std::uint8_t m_FrameIndex;
     };
-}
+}// namespace RenderCore

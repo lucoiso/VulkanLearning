@@ -8,7 +8,7 @@
 
 static void Placeholder(benchmark::State& State)
 {
-    for (auto const _ : State)
+    for (auto const _: State)
     {
     }
 }

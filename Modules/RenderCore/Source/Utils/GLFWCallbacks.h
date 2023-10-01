@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "VulkanRenderCore.h"
 #include "Managers/VulkanDeviceManager.h"
+#include "VulkanRenderCore.h"
 #include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
 
@@ -34,4 +34,4 @@ namespace RenderCore
             GLFWWindowCloseRequested(Window);
         }
     }
-}
+}// namespace RenderCore

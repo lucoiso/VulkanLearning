@@ -3,14 +3,14 @@
 // Repo : https://github.com/lucoiso/VulkanRender
 
 #include "Utils/RenderCoreHelpers.h"
-#include "Managers/VulkanDeviceManager.h"
 #include "Managers/VulkanBufferManager.h"
-#include <glm/glm.hpp>
-#include <numbers>
+#include "Managers/VulkanDeviceManager.h"
+#include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
 #include <chrono>
+#include <glm/glm.hpp>
+#include <numbers>
 #include <span>
-#include <GLFW/glfw3.h>
 
 using namespace RenderCore;
 
@@ -26,7 +26,7 @@ std::vector<char const*> RenderCoreHelpers::GetGLFWExtensions()
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found extensions:";
 
-    for (char const* const & ExtensionIter : Output)
+    for (char const* const& ExtensionIter: Output)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: " << ExtensionIter;
     }
@@ -40,10 +40,9 @@ VkExtent2D RenderCoreHelpers::GetWindowExtent(GLFWwindow* const Window, VkSurfac
     std::int32_t Height = 0U;
     glfwGetFramebufferSize(Window, &Width, &Height);
 
-    VkExtent2D ActualExtent{
-        .width = static_cast<std::uint32_t>(Width),
-        .height = static_cast<std::uint32_t>(Height)
-    };
+    VkExtent2D ActualExtent {
+            .width  = static_cast<std::uint32_t>(Width),
+            .height = static_cast<std::uint32_t>(Height)};
 
     ActualExtent.width  = std::clamp(ActualExtent.width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
     ActualExtent.height = std::clamp(ActualExtent.height, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
@@ -65,7 +64,7 @@ std::vector<VkLayerProperties> RenderCoreHelpers::GetAvailableInstanceLayers()
 std::vector<std::string> RenderCoreHelpers::GetAvailableInstanceLayersNames()
 {
     std::vector<std::string> Output;
-    for (auto const& [LayerName, SpecVer, ImplVer, Descr] : GetAvailableInstanceLayers())
+    for (auto const& [LayerName, SpecVer, ImplVer, Descr]: GetAvailableInstanceLayers())
     {
         Output.emplace_back(LayerName);
     }
@@ -87,7 +86,7 @@ std::vector<VkExtensionProperties> RenderCoreHelpers::GetAvailableInstanceExtens
 std::vector<std::string> RenderCoreHelpers::GetAvailableInstanceExtensionsNames()
 {
     std::vector<std::string> Output;
-    for (auto const& [ExtName, SpecVer] : GetAvailableInstanceExtensions())
+    for (auto const& [ExtName, SpecVer]: GetAvailableInstanceExtensions())
     {
         Output.emplace_back(ExtName);
     }
@@ -96,11 +95,12 @@ std::vector<std::string> RenderCoreHelpers::GetAvailableInstanceExtensionsNames(
 }
 
 #ifdef _DEBUG
+
 void RenderCoreHelpers::ListAvailableInstanceLayers()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available instance layers...";
 
-    for (auto const& [LayerName, SpecVer, ImplVer, Descr] : GetAvailableInstanceLayers())
+    for (auto const& [LayerName, SpecVer, ImplVer, Descr]: GetAvailableInstanceLayers())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Name: " << LayerName;
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Description: " << Descr;
@@ -113,12 +113,13 @@ void RenderCoreHelpers::ListAvailableInstanceExtensions()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available instance extensions...";
 
-    for (auto const& [ExtName, SpecVer] : GetAvailableInstanceExtensions())
+    for (auto const& [ExtName, SpecVer]: GetAvailableInstanceExtensions())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Name: " << ExtName;
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Spec Version: " << SpecVer << std::endl;
     }
 }
+
 #endif
 
 std::vector<VkExtensionProperties> RenderCoreHelpers::GetAvailableLayerExtensions(std::string_view const LayerName)
@@ -141,7 +142,7 @@ std::vector<VkExtensionProperties> RenderCoreHelpers::GetAvailableLayerExtension
 std::vector<std::string> RenderCoreHelpers::GetAvailableLayerExtensionsNames(std::string_view const LayerName)
 {
     std::vector<std::string> Output;
-    for (auto const& [ExtName, SpecVer] : GetAvailableLayerExtensions(LayerName))
+    for (auto const& [ExtName, SpecVer]: GetAvailableLayerExtensions(LayerName))
     {
         Output.emplace_back(ExtName);
     }
@@ -150,40 +151,41 @@ std::vector<std::string> RenderCoreHelpers::GetAvailableLayerExtensionsNames(std
 }
 
 #ifdef _DEBUG
+
 void RenderCoreHelpers::ListAvailableInstanceLayerExtensions(std::string_view const LayerName)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available layer '" << LayerName << "' extensions...";
 
-    for (auto const& [ExtName, SpecVer] : GetAvailableLayerExtensions(LayerName))
+    for (auto const& [ExtName, SpecVer]: GetAvailableLayerExtensions(LayerName))
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Name: " << ExtName;
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Spec Version: " << SpecVer << std::endl;
     }
 }
+
 #endif
 
 void RenderCoreHelpers::InitializeSingleCommandQueue(VkCommandPool& CommandPool, VkCommandBuffer& CommandBuffer, std::uint8_t const QueueFamilyIndex)
 {
     VkDevice const& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    VkCommandPoolCreateInfo const CommandPoolCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-        .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-        .queueFamilyIndex = static_cast<std::uint32_t>(QueueFamilyIndex)
-    };
+    VkCommandPoolCreateInfo const CommandPoolCreateInfo {
+            .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+            .queueFamilyIndex = static_cast<std::uint32_t>(QueueFamilyIndex)};
 
     CheckVulkanResult(vkCreateCommandPool(VulkanLogicalDevice, &CommandPoolCreateInfo, nullptr, &CommandPool));
 
-    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
 
-    VkCommandBufferAllocateInfo const CommandBufferAllocateInfo{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = CommandPool,
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = 1U,
+    VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
+            .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool        = CommandPool,
+            .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = 1U,
     };
 
     CheckVulkanResult(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, &CommandBuffer));
@@ -204,10 +206,10 @@ void RenderCoreHelpers::FinishSingleCommandQueue(VkQueue const& Queue, VkCommand
 
     CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
 
-    VkSubmitInfo const SubmitInfo{
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .commandBufferCount = 1U,
-        .pCommandBuffers = &CommandBuffer,
+    VkSubmitInfo const SubmitInfo {
+            .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount = 1U,
+            .pCommandBuffers    = &CommandBuffer,
     };
 
     CheckVulkanResult(vkQueueSubmit(Queue, 1U, &SubmitInfo, VK_NULL_HANDLE));
@@ -232,7 +234,6 @@ UniformBufferObject RenderCoreHelpers::GetUniformBufferObject()
     glm::mat4 Projection  = glm::perspective(glm::radians(45.0F), static_cast<float>(Width) / static_cast<float>(Height), 0.1F, 10.F);
     Projection[1][1] *= -1;
 
-    return UniformBufferObject{
-        .ModelViewProjection = Projection * View * Model
-    };
+    return UniformBufferObject {
+            .ModelViewProjection = Projection * View * Model};
 }

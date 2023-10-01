@@ -3,8 +3,8 @@
 # Repo: https://github.com/lucoiso/VulkanRender
 
 # -------------- Directories ---------------
-add_subdirectory(Application)
-add_subdirectory(RenderCore)
-add_subdirectory(cpp-submodules)
-add_subdirectory(ThirdParty)
-add_subdirectory(Tests)
+ADD_SUBDIRECTORY(Application)
+ADD_SUBDIRECTORY(RenderCore)
+ADD_SUBDIRECTORY(cpp-submodules)
+ADD_SUBDIRECTORY(ThirdParty)
+ADD_SUBDIRECTORY(Tests)

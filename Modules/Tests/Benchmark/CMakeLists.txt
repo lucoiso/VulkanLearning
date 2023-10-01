@@ -3,22 +3,22 @@
 # Repo: https://github.com/lucoiso/VulkanRender
 
 # ----------- Global Definitions -----------
-set(LIBRARY_NAME Benchmark)
+SET(LIBRARY_NAME Benchmark)
 
 # ------------- Library Setup --------------
-set(SOURCE_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/Source/Benchmark.cpp
+SET(SOURCE_FILES
+	${CMAKE_CURRENT_SOURCE_DIR}/Source/Benchmark.cpp
 )
 
-set(INCLUDE_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Placeholder.h
+SET(INCLUDE_FILES
+	${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Placeholder.h
 )
 
-add_executable(${LIBRARY_NAME} ${SOURCE_FILES} ${INCLUDE_FILES})
-target_include_directories(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME})
+ADD_EXECUTABLE(${LIBRARY_NAME} ${SOURCE_FILES} ${INCLUDE_FILES})
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME})
 
-find_package(benchmark CONFIG REQUIRED)
+FIND_PACKAGE(benchmark CONFIG REQUIRED)
 
-target_link_libraries(${LIBRARY_NAME} PRIVATE
-    benchmark::benchmark_main
+TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
+					  benchmark::benchmark_main
 )

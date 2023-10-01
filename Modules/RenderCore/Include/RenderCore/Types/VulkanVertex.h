@@ -24,4 +24,4 @@ namespace RenderCore
         {
         }
     };
-}
+}// namespace RenderCore

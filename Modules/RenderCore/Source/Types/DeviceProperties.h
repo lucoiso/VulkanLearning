@@ -23,9 +23,14 @@ namespace RenderCore
 
         bool operator!=(VulkanDeviceProperties const& Other) const
         {
-            return Format.format != Other.Format.format || Format.colorSpace != Other.Format.colorSpace || DepthFormat != Other.DepthFormat || Mode != Other.Mode || Extent.height != Other.Extent.
-                height || Extent.width != Other.Extent.width || Capabilities.currentExtent.height != Other.Capabilities.currentExtent.height || Capabilities.currentExtent.width != Other.Capabilities.
-                currentExtent.width;
+            return Format.format != Other.Format.format
+                   || Format.colorSpace != Other.Format.colorSpace
+                   || DepthFormat != Other.DepthFormat
+                   || Mode != Other.Mode
+                   || Extent.height != Other.Extent.height
+                   || Extent.width != Other.Extent.width
+                   || Capabilities.currentExtent.height != Other.Capabilities.currentExtent.height
+                   || Capabilities.currentExtent.width != Other.Capabilities.currentExtent.width;
         }
     };
-}
+}// namespace RenderCore

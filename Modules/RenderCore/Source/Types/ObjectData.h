@@ -5,8 +5,8 @@
 #pragma once
 
 #include "Types/TextureData.h"
-#include <volk.h>
 #include <vector>
+#include <volk.h>
 
 namespace RenderCore
 {
@@ -15,4 +15,4 @@ namespace RenderCore
         std::vector<VkBuffer> UniformBuffers;
         std::vector<VulkanTextureData> TextureDatas;
     };
-}
+}// namespace RenderCore

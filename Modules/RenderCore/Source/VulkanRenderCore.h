@@ -5,16 +5,16 @@
 #pragma once
 
 #include "Types/RenderStateFlags.h"
+#include <optional>
 #include <string_view>
 #include <vector>
-#include <optional>
 #include <volk.h>
 
 struct GLFWwindow;
 
 namespace RenderCore
 {
-    class VulkanRenderCore final // NOLINT(cppcoreguidelines-special-member-functions)
+    class VulkanRenderCore final
     {
     public:
         VulkanRenderCore();
@@ -54,8 +54,8 @@ namespace RenderCore
         mutable VulkanRenderCoreStateFlags m_StateFlags;
         std::uint64_t m_ObjectID;
 
-        #ifdef _DEBUG
+#ifdef _DEBUG
         VkDebugUtilsMessengerEXT m_DebugMessenger;
-        #endif
+#endif
     };
-}
+}// namespace RenderCore

@@ -8,7 +8,7 @@
 
 namespace RenderCore
 {
-    #ifdef _DEBUG
+#ifdef _DEBUG
     class DebugHelpers
     {
     public:
@@ -28,5 +28,5 @@ namespace RenderCore
 
         static void PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT& Info, void* UserData = nullptr);
     };
-    #endif
-}
+#endif
+}// namespace RenderCore

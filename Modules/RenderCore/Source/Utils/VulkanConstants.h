@@ -7,51 +7,44 @@
 
 #pragma once
 
-#include <volk.h>
 #include <array>
+#include <volk.h>
 
 namespace RenderCore
 {
-    #ifdef _DEBUG
-    #if defined(GPU_API_DUMP) && GPU_API_DUMP
+#ifdef _DEBUG
+#if defined(GPU_API_DUMP) && GPU_API_DUMP
     constexpr std::array g_DebugInstanceLayers = {
-        "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_LUNARG_api_dump"
-    };
+            "VK_LAYER_KHRONOS_validation",
+            "VK_LAYER_LUNARG_api_dump"};
 
     constexpr std::array g_DebugDeviceLayers = {
-        "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_LUNARG_api_dump"
-    };
-    #else
+            "VK_LAYER_KHRONOS_validation",
+            "VK_LAYER_LUNARG_api_dump"};
+#else
     constexpr std::array g_DebugInstanceLayers = {
-        "VK_LAYER_KHRONOS_validation"
-    };
+            "VK_LAYER_KHRONOS_validation"};
 
     constexpr std::array g_DebugDeviceLayers = {
-        "VK_LAYER_KHRONOS_validation"
-    };
-    #endif
+            "VK_LAYER_KHRONOS_validation"};
+#endif
 
     constexpr std::array g_DebugInstanceExtensions = {
-        VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-        "VK_EXT_debug_report",
-        "VK_EXT_validation_features"
-    };
+            VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+            "VK_EXT_debug_report",
+            "VK_EXT_validation_features"};
 
     constexpr std::array g_DebugDeviceExtensions = {
-        "VK_EXT_validation_cache",
-        "VK_EXT_tooling_info"
-    };
+            "VK_EXT_validation_cache",
+            "VK_EXT_tooling_info"};
 
     constexpr std::array g_EnabledInstanceValidationFeatures = {
-        // VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
-        // VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
-        VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
-        VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
-        VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
-    };
-    #endif
+            // VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+            // VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT};
+#endif
 
     constexpr std::array<char const*, 0U> g_RequiredInstanceLayers = {};
 
@@ -60,13 +53,11 @@ namespace RenderCore
     constexpr std::array<char const*, 0U> g_RequiredInstanceExtensions = {};
 
     constexpr std::array g_RequiredDeviceExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
-    };
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
     constexpr std::array g_DynamicStates = {
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR
-    };
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR};
 
     constexpr std::uint8_t g_MaxFramesInFlight = 1U;
 
@@ -76,24 +67,14 @@ namespace RenderCore
 
     constexpr std::uint8_t g_FrameRate = 75U;
 
-    constexpr std::array g_ClearValues{
-        VkClearValue{
-            .color = {
-                {
-                    0.25F,
-                    0.25F,
-                    0.5F,
-                    1.F
-                }
-            }
-        },
-        VkClearValue{
-            .depthStencil = {
-                1.0F,
-                0U
-            }
-        }
-    };
-}
+    constexpr std::array g_ClearValues {
+            VkClearValue {
+                    .color = {
+                            {0.25F,
+                             0.25F,
+                             0.5F,
+                             1.F}}},
+            VkClearValue {.depthStencil = {1.0F, 0U}}};
+}// namespace RenderCore
 
 #endif

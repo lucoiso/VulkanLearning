@@ -5,16 +5,16 @@
 #pragma once
 
 #include "Types/DeviceProperties.h"
-#include <vector>
-#include <string>
 #include <optional>
+#include <string>
+#include <vector>
 #include <volk.h>
 
 struct GLFWwindow;
 
 namespace RenderCore
 {
-    class VulkanDeviceManager final // NOLINT(cppcoreguidelines-special-member-functions)
+    class VulkanDeviceManager final
     {
     public:
         VulkanDeviceManager();
@@ -67,7 +67,7 @@ namespace RenderCore
                                    std::optional<std::uint8_t>& PresentationQueueFamilyIndex,
                                    std::optional<std::uint8_t>& TransferQueueFamilyIndex) const;
 
-        #ifdef _DEBUG
+#ifdef _DEBUG
         static void ListAvailablePhysicalDevices();
         void ListAvailablePhysicalDeviceExtensions() const;
         void ListAvailablePhysicalDeviceLayers() const;
@@ -75,7 +75,7 @@ namespace RenderCore
         void ListAvailablePhysicalDeviceSurfaceCapabilities() const;
         void ListAvailablePhysicalDeviceSurfaceFormats() const;
         void ListAvailablePhysicalDeviceSurfacePresentationModes() const;
-        #endif
+#endif
 
         VkPhysicalDevice m_PhysicalDevice;
         VkDevice m_Device;
@@ -86,4 +86,4 @@ namespace RenderCore
         std::vector<std::uint8_t> m_UniqueQueueFamilyIndices;
         VulkanDeviceProperties m_DeviceProperties;
     };
-}
+}// namespace RenderCore
