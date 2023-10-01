@@ -111,7 +111,7 @@ void VulkanPipelineManager::CreateRenderPass()
         .pDependencies = &SubpassDependency
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateRenderPass(VulkanDeviceManager::Get().GetLogicalDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateRenderPass(VulkanDeviceManager::Get().GetLogicalDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass))
 }
 
 void VulkanPipelineManager::CreateDefaultRenderPass()
@@ -126,15 +126,15 @@ void VulkanPipelineManager::CreateDefaultRenderPass()
         .pDependencies = nullptr
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateRenderPass(VulkanDeviceManager::Get().GetLogicalDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateRenderPass(VulkanDeviceManager::Get().GetLogicalDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass))
 }
 
 void VulkanPipelineManager::CreateGraphicsPipeline()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan graphics pipeline";
 
-    constexpr auto BindingDescription    = RenderCoreHelpers::GetBindingDescriptors();
-    const auto     AttributeDescriptions = RenderCoreHelpers::GetAttributeDescriptions();
+    constexpr auto BindingDescription = RenderCoreHelpers::GetBindingDescriptors();
+    const auto AttributeDescriptions  = RenderCoreHelpers::GetAttributeDescriptions();
 
     const VkPipelineVertexInputStateCreateInfo VertexInputState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -230,13 +230,13 @@ void VulkanPipelineManager::CreateGraphicsPipeline()
 
     const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineLayout(VulkanLogicalDevice, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineLayout(VulkanLogicalDevice, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout))
 
     constexpr VkPipelineCacheCreateInfo PipelineCacheCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineCache(VulkanLogicalDevice, &PipelineCacheCreateInfo, nullptr, &m_PipelineCache));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreatePipelineCache(VulkanLogicalDevice, &PipelineCacheCreateInfo, nullptr, &m_PipelineCache))
 
     constexpr VkPipelineDepthStencilStateCreateInfo DepthStencilState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
@@ -272,7 +272,7 @@ void VulkanPipelineManager::CreateGraphicsPipeline()
         .basePipelineIndex = -1
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateGraphicsPipelines(VulkanLogicalDevice, VK_NULL_HANDLE, 1u, &GraphicsPipelineCreateInfo, nullptr, &m_Pipeline));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateGraphicsPipelines(VulkanLogicalDevice, VK_NULL_HANDLE, 1u, &GraphicsPipelineCreateInfo, nullptr, &m_Pipeline))
 }
 
 void VulkanPipelineManager::CreateDescriptorSetLayout()
@@ -302,7 +302,7 @@ void VulkanPipelineManager::CreateDescriptorSetLayout()
         .pBindings = LayoutBindings.data()
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorSetLayout(VulkanDeviceManager::Get().GetLogicalDevice(), &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorSetLayout(VulkanDeviceManager::Get().GetLogicalDevice(), &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout))
 }
 
 void VulkanPipelineManager::CreateDescriptorPool()
@@ -327,7 +327,7 @@ void VulkanPipelineManager::CreateDescriptorPool()
         .pPoolSizes = DescriptorPoolSizes.data()
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorPool(VulkanDeviceManager::Get().GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDescriptorPool(VulkanDeviceManager::Get().GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool))
 }
 
 void VulkanPipelineManager::CreateDescriptorSets()
@@ -346,7 +346,7 @@ void VulkanPipelineManager::CreateDescriptorSets()
     };
 
     m_DescriptorSets.resize(g_MaxFramesInFlight);
-    RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, m_DescriptorSets.data()));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, m_DescriptorSets.data()))
 
     for (std::uint32_t Iterator = 0u; Iterator < g_MaxFramesInFlight; ++Iterator)
     {

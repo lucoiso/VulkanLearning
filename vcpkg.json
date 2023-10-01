@@ -45,6 +45,10 @@
     {
       "name": "glslang",
       "platform": "windows & x64"
+    },
+    {
+      "name": "imgui",
+      "platform": "windows & x64"
     }
   ],
   "builtin-baseline": "5a38b5ec0eee3d1a1a6faab5e944617fee2697cf"

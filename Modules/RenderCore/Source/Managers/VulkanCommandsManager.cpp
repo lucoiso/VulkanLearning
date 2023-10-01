@@ -67,7 +67,7 @@ VkCommandPool VulkanCommandsManager::CreateCommandPool(const std::uint8_t Family
     };
 
     VkCommandPool Output = VK_NULL_HANDLE;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateCommandPool(VulkanDeviceManager::Get().GetLogicalDevice(), &CommandPoolCreateInfo, nullptr, &Output));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateCommandPool(VulkanDeviceManager::Get().GetLogicalDevice(), &CommandPoolCreateInfo, nullptr, &Output))
 
     return Output;
 }
@@ -92,9 +92,9 @@ void VulkanCommandsManager::CreateSynchronizationObjects()
 
     const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSemaphore(VulkanLogicalDevice, &SemaphoreCreateInfo, nullptr, &m_ImageAvailableSemaphore));
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSemaphore(VulkanLogicalDevice, &SemaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphore));
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateFence(VulkanLogicalDevice, &FenceCreateInfo, nullptr, &m_Fence));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSemaphore(VulkanLogicalDevice, &SemaphoreCreateInfo, nullptr, &m_ImageAvailableSemaphore))
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateSemaphore(VulkanLogicalDevice, &SemaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphore))
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateFence(VulkanLogicalDevice, &FenceCreateInfo, nullptr, &m_Fence))
 
     m_SynchronizationObjectsCreated = true;
 }
@@ -205,18 +205,18 @@ void VulkanCommandsManager::RecordCommandBuffers(const std::uint32_t ImageIndex)
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(m_CommandBuffer, &CommandBufferBeginInfo));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkBeginCommandBuffer(m_CommandBuffer, &CommandBufferBeginInfo))
 
-    const VkRenderPass&                 RenderPass     = VulkanPipelineManager::Get().GetRenderPass();
-    const VkPipeline&                   Pipeline       = VulkanPipelineManager::Get().GetPipeline();
-    const VkPipelineLayout&             PipelineLayout = VulkanPipelineManager::Get().GetPipelineLayout();
+    const VkRenderPass& RenderPass                     = VulkanPipelineManager::Get().GetRenderPass();
+    const VkPipeline& Pipeline                         = VulkanPipelineManager::Get().GetPipeline();
+    const VkPipelineLayout& PipelineLayout             = VulkanPipelineManager::Get().GetPipelineLayout();
     const std::vector<VkDescriptorSet>& DescriptorSets = VulkanPipelineManager::Get().GetDescriptorSets();
 
-    const std::vector<VkFramebuffer>& FrameBuffers     = VulkanBufferManager::Get().GetFrameBuffers();
-    const VkBuffer&                   VertexBuffer     = VulkanBufferManager::Get().GetVertexBuffer();
-    const VkBuffer&                   IndexBuffer      = VulkanBufferManager::Get().GetIndexBuffer();
-    const std::uint32_t               IndexCount       = VulkanBufferManager::Get().GetIndicesCount();
-    const UniformBufferObject         UniformBufferObj = RenderCoreHelpers::GetUniformBufferObject();
+    const std::vector<VkFramebuffer>& FrameBuffers = VulkanBufferManager::Get().GetFrameBuffers();
+    const VkBuffer& VertexBuffer                   = VulkanBufferManager::Get().GetVertexBuffer();
+    const VkBuffer& IndexBuffer                    = VulkanBufferManager::Get().GetIndexBuffer();
+    const std::uint32_t IndexCount                 = VulkanBufferManager::Get().GetIndicesCount();
+    const UniformBufferObject UniformBufferObj     = RenderCoreHelpers::GetUniformBufferObject();
 
     const std::vector<VkDeviceSize> Offsets = {
         0u
@@ -302,7 +302,7 @@ void VulkanCommandsManager::RecordCommandBuffers(const std::uint32_t ImageIndex)
         vkCmdEndRenderPass(m_CommandBuffer);
     }
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEndCommandBuffer(m_CommandBuffer));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEndCommandBuffer(m_CommandBuffer))
 }
 
 void VulkanCommandsManager::SubmitCommandBuffers()
@@ -326,8 +326,8 @@ void VulkanCommandsManager::SubmitCommandBuffers()
 
     const VkQueue& GraphicsQueue = VulkanDeviceManager::Get().GetGraphicsQueue().second;
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkQueueSubmit(GraphicsQueue, 1u, &SubmitInfo, m_Fence));
-    RENDERCORE_CHECK_VULKAN_RESULT(vkQueueWaitIdle(GraphicsQueue));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkQueueSubmit(GraphicsQueue, 1u, &SubmitInfo, m_Fence))
+    RENDERCORE_CHECK_VULKAN_RESULT(vkQueueWaitIdle(GraphicsQueue))
 
     vkFreeCommandBuffers(VulkanDeviceManager::Get().GetLogicalDevice(), m_CommandPool, 1u, &m_CommandBuffer);
     m_CommandBuffer = VK_NULL_HANDLE;
@@ -387,7 +387,7 @@ void VulkanCommandsManager::AllocateCommandBuffer()
         .commandBufferCount = 1u
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, &m_CommandBuffer));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, &m_CommandBuffer))
 }
 
 void VulkanCommandsManager::WaitAndResetFences() const
@@ -399,6 +399,6 @@ void VulkanCommandsManager::WaitAndResetFences() const
 
     const VkDevice& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkWaitForFences(VulkanLogicalDevice, 1u, &m_Fence, VK_TRUE, g_Timeout));
-    RENDERCORE_CHECK_VULKAN_RESULT(vkResetFences(VulkanLogicalDevice, 1u, &m_Fence));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkWaitForFences(VulkanLogicalDevice, 1u, &m_Fence, VK_TRUE, g_Timeout))
+    RENDERCORE_CHECK_VULKAN_RESULT(vkResetFences(VulkanLogicalDevice, 1u, &m_Fence))
 }

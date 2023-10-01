@@ -12,7 +12,7 @@
 namespace RenderCore
 {
     // ReSharper disable once CppClassCanBeFinal
-    class RENDERCOREMODULE_API Window
+    class RENDERCOREMODULE_API Window // NOLINT(cppcoreguidelines-special-member-functions)
     {
         class Impl;
 
@@ -27,8 +27,8 @@ namespace RenderCore
         bool Initialize(std::uint16_t Width, std::uint16_t Height, std::string_view Title);
         void Shutdown() const;
 
-        bool IsInitialized() const;
-        bool IsOpen() const;
+        [[nodiscard]] bool IsInitialized() const;
+        [[nodiscard]] bool IsOpen() const;
 
         void PollEvents() const;
 

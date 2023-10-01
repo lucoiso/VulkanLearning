@@ -15,7 +15,7 @@ namespace RenderCore
 {
     constexpr const char* ToChars(auto Argument)
     {
-        std::array<char, 16> Buffer;
+        std::array<char, 16u> Buffer;
 
         if (auto Result = std::to_chars(Buffer.data(), Buffer.data() + Buffer.size(), Argument);
             Result.ec == std::errc())
@@ -30,7 +30,7 @@ namespace RenderCore
 
     constexpr const char* ResultToString(const VkResult Input)
     {
-        switch (Input)
+        switch (Input) // NOLINT(clang-diagnostic-switch-enum)
         {
             case VK_SUCCESS:
                 return "VK_SUCCESS";
@@ -133,7 +133,7 @@ namespace RenderCore
 
     constexpr const char* SurfaceFormatToString(const VkFormat Input)
     {
-        switch (Input)
+        switch (Input) // NOLINT(clang-diagnostic-switch-enum)
         {
             case VK_FORMAT_UNDEFINED:
                 return "VK_FORMAT_UNDEFINED";
@@ -640,7 +640,7 @@ namespace RenderCore
 
     constexpr const char* ColorSpaceModeToString(const VkColorSpaceKHR Input)
     {
-        switch (Input)
+        switch (Input) // NOLINT(clang-diagnostic-switch-enum)
         {
             case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR:
                 return "VK_COLOR_SPACE_SRGB_NONLINEAR_KHR";
@@ -683,7 +683,7 @@ namespace RenderCore
 
     constexpr const char* PresentationModeToString(const VkPresentModeKHR Input)
     {
-        switch (Input)
+        switch (Input) // NOLINT(clang-diagnostic-switch-enum)
         {
             case VK_PRESENT_MODE_IMMEDIATE_KHR:
                 return "VK_PRESENT_MODE_IMMEDIATE_KHR";
@@ -706,7 +706,7 @@ namespace RenderCore
 
     constexpr const char* TransformFlagToString(const VkSurfaceTransformFlagBitsKHR Input)
     {
-        switch (Input)
+        switch (Input) // NOLINT(clang-diagnostic-switch-enum)
         {
             case VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR:
                 return "VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR";
@@ -754,7 +754,7 @@ namespace RenderCore
 
     constexpr const char* ImageUsageFlagToString(const VkImageUsageFlagBits Input)
     {
-        switch (Input)
+        switch (Input) // NOLINT(clang-diagnostic-switch-enum)
         {
             case VK_IMAGE_USAGE_TRANSFER_SRC_BIT:
                 return "VK_IMAGE_USAGE_TRANSFER_SRC_BIT";

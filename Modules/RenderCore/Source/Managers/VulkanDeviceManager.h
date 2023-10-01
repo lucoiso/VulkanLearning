@@ -14,7 +14,7 @@ struct GLFWwindow;
 
 namespace RenderCore
 {
-    class VulkanDeviceManager
+    class VulkanDeviceManager final // NOLINT(cppcoreguidelines-special-member-functions)
     {
     public:
         VulkanDeviceManager(const VulkanDeviceManager&)            = delete;
@@ -30,26 +30,26 @@ namespace RenderCore
 
         void Shutdown();
 
-        bool IsInitialized() const;
+        [[nodiscard]] bool IsInitialized() const;
 
         [[nodiscard]] static std::vector<VkPhysicalDevice> GetAvailablePhysicalDevices();
-        [[nodiscard]] std::vector<VkExtensionProperties>   GetAvailablePhysicalDeviceExtensions() const;
-        [[nodiscard]] std::vector<VkLayerProperties>       GetAvailablePhysicalDeviceLayers() const;
-        [[nodiscard]] std::vector<VkExtensionProperties>   GetAvailablePhysicalDeviceLayerExtensions(std::string_view LayerName) const;
-        [[nodiscard]] std::vector<std::string>             GetAvailablePhysicalDeviceExtensionsNames() const;
-        [[nodiscard]] std::vector<std::string>             GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view LayerName) const;
-        [[nodiscard]] std::vector<std::string>             GetAvailablePhysicalDeviceLayersNames() const;
-        [[nodiscard]] VkSurfaceCapabilitiesKHR             GetAvailablePhysicalDeviceSurfaceCapabilities() const;
-        [[nodiscard]] std::vector<VkSurfaceFormatKHR>      GetAvailablePhysicalDeviceSurfaceFormats() const;
-        [[nodiscard]] std::vector<VkPresentModeKHR>        GetAvailablePhysicalDeviceSurfacePresentationModes() const;
-        [[nodiscard]] VkDeviceSize                         GetMinUniformBufferOffsetAlignment() const;
+        [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions() const;
+        [[nodiscard]] std::vector<VkLayerProperties> GetAvailablePhysicalDeviceLayers() const;
+        [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(std::string_view LayerName) const;
+        [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceExtensionsNames() const;
+        [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view LayerName) const;
+        [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayersNames() const;
+        [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities() const;
+        [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats() const;
+        [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes() const;
+        [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment() const;
 
         [[nodiscard]] static bool IsPhysicalDeviceSuitable(const VkPhysicalDevice& Device);
 
-        bool                                  UpdateDeviceProperties(GLFWwindow* Window);
+        bool UpdateDeviceProperties(GLFWwindow* Window);
         [[nodiscard]] VulkanDeviceProperties& GetDeviceProperties();
 
-        [[nodiscard]] VkDevice&         GetLogicalDevice();
+        [[nodiscard]] VkDevice& GetLogicalDevice();
         [[nodiscard]] VkPhysicalDevice& GetPhysicalDevice();
 
         [[nodiscard]] std::pair<std::uint8_t, VkQueue>& GetGraphicsQueue();
@@ -68,23 +68,23 @@ namespace RenderCore
 
         #ifdef _DEBUG
         static void ListAvailablePhysicalDevices();
-        void        ListAvailablePhysicalDeviceExtensions() const;
-        void        ListAvailablePhysicalDeviceLayers() const;
-        void        ListAvailablePhysicalDeviceLayerExtensions(std::string_view LayerName) const;
-        void        ListAvailablePhysicalDeviceSurfaceCapabilities() const;
-        void        ListAvailablePhysicalDeviceSurfaceFormats() const;
-        void        ListAvailablePhysicalDeviceSurfacePresentationModes() const;
+        void ListAvailablePhysicalDeviceExtensions() const;
+        void ListAvailablePhysicalDeviceLayers() const;
+        void ListAvailablePhysicalDeviceLayerExtensions(std::string_view LayerName) const;
+        void ListAvailablePhysicalDeviceSurfaceCapabilities() const;
+        void ListAvailablePhysicalDeviceSurfaceFormats() const;
+        void ListAvailablePhysicalDeviceSurfacePresentationModes() const;
         #endif
 
         static VulkanDeviceManager g_Instance;
 
         VkPhysicalDevice m_PhysicalDevice;
-        VkDevice         m_Device;
+        VkDevice m_Device;
 
         std::pair<std::uint8_t, VkQueue> m_GraphicsQueue;
         std::pair<std::uint8_t, VkQueue> m_PresentationQueue;
         std::pair<std::uint8_t, VkQueue> m_TransferQueue;
-        std::vector<std::uint8_t>        m_UniqueQueueFamilyIndices;
-        VulkanDeviceProperties           m_DeviceProperties;
+        std::vector<std::uint8_t> m_UniqueQueueFamilyIndices;
+        VulkanDeviceProperties m_DeviceProperties;
     };
 }

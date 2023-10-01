@@ -9,10 +9,10 @@
 using namespace RenderCore;
 
 #ifdef _DEBUG
-VKAPI_ATTR VkBool32 VKAPI_CALL DebugHelpers::ValidationLayerDebugCallback(const VkDebugUtilsMessageSeverityFlagBitsEXT      MessageSeverity,
-                                                                          [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT  MessageType,
+VKAPI_ATTR VkBool32 VKAPI_CALL DebugHelpers::ValidationLayerDebugCallback(const VkDebugUtilsMessageSeverityFlagBitsEXT MessageSeverity,
+                                                                          [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT MessageType,
                                                                           const VkDebugUtilsMessengerCallbackDataEXT* const CallbackData,
-                                                                          [[maybe_unused]] void*                            UserData)
+                                                                          [[maybe_unused]] void* UserData)
 {
     if (MessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
     {
@@ -22,10 +22,10 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugHelpers::ValidationLayerDebugCallback(const 
     return VK_FALSE;
 }
 
-VkResult DebugHelpers::CreateDebugUtilsMessenger(const VkInstance                                Instance,
+VkResult DebugHelpers::CreateDebugUtilsMessenger(const VkInstance Instance,
                                                  const VkDebugUtilsMessengerCreateInfoEXT* const CreateInfo,
-                                                 const VkAllocationCallbacks* const              Allocator,
-                                                 VkDebugUtilsMessengerEXT* const                 DebugMessenger)
+                                                 const VkAllocationCallbacks* const Allocator,
+                                                 VkDebugUtilsMessengerEXT* const DebugMessenger)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating debug messenger";
 

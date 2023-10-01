@@ -10,13 +10,13 @@ namespace RenderCore
 {
     struct VulkanDeviceProperties
     {
-        VkSurfaceFormatKHR       Format;
-        VkFormat                 DepthFormat;
-        VkPresentModeKHR         Mode;
-        VkExtent2D               Extent;
+        VkSurfaceFormatKHR Format;
+        VkFormat DepthFormat;
+        VkPresentModeKHR Mode;
+        VkExtent2D Extent;
         VkSurfaceCapabilitiesKHR Capabilities;
 
-        bool IsValid() const
+        [[nodiscard]] bool IsValid() const
         {
             return Extent.height != 0u && Extent.width != 0u;
         }

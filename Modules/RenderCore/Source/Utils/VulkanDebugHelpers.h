@@ -12,15 +12,15 @@ namespace RenderCore
     class DebugHelpers
     {
     public:
-        static VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT      MessageSeverity,
-                                                                           VkDebugUtilsMessageTypeFlagsEXT             MessageType,
+        static VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT MessageSeverity,
+                                                                           VkDebugUtilsMessageTypeFlagsEXT MessageType,
                                                                            const VkDebugUtilsMessengerCallbackDataEXT* CallbackData,
-                                                                           void*                                       UserData);
+                                                                           void* UserData);
 
-        static VkResult CreateDebugUtilsMessenger(VkInstance                                Instance,
+        static VkResult CreateDebugUtilsMessenger(VkInstance Instance,
                                                   const VkDebugUtilsMessengerCreateInfoEXT* CreateInfo,
-                                                  const VkAllocationCallbacks*              Allocator,
-                                                  VkDebugUtilsMessengerEXT*                 DebugMessenger);
+                                                  const VkAllocationCallbacks* Allocator,
+                                                  VkDebugUtilsMessengerEXT* DebugMessenger);
 
         static void DestroyDebugUtilsMessenger(VkInstance Instance, VkDebugUtilsMessengerEXT DebugMessenger, const VkAllocationCallbacks* Allocator);
 

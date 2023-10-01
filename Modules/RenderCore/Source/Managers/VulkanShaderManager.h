@@ -13,7 +13,7 @@ namespace RenderCore
 {
     constexpr const char* g_EntryPoint = "main";
 
-    class VulkanShaderManager
+    class VulkanShaderManager final // NOLINT(cppcoreguidelines-special-member-functions)
     {
     public:
         VulkanShaderManager(const VulkanShaderManager&)            = delete;
@@ -26,18 +26,17 @@ namespace RenderCore
 
         static VulkanShaderManager& Get();
 
-        static bool Compile(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
-        static bool Load(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
+        bool Compile(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
+        bool Load(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode) const;
 
-        static bool CompileOrLoadIfExists(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
+        bool CompileOrLoadIfExists(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
 
         // ReSharper disable once CppFunctionIsNotImplemented
         VkShaderModule CreateModule(const VkDevice& Device, const std::vector<uint32_t>& SPIRVCode, EShLanguage Language);
 
-        VkPipelineShaderStageCreateInfo GetStageInfo(const VkShaderModule& Module) const;
-
-        std::vector<VkShaderModule>                  GetShaderModules() const;
-        std::vector<VkPipelineShaderStageCreateInfo> GetStageInfos() const;
+        [[nodiscard]] VkPipelineShaderStageCreateInfo GetStageInfo(const VkShaderModule& Module) const;
+        [[nodiscard]] std::vector<VkShaderModule> GetShaderModules() const;
+        [[nodiscard]] std::vector<VkPipelineShaderStageCreateInfo> GetStageInfos() const;
 
         void FreeStagedModules(const std::vector<VkPipelineShaderStageCreateInfo>& StagedModules);
 

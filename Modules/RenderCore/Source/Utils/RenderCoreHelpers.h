@@ -51,7 +51,7 @@ namespace RenderCore
         static void ListAvailableInstanceLayerExtensions(std::string_view LayerName);
         #endif
 
-        static constexpr std::array<VkVertexInputBindingDescription, 1> GetBindingDescriptors()
+        static constexpr std::array<VkVertexInputBindingDescription, 1u> GetBindingDescriptors()
         {
             return {
                 VkVertexInputBindingDescription{
@@ -62,7 +62,7 @@ namespace RenderCore
             };
         }
 
-        static constexpr std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions()
+        static constexpr std::array<VkVertexInputAttributeDescription, 3u> GetAttributeDescriptions() // NOLINT(clang-diagnostic-invalid-constexpr)
         {
             return {
                 VkVertexInputAttributeDescription{

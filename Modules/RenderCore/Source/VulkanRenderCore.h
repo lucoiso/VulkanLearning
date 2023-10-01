@@ -14,7 +14,7 @@ struct GLFWwindow;
 
 namespace RenderCore
 {
-    class VulkanRenderCore
+    class VulkanRenderCore final // NOLINT(cppcoreguidelines-special-member-functions)
     {
     public:
         VulkanRenderCore();
@@ -35,7 +35,7 @@ namespace RenderCore
         void LoadScene(std::string_view ModelPath, std::string_view TexturePath);
         void UnloadScene() const;
 
-        [[nodiscard]] VkInstance&   GetInstance();
+        [[nodiscard]] VkInstance& GetInstance();
         [[nodiscard]] VkSurfaceKHR& GetSurface();
 
         VulkanRenderCoreStateFlags GetStateFlags() const;
@@ -51,14 +51,13 @@ namespace RenderCore
 
         static VulkanRenderCore g_Instance;
 
-        VkInstance                         m_Instance;
-        VkSurfaceKHR                       m_Surface;
+        VkInstance m_Instance;
+        VkSurfaceKHR m_Surface;
         mutable VulkanRenderCoreStateFlags m_StateFlags;
+        std::uint64_t m_ObjectID;
 
         #ifdef _DEBUG
         VkDebugUtilsMessengerEXT m_DebugMessenger;
         #endif
-
-        std::uint32_t m_ObjectID;
     };
 }

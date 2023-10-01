@@ -14,12 +14,12 @@ namespace RenderCore
 {
     #ifdef _DEBUG
     #if defined(GPU_API_DUMP) && GPU_API_DUMP
-    constexpr std::array<const char *, 2> g_DebugInstanceLayers = {
+    constexpr std::array g_DebugInstanceLayers = {
         "VK_LAYER_KHRONOS_validation",
         "VK_LAYER_LUNARG_api_dump"
     };
 
-    constexpr std::array<const char *, 2> g_DebugDeviceLayers = {
+    constexpr std::array g_DebugDeviceLayers = {
         "VK_LAYER_KHRONOS_validation",
         "VK_LAYER_LUNARG_api_dump"
     };
@@ -53,11 +53,11 @@ namespace RenderCore
     };
     #endif
 
-    constexpr std::array<const char*, 0> g_RequiredInstanceLayers = {};
+    constexpr std::array<const char*, 0u> g_RequiredInstanceLayers = {};
 
-    constexpr std::array<const char*, 0> g_RequiredDeviceLayers = {};
+    constexpr std::array<const char*, 0u> g_RequiredDeviceLayers = {};
 
-    constexpr std::array<const char*, 0> g_RequiredInstanceExtensions = {};
+    constexpr std::array<const char*, 0u> g_RequiredInstanceExtensions = {};
 
     constexpr std::array g_RequiredDeviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -79,10 +79,12 @@ namespace RenderCore
     constexpr std::array g_ClearValues{
         VkClearValue{
             .color = {
-                0.25f,
-                0.25f,
-                0.5f,
-                1.0f
+                {
+                    0.25f,
+                    0.25f,
+                    0.5f,
+                    1.f
+                }
             }
         },
         VkClearValue{

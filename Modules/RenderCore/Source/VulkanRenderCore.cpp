@@ -33,10 +33,10 @@ VulkanRenderCore::VulkanRenderCore()
     : m_Instance(VK_NULL_HANDLE)
   , m_Surface(VK_NULL_HANDLE)
   , m_StateFlags(VulkanRenderCoreStateFlags::NONE)
+  , m_ObjectID(0u)
     #ifdef _DEBUG
   , m_DebugMessenger(VK_NULL_HANDLE)
-    #endif
-  , m_ObjectID(0u)
+#endif
 {
 }
 
@@ -59,7 +59,7 @@ void VulkanRenderCore::Initialize(GLFWwindow* const Window)
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulkan render core";
 
-    RENDERCORE_CHECK_VULKAN_RESULT(volkInitialize());
+    RENDERCORE_CHECK_VULKAN_RESULT(volkInitialize())
 
     #ifdef _DEBUG
     RenderCoreHelpers::ListAvailableInstanceLayers();
@@ -292,7 +292,7 @@ void VulkanRenderCore::CreateVulkanInstance()
         .enabledLayerCount = 0u
     };
 
-    std::vector              Layers(g_RequiredInstanceLayers.begin(), g_RequiredInstanceLayers.end());
+    std::vector Layers(g_RequiredInstanceLayers.begin(), g_RequiredInstanceLayers.end());
     std::vector<const char*> Extensions = RenderCoreHelpers::GetGLFWExtensions();
     Extensions.insert(Extensions.end(), g_RequiredInstanceExtensions.begin(), g_RequiredInstanceExtensions.end());
 
@@ -313,7 +313,7 @@ void VulkanRenderCore::CreateVulkanInstance()
     CreateInfo.enabledExtensionCount   = static_cast<std::uint32_t>(Extensions.size());
     CreateInfo.ppEnabledExtensionNames = Extensions.data();
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateInstance(&CreateInfo, nullptr, &m_Instance));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateInstance(&CreateInfo, nullptr, &m_Instance))
     volkLoadInstance(m_Instance);
 
     #ifdef _DEBUG
@@ -331,7 +331,7 @@ void VulkanRenderCore::CreateVulkanSurface(GLFWwindow* const Window)
         throw std::runtime_error("Vulkan instance is invalid.");
     }
 
-    RENDERCORE_CHECK_VULKAN_RESULT(glfwCreateWindowSurface(m_Instance, Window, nullptr, &m_Surface));
+    RENDERCORE_CHECK_VULKAN_RESULT(glfwCreateWindowSurface(m_Instance, Window, nullptr, &m_Surface))
 }
 
 void VulkanRenderCore::InitializeRenderCore() const

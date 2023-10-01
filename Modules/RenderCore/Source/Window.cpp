@@ -16,7 +16,7 @@
 
 using namespace RenderCore;
 
-class Window::Impl
+class Window::Impl final // NOLINT(cppcoreguidelines-special-member-functions)
 {
 public:
     Impl(const Impl&)            = delete;
@@ -83,12 +83,12 @@ public:
         VulkanRenderCore::Get().Shutdown();
     }
 
-    bool IsInitialized() const
+    [[nodiscard]] bool IsInitialized() const
     {
         return IsOpen() && VulkanRenderCore::Get().IsInitialized();
     }
 
-    bool IsOpen() const
+    [[nodiscard]] bool IsOpen() const
     {
         return m_Window && !glfwWindowShouldClose(m_Window);
     }
@@ -102,7 +102,7 @@ public:
 
         try
         {
-            std::lock_guard                                         Lock(m_Mutex);
+            std::lock_guard Lock(m_Mutex);
             std::unordered_map<ApplicationEventFlags, std::uint8_t> ProcessedEvents;
 
             for (std::uint8_t Iterator = 0u; Iterator < static_cast<std::underlying_type_t<ApplicationEventFlags>>(ApplicationEventFlags::MAX); ++Iterator)
@@ -115,7 +115,7 @@ public:
                 const auto EventFlags = static_cast<ApplicationEventFlags>(m_EventIDQueue.front());
                 m_EventIDQueue.pop();
 
-                switch (EventFlags)
+                switch (EventFlags) // NOLINT(clang-diagnostic-switch-enum)
                 {
                     case ApplicationEventFlags::DRAW_FRAME:
                         {
@@ -175,7 +175,7 @@ private:
         return m_Window != nullptr;
     }
 
-    bool InitializeVulkanRenderCore() const
+    [[nodiscard]] bool InitializeVulkanRenderCore() const
     {
         VulkanRenderCore::Get().Initialize(m_Window);
 
@@ -225,11 +225,11 @@ private:
         }
     }
 
-    GLFWwindow*              m_Window;
-    std::uint64_t            m_DrawTimerID;
+    GLFWwindow* m_Window;
+    std::uint64_t m_DrawTimerID;
     std::queue<std::uint8_t> m_EventIDQueue;
-    std::mutex               m_Mutex;
-    std::thread::id          m_MainThreadID;
+    std::mutex m_Mutex;
+    std::thread::id m_MainThreadID;
 };
 
 Window::Window()

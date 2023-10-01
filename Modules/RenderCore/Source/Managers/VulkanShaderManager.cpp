@@ -2,6 +2,7 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRender
 
+// ReSharper disable CppMemberFunctionMayBeStatic
 #include "Managers/VulkanShaderManager.h"
 #include "Managers/VulkanDeviceManager.h"
 #include "Utils/RenderCoreHelpers.h"
@@ -18,6 +19,7 @@ using namespace RenderCore;
 VulkanShaderManager VulkanShaderManager::g_Instance{};
 
 VulkanShaderManager::VulkanShaderManager()
+    : m_StageInfos({})
 {
 }
 
@@ -49,7 +51,7 @@ VulkanShaderManager& VulkanShaderManager::Get()
 
 bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uint32_t>& OutSPIRVCode)
 {
-    EShLanguage                 Language = EShLangVertex;
+    EShLanguage Language = EShLangVertex;
     const std::filesystem::path Path(Source);
 
     if (const std::filesystem::path Extension = Path.extension();
@@ -103,7 +105,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uin
     }
 
     std::stringstream ShaderSource;
-    std::ifstream     File(Path);
+    std::ifstream File(Path);
     if (!File.is_open())
     {
         throw std::runtime_error("Failed to open shader file: " + Path.string());
@@ -116,7 +118,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uin
     if (Result)
     {
         const std::string SPIRVPath = std::format("{}.spv", Source);
-        std::ofstream     SPIRVFile(SPIRVPath, std::ios::binary);
+        std::ofstream SPIRVFile(SPIRVPath, std::ios::binary);
         if (!SPIRVFile.is_open())
         {
             throw std::runtime_error("Failed to open SPIRV file: " + SPIRVPath);
@@ -131,7 +133,8 @@ bool VulkanShaderManager::Compile(const std::string_view Source, std::vector<uin
     return Result;
 }
 
-bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::uint32_t>& OutSPIRVCode)
+// ReSharper disable once CppMemberFunctionMayBeStatic
+bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::uint32_t>& OutSPIRVCode) const
 {
     const std::filesystem::path Path(Source);
     if (!exists(Path))
@@ -159,7 +162,7 @@ bool VulkanShaderManager::Load(const std::string_view Source, std::vector<std::u
     OutSPIRVCode.resize(FileSize / sizeof(std::uint32_t), std::uint32_t());
 
     File.seekg(0);
-    const std::istream& ReadResult = File.read(reinterpret_cast<char*>(OutSPIRVCode.data()), FileSize); /* Flawfinder: ignore */
+    const std::istream& ReadResult = File.read(reinterpret_cast<char*>(OutSPIRVCode.data()), static_cast<std::streamsize>(FileSize)); /* Flawfinder: ignore */
     File.close();
 
     return !ReadResult.fail();
@@ -196,7 +199,7 @@ VkShaderModule VulkanShaderManager::CreateModule(const VkDevice& Device, const s
     };
 
     VkShaderModule Output;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateShaderModule(Device, &CreateInfo, nullptr, &Output));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateShaderModule(Device, &CreateInfo, nullptr, &Output))
 
     StageInfo(Output, Language);
 
@@ -266,8 +269,8 @@ bool VulkanShaderManager::Compile(const std::string_view Source, const EShLangua
     Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
     Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
 
-    const TBuiltInResource* Resources    = GetDefaultResources();
-    constexpr auto          MessageFlags = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
+    const TBuiltInResource* Resources = GetDefaultResources();
+    constexpr auto MessageFlags       = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
 
     if (!Shader.parse(Resources, 450, ECoreProfile, false, true, MessageFlags))
     {
@@ -296,7 +299,7 @@ bool VulkanShaderManager::Compile(const std::string_view Source, const EShLangua
     GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
     glslang::FinalizeProcess();
 
-    if (const std::string_view GeneratedLogs = Logger.getAllMessages();
+    if (const std::string GeneratedLogs = Logger.getAllMessages();
         !GeneratedLogs.empty())
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compilation result log:\n" << GeneratedLogs;
@@ -320,7 +323,7 @@ void VulkanShaderManager::StageInfo(const VkShaderModule& Module, const EShLangu
         .pName = g_EntryPoint
     };
 
-    switch (Language)
+    switch (Language) // NOLINT(clang-diagnostic-switch-enum)
     {
         case EShLangVertex:
             StageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;

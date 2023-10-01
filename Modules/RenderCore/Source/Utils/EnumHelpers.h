@@ -2,6 +2,7 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRender
 
+// ReSharper disable CppClangTidyBugproneMacroParentheses
 #pragma once
 
 #include <cstdint>

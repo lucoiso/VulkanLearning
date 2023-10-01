@@ -65,6 +65,7 @@ find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(glslang CONFIG REQUIRED)
 
 find_package(glfw3 CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE
     Boost::log
@@ -81,6 +82,7 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE
     glslang::SPIRV
 
     glfw
+    imgui::imgui
 
     Timer
     Configuration

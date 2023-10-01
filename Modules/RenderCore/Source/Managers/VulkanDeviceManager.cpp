@@ -155,7 +155,7 @@ void VulkanDeviceManager::CreateLogicalDevice()
         .pEnabledFeatures = &DeviceFeatures
     };
 
-    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_Device));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_Device))
 
     if (vkGetDeviceQueue(m_Device, m_GraphicsQueue.first, 0u, &m_GraphicsQueue.second);
         m_GraphicsQueue.second == VK_NULL_HANDLE)
@@ -202,23 +202,22 @@ bool VulkanDeviceManager::UpdateDeviceProperties(GLFWwindow* const Window)
     }
 
     m_DeviceProperties.Format = SupportedFormats[0];
-    if (const auto                                                                    MatchingFormat = std::ranges::find_if(SupportedFormats,
-                                                                                                                            [](const VkSurfaceFormatKHR& Iter)
-                                                                                                                            {
-                                                                                                                                return Iter.format == VK_FORMAT_B8G8R8A8_SRGB && Iter.colorSpace ==
-                                                                                                                                    VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-                                                                                                                            });
+    if (const auto MatchingFormat = std::ranges::find_if(SupportedFormats,
+                                                         [](const VkSurfaceFormatKHR& Iter)
+                                                         {
+                                                             return Iter.format == VK_FORMAT_B8G8R8A8_SRGB && Iter.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+                                                         });
         MatchingFormat != SupportedFormats.end())
     {
         m_DeviceProperties.Format = *MatchingFormat;
     }
 
     m_DeviceProperties.Mode = VK_PRESENT_MODE_FIFO_KHR;
-    if (const auto                                                                MatchingMode = std::ranges::find_if(SupportedPresentationModes,
-                                                                                                                      [](const VkPresentModeKHR& Iter)
-                                                                                                                      {
-                                                                                                                          return Iter == VK_PRESENT_MODE_MAILBOX_KHR;
-                                                                                                                      });
+    if (const auto MatchingMode = std::ranges::find_if(SupportedPresentationModes,
+                                                       [](const VkPresentModeKHR& Iter)
+                                                       {
+                                                           return Iter == VK_PRESENT_MODE_MAILBOX_KHR;
+                                                       });
         MatchingMode != SupportedPresentationModes.end())
     {
         m_DeviceProperties.Mode = *MatchingMode;
@@ -326,10 +325,10 @@ std::vector<VkPhysicalDevice> VulkanDeviceManager::GetAvailablePhysicalDevices()
     const VkInstance& VulkanInstance = VulkanRenderCore::Get().GetInstance();
 
     std::uint32_t DeviceCount = 0u;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, nullptr));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, nullptr))
 
     std::vector<VkPhysicalDevice> Output(DeviceCount, VK_NULL_HANDLE);
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, Output.data()));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, Output.data()))
 
     return Output;
 }
@@ -342,10 +341,10 @@ std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDevi
     }
 
     std::uint32_t ExtensionsCount;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, nullptr));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, nullptr))
 
     std::vector<VkExtensionProperties> Output(ExtensionsCount);
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, Output.data()));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &ExtensionsCount, Output.data()))
 
     return Output;
 }
@@ -358,10 +357,10 @@ std::vector<VkLayerProperties> VulkanDeviceManager::GetAvailablePhysicalDeviceLa
     }
 
     std::uint32_t LayersCount;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceLayerProperties(m_PhysicalDevice, &LayersCount, nullptr));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceLayerProperties(m_PhysicalDevice, &LayersCount, nullptr))
 
     std::vector<VkLayerProperties> Output(LayersCount);
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceLayerProperties(m_PhysicalDevice, &LayersCount, Output.data()));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceLayerProperties(m_PhysicalDevice, &LayersCount, Output.data()))
 
     return Output;
 }
@@ -376,14 +375,14 @@ std::vector<VkExtensionProperties> VulkanDeviceManager::GetAvailablePhysicalDevi
     if (const std::vector<std::string> AvailableLayers = GetAvailablePhysicalDeviceLayersNames();
         std::ranges::find(AvailableLayers, LayerName) == AvailableLayers.end())
     {
-        return std::vector<VkExtensionProperties>();
+        return {};
     }
 
     std::uint32_t ExtensionsCount;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, LayerName.data(), &ExtensionsCount, nullptr));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, LayerName.data(), &ExtensionsCount, nullptr))
 
     std::vector<VkExtensionProperties> Output(ExtensionsCount);
-    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, LayerName.data(), &ExtensionsCount, Output.data()));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, LayerName.data(), &ExtensionsCount, Output.data()))
 
     return Output;
 }
@@ -432,7 +431,7 @@ VkSurfaceCapabilitiesKHR VulkanDeviceManager::GetAvailablePhysicalDeviceSurfaceC
     }
 
     VkSurfaceCapabilitiesKHR Output;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, VulkanRenderCore::Get().GetSurface(), &Output));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, VulkanRenderCore::Get().GetSurface(), &Output))
 
     return Output;
 }
@@ -447,10 +446,10 @@ std::vector<VkSurfaceFormatKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceS
     const VkSurfaceKHR& VulkanSurface = VulkanRenderCore::Get().GetSurface();
 
     std::uint32_t Count = 0u;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, VulkanSurface, &Count, nullptr));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, VulkanSurface, &Count, nullptr))
 
     std::vector Output(Count, VkSurfaceFormatKHR());
-    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, VulkanSurface, &Count, Output.data()));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, VulkanSurface, &Count, Output.data()))
 
     return Output;
 }
@@ -465,10 +464,10 @@ std::vector<VkPresentModeKHR> VulkanDeviceManager::GetAvailablePhysicalDeviceSur
     const VkSurfaceKHR& VulkanSurface = VulkanRenderCore::Get().GetSurface();
 
     std::uint32_t Count = 0u;
-    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, VulkanSurface, &Count, nullptr));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, VulkanSurface, &Count, nullptr))
 
     std::vector Output(Count, VkPresentModeKHR());
-    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, VulkanSurface, &Count, Output.data()));
+    RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, VulkanSurface, &Count, Output.data()))
 
     return Output;
 }
@@ -534,7 +533,7 @@ bool VulkanDeviceManager::GetQueueFamilyIndices(std::optional<std::uint8_t>& Gra
         else if (!PresentationQueueFamilyIndex.has_value())
         {
             VkBool32 PresentationSupport = false;
-            RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDevice, Iterator, VulkanSurface, &PresentationSupport));
+            RENDERCORE_CHECK_VULKAN_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDevice, Iterator, VulkanSurface, &PresentationSupport))
 
             if (PresentationSupport)
             {
