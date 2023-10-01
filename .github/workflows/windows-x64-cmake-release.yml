@@ -1,4 +1,4 @@
-name: VulkanLearning CMake Workflow
+name: VulkanRender CMake Workflow
 
 on:
   push:
@@ -48,7 +48,8 @@ jobs:
           vcpkgGitCommitId: ${{env.VCPKG_BUILTIN_BASELINE}}
           vcpkgJsonGlob: '**/vcpkg.json'
 
-      - uses: lukka/get-cmake@latest
+      - name: Install CMake
+        uses: lukka/get-cmake@latest
 
       - name: Run CMake
         uses: lukka/run-cmake@v10
