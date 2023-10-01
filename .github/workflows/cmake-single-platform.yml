@@ -8,10 +8,15 @@ on:
 
 env:
   BUILD_TYPE: Release
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  VCPKG_FEATURE_FLAGS: dependencygraph
-  VCPKG_ROOT: C:/vcpkg
-  
+  GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+  VCPKG_ROOT: ${{github.workspace}}/vcpkg
+  VCPKG_BUILTIN_BASELINE: 5a38b5ec0eee3d1a1a6faab5e944617fee2697cf
+  VCPKG_ENABLE_METRICS: 1
+  VCPKG_DEFAULT_TRIPLET: x64-windows-release
+  VCPKG_DEFAULT_BINARY_CACHE: ${{env.VCPKG_ROOT}}/bincache
+  VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
+  OUTPUT_DIRECTORY: ${{env.OUTPUT_DIRECTORY}}
+
 permissions:
   actions: read
   deployments: write
@@ -24,57 +29,59 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-        submodules: 'recursive'
+      - uses: actions/checkout@v3
+      - uses: lukka/get-cmake@latest
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+          vcpkgDirectory: ${{env.VCPKG_ROOT}}
+          vcpkgGitCommitId: ${{env.VCPKG_BUILTIN_BASELINE}}
+          vcpkgJsonGlob: '**/vcpkg.json'
 
-    - name: Setup Environment
-      shell: powershell
-      run: |
-        if (Test-Path -Path ${{github.workspace}}\build) {
-            Remove-Item -Path ${{github.workspace}}\build -Recurse -Force
-        }
-        mkdir ${{github.workspace}}/build
-        git submodule update --init --recursive --force
-            
-    - name: Install Vulkan SDK
-      uses: humbletim/setup-vulkan-sdk@v1.2.0
-      with:
-        vulkan-query-version: latest
-        vulkan-components: Vulkan-Headers
-        vulkan-use-cache: true
+      - name: Setup VCPKG
+        uses: lukka/run-vcpkg@v11
+        with:
+          cmakeListsTxtPath: '${{github.workspace}}/CMakeLists.txt'
+          configurePreset: ${{env.BUILD_TYPE}}
+          buildPreset: ${{env.BUILD_TYPE}}
 
-    - name: Build Project
-      run: |
-        cmake -B out/build --preset ${{env.BUILD_TYPE}}
-        cmake --build out/build --preset ${{env.BUILD_TYPE}}
+      - name: Install Vulkan SDK
+        uses: humbletim/setup-vulkan-sdk@v1.2.0
+        with:
+          vulkan-query-version: latest
+          vulkan-components: Vulkan-Headers
+          vulkan-use-cache: true
 
-    - name: Test Binaries
-      working-directory: ${{github.workspace}}/out/build/
-      run: ctest -C ${{env.BUILD_TYPE}}
-    
-    - name: Run Application Benchmark
-      working-directory: ${{github.workspace}}/out/build/${{env.BUILD_TYPE}}/bin
-      run: ./Benchmark.exe --benchmark_format=json | tee application_benchmark_result.json
+      - name: Build Project
+        run: |
+          cmake -B ${{env.OUTPUT_DIRECTORY}} --preset ${{env.BUILD_TYPE}}
+          cmake --build ${{env.OUTPUT_DIRECTORY}} --preset ${{env.BUILD_TYPE}}
 
-    - name: Store Application Benchmark Result
-      uses: benchmark-action/github-action-benchmark@v1
-      with:
-        tool: 'googlecpp'
-        output-file-path: ${{github.workspace}}/out/build/${{env.BUILD_TYPE}}/bin/application_benchmark_result.json
-        github-token: ${{ secrets.LUCOISO_PAT }}
-        auto-push: true
-    
-    - name: Run Submodules Benchmark
-      working-directory: ${{github.workspace}}/out/build/${{env.BUILD_TYPE}}/bin
-      run: ./SubmodulesBenchmark.exe --benchmark_format=json | tee submodules_benchmark_result.json
+      - name: Test Binaries
+        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/
+        run: ctest -C ${{env.BUILD_TYPE}}
 
-    - name: Push Submodules Benchmark Result
-      uses: benchmark-action/github-action-benchmark@v1
-      with:
-        tool: 'googlecpp'
-        output-file-path: ${{github.workspace}}/out/build/${{env.BUILD_TYPE}}/bin/submodules_benchmark_result.json
-        github-token: ${{ secrets.LUCOISO_PAT }}
-        auto-push: true
-        gh-repository: 'github.com/lucoiso/cpp-submodules'
+      - name: Run Application Benchmark
+        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/bin
+        run: ./Benchmark.exe --benchmark_format=json | tee application_benchmark_result.json
+
+      - name: Store Application Benchmark Result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'googlecpp'
+          output-file-path: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/bin/application_benchmark_result.json
+          github-token: ${{ secrets.LUCOISO_PAT }}
+          auto-push: true
+
+      - name: Run Submodules Benchmark
+        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/bin
+        run: ./SubmodulesBenchmark.exe --benchmark_format=json | tee submodules_benchmark_result.json
+
+      - name: Push Submodules Benchmark Result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'googlecpp'
+          output-file-path: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/bin/submodules_benchmark_result.json
+          github-token: ${{ secrets.LUCOISO_PAT }}
+          auto-push: true
+          gh-repository: 'github.com/lucoiso/cpp-submodules'
