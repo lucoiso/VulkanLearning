@@ -54,24 +54,24 @@ namespace RenderCore
                             .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
         }
 
-        static constexpr std::array<VkVertexInputAttributeDescription, 3U> GetAttributeDescriptions()
+        static std::array<VkVertexInputAttributeDescription, 3U> GetAttributeDescriptions()
         {
             return {
                     VkVertexInputAttributeDescription {
                             .location = 0U,
                             .binding  = 0U,
                             .format   = VK_FORMAT_R32G32B32_SFLOAT,
-                            .offset   = offsetof(Vertex, Position)},
+                            .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Position))},
                     VkVertexInputAttributeDescription {
                             .location = 1U,
                             .binding  = 0U,
                             .format   = VK_FORMAT_R32G32B32_SFLOAT,
-                            .offset   = offsetof(Vertex, Color)},
+                            .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Color))},
                     VkVertexInputAttributeDescription {
                             .location = 2U,
                             .binding  = 0U,
                             .format   = VK_FORMAT_R32G32_SFLOAT,
-                            .offset   = offsetof(Vertex, TextureCoordinate)}};
+                            .offset   = static_cast<std::uint32_t>(offsetof(Vertex, TextureCoordinate))}};
         }
 
         template<typename T1, typename T2>

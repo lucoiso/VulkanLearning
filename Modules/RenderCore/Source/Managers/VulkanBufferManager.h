@@ -63,6 +63,7 @@ namespace RenderCore
         void CreateSwapChain();
         void CreateFrameBuffers();
         void CreateDepthResources();
+        void LoadImGuiFonts();
 
         std::uint64_t LoadObject(std::string_view ModelPath, std::string_view TexturePath);
         void UnLoadObject(std::uint64_t ObjectID);
@@ -82,8 +83,11 @@ namespace RenderCore
         [[nodiscard]] VkBuffer GetIndexBuffer(std::uint64_t ObjectID = 0U) const;
         [[nodiscard]] std::uint32_t GetIndicesCount(std::uint64_t ObjectID = 0U) const;
         [[nodiscard]] std::vector<VulkanTextureData> GetAllocatedTextures() const;
+        [[nodiscard]] VulkanTextureData GetAllocatedImGuiFontTexture() const;
 
         VmaAllocationInfo CreateBuffer(VkDeviceSize const& Size, VkBufferUsageFlags Usage, VkMemoryPropertyFlags Flags, VkBuffer& Buffer, VmaAllocation& Allocation) const;
+        void CreateVertexBuffer(VulkanObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<Vertex> const& Vertices) const;
+        void CreateIndexBuffer(VulkanObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<std::uint32_t> const& Indices) const;
 
         static void CopyBuffer(VkBuffer const& Source, VkBuffer const& Destination, VkDeviceSize const& Size, VkQueue const& Queue, std::uint8_t QueueFamilyIndex);
 
@@ -97,7 +101,7 @@ namespace RenderCore
 
         static void CreateImageView(VkImage const& Image, VkFormat const& Format, VkImageAspectFlags const& AspectFlags, VkImageView& ImageView);
 
-        void CreateTextureImageView(VulkanImageAllocation& Allocation) const;
+        static void CreateTextureImageView(VulkanImageAllocation& Allocation);
 
         void CreateTextureSampler(VulkanImageAllocation& Allocation) const;
 
@@ -120,6 +124,7 @@ namespace RenderCore
         VkExtent2D m_SwapChainExtent;
         std::vector<VulkanImageAllocation> m_SwapChainImages;
         VulkanImageAllocation m_DepthImage;
+        VulkanImageAllocation m_ImGuiFontImage;
         std::vector<VkFramebuffer> m_FrameBuffers;
         std::unordered_map<std::uint64_t, VulkanObjectAllocation> m_Objects;
         std::atomic<std::uint64_t> m_ObjectIDCounter;

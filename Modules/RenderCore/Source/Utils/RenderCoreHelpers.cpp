@@ -9,7 +9,6 @@
 #include <boost/log/trivial.hpp>
 #include <chrono>
 #include <glm/glm.hpp>
-#include <numbers>
 #include <span>
 
 using namespace RenderCore;

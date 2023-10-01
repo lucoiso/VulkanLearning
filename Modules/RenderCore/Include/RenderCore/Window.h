@@ -32,9 +32,7 @@ namespace RenderCore
 
         void PollEvents() const;
 
-        virtual void CreateOverlay()
-        {
-        }
+        virtual void CreateOverlay();
 
     private:
         std::unique_ptr<Impl> m_Impl;

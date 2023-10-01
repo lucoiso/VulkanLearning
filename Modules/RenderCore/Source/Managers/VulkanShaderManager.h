@@ -27,10 +27,10 @@ namespace RenderCore
 
         static VulkanShaderManager& Get();
 
-        bool Compile(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
+        static bool Compile(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
         static bool Load(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
 
-        bool CompileOrLoadIfExists(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
+        static bool CompileOrLoadIfExists(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
 
         VkShaderModule CreateModule(VkDevice const& Device, std::vector<uint32_t> const& SPIRVCode, EShLanguage Language);
 
@@ -41,7 +41,7 @@ namespace RenderCore
         void FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const& StagedModules);
 
     private:
-        bool Compile(std::string_view Source, EShLanguage Language, std::vector<uint32_t>& OutSPIRVCode);
+        static bool Compile(std::string_view Source, EShLanguage Language, std::vector<uint32_t>& OutSPIRVCode);
 
         void StageInfo(VkShaderModule const& Module, EShLanguage Language);
 

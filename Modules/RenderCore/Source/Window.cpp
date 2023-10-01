@@ -12,6 +12,7 @@
 #include <GLFW/glfw3.h>
 #include <Timer/Manager.h>
 #include <boost/log/trivial.hpp>
+#include <imgui.h>
 #include <stdexcept>
 
 using namespace RenderCore;
@@ -19,11 +20,13 @@ using namespace RenderCore;
 class Window::Impl final
 {
 public:
+    Impl()                       = delete;
     Impl(Impl const&)            = delete;
     Impl& operator=(Impl const&) = delete;
 
-    Impl()
-        : m_MainThreadID(std::this_thread::get_id())
+    explicit Impl(const std::function<void()>& CreateOverlay)
+        : m_MainThreadID(std::this_thread::get_id()),
+          m_CreateOverlay(CreateOverlay)
     {
     }
 
@@ -35,6 +38,7 @@ public:
         }
 
         Shutdown();
+        ImGui::DestroyContext();
 
         glfwDestroyWindow(m_Window);
         glfwTerminate();
@@ -49,7 +53,7 @@ public:
 
         try
         {
-            if (InitializeGLFW(Width, Height, Title) && InitializeVulkanRenderCore())
+            if (InitializeGLFW(Width, Height, Title) && InitializeVulkanRenderCore() && InitializeImGui())
             {
                 RegisterTimers();
             }
@@ -121,6 +125,16 @@ public:
                             break;
                         }
 
+                        if (ImGuiIO& IO = ImGui::GetIO();
+                            IO.Fonts->IsBuilt())
+                        {
+                            ImGui::NewFrame();
+                            {
+                                m_CreateOverlay();
+                            }
+                            ImGui::Render();
+                        }
+
                         VulkanRenderCore::Get().DrawFrame(m_Window);
                         break;
                     }
@@ -182,6 +196,28 @@ private:
         return false;
     }
 
+    [[nodiscard]] bool InitializeImGui() const
+    {
+        try
+        {
+            ImGui::CreateContext();
+            ImGui::StyleColorsDark();
+
+            ImGuiIO& IO                  = ImGui::GetIO();
+            VkExtent2D const DisplaySize = RenderCoreHelpers::GetWindowExtent(m_Window,
+                                                                              VulkanDeviceManager::Get().GetAvailablePhysicalDeviceSurfaceCapabilities());
+
+            IO.DisplaySize = ImVec2(static_cast<float>(DisplaySize.width), static_cast<float>(DisplaySize.height));
+        }
+        catch (std::exception const& Ex)
+        {
+            BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
+            return false;
+        }
+
+        return true;
+    }
+
     void RegisterTimers()
     {
         Timer::Manager::Get().SetTickInterval(std::chrono::milliseconds(1));
@@ -190,7 +226,7 @@ private:
             // Draw Frame
             constexpr Timer::Parameters DrawFrameTimerParameters {
                     .EventID     = static_cast<std::uint8_t>(ApplicationEventFlags::DRAW_FRAME),
-                    .Interval    = 1000U / (g_FrameRate > 0 ? g_FrameRate : 1U),
+                    .Interval    = 1000U / g_FrameRate,
                     .RepeatCount = std::nullopt};
 
             m_DrawTimerID = Timer::Manager::Get().StartTimer(DrawFrameTimerParameters, m_EventIDQueue);
@@ -222,12 +258,15 @@ private:
     std::uint64_t m_DrawTimerID {
             0U};
     std::queue<std::uint8_t> m_EventIDQueue;
+    std::function<void()> m_CreateOverlay;
     std::mutex m_Mutex;
     std::thread::id m_MainThreadID;
 };
 
 Window::Window()
-    : m_Impl(std::make_unique<Impl>())
+    : m_Impl(std::make_unique<Impl>([this] {
+          CreateOverlay();
+      }))
 {
 }
 
@@ -254,16 +293,7 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
         return false;
     }
 
-    if (m_Impl->Initialize(Width, Height, Title))
-    {
-        CreateOverlay();
-    }
-    else
-    {
-        Shutdown();
-    }
-
-    return IsInitialized();
+    return m_Impl->Initialize(Width, Height, Title);
 }
 
 void Window::Shutdown() const
@@ -301,4 +331,11 @@ void Window::PollEvents() const
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
     }
+}
+
+void Window::CreateOverlay()
+{
+    ImGui::Begin("Hello World!");
+    ImGui::Text("How r u doing?");
+    ImGui::End();
 }

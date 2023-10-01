@@ -9,6 +9,7 @@
 #include "Utils/RenderCoreHelpers.h"
 #include "Utils/VulkanConstants.h"
 #include <boost/log/trivial.hpp>
+#include <imgui.h>
 
 using namespace RenderCore;
 
@@ -144,6 +145,8 @@ void VulkanCommandsManager::DestroySynchronizationObjects()
         m_Fence = VK_NULL_HANDLE;
     }
 
+    ResetImGuiFontsAllocation();
+
     m_SynchronizationObjectsCreated = false;
 }
 
@@ -182,7 +185,7 @@ std::optional<std::int32_t> VulkanCommandsManager::DrawFrame() const
             {
                 BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Failed to acquire next image: Vulkan swap chain is outdated";
             }
-            else if (OperationResult == VK_SUBOPTIMAL_KHR)
+            else
             {
                 BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Failed to acquire next image: Vulkan swap chain is suboptimal";
                 WaitAndResetFences();
@@ -190,7 +193,7 @@ std::optional<std::int32_t> VulkanCommandsManager::DrawFrame() const
 
             return std::nullopt;
         }
-        if (OperationResult != VK_SUBOPTIMAL_KHR)
+        else
         {
             throw std::runtime_error("Failed to acquire Vulkan swap chain image.");
         }
@@ -222,6 +225,7 @@ void VulkanCommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
 
     std::vector<VkDeviceSize> const Offsets = {
             0U};
+
     VkExtent2D const Extent = VulkanBufferManager::Get().GetSwapChainExtent();
 
     VkViewport const Viewport {
@@ -290,6 +294,84 @@ void VulkanCommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
     if (ActiveRenderPass && ActiveVertexBinding && ActiveIndexBinding)
     {
         vkCmdDrawIndexed(m_CommandBuffer, IndexCount, 1U, 0U, 0U, 0U);
+    }
+
+    if (ActiveRenderPass)
+    {
+        if (ImDrawData const* const ImGuiDrawData = ImGui::GetDrawData())
+        {
+            ResetImGuiFontsAllocation();
+
+            std::span const ImGuiCmdListSpan(ImGuiDrawData->CmdLists.Data, ImGuiDrawData->CmdListsCount);
+
+            for (std::vector const ImGuiCmdList(ImGuiCmdListSpan.begin(), ImGuiCmdListSpan.end());
+                 ImDrawList const* const ImGuiCmdListIter: ImGuiCmdList)
+            {
+                VulkanObjectAllocation& NewAllocation = m_ImGuiFontsAllocation.emplace_back();
+
+                // Bind Vertex Buffers
+                {
+                    VkDeviceSize const AllocationSize = ImGuiCmdListIter->VtxBuffer.Size * sizeof(ImDrawVert);
+
+                    std::vector<Vertex> Vertices;
+                    Vertices.reserve(ImGuiCmdListIter->VtxBuffer.Size);
+
+                    for (ImDrawVert const& ImGuiVertexIter: ImGuiCmdListIter->VtxBuffer)
+                    {
+                        Vertices.emplace_back(Vertex {
+                                .Position          = {ImGuiVertexIter.pos.x, ImGuiVertexIter.pos.y, 0.F},
+                                .Color             = {ImGuiVertexIter.col, ImGuiVertexIter.col, ImGuiVertexIter.col},
+                                .TextureCoordinate = {ImGuiVertexIter.uv.x, ImGuiVertexIter.uv.y}});
+                    }
+
+                    VulkanBufferManager::Get().CreateVertexBuffer(NewAllocation, AllocationSize, Vertices);
+                    vkCmdBindVertexBuffers(m_CommandBuffer, 0U, 1U, &NewAllocation.VertexBuffer.Buffer, Offsets.data());
+                }
+
+                // Bind Index Buffers
+                {
+                    VkDeviceSize const AllocationSize = ImGuiCmdListIter->IdxBuffer.Size * sizeof(ImDrawIdx);
+
+                    std::vector<std::uint32_t> Indices;
+                    Indices.reserve(ImGuiCmdListIter->IdxBuffer.Size);
+
+                    for (ImDrawIdx const& ImGuiIndexIter: ImGuiCmdListIter->IdxBuffer)
+                    {
+                        Indices.emplace_back(ImGuiIndexIter);
+                    }
+
+                    VulkanBufferManager::Get().CreateIndexBuffer(NewAllocation, AllocationSize, Indices);
+                    vkCmdBindIndexBuffer(m_CommandBuffer, NewAllocation.IndexBuffer.Buffer, 0U, VK_INDEX_TYPE_UINT32);
+                }
+
+                std::span const ImGuiCmdBufferSpan(ImGuiCmdListIter->CmdBuffer.Data, ImGuiCmdListIter->CmdBuffer.Size);
+                for (std::vector const ImGuiCmdBuffers(ImGuiCmdBufferSpan.begin(), ImGuiCmdBufferSpan.end());
+                     ImDrawCmd const ImGuiCmdBufferIter: ImGuiCmdBuffers)
+                {
+                    if (ImGuiCmdBufferIter.UserCallback != nullptr)
+                    {
+                        ImGuiCmdBufferIter.UserCallback(ImGuiCmdListIter, &ImGuiCmdBufferIter);
+                    }
+                    else
+                    {
+                        VkRect2D const ImGuiScissor {
+                                .offset = {
+                                        static_cast<std::int32_t>(ImGuiCmdBufferIter.ClipRect.x),
+                                        static_cast<std::int32_t>(ImGuiCmdBufferIter.ClipRect.y)},
+                                .extent = {static_cast<std::uint32_t>(ImGuiCmdBufferIter.ClipRect.z - ImGuiCmdBufferIter.ClipRect.x), static_cast<std::uint32_t>(ImGuiCmdBufferIter.ClipRect.w - ImGuiCmdBufferIter.ClipRect.y)}};
+
+                        vkCmdSetScissor(m_CommandBuffer, 0U, 1U, &ImGuiScissor);
+
+                        vkCmdDrawIndexed(m_CommandBuffer,
+                                         static_cast<std::uint32_t>(ImGuiCmdBufferIter.ElemCount),
+                                         1U,
+                                         static_cast<std::uint32_t>(ImGuiCmdBufferIter.IdxOffset),
+                                         static_cast<std::int32_t>(ImGuiCmdBufferIter.VtxOffset),
+                                         0U);
+                    }
+                }
+            }
+        }
     }
 
     if (ActiveRenderPass)
@@ -392,4 +474,12 @@ void VulkanCommandsManager::WaitAndResetFences() const
 
     RenderCoreHelpers::CheckVulkanResult(vkWaitForFences(VulkanLogicalDevice, 1U, &m_Fence, VK_TRUE, g_Timeout));
     RenderCoreHelpers::CheckVulkanResult(vkResetFences(VulkanLogicalDevice, 1U, &m_Fence));
+}
+void VulkanCommandsManager::ResetImGuiFontsAllocation()
+{
+    for (VulkanObjectAllocation& VulkanObjectAllocationIter: m_ImGuiFontsAllocation)
+    {
+        VulkanObjectAllocationIter.DestroyResources();
+    }
+    m_ImGuiFontsAllocation.clear();
 }

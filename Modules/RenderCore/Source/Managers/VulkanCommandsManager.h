@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "VulkanBufferManager.h"
 #include <limits>
 #include <optional>
 #include <volk.h>
@@ -41,6 +42,7 @@ namespace RenderCore
         void CreateGraphicsCommandPool();
         void AllocateCommandBuffer();
         void WaitAndResetFences() const;
+        void ResetImGuiFontsAllocation();
 
         VkCommandPool m_CommandPool;
         VkCommandBuffer m_CommandBuffer;
@@ -48,7 +50,7 @@ namespace RenderCore
         VkSemaphore m_RenderFinishedSemaphore;
         VkFence m_Fence;
         bool m_SynchronizationObjectsCreated;
-
         std::uint8_t m_FrameIndex;
+        std::vector<VulkanObjectAllocation> m_ImGuiFontsAllocation;
     };
 }// namespace RenderCore

@@ -155,6 +155,7 @@ void VulkanRenderCore::DrawFrame(GLFWwindow* const Window) const
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
             VulkanBufferManager::Get().CreateSwapChain();
             VulkanBufferManager::Get().CreateDepthResources();
+            VulkanBufferManager::Get().LoadImGuiFonts();
             VulkanCommandsManager::Get().CreateSynchronizationObjects();
 
             RenderCoreHelpers::RemoveFlags(m_StateFlags, VulkanRenderCoreStateFlags::PENDING_RESOURCES_CREATION);
@@ -359,20 +360,20 @@ std::vector<VkPipelineShaderStageCreateInfo> VulkanRenderCore::CompileDefaultSha
     for (char const* const& FragmentShaderIter: FragmentShaders)
     {
         if (std::vector<std::uint32_t> FragmentShaderCode;
-            VulkanShaderManager::Get().CompileOrLoadIfExists(FragmentShaderIter, FragmentShaderCode))
+            VulkanShaderManager::CompileOrLoadIfExists(FragmentShaderIter, FragmentShaderCode))
         {
             VkShaderModule const FragmentModule = VulkanShaderManager::Get().CreateModule(VulkanLogicalDevice, FragmentShaderCode, EShLangFragment);
-            ShaderStages.push_back(VulkanShaderManager::Get().GetStageInfo(FragmentModule));
+            ShaderStages.emplace_back(VulkanShaderManager::Get().GetStageInfo(FragmentModule));
         }
     }
 
     for (char const* const& VertexShaderIter: VertexShaders)
     {
         if (std::vector<std::uint32_t> VertexShaderCode;
-            VulkanShaderManager::Get().CompileOrLoadIfExists(VertexShaderIter, VertexShaderCode))
+            VulkanShaderManager::CompileOrLoadIfExists(VertexShaderIter, VertexShaderCode))
         {
             VkShaderModule const VertexModule = VulkanShaderManager::Get().CreateModule(VulkanLogicalDevice, VertexShaderCode, EShLangVertex);
-            ShaderStages.push_back(VulkanShaderManager::Get().GetStageInfo(VertexModule));
+            ShaderStages.emplace_back(VulkanShaderManager::Get().GetStageInfo(VertexModule));
         }
     }
 

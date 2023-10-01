@@ -14,14 +14,5 @@ namespace RenderCore
         glm::vec3 Position;
         glm::vec3 Color;
         glm::vec2 TextureCoordinate;
-
-        Vertex() = default;
-
-        Vertex(glm::vec3 const& InPosition, glm::vec3 const& InColor, glm::vec2 const& InTextureCoordinate)
-            : Position(InPosition),
-              Color(InColor),
-              TextureCoordinate(InTextureCoordinate)
-        {
-        }
     };
 }// namespace RenderCore

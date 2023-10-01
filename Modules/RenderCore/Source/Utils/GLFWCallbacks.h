@@ -8,6 +8,7 @@
 #include "VulkanRenderCore.h"
 #include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
+#include <imgui.h>
 
 namespace RenderCore
 {
@@ -20,6 +21,9 @@ namespace RenderCore
     static void GLFWWindowResized(GLFWwindow* const Window, [[maybe_unused]] std::int32_t const Width, [[maybe_unused]] std::int32_t const Height)
     {
         VulkanDeviceManager::Get().UpdateDeviceProperties(Window);
+        ImGui::GetIO().DisplaySize             = ImVec2(static_cast<float>(Width), static_cast<float>(Height));
+        ImGui::GetIO().DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+        ImGui::GetIO().DeltaTime               = static_cast<float>(glfwGetTime());
     }
 
     static void GLFWErrorCallback(std::int32_t const Error, char const* const Description)
