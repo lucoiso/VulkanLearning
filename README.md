@@ -3,11 +3,10 @@
 ![image](https://github.com/lucoiso/VulkanRender/assets/77353979/119aef7f-0e49-45c1-81ba-b40dec441ea4)
 
 # Dependencies
-1.  Vcpkg 
+1.  Vcpkg (w/ ENVIRONMENT VARIABLE VCPKG_ROOT set to the vcpkg root directory)
 2.  CMake 3.26.4 
-4.  Windows 10/11 x64 
-5.  Vulkan SDK
-6.  Git
+3.  Vulkan SDK (Does not need any modules except the SDK core)
+4.  Git
 
 # Setup
 -   Run these commands:  
