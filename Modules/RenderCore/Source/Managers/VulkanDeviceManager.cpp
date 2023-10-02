@@ -129,17 +129,17 @@ void VulkanDeviceManager::CreateLogicalDevice()
     std::unordered_map<std::uint32_t, std::vector<float>> QueuePriorities;
     for (auto const& [Index, Quantity]: QueueFamilyIndices)
     {
-        m_UniqueQueueFamilyIndices.emplace_back(Index);
+        m_UniqueQueueFamilyIndices.push_back(Index);
         QueuePriorities.emplace(Index, std::vector(Quantity, 1.0F));
     }
 
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo;
     for (auto const& [Index, Count]: QueueFamilyIndices)
     {
-        QueueCreateInfo.emplace_back(VkDeviceQueueCreateInfo {.sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                                                              .queueFamilyIndex = Index,
-                                                              .queueCount       = Count,
-                                                              .pQueuePriorities = QueuePriorities.at(Index).data()});
+        QueueCreateInfo.push_back(VkDeviceQueueCreateInfo {.sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                                                           .queueFamilyIndex = Index,
+                                                           .queueCount       = Count,
+                                                           .pQueuePriorities = QueuePriorities.at(Index).data()});
     }
 
     constexpr VkPhysicalDeviceFeatures DeviceFeatures {

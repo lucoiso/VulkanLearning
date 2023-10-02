@@ -318,7 +318,7 @@ void VulkanCommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
 
                     for (ImDrawVert const& ImGuiVertexIter: ImGuiCmdListIter->VtxBuffer)
                     {
-                        Vertices.emplace_back(Vertex {
+                        Vertices.push_back(Vertex {
                                 .Position          = {ImGuiVertexIter.pos.x, ImGuiVertexIter.pos.y, 0.F},
                                 .Color             = {ImGuiVertexIter.col, ImGuiVertexIter.col, ImGuiVertexIter.col},
                                 .TextureCoordinate = {ImGuiVertexIter.uv.x, ImGuiVertexIter.uv.y}});
@@ -337,7 +337,7 @@ void VulkanCommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
 
                     for (ImDrawIdx const& ImGuiIndexIter: ImGuiCmdListIter->IdxBuffer)
                     {
-                        Indices.emplace_back(ImGuiIndexIter);
+                        Indices.push_back(ImGuiIndexIter);
                     }
 
                     VulkanBufferManager::Get().CreateIndexBuffer(NewAllocation, AllocationSize, Indices);

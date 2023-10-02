@@ -324,7 +324,7 @@ void VulkanPipelineManager::CreateDescriptorSets()
         std::vector<VkDescriptorImageInfo> ImageInfos {};
         for (VulkanTextureData const& TextureDataIter: VulkanBufferManager::Get().GetAllocatedTextures())
         {
-            ImageInfos.emplace_back(
+            ImageInfos.push_back(
                     VkDescriptorImageInfo {
                             .sampler     = TextureDataIter.Sampler,
                             .imageView   = TextureDataIter.ImageView,
@@ -333,7 +333,7 @@ void VulkanPipelineManager::CreateDescriptorSets()
 
         VulkanTextureData const ImGuiTextureAllocation = VulkanBufferManager::Get().GetAllocatedImGuiFontTexture();
 
-        ImageInfos.emplace_back(
+        ImageInfos.push_back(
                 VkDescriptorImageInfo {
                         .sampler     = ImGuiTextureAllocation.Sampler,
                         .imageView   = ImGuiTextureAllocation.ImageView,
@@ -343,7 +343,7 @@ void VulkanPipelineManager::CreateDescriptorSets()
 
         if (!ImageInfos.empty())
         {
-            WriteDescriptors.emplace_back(
+            WriteDescriptors.push_back(
                     VkWriteDescriptorSet {
                             .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                             .dstSet           = m_DescriptorSets[Iterator],

@@ -314,7 +314,7 @@ std::uint64_t VulkanBufferManager::LoadObject(std::string_view const ModelPath, 
             auto const Index              = static_cast<std::uint32_t>(Vertices.size());
             aiVector3D const TextureCoord = MeshIter->mTextureCoords[0][Index];
 
-            Vertices.emplace_back(Vertex {
+            Vertices.push_back(Vertex {
                     .Position          = {Position.x, Position.y, Position.z},
                     .Color             = {1.F, 1.F, 1.F},
                     .TextureCoordinate = {TextureCoord.x, TextureCoord.y}});
@@ -328,7 +328,7 @@ std::uint64_t VulkanBufferManager::LoadObject(std::string_view const ModelPath, 
             for (std::vector const AiIndices(AiIndicesSpan.begin(), AiIndicesSpan.end());
                  std::uint32_t const IndiceIter: AiIndices)
             {
-                Indices.emplace_back(IndiceIter);
+                Indices.push_back(IndiceIter);
             }
         }
     }
@@ -373,7 +373,7 @@ VulkanImageAllocation VulkanBufferManager::AllocateTexture(unsigned char const* 
     VmaAllocationInfo const
             StagingInfo
             = CreateBuffer(
-                    AllocationSize,
+                    std::clamp(AllocationSize, g_ImageBufferMemoryAllocationSize, UINT64_MAX),
                     SourceUsageFlags,
                     SourceMemoryPropertyFlags,
                     StagingBuffer,
@@ -745,7 +745,7 @@ std::vector<VkImage> VulkanBufferManager::GetSwapChainImages() const
     std::vector<VkImage> SwapChainImages;
     for (auto const& [Image, View, Sampler, Allocation]: m_SwapChainImages)
     {
-        SwapChainImages.emplace_back(Image);
+        SwapChainImages.push_back(Image);
     }
 
     return SwapChainImages;
@@ -791,7 +791,9 @@ std::vector<VulkanTextureData> VulkanBufferManager::GetAllocatedTextures() const
     std::vector<VulkanTextureData> Output;
     for (auto const& [TextureImage, VertexBuffer, IndexBuffer, IndicesCount]: m_Objects | std::views::values)
     {
-        Output.emplace_back(TextureImage.View, TextureImage.Sampler);
+        Output.push_back(VulkanTextureData { 
+                .ImageView = TextureImage.View,
+                .Sampler = TextureImage.Sampler});
     }
     return Output;
 }

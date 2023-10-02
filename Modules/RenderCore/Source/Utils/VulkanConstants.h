@@ -62,6 +62,7 @@ namespace RenderCore
     constexpr std::uint8_t g_MaxFramesInFlight = 1U;
 
     constexpr std::uint64_t g_BufferMemoryAllocationSize = 65536U;
+    constexpr std::uint64_t g_ImageBufferMemoryAllocationSize = 262144U;
 
     constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 

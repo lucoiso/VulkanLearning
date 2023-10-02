@@ -9,7 +9,7 @@ on:
 env:
   BUILD_TYPE: Release
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-  VCPKG_ROOT: ${{github.workspace}}/vcpkg
+  VCPKG_ROOT: C:/vcpkg
   OUTPUT_DIRECTORY: out/build
 
 permissions:

@@ -363,7 +363,7 @@ std::vector<VkPipelineShaderStageCreateInfo> VulkanRenderCore::CompileDefaultSha
             VulkanShaderManager::CompileOrLoadIfExists(FragmentShaderIter, FragmentShaderCode))
         {
             VkShaderModule const FragmentModule = VulkanShaderManager::Get().CreateModule(VulkanLogicalDevice, FragmentShaderCode, EShLangFragment);
-            ShaderStages.emplace_back(VulkanShaderManager::Get().GetStageInfo(FragmentModule));
+            ShaderStages.push_back(VulkanShaderManager::Get().GetStageInfo(FragmentModule));
         }
     }
 
@@ -373,7 +373,7 @@ std::vector<VkPipelineShaderStageCreateInfo> VulkanRenderCore::CompileDefaultSha
             VulkanShaderManager::CompileOrLoadIfExists(VertexShaderIter, VertexShaderCode))
         {
             VkShaderModule const VertexModule = VulkanShaderManager::Get().CreateModule(VulkanLogicalDevice, VertexShaderCode, EShLangVertex);
-            ShaderStages.emplace_back(VulkanShaderManager::Get().GetStageInfo(VertexModule));
+            ShaderStages.push_back(VulkanShaderManager::Get().GetStageInfo(VertexModule));
         }
     }
 
