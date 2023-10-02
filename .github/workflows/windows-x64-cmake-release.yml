@@ -50,7 +50,8 @@ jobs:
 
       - name: Configure CMake
         uses: lukka/run-cmake@v10
-          cmakeListsTxtPath: ${{github.workspace}}/CMakeLists.txt
+        with:
+          cmakeListsTxtPath: '${{github.workspace}}/CMakeLists.txt'
           configurePreset: ${{env.BUILD_TYPE}}
           buildPreset: ${{env.BUILD_TYPE}}
 
