@@ -9,9 +9,13 @@ on:
 env:
   BUILD_TYPE: Release
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-  VCPKG_ROOT: C:/vcpkg
-  VCPKG_FEATURE_FLAGS: dependencygraph
-  OUTPUT_DIRECTORY: out/build
+  VCPKG_ROOT: ${{github.workspace}}/vcpkg
+  VCPKG_BUILTIN_BASELINE: 5a38b5ec0eee3d1a1a6faab5e944617fee2697cf
+  VCPKG_ENABLE_METRICS: 1
+  VCPKG_DEFAULT_TRIPLET: x64-windows-release
+  VCPKG_DEFAULT_BINARY_CACHE: ${{env.VCPKG_ROOT}}/bincache
+  VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
+  OUTPUT_DIRECTORY: ${{env.OUTPUT_DIRECTORY}}
 
 permissions:
   actions: read
@@ -29,15 +33,6 @@ jobs:
         with:
           fetch-depth: 0
           submodules: 'recursive'
-          
-      - name: Setup Environment
-        shell: powershell
-        run: |
-          if (Test-Path -Path ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}) {
-              Remove-Item -Path ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}} -Recurse -Force
-          }
-          mkdir ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/bin
-          mkdir ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/lib
 
       - name: Install Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0
@@ -46,10 +41,15 @@ jobs:
           vulkan-components: Vulkan-Headers
           vulkan-use-cache: true
 
+      - name: Setup VCPKG
+        uses: lukka/run-vcpkg@v11
+        with:
+          cmakeListsTxtPath: '${{github.workspace}}/CMakeLists.txt'
+          configurePreset: ${{env.BUILD_TYPE}}
+          buildPreset: ${{env.BUILD_TYPE}}
+
       - name: Build Project
-        run: |
-          cmake -B ${{env.OUTPUT_DIRECTORY}} --preset ${{env.BUILD_TYPE}}
-          cmake --build ${{env.OUTPUT_DIRECTORY}} --preset ${{env.BUILD_TYPE}}
+        run: cmake --build ${{env.OUTPUT_DIRECTORY}} --preset ${{env.BUILD_TYPE}}
 
       - name: Test Binaries
         working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/
