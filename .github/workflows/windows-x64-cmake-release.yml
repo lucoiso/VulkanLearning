@@ -10,6 +10,7 @@ env:
   BUILD_TYPE: Release
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   VCPKG_ROOT: C:/vcpkg
+  VCPKG_FEATURE_FLAGS: dependencygraph
   OUTPUT_DIRECTORY: out/build
 
 permissions:
