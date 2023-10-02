@@ -6,52 +6,45 @@
 SET(LIBRARY_NAME RenderCore)
 
 # ------------- Library Setup --------------
-SET(SOURCE_FILES
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Window.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRenderCore.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanShaderManager.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanCommandsManager.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanPipelineManager.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanBufferManager.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanDeviceManager.cpp
+SET(PRIVATE_MODULES
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Window.mxx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/VulkanRenderCore.mxx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/VulkanShaderManager.mxx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/VulkanCommandsManager.mxx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/VulkanPipelineManager.mxx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/VulkanBufferManager.mxx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/VulkanDeviceManager.mxx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/RenderCoreHelpers.mxx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/VulkanDebugHelpers.mxx
+
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/VulkanRenderCore.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/VulkanShaderManager.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/VulkanCommandsManager.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/VulkanPipelineManager.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/VulkanBufferManager.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/VulkanDeviceManager.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/RenderCoreHelpers.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/VulkanDebugHelpers.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/VulkanConstants.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/VulkanEnumConverter.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/EnumHelpers.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Types/DeviceProperties.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Types/TextureData.ixx
 )
 
-SET(HEADER_FILES
-	# Public Headers
-	${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Window.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Types/VulkanVertex.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}/Types/VulkanUniformBufferObject.h
-
-	# Private Headers
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanRenderCore.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/RenderCoreHelpers.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/RenderCoreHelpers.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanDebugHelpers.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanDebugHelpers.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanConstants.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/VulkanEnumConverter.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/EnumHelpers.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Utils/GLFWCallbacks.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/DeviceProperties.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/TextureData.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/RenderStateFlags.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Types/ApplicationEventFlags.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanShaderManager.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanCommandsManager.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanPipelineManager.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanBufferManager.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Source/Managers/VulkanDeviceManager.h
+SET(PUBLIC_MODULES
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public/Window.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public/Types/VulkanVertex.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public/Types/VulkanUniformBufferObject.ixx
 )
 
-ADD_LIBRARY(${LIBRARY_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
+ADD_LIBRARY(${LIBRARY_NAME} SHARED ${PRIVATE_MODULES} ${PUBLIC_MODULES})
 
-TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
-TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE
-						   ${CMAKE_CURRENT_SOURCE_DIR}/Include/${LIBRARY_NAME}
-						   ${CMAKE_CURRENT_SOURCE_DIR}/Source
-)
-
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public)
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private)
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE BUILD_DLL)
+
+SET_TARGET_PROPERTIES(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 FIND_PACKAGE(Boost REQUIRED COMPONENTS log)
 FIND_PACKAGE(glm REQUIRED)
