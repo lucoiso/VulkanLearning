@@ -28,6 +28,15 @@ jobs:
         with:
           fetch-depth: 0
           submodules: 'recursive'
+          
+    - name: Setup Environment
+      shell: powershell
+      run: |
+        if (Test-Path -Path ${{github.workspace}}\${{env.OUTPUT_DIRECTORY}}) {
+            Remove-Item -Path ${{github.workspace}}\${{env.OUTPUT_DIRECTORY}} -Recurse -Force
+        }
+        mkdir ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/bin
+        mkdir ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/lib
 
       - name: Install Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0
