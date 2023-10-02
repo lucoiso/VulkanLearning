@@ -58,7 +58,7 @@ jobs:
         run: cmake --build ${{env.OUTPUT_DIRECTORY}} --preset ${{env.BUILD_TYPE}}
 
       - name: Test Binaries
-        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/
+        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}
         run: ctest -C ${{env.BUILD_TYPE}}
 
       - name: Run Application Benchmark
