@@ -5,16 +5,21 @@
 module;
 
 #include <GLFW/glfw3.h>
-#include <array>
-#include <string>
-#include <vector>
 #include <volk.h>
 
-export module RenderCore.Utils.RenderCoreHelpers;
+export module RenderCoreHelpers;
 
-namespace RenderCore
+import <algorithm>;
+import <array>;
+import <chrono>;
+import <concepts>;
+import <cstdint>;
+import <string>;
+import <span>;
+
+export namespace RenderCore
 {
-    class RenderCoreHelpers
+    class Helpers
     {
     public:
         static std::vector<char const*> GetGLFWExtensions();

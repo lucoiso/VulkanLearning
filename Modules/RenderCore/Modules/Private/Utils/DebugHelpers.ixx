@@ -6,9 +6,9 @@ module;
 
 #include <volk.h>
 
-export module RenderCore.Utils.VulkanDebugHelpers;
+export module RenderCoreDebugHelpers;
 
-namespace RenderCore
+export namespace RenderCore
 {
 #ifdef _DEBUG
     class DebugHelpers

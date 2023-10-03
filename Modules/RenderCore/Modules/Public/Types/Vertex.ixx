@@ -7,11 +7,11 @@ module;
 #include "RenderCoreModule.h"
 #include <glm/glm.hpp>
 
-export module RenderCore.Types.VulkanVertex;
+export module RenderCoreVertex;
 
-namespace RenderCore
+export namespace RenderCore
 {
-    export struct RENDERCOREMODULE_API Vertex
+    struct RENDERCOREMODULE_API Vertex
     {
         glm::vec3 Position;
         glm::vec3 Color;

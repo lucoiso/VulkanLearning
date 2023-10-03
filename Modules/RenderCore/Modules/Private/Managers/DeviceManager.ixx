@@ -5,16 +5,19 @@
 module;
 
 #include <GLFW/glfw3.h>
-#include <optional>
-#include <string_view>
-#include <vector>
 #include <volk.h>
 
-export module RenderCore.Managers.VulkanDeviceManager;
+export module RenderCoreDeviceManager;
 
-namespace RenderCore
+import <optional>;
+import <string_view>;
+import <vector>;
+import <cstdint>;
+import <unordered_map>;
+
+export namespace RenderCore
 {
-    export class VulkanDeviceManager final
+    class DeviceManager final
     {
         VkPhysicalDevice m_PhysicalDevice;
         VkDevice m_Device;
@@ -24,14 +27,14 @@ namespace RenderCore
         std::vector<std::uint8_t> m_UniqueQueueFamilyIndices;
 
     public:
-        VulkanDeviceManager();
+        DeviceManager();
 
-        VulkanDeviceManager(VulkanDeviceManager const&)            = delete;
-        VulkanDeviceManager& operator=(VulkanDeviceManager const&) = delete;
+        DeviceManager(DeviceManager const&)            = delete;
+        DeviceManager& operator=(DeviceManager const&) = delete;
 
-        ~VulkanDeviceManager();
+        ~DeviceManager();
 
-        static VulkanDeviceManager& Get();
+        static DeviceManager& Get();
 
         void PickPhysicalDevice();
         void CreateLogicalDevice();

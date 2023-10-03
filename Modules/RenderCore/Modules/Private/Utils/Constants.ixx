@@ -4,12 +4,13 @@
 
 module;
 
-#include <array>
 #include <volk.h>
 
-export module RenderCore.Utils.VulkanConstants;
+export module RenderCoreConstants;
 
-namespace RenderCore
+import <array>;
+
+export namespace RenderCore
 {
 #ifdef _DEBUG
 #if defined(GPU_API_DUMP) && GPU_API_DUMP

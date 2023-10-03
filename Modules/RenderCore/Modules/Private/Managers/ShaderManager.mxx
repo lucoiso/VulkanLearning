@@ -2,32 +2,35 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRender
 
-module RenderCore.Managers.VulkanShaderManager;
+module;
 
 #include <boost/log/trivial.hpp>
 #include <glslang/Public/ResourceLimits.h>
+#include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <volk.h>
 
+module RenderCoreShaderManager;
+
+import <unordered_map>;
+import <vector>;
 import <ranges>;
 import <format>;
 import <fstream>;
 import <sstream>;
 import <string>;
 import <string_view>;
-import <unordered_map>;
-import <vector>;
 
-import RenderCore.Managers.VulkanDeviceManager;
+import RenderCoreDeviceManager;
 
 using namespace RenderCore;
 
-VulkanShaderManager::VulkanShaderManager()
+ShaderManager::ShaderManager()
     : m_StageInfos({})
 {
 }
 
-VulkanShaderManager::~VulkanShaderManager()
+ShaderManager::~ShaderManager()
 {
     try
     {
@@ -38,11 +41,11 @@ VulkanShaderManager::~VulkanShaderManager()
     }
 }
 
-void VulkanShaderManager::Shutdown()
+void ShaderManager::Shutdown()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan shader compiler";
 
-    VkDevice const& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = DeviceManager::Get().GetLogicalDevice();
 
     for (auto const& ShaderModule: m_StageInfos | std::views::keys)
     {
@@ -54,13 +57,13 @@ void VulkanShaderManager::Shutdown()
     m_StageInfos.clear();
 }
 
-VulkanShaderManager& VulkanShaderManager::Get()
+ShaderManager& ShaderManager::Get()
 {
-    static VulkanShaderManager Instance {};
+    static ShaderManager Instance {};
     return Instance;
 }
 
-bool VulkanShaderManager::Compile(std::string_view const Source, std::vector<uint32_t>& OutSPIRVCode)
+bool ShaderManager::Compile(std::string_view const Source, std::vector<uint32_t>& OutSPIRVCode)
 {
     EShLanguage Language = EShLangVertex;
     std::filesystem::path const Path(Source);
@@ -144,7 +147,7 @@ bool VulkanShaderManager::Compile(std::string_view const Source, std::vector<uin
     return Result;
 }
 
-bool VulkanShaderManager::Load(std::string_view const Source, std::vector<std::uint32_t>& OutSPIRVCode)
+bool ShaderManager::Load(std::string_view const Source, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     std::filesystem::path const Path(Source);
     if (!exists(Path))
@@ -178,7 +181,7 @@ bool VulkanShaderManager::Load(std::string_view const Source, std::vector<std::u
     return !ReadResult.fail();
 }
 
-bool VulkanShaderManager::CompileOrLoadIfExists(std::string_view const Source, std::vector<uint32_t>& OutSPIRVCode)
+bool ShaderManager::CompileOrLoadIfExists(std::string_view const Source, std::vector<uint32_t>& OutSPIRVCode)
 {
     if (std::string const CompiledShaderPath = std::format("{}.spv", Source);
         std::filesystem::exists(CompiledShaderPath))
@@ -188,7 +191,7 @@ bool VulkanShaderManager::CompileOrLoadIfExists(std::string_view const Source, s
     return Compile(Source, OutSPIRVCode);
 }
 
-VkShaderModule VulkanShaderManager::CreateModule(VkDevice const& Device, std::vector<std::uint32_t> const& SPIRVCode, EShLanguage const Language)
+VkShaderModule ShaderManager::CreateModule(VkDevice const& Device, std::vector<std::uint32_t> const& SPIRVCode, EShLanguage const Language)
 {
     if (Device == VK_NULL_HANDLE)
     {
@@ -208,19 +211,19 @@ VkShaderModule VulkanShaderManager::CreateModule(VkDevice const& Device, std::ve
             .pCode    = SPIRVCode.data()};
 
     VkShaderModule Output = nullptr;
-    RenderCoreHelpers::CheckVulkanResult(vkCreateShaderModule(Device, &CreateInfo, nullptr, &Output));
+    Helpers::CheckVulkanResult(vkCreateShaderModule(Device, &CreateInfo, nullptr, &Output));
 
     StageInfo(Output, Language);
 
     return Output;
 }
 
-VkPipelineShaderStageCreateInfo VulkanShaderManager::GetStageInfo(VkShaderModule const& Module) const
+VkPipelineShaderStageCreateInfo ShaderManager::GetStageInfo(VkShaderModule const& Module) const
 {
     return m_StageInfos.at(Module);
 }
 
-std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
+std::vector<VkShaderModule> ShaderManager::GetShaderModules() const
 {
     std::vector<VkShaderModule> Output;
     for (auto const& ShaderModule: m_StageInfos | std::views::keys)
@@ -231,7 +234,7 @@ std::vector<VkShaderModule> VulkanShaderManager::GetShaderModules() const
     return Output;
 }
 
-std::vector<VkPipelineShaderStageCreateInfo> VulkanShaderManager::GetStageInfos() const
+std::vector<VkPipelineShaderStageCreateInfo> ShaderManager::GetStageInfos() const
 {
     std::vector<VkPipelineShaderStageCreateInfo> Output;
     for (auto const& StageInfo: m_StageInfos | std::views::values)
@@ -242,11 +245,11 @@ std::vector<VkPipelineShaderStageCreateInfo> VulkanShaderManager::GetStageInfos(
     return Output;
 }
 
-void VulkanShaderManager::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const& StagedModules)
+void ShaderManager::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const& StagedModules)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
 
-    VkDevice const& VulkanLogicalDevice = VulkanDeviceManager::Get().GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = DeviceManager::Get().GetLogicalDevice();
 
     for (VkPipelineShaderStageCreateInfo const& StageInfoIter: StagedModules)
     {
@@ -262,7 +265,7 @@ void VulkanShaderManager::FreeStagedModules(std::vector<VkPipelineShaderStageCre
     }
 }
 
-bool VulkanShaderManager::Compile(std::string_view const Source, EShLanguage const Language, std::vector<std::uint32_t>& OutSPIRVCode)
+bool ShaderManager::Compile(std::string_view const Source, EShLanguage const Language, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     glslang::InitializeProcess();
 
@@ -318,7 +321,7 @@ bool VulkanShaderManager::Compile(std::string_view const Source, EShLanguage con
     return !OutSPIRVCode.empty();
 }
 
-void VulkanShaderManager::StageInfo(VkShaderModule const& Module, EShLanguage const Language)
+void ShaderManager::StageInfo(VkShaderModule const& Module, EShLanguage const Language)
 {
     if (Module == VK_NULL_HANDLE)
     {

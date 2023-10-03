@@ -2,6 +2,7 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRender
 
-module Benchmark;
+import Benchmark.Placeholder;
+#include <benchmark/benchmark.h>
 
-import Unit.Placeholder;
+BENCHMARK_MAIN();

@@ -4,24 +4,25 @@
 
 module;
 
-#include <vector>
 #include <volk.h>
 
-export module RenderCore.Managers.VulkanPipelineManager;
+export module RenderCorePipelineManager;
 
-namespace RenderCore
+import <vector>;
+
+export namespace RenderCore
 {
-    export class VulkanPipelineManager final
+    class PipelineManager final
     {
     public:
-        VulkanPipelineManager();
+        PipelineManager();
 
-        VulkanPipelineManager(VulkanPipelineManager const&)            = delete;
-        VulkanPipelineManager& operator=(VulkanPipelineManager const&) = delete;
+        PipelineManager(PipelineManager const&)            = delete;
+        PipelineManager& operator=(PipelineManager const&) = delete;
 
-        ~VulkanPipelineManager();
+        ~PipelineManager();
 
-        static VulkanPipelineManager& Get();
+        static PipelineManager& Get();
 
         void CreateRenderPass();
         void CreateDefaultRenderPass();

@@ -5,18 +5,23 @@
 module;
 
 #include <GLFW/glfw3.h>
-#include <optional>
-#include <string_view>
-#include <vector>
 #include <volk.h>
 
-export module RenderCore.VulkanRenderCore;
+export module RenderCoreEngineCore;
 
-namespace RenderCore
+import <array>;
+import <cstdint>;
+import <filesystem>;
+import <optional>;
+import <stdexcept>;
+import <string_view>;
+import <vector>;
+
+export namespace RenderCore
 {
-    export class VulkanRenderCore final
+    class EngineCore final
     {
-        enum class VulkanRenderCoreStateFlags : std::uint8_t
+        enum class EngineCoreStateFlags : std::uint8_t
         {
             NONE                             = 0,
             INITIALIZED                      = 1 << 0,
@@ -27,14 +32,14 @@ namespace RenderCore
         };
 
     public:
-        VulkanRenderCore();
+        EngineCore();
 
-        VulkanRenderCore(VulkanRenderCore const&)            = delete;
-        VulkanRenderCore& operator=(VulkanRenderCore const&) = delete;
+        EngineCore(EngineCore const&)            = delete;
+        EngineCore& operator=(EngineCore const&) = delete;
 
-        ~VulkanRenderCore();
+        ~EngineCore();
 
-        static VulkanRenderCore& Get();
+        static EngineCore& Get();
 
         void Initialize(GLFWwindow* Window);
         void Shutdown();
@@ -59,7 +64,7 @@ namespace RenderCore
 
         VkInstance m_Instance;
         VkSurfaceKHR m_Surface;
-        mutable VulkanRenderCoreStateFlags m_StateFlags;
+        mutable EngineCoreStateFlags m_StateFlags;
         std::uint64_t m_ObjectID;
 
 #ifdef _DEBUG

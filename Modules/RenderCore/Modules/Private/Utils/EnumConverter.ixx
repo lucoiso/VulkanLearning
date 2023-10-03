@@ -4,14 +4,15 @@
 
 module;
 
-#include <array>
-#include <charconv>
-#include <ranges>
 #include <volk.h>
 
-export module RenderCore.Utils.VulkanEnumConverter;
+export module RenderCoreEnumConverter;
 
-namespace RenderCore
+import <array>;
+import <charconv>;
+import <ranges>;
+
+export namespace RenderCore
 {
     export constexpr char const* ToChars(auto const Argument)
     {

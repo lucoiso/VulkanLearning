@@ -4,9 +4,9 @@
 
 module;
 
-#include <type_traits>
+export module RenderCoreEnumHelpers;
 
-export module RenderCore.Utils.EnumHelpers;
+import <type_traits>;
 
 export template<typename T>
 constexpr T operator|(T const Lhs, T const Rhs)

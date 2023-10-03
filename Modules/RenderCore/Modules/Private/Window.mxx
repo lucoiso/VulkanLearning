@@ -2,12 +2,14 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRender
 
-module RenderCore.Window;
+module;
 
-#include "RenderCoreModule.h"
 #include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
 #include <imgui.h>
+#include <volk.h>
+
+module RenderCoreWindow;
 
 import <thread>;
 import <mutex>;
@@ -16,10 +18,40 @@ import <string_view>;
 import <stdexcept>;
 import <unordered_map>;
 
-import Timer.Manager;
-import RenderCore.VulkanRenderCore;
+import TimerManager;
+import RenderCoreEngineCore;
+import RenderCoreDeviceManager;
+import RenderCoreHelpers;
+import RenderCoreConstants;
 
 using namespace RenderCore;
+
+static void GLFWWindowCloseRequested(GLFWwindow* const Window)
+{
+    EngineCore::Get().Shutdown();
+    glfwSetWindowShouldClose(Window, GLFW_TRUE);
+}
+
+static void GLFWWindowResized(GLFWwindow* const Window, [[maybe_unused]] std::int32_t const Width, [[maybe_unused]] std::int32_t const Height)
+{
+    DeviceManager::Get().UpdateDeviceProperties(Window);
+    ImGui::GetIO().DisplaySize             = ImVec2(static_cast<float>(Width), static_cast<float>(Height));
+    ImGui::GetIO().DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+    ImGui::GetIO().DeltaTime               = static_cast<float>(glfwGetTime());
+}
+
+static void GLFWErrorCallback(std::int32_t const Error, char const* const Description)
+{
+    BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: GLFW Error: " << Error << " - " << Description;
+}
+
+static void GLFWKeyCallback(GLFWwindow* const Window, std::int32_t const Key, [[maybe_unused]] std::int32_t const Scancode, std::int32_t const Action, [[maybe_unused]] int const Mods)
+{
+    if (Key == GLFW_KEY_ESCAPE && Action == GLFW_PRESS)
+    {
+        GLFWWindowCloseRequested(Window);
+    }
+}
 
 class Window::Impl final
 {
@@ -30,6 +62,15 @@ class Window::Impl final
         UNLOAD_SCENE,
         MAX
     };
+
+    GLFWwindow* m_Window {
+            nullptr};
+    std::uint64_t m_DrawTimerID {
+            0U};
+    std::queue<std::uint8_t> m_EventIDQueue;
+    std::function<void()> m_CreateOverlay;
+    std::mutex m_Mutex;
+    std::thread::id m_MainThreadID;
 
 public:
     Impl()                       = delete;
@@ -65,7 +106,7 @@ public:
 
         try
         {
-            if (InitializeGLFW(Width, Height, Title) && InitializeVulkanRenderCore() && InitializeImGui())
+            if (InitializeGLFW(Width, Height, Title) && InitializeEngineCore() && InitializeImGui())
             {
                 RegisterTimers();
             }
@@ -94,12 +135,12 @@ public:
             m_EventIDQueue.pop();
         }
 
-        VulkanRenderCore::Get().Shutdown();
+        EngineCore::Get().Shutdown();
     }
 
     [[nodiscard]] bool IsInitialized() const
     {
-        return IsOpen() && VulkanRenderCore::Get().IsInitialized();
+        return IsOpen() && EngineCore::Get().IsInitialized();
     }
 
     [[nodiscard]] bool IsOpen() const
@@ -147,15 +188,15 @@ public:
                             ImGui::Render();
                         }
 
-                        VulkanRenderCore::Get().DrawFrame(m_Window);
+                        EngineCore::Get().DrawFrame(m_Window);
                         break;
                     }
                     case ApplicationEventFlags::LOAD_SCENE: {
-                        VulkanRenderCore::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+                        EngineCore::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
                         break;
                     }
                     case ApplicationEventFlags::UNLOAD_SCENE: {
-                        VulkanRenderCore::Get().UnloadScene();
+                        EngineCore::Get().UnloadScene();
                         break;
                     }
                     default:
@@ -196,13 +237,13 @@ private:
         return m_Window != nullptr;
     }
 
-    [[nodiscard]] bool InitializeVulkanRenderCore() const
+    [[nodiscard]] bool InitializeEngineCore() const
     {
-        VulkanRenderCore::Get().Initialize(m_Window);
+        EngineCore::Get().Initialize(m_Window);
 
-        if (VulkanDeviceManager::Get().UpdateDeviceProperties(m_Window))
+        if (DeviceManager::Get().UpdateDeviceProperties(m_Window))
         {
-            return VulkanRenderCore::Get().IsInitialized();
+            return EngineCore::Get().IsInitialized();
         }
 
         return false;
@@ -216,8 +257,9 @@ private:
             ImGui::StyleColorsDark();
 
             ImGuiIO& IO                  = ImGui::GetIO();
-            VkExtent2D const DisplaySize = RenderCoreHelpers::GetWindowExtent(m_Window,
-                                                                              VulkanDeviceManager::Get().GetAvailablePhysicalDeviceSurfaceCapabilities());
+            VkExtent2D const DisplaySize = Helpers::GetWindowExtent(
+                    m_Window,
+                    DeviceManager::Get().GetAvailablePhysicalDeviceSurfaceCapabilities());
 
             IO.DisplaySize = ImVec2(static_cast<float>(DisplaySize.width), static_cast<float>(DisplaySize.height));
         }
@@ -251,7 +293,7 @@ private:
                     .Interval    = 3000U,
                     .RepeatCount = 0};
 
-            Timer::Manager::Get().StartTimer(LoadSceneTimerParameters, m_EventIDQueue);
+            auto const Discard = Timer::Manager::Get().StartTimer(LoadSceneTimerParameters, m_EventIDQueue);
         }
 
         {
@@ -261,24 +303,17 @@ private:
                     .Interval    = 5000U,
                     .RepeatCount = 0U};
 
-            Timer::Manager::Get().StartTimer(UnLoadSceneTimerParameters, m_EventIDQueue);
+            auto const Discard = Timer::Manager::Get().StartTimer(UnLoadSceneTimerParameters, m_EventIDQueue);
         }
     }
-
-    GLFWwindow* m_Window {
-            nullptr};
-    std::uint64_t m_DrawTimerID {
-            0U};
-    std::queue<std::uint8_t> m_EventIDQueue;
-    std::function<void()> m_CreateOverlay;
-    std::mutex m_Mutex;
-    std::thread::id m_MainThreadID;
 };
 
 Window::Window()
-    : m_Impl(std::make_unique<Impl>([this] {
-          CreateOverlay();
-      }))
+    : m_Impl(
+            std::make_unique<Impl>(
+                    [this] {
+                        CreateOverlay();
+                    }))
 {
 }
 

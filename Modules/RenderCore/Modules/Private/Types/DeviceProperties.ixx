@@ -6,11 +6,11 @@ module;
 
 #include <volk.h>
 
-export module RenderCore.Types.DeviceProperties;
+export module RenderCoreDeviceProperties;
 
-namespace RenderCore
+export namespace RenderCore
 {
-    export struct VulkanDeviceProperties
+    struct VulkanDeviceProperties
     {
         VkSurfaceFormatKHR Format;
         VkFormat DepthFormat;

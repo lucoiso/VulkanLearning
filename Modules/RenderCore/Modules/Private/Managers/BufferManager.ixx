@@ -4,17 +4,19 @@
 
 module;
 
-#include <atomic>
-#include <string_view>
-#include <unordered_map>
-#include <vector>
 #include <vk_mem_alloc.h>
+#include <volk.h>
 
-export module RenderCore.Managers.VulkanBufferManager;
+export module RenderCoreBufferManager;
 
-namespace RenderCore
+import <atomic>;
+import <string_view>;
+import <unordered_map>;
+import <vector>;
+
+export namespace RenderCore
 {
-    export struct VulkanImageAllocation
+    struct ImageAllocation
     {
         VkImage Image;
         VkImageView View;
@@ -25,7 +27,7 @@ namespace RenderCore
         void DestroyResources();
     };
 
-    export struct VulkanBufferAllocation
+    struct BufferAllocation
     {
         VkBuffer Buffer;
         VmaAllocation Allocation;
@@ -34,39 +36,39 @@ namespace RenderCore
         void DestroyResources();
     };
 
-    export struct VulkanObjectAllocation
+    struct ObjectAllocation
     {
-        VulkanImageAllocation TextureImage;
-        VulkanBufferAllocation VertexBuffer;
-        VulkanBufferAllocation IndexBuffer;
+        ImageAllocation TextureImage;
+        BufferAllocation VertexBuffer;
+        BufferAllocation IndexBuffer;
         std::uint32_t IndicesCount;
 
         [[nodiscard]] bool IsValid() const;
         void DestroyResources();
     };
 
-    export class VulkanBufferManager final
+    class BufferManager final
     {
         VmaAllocator m_Allocator {};
         VkSwapchainKHR m_SwapChain;
         VkSwapchainKHR m_OldSwapChain;
         VkExtent2D m_SwapChainExtent;
-        std::vector<VulkanImageAllocation> m_SwapChainImages;
-        VulkanImageAllocation m_DepthImage;
-        VulkanImageAllocation m_ImGuiFontImage;
+        std::vector<ImageAllocation> m_SwapChainImages;
+        ImageAllocation m_DepthImage;
+        ImageAllocation m_ImGuiFontImage;
         std::vector<VkFramebuffer> m_FrameBuffers;
-        std::unordered_map<std::uint64_t, VulkanObjectAllocation> m_Objects;
+        std::unordered_map<std::uint64_t, ObjectAllocation> m_Objects;
         std::atomic<std::uint64_t> m_ObjectIDCounter;
 
     public:
-        VulkanBufferManager();
+        BufferManager();
 
-        VulkanBufferManager(VulkanBufferManager const&)            = delete;
-        VulkanBufferManager& operator=(VulkanBufferManager const&) = delete;
+        BufferManager(BufferManager const&)            = delete;
+        BufferManager& operator=(BufferManager const&) = delete;
 
-        ~VulkanBufferManager();
+        ~BufferManager();
 
-        static VulkanBufferManager& Get();
+        static BufferManager& Get();
 
         void CreateMemoryAllocator();
         void CreateSwapChain();
@@ -77,7 +79,7 @@ namespace RenderCore
         std::uint64_t LoadObject(std::string_view ModelPath, std::string_view TexturePath);
         void UnLoadObject(std::uint64_t ObjectID);
 
-        VulkanImageAllocation AllocateTexture(unsigned char const* Data, std::uint32_t Width, std::uint32_t Height, std::size_t AllocationSize) const;
+        ImageAllocation AllocateTexture(unsigned char const* Data, std::uint32_t Width, std::uint32_t Height, std::size_t AllocationSize) const;
 
         void DestroyResources(bool ClearScene);
         void Shutdown();
@@ -95,8 +97,8 @@ namespace RenderCore
         [[nodiscard]] struct VulkanTextureData GetAllocatedImGuiFontTexture() const;
 
         VmaAllocationInfo CreateBuffer(VkDeviceSize const& Size, VkBufferUsageFlags Usage, VkMemoryPropertyFlags Flags, VkBuffer& Buffer, VmaAllocation& Allocation) const;
-        void CreateVertexBuffer(VulkanObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<struct Vertex> const& Vertices) const;
-        void CreateIndexBuffer(VulkanObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<std::uint32_t> const& Indices) const;
+        void CreateVertexBuffer(ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<struct Vertex> const& Vertices) const;
+        void CreateIndexBuffer(ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<std::uint32_t> const& Indices) const;
 
         static void CopyBuffer(VkBuffer const& Source, VkBuffer const& Destination, VkDeviceSize const& Size, VkQueue const& Queue, std::uint8_t QueueFamilyIndex);
 
@@ -110,20 +112,20 @@ namespace RenderCore
 
         static void CreateImageView(VkImage const& Image, VkFormat const& Format, VkImageAspectFlags const& AspectFlags, VkImageView& ImageView);
 
-        static void CreateTextureImageView(VulkanImageAllocation& Allocation);
+        static void CreateTextureImageView(ImageAllocation& Allocation);
 
-        void CreateTextureSampler(VulkanImageAllocation& Allocation) const;
+        void CreateTextureSampler(ImageAllocation& Allocation) const;
 
         static void CopyBufferToImage(VkBuffer const& Source, VkImage const& Destination, VkExtent2D const& Extent, VkQueue const& Queue, std::uint32_t QueueFamilyIndex);
 
         static void MoveImageLayout(VkImage const& Image, VkFormat const& Format, VkImageLayout const& OldLayout, VkImageLayout const& NewLayout, VkQueue const& Queue, std::uint8_t QueueFamilyIndex);
 
     private:
-        void CreateVertexBuffers(VulkanObjectAllocation& Object, std::vector<Vertex> const& Vertices) const;
+        void CreateVertexBuffers(ObjectAllocation& Object, std::vector<Vertex> const& Vertices) const;
 
-        void CreateIndexBuffers(VulkanObjectAllocation& Object, std::vector<std::uint32_t> const& Indices) const;
+        void CreateIndexBuffers(ObjectAllocation& Object, std::vector<std::uint32_t> const& Indices) const;
 
-        void LoadTexture(VulkanObjectAllocation& Object, std::string_view TexturePath) const;
+        void LoadTexture(ObjectAllocation& Object, std::string_view TexturePath) const;
 
         void CreateSwapChainImageViews(VkFormat const& ImageFormat);
     };

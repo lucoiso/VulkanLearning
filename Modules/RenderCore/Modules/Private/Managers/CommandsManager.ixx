@@ -4,18 +4,30 @@
 
 module;
 
-#include <limits>
-#include <optional>
-#include <vector>
 #include <volk.h>
 
-export module RenderCore.Managers.VulkanCommandsManager;
+export module RenderCoreCommandsManager;
 
-namespace RenderCore
+import <limits>;
+import <optional>;
+import <vector>;
+import <array>;
+import <cstdint>;
+import <optional>;
+import <stdexcept>;
+import <string>;
+
+import RenderCoreBufferManager;
+import RenderCoreDeviceManager;
+import RenderCorePipelineManager;
+import RenderCoreUniformBufferObject;
+import RenderCoreVertex;
+
+export namespace RenderCore
 {
     export constexpr std::uint32_t g_Timeout = std::numeric_limits<std::uint32_t>::max();
 
-    export class VulkanCommandsManager final
+    class CommandsManager final
     {
         VkCommandPool m_CommandPool;
         VkCommandBuffer m_CommandBuffer;
@@ -24,17 +36,17 @@ namespace RenderCore
         VkFence m_Fence;
         bool m_SynchronizationObjectsCreated;
         std::uint8_t m_FrameIndex;
-        std::vector<struct VulkanObjectAllocation> m_ImGuiFontsAllocation;
+        std::vector<struct ObjectAllocation> m_ImGuiFontsAllocation;
 
     public:
-        VulkanCommandsManager();
+        CommandsManager();
 
-        VulkanCommandsManager(VulkanCommandsManager const&)            = delete;
-        VulkanCommandsManager& operator=(VulkanCommandsManager const&) = delete;
+        CommandsManager(CommandsManager const&)            = delete;
+        CommandsManager& operator=(CommandsManager const&) = delete;
 
-        ~VulkanCommandsManager();
+        ~CommandsManager();
 
-        static VulkanCommandsManager& Get();
+        static CommandsManager& Get();
 
         void Shutdown();
 

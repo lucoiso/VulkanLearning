@@ -5,29 +5,36 @@
 module;
 
 #include <glslang/Public/ShaderLang.h>
-#include <unordered_map>
-#include <vector>
 #include <volk.h>
 
-export module RenderCore.Managers.VulkanShaderManager;
+export module RenderCoreShaderManager;
 
-namespace RenderCore
+import <unordered_map>;
+import <vector>;
+import <ranges>;
+import <format>;
+import <fstream>;
+import <sstream>;
+import <string>;
+import <string_view>;
+
+export namespace RenderCore
 {
     constexpr char const* g_EntryPoint = "main";
 
-    export class VulkanShaderManager final
+    class ShaderManager final
     {
     public:
-        VulkanShaderManager();
+        ShaderManager();
 
-        VulkanShaderManager(VulkanShaderManager const&)            = delete;
-        VulkanShaderManager& operator=(VulkanShaderManager const&) = delete;
+        ShaderManager(ShaderManager const&)            = delete;
+        ShaderManager& operator=(ShaderManager const&) = delete;
 
-        ~VulkanShaderManager();
+        ~ShaderManager();
 
         void Shutdown();
 
-        static VulkanShaderManager& Get();
+        static ShaderManager& Get();
 
         static bool Compile(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);
         static bool Load(std::string_view Source, std::vector<uint32_t>& OutSPIRVCode);

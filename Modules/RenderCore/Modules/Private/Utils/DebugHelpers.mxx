@@ -2,20 +2,26 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRender
 
-module RenderCore.Utils.VulkanDebugHelpers;
+module;
 
 #include <boost/log/trivial.hpp>
 #include <volk.h>
 
-import RenderCore.Utils.VulkanConstants;
+module RenderCoreDebugHelpers;
+
+import RenderCore
+        .Utils.VulkanConstants;
 
 using namespace RenderCore;
 
 #ifdef _DEBUG
-VKAPI_ATTR VkBool32 VKAPI_CALL DebugHelpers::ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT const MessageSeverity,
-                                                                          [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT MessageType,
-                                                                          VkDebugUtilsMessengerCallbackDataEXT const* const CallbackData,
-                                                                          [[maybe_unused]] void* UserData)
+VKAPI_ATTR VkBool32
+
+        VKAPI_CALL
+        DebugHelpers::ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT const MessageSeverity,
+                                                   [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT MessageType,
+                                                   VkDebugUtilsMessengerCallbackDataEXT const* const CallbackData,
+                                                   [[maybe_unused]] void* UserData)
 {
     if (MessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
     {

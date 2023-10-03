@@ -15,11 +15,11 @@ module;
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-export module RenderCore.Types.VulkanUniformBufferObject;
+export module RenderCoreUniformBufferObject;
 
-namespace RenderCore
+export namespace RenderCore
 {
-    export struct RENDERCOREMODULE_API UniformBufferObject
+    struct RENDERCOREMODULE_API UniformBufferObject
     {
         glm::mat4 ModelViewProjection;
     };

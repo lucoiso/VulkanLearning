@@ -5,16 +5,22 @@
 module;
 
 #include "RenderCoreModule.h"
-#include <memory>
-#include <string_view>
 
-export module RenderCore.Window;
+export module RenderCoreWindow;
 
-namespace RenderCore
+import <thread>;
+import <mutex>;
+import <queue>;
+import <string_view>;
+import <stdexcept>;
+import <unordered_map>;
+
+export namespace RenderCore
 {
-    export class RENDERCOREMODULE_API Window
+    class RENDERCOREMODULE_API Window
     {
         class Impl;
+        std::unique_ptr<Impl> m_Impl;
 
     public:
         Window();
@@ -33,8 +39,5 @@ namespace RenderCore
         void PollEvents() const;
 
         virtual void CreateOverlay();
-
-    private:
-        std::unique_ptr<Impl> m_Impl;
     };
 }// namespace RenderCore
