@@ -4,15 +4,20 @@
 
 module;
 
-#include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
+#include <imgui.h>
 
 #ifndef VOLK_IMPLEMENTATION
 #define VOLK_IMPLEMENTATION
 #endif
 #include <volk.h>
 
-module RenderCoreEngineCore;
+#ifdef GLFW_INCLUDE_VULKAN
+#undef GLFW_INCLUDE_VULKAN
+#endif
+#include <GLFW/glfw3.h>
+
+module RenderCore.EngineCore;
 
 import <array>;
 import <cstdint>;
@@ -22,14 +27,16 @@ import <stdexcept>;
 import <string_view>;
 import <vector>;
 
-import RenderCoreDeviceProperties;
-import RenderCoreCommandsManager;
-import RenderCoreBufferManager;
-import RenderCoreDeviceManager;
-import RenderCorePipelineManager;
-import RenderCoreShaderManager;
-import RenderCoreHelpers;
-import RenderCoreDebugHelpers;
+import RenderCore.Utils.Constants;
+import RenderCore.Types.DeviceProperties;
+import RenderCore.Managers.CommandsManager;
+import RenderCore.Managers.BufferManager;
+import RenderCore.Managers.DeviceManager;
+import RenderCore.Managers.PipelineManager;
+import RenderCore.Managers.ShaderManager;
+import RenderCore.Utils.Helpers;
+import RenderCore.Utils.DebugHelpers;
+import RenderCore.Utils.EnumHelpers;
 
 using namespace RenderCore;
 

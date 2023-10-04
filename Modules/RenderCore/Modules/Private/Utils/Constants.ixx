@@ -6,7 +6,7 @@ module;
 
 #include <volk.h>
 
-export module RenderCoreConstants;
+export module RenderCore.Utils.Constants;
 
 import <array>;
 

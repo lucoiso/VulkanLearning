@@ -6,7 +6,7 @@ module;
 
 #include <volk.h>
 
-export module RenderCorePipelineManager;
+export module RenderCore.Managers.PipelineManager;
 
 import <vector>;
 

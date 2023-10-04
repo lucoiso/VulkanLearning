@@ -7,10 +7,9 @@ module;
 #include <boost/log/trivial.hpp>
 #include <volk.h>
 
-module RenderCoreDebugHelpers;
+module RenderCore.Utils.DebugHelpers;
 
-import RenderCore
-        .Utils.VulkanConstants;
+import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 

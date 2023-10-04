@@ -22,12 +22,22 @@ module;
 #endif
 #include <stb_image.h>
 
-module RenderCoreBufferManager;
+module RenderCore.Managers.BufferManager;
 
-import RenderCoreEngineCore;
-import RenderCoreDeviceManager;
-import RenderCorePipelineManager;
-import RenderCoreDeviceProperties;
+import <span>;
+import <vector>;
+import <ranges>;
+import <cstdint>;
+import <filesystem>;
+
+import RenderCore.Utils.Helpers;
+import RenderCore.EngineCore;
+import RenderCore.Managers.DeviceManager;
+import RenderCore.Managers.PipelineManager;
+import RenderCore.Types.DeviceProperties;
+import RenderCore.Types.Vertex;
+import RenderCore.Utils.Constants;
+import RenderCore.Types.TextureData;
 
 using namespace RenderCore;
 

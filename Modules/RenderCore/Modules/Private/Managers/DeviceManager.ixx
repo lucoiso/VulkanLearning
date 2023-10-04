@@ -7,7 +7,7 @@ module;
 #include <GLFW/glfw3.h>
 #include <volk.h>
 
-export module RenderCoreDeviceManager;
+export module RenderCore.Managers.DeviceManager;
 
 import <optional>;
 import <string_view>;
@@ -58,7 +58,7 @@ export namespace RenderCore
         [[nodiscard]] static bool IsPhysicalDeviceSuitable(VkPhysicalDevice const& Device);
 
         bool UpdateDeviceProperties(GLFWwindow* Window) const;
-        [[nodiscard]] struct VulkanDeviceProperties& GetDeviceProperties();
+        [[nodiscard]] static struct VulkanDeviceProperties& GetDeviceProperties();
 
         [[nodiscard]] VkDevice& GetLogicalDevice();
         [[nodiscard]] VkPhysicalDevice& GetPhysicalDevice();

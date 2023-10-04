@@ -6,7 +6,7 @@ module;
 
 #include <volk.h>
 
-export module RenderCoreDebugHelpers;
+export module RenderCore.Utils.DebugHelpers;
 
 export namespace RenderCore
 {

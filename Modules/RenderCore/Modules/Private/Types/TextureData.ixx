@@ -6,7 +6,7 @@ module;
 
 #include <volk.h>
 
-export module RenderCoreTextureData;
+export module RenderCore.Types.TextureData;
 
 export namespace RenderCore
 {

@@ -5,16 +5,17 @@
 module;
 
 #include "RenderCoreModule.h"
-#include <glm/glm.hpp>
 
-export module RenderCoreVertex;
+export module RenderCore.Types.Vertex;
+
+import <array>;
 
 export namespace RenderCore
 {
     struct RENDERCOREMODULE_API Vertex
     {
-        glm::vec3 Position;
-        glm::vec3 Color;
-        glm::vec2 TextureCoordinate;
+        std::array<float, 3U> Position {};
+        std::array<float, 3U> Color {};
+        std::array<float, 2U> TextureCoordinate {};
     };
 }// namespace RenderCore

@@ -6,21 +6,36 @@ module;
 
 #include "RenderCoreModule.h"
 
-#ifndef GLM_FORCE_RADIANS
-#define GLM_FORCE_RADIANS
-#endif
-#ifndef GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#endif
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+export module RenderCore.Types.UniformBufferObject;
 
-export module RenderCoreUniformBufferObject;
+import <array>;
+
+constexpr std::uint32_t MATRIX_SIZE = 4U;
 
 export namespace RenderCore
 {
     struct RENDERCOREMODULE_API UniformBufferObject
     {
-        glm::mat4 ModelViewProjection;
+        std::array<std::array<float, MATRIX_SIZE>, MATRIX_SIZE> ModelViewProjection {};
+
+        UniformBufferObject& operator=(std::array<std::array<float, MATRIX_SIZE>, MATRIX_SIZE> const& value)
+        {
+            ModelViewProjection = value;
+
+            return *this;
+        }
+
+        UniformBufferObject& operator=(float value)
+        {
+            for (std::array<float, MATRIX_SIZE>& Column: ModelViewProjection)
+            {
+                for (float& Line: Column)
+                {
+                    Line = value;
+                }
+            }
+
+            return *this;
+        }
     };
 }// namespace RenderCore

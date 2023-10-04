@@ -14,10 +14,10 @@ module;
 #ifndef GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #endif
+#include <glm/ext.hpp>
 #include <glm/ext/matrix_transform.hpp>
-#include <glm/glm.hpp>
 
-module RenderCoreHelpers;
+module RenderCore.Utils.Helpers;
 
 import <algorithm>;
 import <array>;
@@ -27,11 +27,11 @@ import <cstdint>;
 import <string>;
 import <span>;
 
-import RenderCoreBufferManager;
-import RenderCoreDeviceManager;
-import RenderCoreUniformBufferObject;
-import RenderCoreVertex;
-import RenderCoreEnumConverter;
+import RenderCore.Managers.BufferManager;
+import RenderCore.Managers.DeviceManager;
+import RenderCore.Types.UniformBufferObject;
+import RenderCore.Types.Vertex;
+import RenderCore.Utils.EnumConverter;
 
 using namespace RenderCore;
 
@@ -284,6 +284,17 @@ UniformBufferObject Helpers::GetUniformBufferObject()
     glm::mat4 Projection  = glm::perspective(glm::radians(45.0F), static_cast<float>(Width) / static_cast<float>(Height), 0.1F, 10.F);
     Projection[1][1] *= -1;
 
+    glm::mat4 const ModelViewProjection = Projection * View * Model;
+
+    std::array<std::array<float, 4U>, 4U> ModelViewProjectionArray {};
+    for (std::size_t i = 0U; i < ModelViewProjectionArray.size(); ++i)
+    {
+        for (std::size_t j = 0U; j < ModelViewProjectionArray[i].size(); ++j)
+        {
+            ModelViewProjectionArray[i][j] = ModelViewProjection[i][j];
+        }
+    }
+
     return UniformBufferObject {
-            .ModelViewProjection = Projection * View * Model};
+            .ModelViewProjection = ModelViewProjectionArray};
 }

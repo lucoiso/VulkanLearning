@@ -6,7 +6,7 @@ module;
 
 #include <volk.h>
 
-export module RenderCoreDeviceProperties;
+export module RenderCore.Types.DeviceProperties;
 
 export namespace RenderCore
 {

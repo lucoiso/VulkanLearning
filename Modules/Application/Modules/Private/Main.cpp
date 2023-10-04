@@ -3,7 +3,7 @@
 // Repo : https://github.com/lucoiso/VulkanRender
 
 #include <memory>
-import RenderCoreWindow;
+import RenderCore.Window;
 
 int main([[maybe_unused]] int Argc, [[maybe_unused]] char* Argv[])
 {

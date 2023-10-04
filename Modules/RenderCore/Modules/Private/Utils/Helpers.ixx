@@ -7,7 +7,7 @@ module;
 #include <GLFW/glfw3.h>
 #include <volk.h>
 
-export module RenderCoreHelpers;
+export module RenderCore.Utils.Helpers;
 
 import <algorithm>;
 import <array>;

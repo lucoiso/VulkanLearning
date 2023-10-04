@@ -8,7 +8,7 @@ module;
 #include <imgui.h>
 #include <volk.h>
 
-module RenderCoreCommandsManager;
+module RenderCore.Managers.CommandsManager;
 
 import <limits>;
 import <optional>;
@@ -18,12 +18,16 @@ import <cstdint>;
 import <optional>;
 import <stdexcept>;
 import <string>;
+import <span>;
 
-import RenderCoreBufferManager;
-import RenderCoreDeviceManager;
-import RenderCorePipelineManager;
-import RenderCoreUniformBufferObject;
-import RenderCoreVertex;
+import RenderCore.Utils.Constants;
+import RenderCore.Managers.BufferManager;
+import RenderCore.Managers.DeviceManager;
+import RenderCore.Managers.PipelineManager;
+import RenderCore.Types.UniformBufferObject;
+import RenderCore.Types.Vertex;
+import RenderCore.Utils.Helpers;
+import RenderCore.Utils.EnumConverter;
 
 using namespace RenderCore;
 
@@ -335,7 +339,7 @@ void CommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
                         Vertices.push_back(
                                 Vertex {
                                         .Position          = {ImGuiVertexIter.pos.x, ImGuiVertexIter.pos.y, 0.F},
-                                        .Color             = {ImGuiVertexIter.col, ImGuiVertexIter.col, ImGuiVertexIter.col},
+                                        .Color             = {static_cast<float>(ImGuiVertexIter.col), static_cast<float>(ImGuiVertexIter.col), static_cast<float>(ImGuiVertexIter.col)},
                                         .TextureCoordinate = {ImGuiVertexIter.uv.x, ImGuiVertexIter.uv.y}});
                     }
 

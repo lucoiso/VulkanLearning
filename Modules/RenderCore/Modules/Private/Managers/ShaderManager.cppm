@@ -10,7 +10,7 @@ module;
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <volk.h>
 
-module RenderCoreShaderManager;
+module RenderCore.Managers.ShaderManager;
 
 import <unordered_map>;
 import <vector>;
@@ -20,8 +20,11 @@ import <fstream>;
 import <sstream>;
 import <string>;
 import <string_view>;
+import <filesystem>;
+import <span>;
 
-import RenderCoreDeviceManager;
+import RenderCore.Managers.DeviceManager;
+import RenderCore.Utils.Helpers;
 
 using namespace RenderCore;
 

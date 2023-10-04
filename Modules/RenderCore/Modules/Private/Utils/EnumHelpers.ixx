@@ -4,7 +4,7 @@
 
 module;
 
-export module RenderCoreEnumHelpers;
+export module RenderCore.Utils.EnumHelpers;
 
 import <type_traits>;
 

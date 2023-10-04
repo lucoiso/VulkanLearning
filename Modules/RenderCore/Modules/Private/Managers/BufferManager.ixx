@@ -7,7 +7,7 @@ module;
 #include <vk_mem_alloc.h>
 #include <volk.h>
 
-export module RenderCoreBufferManager;
+export module RenderCore.Managers.BufferManager;
 
 import <atomic>;
 import <string_view>;

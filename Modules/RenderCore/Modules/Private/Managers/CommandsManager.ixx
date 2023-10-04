@@ -6,7 +6,7 @@ module;
 
 #include <volk.h>
 
-export module RenderCoreCommandsManager;
+export module RenderCore.Managers.CommandsManager;
 
 import <limits>;
 import <optional>;
@@ -16,12 +16,6 @@ import <cstdint>;
 import <optional>;
 import <stdexcept>;
 import <string>;
-
-import RenderCoreBufferManager;
-import RenderCoreDeviceManager;
-import RenderCorePipelineManager;
-import RenderCoreUniformBufferObject;
-import RenderCoreVertex;
 
 export namespace RenderCore
 {

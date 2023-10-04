@@ -7,7 +7,7 @@ module;
 #include <glslang/Public/ShaderLang.h>
 #include <volk.h>
 
-export module RenderCoreShaderManager;
+export module RenderCore.Managers.ShaderManager;
 
 import <unordered_map>;
 import <vector>;

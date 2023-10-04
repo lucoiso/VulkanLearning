@@ -4,17 +4,22 @@
 
 module;
 
+#include <boost/log/trivial.hpp>
 #include <volk.h>
 
-module RenderCorePipelineManager;
+module RenderCore.Managers.PipelineManager;
 
+import <array>;
 import <vector>;
 
-import RenderCoreDeviceManager;
-import RenderCoreBufferManager;
-import RenderCoreShaderManager;
-import RenderCoreUniformBufferObject;
-import RenderCoreEnumHelpers;
+import RenderCore.Managers.DeviceManager;
+import RenderCore.Managers.BufferManager;
+import RenderCore.Managers.ShaderManager;
+import RenderCore.Types.UniformBufferObject;
+import RenderCore.Utils.Helpers;
+import RenderCore.Utils.Constants;
+import RenderCore.Types.DeviceProperties;
+import RenderCore.Types.TextureData;
 
 using namespace RenderCore;
 
@@ -133,8 +138,8 @@ void PipelineManager::CreateGraphicsPipeline()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan graphics pipeline";
 
-    constexpr auto BindingDescription = Helpers::GetBindingDescriptors();
-    auto const AttributeDescriptions  = Helpers::GetAttributeDescriptions();
+    auto const BindingDescription    = Helpers::GetBindingDescriptors();
+    auto const AttributeDescriptions = Helpers::GetAttributeDescriptions();
 
     VkPipelineVertexInputStateCreateInfo const VertexInputState {
             .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,

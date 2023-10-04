@@ -8,7 +8,7 @@ module;
 #include <boost/log/trivial.hpp>
 #include <volk.h>
 
-module RenderCoreDeviceManager;
+module RenderCore.Managers.DeviceManager;
 
 import <optional>;
 import <string_view>;
@@ -16,8 +16,11 @@ import <vector>;
 import <cstdint>;
 import <unordered_map>;
 
-import RenderCoreEnumHelpers;
-import RenderCoreDeviceProperties;
+import RenderCore.EngineCore;
+import RenderCore.Utils.Constants;
+import RenderCore.Utils.Helpers;
+import RenderCore.Types.DeviceProperties;
+import RenderCore.Utils.EnumConverter;
 
 using namespace RenderCore;
 

@@ -6,7 +6,7 @@ module;
 
 #include <volk.h>
 
-export module RenderCoreEnumConverter;
+export module RenderCore.Utils.EnumConverter;
 
 import <array>;
 import <charconv>;
