@@ -6,36 +6,39 @@
 SET(LIBRARY_NAME RenderCore)
 
 # ------------- Library Setup --------------
-SET(PRIVATE_MODULES
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Window.cppm
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/EngineCore.cppm
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/ShaderManager.cppm
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/CommandsManager.cppm
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/PipelineManager.cppm
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/BufferManager.cppm
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/DeviceManager.cppm
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/Helpers.cppm
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/DebugHelpers.cppm
+SET(PRIVATE_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private)
+SET(PUBLIC_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public)
 
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/EngineCore.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/ShaderManager.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/CommandsManager.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/PipelineManager.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/BufferManager.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/DeviceManager.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/Helpers.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/DebugHelpers.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/Constants.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/EnumConverter.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/EnumHelpers.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Types/DeviceProperties.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Types/TextureData.ixx
+SET(PRIVATE_MODULES
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Window.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/EngineCore.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/ShaderManager.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/CommandsManager.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/PipelineManager.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/BufferManager.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/DeviceManager.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Helpers.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/DebugHelpers.cppm
+
+	${PRIVATE_MODULES_BASE_DIRECTORY}/EngineCore.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/ShaderManager.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/CommandsManager.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/PipelineManager.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/BufferManager.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/DeviceManager.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Helpers.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/DebugHelpers.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Constants.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/EnumConverter.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/EnumHelpers.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/DeviceProperties.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/TextureData.ixx
 )
 
 SET(PUBLIC_MODULES
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public/Window.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public/Types/Vertex.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public/Types/UniformBufferObject.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Window.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Vertex.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Types/UniformBufferObject.ixx
 )
 
 ADD_LIBRARY(${LIBRARY_NAME} SHARED ${PRIVATE_MODULES})
@@ -45,6 +48,7 @@ TARGET_SOURCES(${LIBRARY_NAME}
 			   PRIVATE
 			   FILE_SET cxx_private_modules
 			   TYPE CXX_MODULES
+			   BASE_DIRS ${PRIVATE_MODULES_BASE_DIRECTORY}
 			   FILES ${PRIVATE_MODULES}
 )
 
@@ -52,6 +56,7 @@ TARGET_SOURCES(${LIBRARY_NAME}
 			   PUBLIC
 			   FILE_SET cxx_public_modules
 			   TYPE CXX_MODULES
+			   BASE_DIRS ${PUBLIC_MODULES_BASE_DIRECTORY}
 			   FILES ${PUBLIC_MODULES}
 )
 
