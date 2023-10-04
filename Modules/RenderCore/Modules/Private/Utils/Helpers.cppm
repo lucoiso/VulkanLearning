@@ -277,9 +277,9 @@ UniformBufferObject Helpers::GetUniformBufferObject()
 
     static auto StartTime  = std::chrono::high_resolution_clock::now();
     auto const CurrentTime = std::chrono::high_resolution_clock::now();
-    float const Time       = std::chrono::duration<float>(CurrentTime - StartTime).count();
+    auto const Time        = std::chrono::duration(CurrentTime - StartTime).count();
 
-    glm::mat4 const Model = rotate(glm::mat4(1.F), Time * glm::radians(90.F), glm::vec3(0.F, 0.F, 1.F));
+    glm::mat4 const Model = rotate(glm::mat4(1.F), static_cast<float>(Time) * glm::radians(90.F), glm::vec3(0.F, 0.F, 1.F));
     glm::mat4 const View  = lookAt(glm::vec3(2.F, 2.F, 2.F), glm::vec3(0.F, 0.F, 0.F), glm::vec3(0.F, 0.F, 1.F));
     glm::mat4 Projection  = glm::perspective(glm::radians(45.0F), static_cast<float>(Width) / static_cast<float>(Height), 0.1F, 10.F);
     Projection[1][1] *= -1;
@@ -287,11 +287,11 @@ UniformBufferObject Helpers::GetUniformBufferObject()
     glm::mat4 const ModelViewProjection = Projection * View * Model;
 
     std::array<std::array<float, 4U>, 4U> ModelViewProjectionArray {};
-    for (std::size_t i = 0U; i < ModelViewProjectionArray.size(); ++i)
+    for (std::uint8_t Column = 0U; Column < static_cast<std::uint8_t>(ModelViewProjectionArray.size()); ++Column)
     {
-        for (std::size_t j = 0U; j < ModelViewProjectionArray[i].size(); ++j)
+        for (std::uint8_t Line = 0U; Line < static_cast<std::uint8_t>(ModelViewProjectionArray[Column].size()); ++Line)
         {
-            ModelViewProjectionArray[i][j] = ModelViewProjection[i][j];
+            ModelViewProjectionArray[Column][Line] = ModelViewProjection[Column][Line];
         }
     }
 
