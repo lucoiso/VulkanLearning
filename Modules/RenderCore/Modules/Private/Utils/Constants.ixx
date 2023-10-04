@@ -22,23 +22,23 @@ export namespace RenderCore
             "VK_LAYER_KHRONOS_validation",
             "VK_LAYER_LUNARG_api_dump"};
 #else
-    export constexpr std::array g_DebugInstanceLayers = {
+    constexpr std::array g_DebugInstanceLayers = {
             "VK_LAYER_KHRONOS_validation"};
 
-    export constexpr std::array g_DebugDeviceLayers = {
+    constexpr std::array g_DebugDeviceLayers = {
             "VK_LAYER_KHRONOS_validation"};
 #endif
 
-    export constexpr std::array g_DebugInstanceExtensions = {
+    constexpr std::array g_DebugInstanceExtensions = {
             VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
             "VK_EXT_debug_report",
             "VK_EXT_validation_features"};
 
-    export constexpr std::array g_DebugDeviceExtensions = {
+    constexpr std::array g_DebugDeviceExtensions = {
             "VK_EXT_validation_cache",
             "VK_EXT_tooling_info"};
 
-    export constexpr std::array g_EnabledInstanceValidationFeatures = {
+    constexpr std::array g_EnabledInstanceValidationFeatures = {
             // VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
             // VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
             VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
@@ -46,29 +46,29 @@ export namespace RenderCore
             VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT};
 #endif
 
-    export constexpr std::array<char const*, 0U> g_RequiredInstanceLayers = {};
+    constexpr std::array<char const*, 0U> g_RequiredInstanceLayers = {};
 
-    export constexpr std::array<char const*, 0U> g_RequiredDeviceLayers = {};
+    constexpr std::array<char const*, 0U> g_RequiredDeviceLayers = {};
 
-    export constexpr std::array<char const*, 0U> g_RequiredInstanceExtensions = {};
+    constexpr std::array<char const*, 0U> g_RequiredInstanceExtensions = {};
 
-    export constexpr std::array g_RequiredDeviceExtensions = {
+    constexpr std::array g_RequiredDeviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-    export constexpr std::array g_DynamicStates = {
+    constexpr std::array g_DynamicStates = {
             VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR};
 
-    export constexpr std::uint8_t g_MaxFramesInFlight = 1U;
+    constexpr std::uint8_t g_MaxFramesInFlight = 1U;
 
-    export constexpr std::uint64_t g_BufferMemoryAllocationSize      = 65536U;
-    export constexpr std::uint64_t g_ImageBufferMemoryAllocationSize = 262144U;
+    constexpr std::uint64_t g_BufferMemoryAllocationSize      = 65536U;
+    constexpr std::uint64_t g_ImageBufferMemoryAllocationSize = 262144U;
 
-    export constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-    export constexpr std::uint8_t g_FrameRate = 75U;
+    constexpr std::uint8_t g_FrameRate = 75U;
 
-    export constexpr std::array g_ClearValues {
+    constexpr std::array g_ClearValues {
             VkClearValue {
                     .color = {
                             {0.25F,

@@ -14,7 +14,7 @@ import <ranges>;
 
 export namespace RenderCore
 {
-    export constexpr char const* ToChars(auto const Argument)
+    constexpr char const* ToChars(auto const Argument)
     {
         std::array<char, 16U> Buffer {};
         std::span const BufferSpan(Buffer.data(), Buffer.size());
@@ -30,7 +30,7 @@ export namespace RenderCore
         return nullptr;
     }
 
-    export constexpr char const* ResultToString(VkResult const Input)
+    constexpr char const* ResultToString(VkResult const Input)
     {
         switch (Input)
         {
@@ -133,7 +133,7 @@ export namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    export constexpr char const* SurfaceFormatToString(VkFormat const Input)
+    constexpr char const* SurfaceFormatToString(VkFormat const Input)
     {
         switch (Input)
         {
@@ -640,7 +640,7 @@ export namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    export constexpr char const* ColorSpaceModeToString(VkColorSpaceKHR const Input)
+    constexpr char const* ColorSpaceModeToString(VkColorSpaceKHR const Input)
     {
         switch (Input)
         {
@@ -683,7 +683,7 @@ export namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    export constexpr char const* PresentationModeToString(VkPresentModeKHR const Input)
+    constexpr char const* PresentationModeToString(VkPresentModeKHR const Input)
     {
         switch (Input)
         {
@@ -706,7 +706,7 @@ export namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    export constexpr char const* TransformFlagToString(VkSurfaceTransformFlagBitsKHR const Input)
+    constexpr char const* TransformFlagToString(VkSurfaceTransformFlagBitsKHR const Input)
     {
         switch (Input)
         {
@@ -735,7 +735,7 @@ export namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    export constexpr char const* CompositeAlphaFlagToString(VkCompositeAlphaFlagsKHR const Input)
+    constexpr char const* CompositeAlphaFlagToString(VkCompositeAlphaFlagsKHR const Input)
     {
         switch (Input)
         {
@@ -754,7 +754,7 @@ export namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    export constexpr char const* ImageUsageFlagToString(VkImageUsageFlagBits const Input)
+    constexpr char const* ImageUsageFlagToString(VkImageUsageFlagBits const Input)
     {
         switch (Input)
         {

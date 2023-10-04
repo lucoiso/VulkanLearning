@@ -19,7 +19,7 @@ import <string>;
 
 export namespace RenderCore
 {
-    export constexpr std::uint32_t g_Timeout = std::numeric_limits<std::uint32_t>::max();
+    constexpr std::uint32_t g_Timeout = std::numeric_limits<std::uint32_t>::max();
 
     class CommandsManager final
     {

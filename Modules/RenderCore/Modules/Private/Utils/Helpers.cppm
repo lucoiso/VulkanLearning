@@ -31,6 +31,7 @@ import RenderCore.Managers.BufferManager;
 import RenderCore.Managers.DeviceManager;
 import RenderCore.Types.UniformBufferObject;
 import RenderCore.Types.Vertex;
+import RenderCore.Utils.Constants;
 import RenderCore.Utils.EnumConverter;
 
 using namespace RenderCore;
@@ -275,9 +276,9 @@ UniformBufferObject Helpers::GetUniformBufferObject()
 {
     auto const& [Width, Height] = BufferManager::Get().GetSwapChainExtent();
 
-    static auto StartTime  = std::chrono::high_resolution_clock::now();
-    auto const CurrentTime = std::chrono::high_resolution_clock::now();
-    auto const Time        = std::chrono::duration(CurrentTime - StartTime).count();
+    static auto StartTime  = std::chrono::steady_clock::now();
+    auto const CurrentTime = std::chrono::steady_clock::now();
+    auto const Time        = std::chrono::duration<double>(CurrentTime - StartTime).count();
 
     glm::mat4 const Model = rotate(glm::mat4(1.F), static_cast<float>(Time) * glm::radians(90.F), glm::vec3(0.F, 0.F, 1.F));
     glm::mat4 const View  = lookAt(glm::vec3(2.F, 2.F, 2.F), glm::vec3(0.F, 0.F, 0.F), glm::vec3(0.F, 0.F, 1.F));

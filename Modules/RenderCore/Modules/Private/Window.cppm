@@ -284,7 +284,7 @@ void Window::RegisterTimers()
         // Load Scene: Testing Only
         constexpr Timer::Parameters LoadSceneTimer {
                 .EventID     = static_cast<std::uint8_t>(ApplicationEventFlags::LOAD_SCENE),
-                .Interval    = 3000U,
+                .Interval    = 2500U,
                 .RepeatCount = 0};
 
         auto const Discard = Timer::Manager::Get().StartTimer(LoadSceneTimer, m_EventIDQueue);
@@ -294,7 +294,7 @@ void Window::RegisterTimers()
         // Unload Scene: Testing Only
         constexpr Timer::Parameters UnLoadSceneTimer {
                 .EventID     = static_cast<std::uint8_t>(ApplicationEventFlags::UNLOAD_SCENE),
-                .Interval    = 5000U,
+                .Interval    = 10000U,
                 .RepeatCount = 0U};
 
         auto const Discard = Timer::Manager::Get().StartTimer(UnLoadSceneTimer, m_EventIDQueue);
