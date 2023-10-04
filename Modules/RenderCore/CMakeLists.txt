@@ -6,20 +6,18 @@
 SET(LIBRARY_NAME RenderCore)
 
 # ------------- Library Setup --------------
-SET(PRIVATE_HEADERS
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/RenderCoreModule.h
-)
-
 SET(PRIVATE_MODULES
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Window.mxx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/EngineCore.mxx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/ShaderManager.mxx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/CommandsManager.mxx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/PipelineManager.mxx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/BufferManager.mxx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/DeviceManager.mxx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/Helpers.mxx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/DebugHelpers.mxx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/RenderCoreModule.h
+	
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Window.cppm
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/EngineCore.cppm
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/ShaderManager.cppm
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/CommandsManager.cppm
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/PipelineManager.cppm
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/BufferManager.cppm
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/DeviceManager.cppm
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/Helpers.cppm
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Utils/DebugHelpers.cppm
 
 	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/EngineCore.ixx
 	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Managers/ShaderManager.ixx
@@ -42,35 +40,11 @@ SET(PUBLIC_MODULES
 	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public/Types/UniformBufferObject.ixx
 )
 
-ADD_LIBRARY(${LIBRARY_NAME} SHARED)
-
-TARGET_SOURCES(${LIBRARY_NAME}
-			   PRIVATE
-			   FILE_SET cxx_private_headers_file_set
-			   TYPE HEADERS
-			   FILES ${PRIVATE_HEADERS}
-)
-
-TARGET_SOURCES(${LIBRARY_NAME}
-			   PRIVATE
-			   FILE_SET cxx_private_modules_file_set
-			   TYPE CXX_MODULES
-			   FILES ${PRIVATE_MODULES}
-)
-
-TARGET_SOURCES(${LIBRARY_NAME}
-			   PUBLIC
-			   FILE_SET cxx_public_modules_file_set
-			   TYPE CXX_MODULES
-			   FILES ${PUBLIC_MODULES}
-)
-
-TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public)
-TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private)
-
-TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE BUILD_DLL)
-
+ADD_LIBRARY(${LIBRARY_NAME} SHARED ${PRIVATE_MODULES} ${PUBLIC_MODULES})
 SET_TARGET_PROPERTIES(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private)
+TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 
 FIND_PACKAGE(Boost REQUIRED COMPONENTS log)
 FIND_PACKAGE(glm REQUIRED)
