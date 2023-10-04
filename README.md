@@ -1,11 +1,11 @@
-[![VulkanRender CMake Workflow](https://github.com/lucoiso/VulkanRender/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/lucoiso/VulkanRender/actions/workflows/cmake-single-platform.yml)
+[![VulkanRender CMake Workflow](https://github.com/lucoiso/VulkanRender/actions/workflows/windows-x64-cmake-release.yml/badge.svg)](https://github.com/lucoiso/VulkanRender/actions/workflows/windows-x64-cmake-release.yml)
 
-![image](https://github.com/lucoiso/VulkanRender/assets/77353979/119aef7f-0e49-45c1-81ba-b40dec441ea4)
+![image](https://github.com/lucoiso/VulkanRender/assets/77353979/cee86fe8-dfe2-4561-b378-1ba3925a7ce4)
 
 # Dependencies
 
 1. Vcpkg (w/ ENVIRONMENT VARIABLE VCPKG_ROOT set to the vcpkg root directory)
-2. CMake 3.26.4
+2. CMake 3.28 (Officially supporting C++20 Modules)
 3. Vulkan SDK (Does not need any modules except the SDK core)
 4. Git
 
