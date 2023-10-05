@@ -28,6 +28,8 @@ import RenderCore.Utils.Constants;
 using namespace RenderCore;
 
 static GLFWwindow* s_Window {nullptr};
+static constexpr float s_KeyCallbackRate    = g_FrameRate / 1000.f;
+static constexpr float s_CursorCallbackRate = g_FrameRate / 25000.f;
 
 static void GLFWWindowCloseRequested(GLFWwindow* const Window)
 {
@@ -57,37 +59,36 @@ static void GLFWKeyCallback(GLFWwindow* const Window, std::int32_t const Key, [[
 
     if (Action != GLFW_RELEASE)
     {
-        constexpr float TickRate = g_FrameRate / 1000.f;
-        glm::mat4 Matrix         = EngineCore::Get().GetCameraMatrix();
+        glm::mat4 Matrix = EngineCore::Get().GetCameraMatrix();
 
         if (Key == GLFW_KEY_W || Key == GLFW_KEY_V)
         {
-            Matrix[3][2] += TickRate;
+            Matrix[3][2] += s_KeyCallbackRate;
         }
 
         if (Key == GLFW_KEY_S || Key == GLFW_KEY_C)
         {
-            Matrix[3][2] -= TickRate;
+            Matrix[3][2] -= s_KeyCallbackRate;
         }
 
         if (Key == GLFW_KEY_A || Key == GLFW_KEY_LEFT)
         {
-            Matrix[3][0] += TickRate;
+            Matrix[3][0] += s_KeyCallbackRate;
         }
 
         if (Key == GLFW_KEY_D || Key == GLFW_KEY_RIGHT)
         {
-            Matrix[3][0] -= TickRate;
+            Matrix[3][0] -= s_KeyCallbackRate;
         }
 
         if (Key == GLFW_KEY_SPACE || Key == GLFW_KEY_UP)
         {
-            Matrix[3][1] -= TickRate;
+            Matrix[3][1] -= s_KeyCallbackRate;
         }
 
         if (Key == GLFW_KEY_LEFT_CONTROL || Key == GLFW_KEY_DOWN)
         {
-            Matrix[3][1] += TickRate;
+            Matrix[3][1] += s_KeyCallbackRate;
         }
 
         EngineCore::Get().SetCameraMatrix(Matrix);
@@ -100,7 +101,11 @@ static void GLFWCursorPositionCallback(GLFWwindow* Window, double NewCursorPosX,
     static double CursorPosX {NewCursorPosX};
     static double CursorPosY {NewCursorPosY};
 
-    if (std::int32_t const ButtonEvent = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_LEFT); ButtonEvent == GLFW_PRESS)
+    std::int32_t const LeftButtonEvent   = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_LEFT);
+    std::int32_t const MiddleButtonEvent = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_MIDDLE);
+    std::int32_t const RightButtonEvent  = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_RIGHT);
+
+    if (LeftButtonEvent == GLFW_PRESS || MiddleButtonEvent == GLFW_PRESS || RightButtonEvent == GLFW_PRESS)
     {
         if (!StartOperation)
         {
@@ -110,20 +115,21 @@ static void GLFWCursorPositionCallback(GLFWwindow* Window, double NewCursorPosX,
         }
         else
         {
-            constexpr float TickRate = g_FrameRate / 25000.f;
-            glm::mat4 Matrix         = EngineCore::Get().GetCameraMatrix();
+            glm::mat4 Matrix = EngineCore::Get().GetCameraMatrix();
 
             double const OffsetX = NewCursorPosX - CursorPosX;
             double const OffsetY = NewCursorPosY - CursorPosY;
 
-            if (OffsetX != 0.F)
+            if (LeftButtonEvent == GLFW_PRESS)
             {
-                Matrix = glm::rotate(Matrix, static_cast<float>(OffsetX * TickRate), glm::vec3(0.0f, 0.0f, 1.0f));
+                Matrix = glm::rotate(Matrix, static_cast<float>(OffsetX * s_CursorCallbackRate), glm::vec3(0.0f, 0.0f, 1.0f));
+                Matrix = glm::rotate(Matrix, static_cast<float>(OffsetY * s_CursorCallbackRate), glm::vec3(0.0f, 1.0f, 0.0f));
             }
 
-            if (OffsetY != 0.F)
+            if (MiddleButtonEvent == GLFW_PRESS || RightButtonEvent == GLFW_PRESS)
             {
-                Matrix = glm::rotate(Matrix, static_cast<float>(OffsetY * TickRate), glm::vec3(0.0f, 1.0f, 0.0f));
+                Matrix[3][0] += static_cast<float>(OffsetX * s_CursorCallbackRate);
+                Matrix[3][1] -= static_cast<float>(OffsetY * s_CursorCallbackRate);
             }
 
             CursorPosX = NewCursorPosX;
@@ -132,12 +138,19 @@ static void GLFWCursorPositionCallback(GLFWwindow* Window, double NewCursorPosX,
             EngineCore::Get().SetCameraMatrix(Matrix);
         }
     }
-    else if (ButtonEvent == GLFW_RELEASE)
+    else
     {
         CursorPosX     = 0.0;
         CursorPosY     = 0.0;
         StartOperation = false;
     }
+}
+
+static void GLFWCursorScrollCallback(GLFWwindow* const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)
+{
+    glm::mat4 Matrix = EngineCore::Get().GetCameraMatrix();
+    Matrix[3][2] += static_cast<float>(OffsetY * s_KeyCallbackRate);
+    EngineCore::Get().SetCameraMatrix(Matrix);
 }
 
 Window::Window()
@@ -312,6 +325,7 @@ bool Window::InitializeGLFW(std::uint16_t const Width, std::uint16_t const Heigh
     glfwSetWindowSizeCallback(s_Window, &GLFWWindowResized);
     glfwSetKeyCallback(s_Window, &GLFWKeyCallback);
     glfwSetCursorPosCallback(s_Window, &GLFWCursorPositionCallback);
+    glfwSetScrollCallback(s_Window, &GLFWCursorScrollCallback);
     glfwSetErrorCallback(&GLFWErrorCallback);
 
     return s_Window != nullptr;
