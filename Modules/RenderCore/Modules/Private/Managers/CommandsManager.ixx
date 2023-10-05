@@ -24,7 +24,7 @@ export namespace RenderCore
     class CommandsManager final
     {
         VkCommandPool m_CommandPool;
-        VkCommandBuffer m_CommandBuffer;
+        std::array<VkCommandBuffer, 1U> m_CommandBuffers;
         VkSemaphore m_ImageAvailableSemaphore;
         VkSemaphore m_RenderFinishedSemaphore;
         VkFence m_Fence;
@@ -60,5 +60,6 @@ export namespace RenderCore
         void AllocateCommandBuffer();
         void WaitAndResetFences() const;
         void ResetImGuiFontsAllocation();
+        void FreeCommandBuffers();
     };
 }// namespace RenderCore

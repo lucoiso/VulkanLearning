@@ -123,7 +123,7 @@ void DeviceManager::CreateLogicalDevice()
     }
     else
     {
-        ++QueueFamilyIndices[m_PresentationQueue.first];
+        ++QueueFamilyIndices.at(m_PresentationQueue.first);
     }
 
     if (!QueueFamilyIndices.contains(m_TransferQueue.first))
@@ -132,7 +132,7 @@ void DeviceManager::CreateLogicalDevice()
     }
     else
     {
-        ++QueueFamilyIndices[m_TransferQueue.first];
+        ++QueueFamilyIndices.at(m_TransferQueue.first);
     }
 
     m_UniqueQueueFamilyIndices.clear();
@@ -213,7 +213,7 @@ bool DeviceManager::UpdateDeviceProperties(GLFWwindow* const Window) const
         GetDeviceProperties().Extent = Helpers::GetWindowExtent(Window, GetDeviceProperties().Capabilities);
     }
 
-    GetDeviceProperties().Format = SupportedFormats[0];
+    GetDeviceProperties().Format = SupportedFormats.at(0);
     if (auto const MatchingFormat = std::ranges::find_if(
                 SupportedFormats,
                 [](VkSurfaceFormatKHR const& Iter) {
@@ -534,11 +534,11 @@ bool DeviceManager::GetQueueFamilyIndices(std::optional<std::uint8_t>& GraphicsQ
 
     for (std::uint32_t Iterator = 0U; Iterator < QueueFamilyCount; ++Iterator)
     {
-        if (!GraphicsQueueFamilyIndex.has_value() && (QueueFamilies[Iterator].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0U)
+        if (!GraphicsQueueFamilyIndex.has_value() && (QueueFamilies.at(Iterator).queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0U)
         {
             GraphicsQueueFamilyIndex = static_cast<std::uint8_t>(Iterator);
         }
-        else if (!TransferQueueFamilyIndex.has_value() && (QueueFamilies[Iterator].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0U)
+        else if (!TransferQueueFamilyIndex.has_value() && (QueueFamilies.at(Iterator).queueFlags & VK_QUEUE_TRANSFER_BIT) != 0U)
         {
             TransferQueueFamilyIndex = static_cast<std::uint8_t>(Iterator);
         }

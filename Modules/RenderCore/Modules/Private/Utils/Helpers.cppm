@@ -27,6 +27,7 @@ import <cstdint>;
 import <string>;
 import <span>;
 
+import RenderCore.EngineCore;
 import RenderCore.Managers.BufferManager;
 import RenderCore.Managers.DeviceManager;
 import RenderCore.Types.UniformBufferObject;
@@ -280,12 +281,11 @@ UniformBufferObject Helpers::GetUniformBufferObject()
     auto const CurrentTime = std::chrono::steady_clock::now();
     auto const Time        = std::chrono::duration<double>(CurrentTime - StartTime).count();
 
-    glm::mat4 const Model = rotate(glm::mat4(1.F), static_cast<float>(Time) * glm::radians(90.F), glm::vec3(0.F, 0.F, 1.F));
-    glm::mat4 const View  = lookAt(glm::vec3(2.F, 2.F, 2.F), glm::vec3(0.F, 0.F, 0.F), glm::vec3(0.F, 0.F, 1.F));
-    glm::mat4 Projection  = glm::perspective(glm::radians(45.0F), static_cast<float>(Width) / static_cast<float>(Height), 0.1F, 10.F);
+    glm::mat4 const Model = glm::mat4(1.F);//rotate(glm::mat4(1.F), static_cast<float>(Time) * glm::radians(90.F), glm::vec3(0.F, 0.F, 1.F));
+    glm::mat4 Projection  = glm::perspective(glm::radians(45.F), static_cast<float>(Width) / static_cast<float>(Height), 0.1F, 10.F);
     Projection[1][1] *= -1;
 
-    glm::mat4 const ModelViewProjection = Projection * View * Model;
+    glm::mat4 const ModelViewProjection = Projection * EngineCore::Get().GetCameraMatrix() * Model;
 
     std::array<std::array<float, 4U>, 4U> ModelViewProjectionArray {};
     for (std::uint8_t Column = 0U; Column < static_cast<std::uint8_t>(ModelViewProjectionArray.size()); ++Column)

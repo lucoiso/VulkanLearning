@@ -6,6 +6,7 @@ module;
 
 #include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
+#include <glm/ext.hpp>
 #include <imgui.h>
 #include <volk.h>
 
@@ -52,6 +53,90 @@ static void GLFWKeyCallback(GLFWwindow* const Window, std::int32_t const Key, [[
     if (Key == GLFW_KEY_ESCAPE && Action == GLFW_PRESS)
     {
         GLFWWindowCloseRequested(Window);
+    }
+
+    if (Action != GLFW_RELEASE)
+    {
+        constexpr float TickRate = g_FrameRate / 1000.f;
+        glm::mat4 Matrix         = EngineCore::Get().GetCameraMatrix();
+
+        if (Key == GLFW_KEY_W || Key == GLFW_KEY_V)
+        {
+            Matrix[3][2] += TickRate;
+        }
+
+        if (Key == GLFW_KEY_S || Key == GLFW_KEY_C)
+        {
+            Matrix[3][2] -= TickRate;
+        }
+
+        if (Key == GLFW_KEY_A || Key == GLFW_KEY_LEFT)
+        {
+            Matrix[3][0] += TickRate;
+        }
+
+        if (Key == GLFW_KEY_D || Key == GLFW_KEY_RIGHT)
+        {
+            Matrix[3][0] -= TickRate;
+        }
+
+        if (Key == GLFW_KEY_SPACE || Key == GLFW_KEY_UP)
+        {
+            Matrix[3][1] -= TickRate;
+        }
+
+        if (Key == GLFW_KEY_LEFT_CONTROL || Key == GLFW_KEY_DOWN)
+        {
+            Matrix[3][1] += TickRate;
+        }
+
+        EngineCore::Get().SetCameraMatrix(Matrix);
+    }
+}
+
+static void GLFWCursorPositionCallback(GLFWwindow* Window, double NewCursorPosX, double NewCursorPosY)
+{
+    static bool StartOperation {false};
+    static double CursorPosX {NewCursorPosX};
+    static double CursorPosY {NewCursorPosY};
+
+    if (std::int32_t const ButtonEvent = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_LEFT); ButtonEvent == GLFW_PRESS)
+    {
+        if (!StartOperation)
+        {
+            CursorPosX     = NewCursorPosX;
+            CursorPosY     = NewCursorPosY;
+            StartOperation = true;
+        }
+        else
+        {
+            constexpr float TickRate = g_FrameRate / 25000.f;
+            glm::mat4 Matrix         = EngineCore::Get().GetCameraMatrix();
+
+            double const OffsetX = NewCursorPosX - CursorPosX;
+            double const OffsetY = NewCursorPosY - CursorPosY;
+
+            if (OffsetX != 0.F)
+            {
+                Matrix = glm::rotate(Matrix, static_cast<float>(OffsetX * TickRate), glm::vec3(0.0f, 0.0f, 1.0f));
+            }
+
+            if (OffsetY != 0.F)
+            {
+                Matrix = glm::rotate(Matrix, static_cast<float>(OffsetY * TickRate), glm::vec3(0.0f, 1.0f, 0.0f));
+            }
+
+            CursorPosX = NewCursorPosX;
+            CursorPosY = NewCursorPosY;
+
+            EngineCore::Get().SetCameraMatrix(Matrix);
+        }
+    }
+    else if (ButtonEvent == GLFW_RELEASE)
+    {
+        CursorPosX     = 0.0;
+        CursorPosY     = 0.0;
+        StartOperation = false;
     }
 }
 
@@ -161,7 +246,7 @@ void Window::PollEvents()
             switch (EventFlags)
             {
                 case ApplicationEventFlags::DRAW_FRAME: {
-                    if (ProcessedEvents[EventFlags] > 0U)
+                    if (ProcessedEvents.at(EventFlags) > 0U)
                     {
                         break;
                     }
@@ -191,7 +276,7 @@ void Window::PollEvents()
                     break;
             }
 
-            ++ProcessedEvents[EventFlags];
+            ++ProcessedEvents.at(EventFlags);
         }
     }
     catch (std::exception const& Ex)
@@ -226,6 +311,7 @@ bool Window::InitializeGLFW(std::uint16_t const Width, std::uint16_t const Heigh
     glfwSetWindowCloseCallback(s_Window, &GLFWWindowCloseRequested);
     glfwSetWindowSizeCallback(s_Window, &GLFWWindowResized);
     glfwSetKeyCallback(s_Window, &GLFWKeyCallback);
+    glfwSetCursorPosCallback(s_Window, &GLFWCursorPositionCallback);
     glfwSetErrorCallback(&GLFWErrorCallback);
 
     return s_Window != nullptr;
@@ -281,15 +367,15 @@ void Window::RegisterTimers()
     }
 
     {
-        // Load Scene: Testing Only
         constexpr Timer::Parameters LoadSceneTimer {
                 .EventID     = static_cast<std::uint8_t>(ApplicationEventFlags::LOAD_SCENE),
-                .Interval    = 2500U,
+                .Interval    = 1000U,
                 .RepeatCount = 0};
 
         auto const Discard = Timer::Manager::Get().StartTimer(LoadSceneTimer, m_EventIDQueue);
     }
 
+    if constexpr (false)
     {
         // Unload Scene: Testing Only
         constexpr Timer::Parameters UnLoadSceneTimer {

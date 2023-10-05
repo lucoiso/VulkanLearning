@@ -213,7 +213,7 @@ void BufferManager::CreateSwapChain()
     m_SwapChainImages.resize(Count, ImageAllocation());
     for (std::uint32_t Iterator = 0U; Iterator < Count; ++Iterator)
     {
-        m_SwapChainImages[Iterator].Image = SwapChainImages[Iterator];
+        m_SwapChainImages.at(Iterator).Image = SwapChainImages.at(Iterator);
     }
 
     CreateSwapChainImageViews(Properties.Format.format);
@@ -229,7 +229,7 @@ void BufferManager::CreateFrameBuffers()
     for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(m_FrameBuffers.size()); ++Iterator)
     {
         std::array const Attachments {
-                m_SwapChainImages[Iterator].View,
+                m_SwapChainImages.at(Iterator).View,
                 m_DepthImage.View};
 
         VkFramebufferCreateInfo const FrameBufferCreateInfo {
@@ -241,7 +241,7 @@ void BufferManager::CreateFrameBuffers()
                 .height          = m_SwapChainExtent.height,
                 .layers          = 1U};
 
-        Helpers::CheckVulkanResult(vkCreateFramebuffer(VulkanLogicalDevice, &FrameBufferCreateInfo, nullptr, &m_FrameBuffers[Iterator]));
+        Helpers::CheckVulkanResult(vkCreateFramebuffer(VulkanLogicalDevice, &FrameBufferCreateInfo, nullptr, &m_FrameBuffers.at(Iterator)));
     }
 }
 

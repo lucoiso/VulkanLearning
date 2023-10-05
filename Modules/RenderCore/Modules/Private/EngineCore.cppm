@@ -5,6 +5,7 @@
 module;
 
 #include <boost/log/trivial.hpp>
+#include <glm/ext.hpp>
 #include <imgui.h>
 
 #ifndef VOLK_IMPLEMENTATION
@@ -40,37 +41,11 @@ import RenderCore.Utils.EnumHelpers;
 
 using namespace RenderCore;
 
-static void GLFWWindowCloseRequested(GLFWwindow* const Window)
-{
-    EngineCore::Get().Shutdown();
-    glfwSetWindowShouldClose(Window, GLFW_TRUE);
-}
-
-static void GLFWWindowResized(GLFWwindow* const Window, [[maybe_unused]] std::int32_t const Width, [[maybe_unused]] std::int32_t const Height)
-{
-    DeviceManager::Get().UpdateDeviceProperties(Window);
-    ImGui::GetIO().DisplaySize             = ImVec2(static_cast<float>(Width), static_cast<float>(Height));
-    ImGui::GetIO().DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-    ImGui::GetIO().DeltaTime               = static_cast<float>(glfwGetTime());
-}
-
-static void GLFWErrorCallback(std::int32_t const Error, char const* const Description)
-{
-    BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: GLFW Error: " << Error << " - " << Description;
-}
-
-static void GLFWKeyCallback(GLFWwindow* const Window, std::int32_t const Key, [[maybe_unused]] std::int32_t const Scancode, std::int32_t const Action, [[maybe_unused]] int const Mods)
-{
-    if (Key == GLFW_KEY_ESCAPE && Action == GLFW_PRESS)
-    {
-        GLFWWindowCloseRequested(Window);
-    }
-}
-
 EngineCore::EngineCore()
     : m_Instance(VK_NULL_HANDLE),
       m_Surface(VK_NULL_HANDLE),
       m_StateFlags(EngineCoreStateFlags::NONE),
+      m_CameraMatrix(lookAt(glm::vec3(2.F, 2.F, 2.F), glm::vec3(0.F, 0.F, 0.F), glm::vec3(0.F, 0.F, 1.F))),
       m_ObjectID(0U)
 #ifdef _DEBUG
       ,
@@ -291,6 +266,16 @@ VkInstance& EngineCore::GetInstance()
 VkSurfaceKHR& EngineCore::GetSurface()
 {
     return m_Surface;
+}
+
+glm::mat4 EngineCore::GetCameraMatrix() const
+{
+    return m_CameraMatrix;
+}
+
+void EngineCore::SetCameraMatrix(glm::mat4 const& Value)
+{
+    m_CameraMatrix = Value;
 }
 
 std::optional<std::int32_t> EngineCore::TryRequestDrawImage() const

@@ -5,6 +5,7 @@
 module;
 
 #include <GLFW/glfw3.h>
+#include <glm/ext.hpp>
 #include <volk.h>
 
 export module RenderCore.EngineCore;
@@ -53,6 +54,9 @@ export namespace RenderCore
         [[nodiscard]] VkInstance& GetInstance();
         [[nodiscard]] VkSurfaceKHR& GetSurface();
 
+        [[nodiscard]] glm::mat4 GetCameraMatrix() const;
+        void SetCameraMatrix(glm::mat4 const& Value);
+
     private:
         std::optional<std::int32_t> TryRequestDrawImage() const;
 
@@ -65,6 +69,7 @@ export namespace RenderCore
         VkInstance m_Instance;
         VkSurfaceKHR m_Surface;
         mutable EngineCoreStateFlags m_StateFlags;
+        glm::mat4 m_CameraMatrix;
         std::uint64_t m_ObjectID;
 
 #ifdef _DEBUG

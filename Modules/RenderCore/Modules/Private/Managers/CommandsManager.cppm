@@ -33,7 +33,7 @@ using namespace RenderCore;
 
 CommandsManager::CommandsManager()
     : m_CommandPool(VK_NULL_HANDLE),
-      m_CommandBuffer(VK_NULL_HANDLE),
+      m_CommandBuffers({VK_NULL_HANDLE}),
       m_ImageAvailableSemaphore(VK_NULL_HANDLE),
       m_RenderFinishedSemaphore(VK_NULL_HANDLE),
       m_Fence(VK_NULL_HANDLE),
@@ -62,22 +62,6 @@ CommandsManager& CommandsManager::Get()
 void CommandsManager::Shutdown()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down Vulkan commands manager";
-
-    WaitAndResetFences();
-
-    VkDevice const& VulkanLogicalDevice = DeviceManager::Get().GetLogicalDevice();
-
-    if (m_CommandBuffer != VK_NULL_HANDLE)
-    {
-        vkFreeCommandBuffers(VulkanLogicalDevice, m_CommandPool, 1U, &m_CommandBuffer);
-        m_CommandBuffer = VK_NULL_HANDLE;
-    }
-
-    if (m_CommandPool != VK_NULL_HANDLE)
-    {
-        vkDestroyCommandPool(VulkanLogicalDevice, m_CommandPool, nullptr);
-        m_CommandPool = VK_NULL_HANDLE;
-    }
 
     DestroySynchronizationObjects();
 }
@@ -133,11 +117,7 @@ void CommandsManager::DestroySynchronizationObjects()
 
     vkDeviceWaitIdle(VulkanLogicalDevice);
 
-    if (m_CommandBuffer != VK_NULL_HANDLE)
-    {
-        vkFreeCommandBuffers(VulkanLogicalDevice, m_CommandPool, 1U, &m_CommandBuffer);
-        m_CommandBuffer = VK_NULL_HANDLE;
-    }
+    FreeCommandBuffers();
 
     if (m_CommandPool != VK_NULL_HANDLE)
     {
@@ -224,11 +204,13 @@ void CommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
 {
     AllocateCommandBuffer();
 
+    VkCommandBuffer& MainCommandBuffer = m_CommandBuffers.at(0U);
+
     constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
-    Helpers::CheckVulkanResult(vkBeginCommandBuffer(m_CommandBuffer, &CommandBufferBeginInfo));
+    Helpers::CheckVulkanResult(vkBeginCommandBuffer(MainCommandBuffer, &CommandBufferBeginInfo));
 
     VkRenderPass const& RenderPass                     = PipelineManager::Get().GetRenderPass();
     VkPipeline const& Pipeline                         = PipelineManager::Get().GetPipeline();
@@ -241,8 +223,7 @@ void CommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
     std::uint32_t const IndexCount                 = BufferManager::Get().GetIndicesCount();
     UniformBufferObject const UniformBufferObj     = Helpers::GetUniformBufferObject();
 
-    std::vector<VkDeviceSize> const Offsets = {
-            0U};
+    constexpr std::array<VkDeviceSize, 1U> Offsets {0U};
 
     VkExtent2D const Extent = BufferManager::Get().GetSwapChainExtent();
 
@@ -266,7 +247,7 @@ void CommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
         VkRenderPassBeginInfo const RenderPassBeginInfo {
                 .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
                 .renderPass  = RenderPass,
-                .framebuffer = FrameBuffers[ImageIndex],
+                .framebuffer = FrameBuffers.at(ImageIndex),
                 .renderArea  = {
                          .offset = {
                                 0,
@@ -275,43 +256,43 @@ void CommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
                 .clearValueCount = static_cast<std::uint32_t>(g_ClearValues.size()),
                 .pClearValues    = g_ClearValues.data()};
 
-        vkCmdBeginRenderPass(m_CommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(MainCommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         ActiveRenderPass = true;
     }
 
     if (Pipeline != VK_NULL_HANDLE)
     {
-        vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
+        vkCmdBindPipeline(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
     }
 
     if (!DescriptorSets.empty())
     {
-        VkDescriptorSet const& DescriptorSet = DescriptorSets[m_FrameIndex];
-        vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, 1U, &DescriptorSet, 0U, nullptr);
+        VkDescriptorSet const& DescriptorSet = DescriptorSets.at(m_FrameIndex);
+        vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, 1U, &DescriptorSet, 0U, nullptr);
     }
 
-    vkCmdPushConstants(m_CommandBuffer, PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0U, sizeof(UniformBufferObject), &UniformBufferObj);
+    vkCmdPushConstants(MainCommandBuffer, PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0U, sizeof(UniformBufferObject), &UniformBufferObj);
 
     bool ActiveVertexBinding = false;
     if (VertexBuffer != VK_NULL_HANDLE)
     {
-        vkCmdBindVertexBuffers(m_CommandBuffer, 0U, 1U, &VertexBuffer, Offsets.data());
+        vkCmdBindVertexBuffers(MainCommandBuffer, 0U, 1U, &VertexBuffer, Offsets.data());
         ActiveVertexBinding = true;
     }
 
     bool ActiveIndexBinding = false;
     if (IndexBuffer != VK_NULL_HANDLE)
     {
-        vkCmdBindIndexBuffer(m_CommandBuffer, IndexBuffer, 0U, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(MainCommandBuffer, IndexBuffer, 0U, VK_INDEX_TYPE_UINT32);
         ActiveIndexBinding = true;
     }
 
-    vkCmdSetViewport(m_CommandBuffer, 0U, 1U, &Viewport);
-    vkCmdSetScissor(m_CommandBuffer, 0U, 1U, &Scissor);
+    vkCmdSetViewport(MainCommandBuffer, 0U, 1U, &Viewport);
+    vkCmdSetScissor(MainCommandBuffer, 0U, 1U, &Scissor);
 
     if (ActiveRenderPass && ActiveVertexBinding && ActiveIndexBinding)
     {
-        vkCmdDrawIndexed(m_CommandBuffer, IndexCount, 1U, 0U, 0U, 0U);
+        vkCmdDrawIndexed(MainCommandBuffer, IndexCount, 1U, 0U, 0U, 0U);
     }
 
     if (ActiveRenderPass)
@@ -344,7 +325,7 @@ void CommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
                     }
 
                     BufferManager::Get().CreateVertexBuffer(NewAllocation, AllocationSize, Vertices);
-                    vkCmdBindVertexBuffers(m_CommandBuffer, 0U, 1U, &NewAllocation.VertexBuffer.Buffer, Offsets.data());
+                    vkCmdBindVertexBuffers(MainCommandBuffer, 0U, 1U, &NewAllocation.VertexBuffer.Buffer, Offsets.data());
                 }
 
                 // Bind Index Buffers
@@ -360,7 +341,7 @@ void CommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
                     }
 
                     BufferManager::Get().CreateIndexBuffer(NewAllocation, AllocationSize, Indices);
-                    vkCmdBindIndexBuffer(m_CommandBuffer, NewAllocation.IndexBuffer.Buffer, 0U, VK_INDEX_TYPE_UINT32);
+                    vkCmdBindIndexBuffer(MainCommandBuffer, NewAllocation.IndexBuffer.Buffer, 0U, VK_INDEX_TYPE_UINT32);
                 }
 
                 std::span const ImGuiCmdBufferSpan(ImGuiCmdListIter->CmdBuffer.Data, ImGuiCmdListIter->CmdBuffer.Size);
@@ -379,10 +360,10 @@ void CommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
                                         static_cast<std::int32_t>(ImGuiCmdBufferIter.ClipRect.y)},
                                 .extent = {static_cast<std::uint32_t>(ImGuiCmdBufferIter.ClipRect.z - ImGuiCmdBufferIter.ClipRect.x), static_cast<std::uint32_t>(ImGuiCmdBufferIter.ClipRect.w - ImGuiCmdBufferIter.ClipRect.y)}};
 
-                        vkCmdSetScissor(m_CommandBuffer, 0U, 1U, &ImGuiScissor);
+                        vkCmdSetScissor(MainCommandBuffer, 0U, 1U, &ImGuiScissor);
 
                         vkCmdDrawIndexed(
-                                m_CommandBuffer,
+                                MainCommandBuffer,
                                 static_cast<std::uint32_t>(ImGuiCmdBufferIter.ElemCount),
                                 1U,
                                 static_cast<std::uint32_t>(ImGuiCmdBufferIter.IdxOffset),
@@ -396,10 +377,10 @@ void CommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
 
     if (ActiveRenderPass)
     {
-        vkCmdEndRenderPass(m_CommandBuffer);
+        vkCmdEndRenderPass(MainCommandBuffer);
     }
 
-    Helpers::CheckVulkanResult(vkEndCommandBuffer(m_CommandBuffer));
+    Helpers::CheckVulkanResult(vkEndCommandBuffer(MainCommandBuffer));
 }
 
 void CommandsManager::SubmitCommandBuffers()
@@ -414,8 +395,8 @@ void CommandsManager::SubmitCommandBuffers()
             .waitSemaphoreCount   = 1U,
             .pWaitSemaphores      = &m_ImageAvailableSemaphore,
             .pWaitDstStageMask    = WaitStages.data(),
-            .commandBufferCount   = 1U,
-            .pCommandBuffers      = &m_CommandBuffer,
+            .commandBufferCount   = static_cast<std::uint32_t>(m_CommandBuffers.size()),
+            .pCommandBuffers      = m_CommandBuffers.data(),
             .signalSemaphoreCount = 1U,
             .pSignalSemaphores    = &m_RenderFinishedSemaphore};
 
@@ -424,8 +405,7 @@ void CommandsManager::SubmitCommandBuffers()
     Helpers::CheckVulkanResult(vkQueueSubmit(GraphicsQueue, 1U, &SubmitInfo, m_Fence));
     Helpers::CheckVulkanResult(vkQueueWaitIdle(GraphicsQueue));
 
-    vkFreeCommandBuffers(DeviceManager::Get().GetLogicalDevice(), m_CommandPool, 1U, &m_CommandBuffer);
-    m_CommandBuffer = VK_NULL_HANDLE;
+    FreeCommandBuffers();
 }
 
 void CommandsManager::PresentFrame(std::uint32_t const ImageIndice)
@@ -460,10 +440,13 @@ void CommandsManager::AllocateCommandBuffer()
 {
     VkDevice const& VulkanLogicalDevice = DeviceManager::Get().GetLogicalDevice();
 
-    if (m_CommandBuffer != VK_NULL_HANDLE)
+    for (VkCommandBuffer& CommandBufferIter: m_CommandBuffers)
     {
-        vkFreeCommandBuffers(VulkanLogicalDevice, m_CommandPool, 1U, &m_CommandBuffer);
-        m_CommandBuffer = VK_NULL_HANDLE;
+        if (CommandBufferIter != VK_NULL_HANDLE)
+        {
+            vkFreeCommandBuffers(VulkanLogicalDevice, m_CommandPool, 1U, &CommandBufferIter);
+            CommandBufferIter = VK_NULL_HANDLE;
+        }
     }
 
     if (m_CommandPool != VK_NULL_HANDLE)
@@ -478,9 +461,9 @@ void CommandsManager::AllocateCommandBuffer()
             .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .commandPool        = m_CommandPool,
             .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = 1U};
+            .commandBufferCount = static_cast<std::uint32_t>(m_CommandBuffers.size())};
 
-    Helpers::CheckVulkanResult(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, &m_CommandBuffer));
+    Helpers::CheckVulkanResult(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, m_CommandBuffers.data()));
 }
 
 void CommandsManager::WaitAndResetFences() const
@@ -503,4 +486,14 @@ void CommandsManager::ResetImGuiFontsAllocation()
         ObjectAllocationIter.DestroyResources();
     }
     m_ImGuiFontsAllocation.clear();
+}
+
+void CommandsManager::FreeCommandBuffers()
+{
+    vkFreeCommandBuffers(DeviceManager::Get().GetLogicalDevice(), m_CommandPool, static_cast<std::uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());
+
+    for (VkCommandBuffer& CommandBufferIter: m_CommandBuffers)
+    {
+        CommandBufferIter = VK_NULL_HANDLE;
+    }
 }

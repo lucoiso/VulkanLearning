@@ -269,7 +269,7 @@ void PipelineManager::CreateDescriptorSetLayout()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
 
-    std::vector const LayoutBindings {
+    constexpr std::array LayoutBindings {
             VkDescriptorSetLayoutBinding {
                     .binding            = 0U,
                     .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -278,6 +278,12 @@ void PipelineManager::CreateDescriptorSetLayout()
                     .pImmutableSamplers = nullptr},
             VkDescriptorSetLayoutBinding {
                     .binding            = 1U,
+                    .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount    = 1U,
+                    .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = nullptr},
+            VkDescriptorSetLayoutBinding {
+                    .binding            = 2U,
                     .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount    = 1U,
                     .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -295,9 +301,12 @@ void PipelineManager::CreateDescriptorPool()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor pool";
 
-    std::vector const DescriptorPoolSizes {
+    constexpr std::array DescriptorPoolSizes {
             VkDescriptorPoolSize {
                     .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = g_MaxFramesInFlight},
+            VkDescriptorPoolSize {
+                    .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = g_MaxFramesInFlight},
             VkDescriptorPoolSize {
                     .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -351,17 +360,19 @@ void PipelineManager::CreateDescriptorSets()
 
         std::vector<VkWriteDescriptorSet> WriteDescriptors {};
 
-        if (!ImageInfos.empty())
+        for (auto ImageInfoIterator = ImageInfos.begin(); ImageInfoIterator != ImageInfos.end(); ++ImageInfoIterator)
         {
+            std::uint32_t const Index = static_cast<std::uint32_t>(std::distance(ImageInfos.begin(), ImageInfoIterator));
+
             WriteDescriptors.push_back(
                     VkWriteDescriptorSet {
                             .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                            .dstSet           = m_DescriptorSets[Iterator],
-                            .dstBinding       = 1U,
+                            .dstSet           = m_DescriptorSets.at(Iterator),
+                            .dstBinding       = Index + 1U,
                             .dstArrayElement  = 0U,
-                            .descriptorCount  = static_cast<std::uint32_t>(ImageInfos.size()),
+                            .descriptorCount  = 1U,
                             .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .pImageInfo       = ImageInfos.data(),
+                            .pImageInfo       = &(*ImageInfoIterator),
                             .pBufferInfo      = nullptr,
                             .pTexelBufferView = nullptr});
         }
