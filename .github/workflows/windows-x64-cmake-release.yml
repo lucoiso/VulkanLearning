@@ -29,10 +29,14 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout & Init Submodules
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: 'recursive'
+
+      - name: Install Latest CMake Version
+        uses: lukka/get-cmake@latest
 
       - name: Install Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0
