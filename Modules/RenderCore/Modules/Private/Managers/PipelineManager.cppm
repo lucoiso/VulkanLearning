@@ -29,7 +29,7 @@ PipelineManager::PipelineManager()
       m_PipelineLayout(VK_NULL_HANDLE),
       m_PipelineCache(VK_NULL_HANDLE),
       m_DescriptorPool(VK_NULL_HANDLE),
-      m_DescriptorSetLayout(VK_NULL_HANDLE),
+      m_DescriptorSetLayouts({}),
       m_DescriptorSets({})
 {
 }
@@ -209,17 +209,20 @@ void PipelineManager::CreateGraphicsPipeline()
             .dynamicStateCount = static_cast<uint32_t>(g_DynamicStates.size()),
             .pDynamicStates    = g_DynamicStates.data()};
 
-    constexpr VkPushConstantRange PushConstantRange {
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-            .offset     = 0U,
-            .size       = sizeof(UniformBufferObject)};
+    constexpr std::uint8_t ImGuiPushConstantSize = sizeof(float) * 4U;
+
+    constexpr std::array PushConstantRanges {
+            VkPushConstantRange {
+                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+                    .offset     = 0U,
+                    .size       = sizeof(UniformBufferObject) + ImGuiPushConstantSize}};
 
     VkPipelineLayoutCreateInfo const PipelineLayoutCreateInfo {
             .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount         = 1U,
-            .pSetLayouts            = &m_DescriptorSetLayout,
-            .pushConstantRangeCount = 1U,
-            .pPushConstantRanges    = &PushConstantRange};
+            .setLayoutCount         = static_cast<std::uint32_t>(m_DescriptorSetLayouts.size()),
+            .pSetLayouts            = m_DescriptorSetLayouts.data(),
+            .pushConstantRangeCount = static_cast<std::uint32_t>(PushConstantRanges.size()),
+            .pPushConstantRanges    = PushConstantRanges.data()};
 
     VkDevice const& VulkanLogicalDevice = DeviceManager::Get().GetLogicalDevice();
 
@@ -269,32 +272,47 @@ void PipelineManager::CreateDescriptorSetLayout()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
 
-    constexpr std::array LayoutBindings {
-            VkDescriptorSetLayoutBinding {
-                    .binding            = 0U,
-                    .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount    = 1U,
-                    .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
-                    .pImmutableSamplers = nullptr},
-            VkDescriptorSetLayoutBinding {
-                    .binding            = 1U,
-                    .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount    = 1U,
-                    .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .pImmutableSamplers = nullptr},
-            VkDescriptorSetLayoutBinding {
-                    .binding            = 2U,
-                    .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount    = 1U,
-                    .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .pImmutableSamplers = nullptr}};
+    // Object Bindings
+    {
+        constexpr std::array LayoutBindings {
+                VkDescriptorSetLayoutBinding {
+                        .binding            = 0U,
+                        .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        .descriptorCount    = 1U,
+                        .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
+                        .pImmutableSamplers = nullptr},
+                VkDescriptorSetLayoutBinding {
+                        .binding            = 1U,
+                        .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                        .descriptorCount    = 1U,
+                        .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+                        .pImmutableSamplers = nullptr}};
 
-    VkDescriptorSetLayoutCreateInfo const DescriptorSetLayoutInfo {
-            .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .bindingCount = static_cast<std::uint32_t>(LayoutBindings.size()),
-            .pBindings    = LayoutBindings.data()};
+        VkDescriptorSetLayoutCreateInfo const DescriptorSetLayoutInfo {
+                .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+                .bindingCount = static_cast<std::uint32_t>(LayoutBindings.size()),
+                .pBindings    = LayoutBindings.data()};
 
-    Helpers::CheckVulkanResult(vkCreateDescriptorSetLayout(DeviceManager::Get().GetLogicalDevice(), &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout));
+        Helpers::CheckVulkanResult(vkCreateDescriptorSetLayout(DeviceManager::Get().GetLogicalDevice(), &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayouts.emplace_back()));
+    }
+
+    // ImGUI UI Bindings
+    {
+        constexpr std::array LayoutBindings {
+                VkDescriptorSetLayoutBinding {
+                        .binding            = 2U,
+                        .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                        .descriptorCount    = 1U,
+                        .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+                        .pImmutableSamplers = nullptr}};
+
+        VkDescriptorSetLayoutCreateInfo const DescriptorSetLayoutInfo {
+                .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+                .bindingCount = static_cast<std::uint32_t>(LayoutBindings.size()),
+                .pBindings    = LayoutBindings.data()};
+
+        Helpers::CheckVulkanResult(vkCreateDescriptorSetLayout(DeviceManager::Get().GetLogicalDevice(), &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayouts.emplace_back()));
+    }
 }
 
 void PipelineManager::CreateDescriptorPool()
@@ -304,17 +322,14 @@ void PipelineManager::CreateDescriptorPool()
     constexpr std::array DescriptorPoolSizes {
             VkDescriptorPoolSize {
                     .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = g_MaxFramesInFlight},
+                    .descriptorCount = 1U},
             VkDescriptorPoolSize {
                     .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = g_MaxFramesInFlight},
-            VkDescriptorPoolSize {
-                    .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = g_MaxFramesInFlight}};
+                    .descriptorCount = 2U}};
 
     VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .maxSets       = g_MaxFramesInFlight,
+            .maxSets       = PipelineManager::g_NumDescriptorSetLayouts,
             .poolSizeCount = static_cast<std::uint32_t>(DescriptorPoolSizes.size()),
             .pPoolSizes    = DescriptorPoolSizes.data()};
 
@@ -326,22 +341,22 @@ void PipelineManager::CreateDescriptorSets()
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor sets";
 
     VkDevice const& VulkanLogicalDevice = DeviceManager::Get().GetLogicalDevice();
+    auto const AllocatedTextures        = BufferManager::Get().GetAllocatedTextures();
 
-    std::vector const DescriptorSetLayouts(g_MaxFramesInFlight, m_DescriptorSetLayout);
+    m_DescriptorSets.resize(m_DescriptorSetLayouts.size());
 
     VkDescriptorSetAllocateInfo const DescriptorSetAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .descriptorPool     = m_DescriptorPool,
-            .descriptorSetCount = static_cast<std::uint32_t>(DescriptorSetLayouts.size()),
-            .pSetLayouts        = DescriptorSetLayouts.data()};
+            .descriptorSetCount = static_cast<std::uint32_t>(m_DescriptorSets.size()),
+            .pSetLayouts        = m_DescriptorSetLayouts.data()};
 
-    m_DescriptorSets.resize(g_MaxFramesInFlight);
     Helpers::CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, m_DescriptorSets.data()));
 
-    for (std::uint32_t Iterator = 0U; Iterator < g_MaxFramesInFlight; ++Iterator)
+    // Object Bindings
     {
         std::vector<VkDescriptorImageInfo> ImageInfos {};
-        for (VulkanTextureData const& TextureDataIter: BufferManager::Get().GetAllocatedTextures())
+        for (VulkanTextureData const& TextureDataIter: AllocatedTextures)
         {
             ImageInfos.push_back(
                     VkDescriptorImageInfo {
@@ -350,25 +365,24 @@ void PipelineManager::CreateDescriptorSets()
                             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
         }
 
-        VulkanTextureData const ImGuiTextureAllocation = BufferManager::Get().GetAllocatedImGuiFontTexture();
-
-        ImageInfos.push_back(
-                VkDescriptorImageInfo {
-                        .sampler     = ImGuiTextureAllocation.Sampler,
-                        .imageView   = ImGuiTextureAllocation.ImageView,
-                        .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+        if (AllocatedTextures.empty())
+        {
+            ImageInfos.push_back(
+                    VkDescriptorImageInfo {
+                            .sampler     = VK_NULL_HANDLE,
+                            .imageView   = VK_NULL_HANDLE,
+                            .imageLayout = VK_IMAGE_LAYOUT_UNDEFINED});
+        }
 
         std::vector<VkWriteDescriptorSet> WriteDescriptors {};
 
         for (auto ImageInfoIterator = ImageInfos.begin(); ImageInfoIterator != ImageInfos.end(); ++ImageInfoIterator)
         {
-            std::uint32_t const Index = static_cast<std::uint32_t>(std::distance(ImageInfos.begin(), ImageInfoIterator));
-
             WriteDescriptors.push_back(
                     VkWriteDescriptorSet {
                             .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                            .dstSet           = m_DescriptorSets.at(Iterator),
-                            .dstBinding       = Index + 1U,
+                            .dstSet           = m_DescriptorSets.at(0U),
+                            .dstBinding       = 1U,
                             .dstArrayElement  = 0U,
                             .descriptorCount  = 1U,
                             .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -377,10 +391,30 @@ void PipelineManager::CreateDescriptorSets()
                             .pTexelBufferView = nullptr});
         }
 
-        if (!WriteDescriptors.empty())
-        {
-            vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(WriteDescriptors.size()), WriteDescriptors.data(), 0U, nullptr);
-        }
+        vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(WriteDescriptors.size()), WriteDescriptors.data(), 0U, nullptr);
+    }
+
+    // ImGui UI Bindings
+    {
+        VulkanTextureData const ImGuiTextureAllocation = BufferManager::Get().GetAllocatedImGuiFontTexture();
+
+        VkDescriptorImageInfo const ImageInfo {
+                .sampler     = ImGuiTextureAllocation.Sampler,
+                .imageView   = ImGuiTextureAllocation.ImageView,
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+
+        VkWriteDescriptorSet const WriteDescriptor {
+                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet           = m_DescriptorSets.at(1U),
+                .dstBinding       = 2U,
+                .dstArrayElement  = 0U,
+                .descriptorCount  = 1U,
+                .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .pImageInfo       = &ImageInfo,
+                .pBufferInfo      = nullptr,
+                .pTexelBufferView = nullptr};
+
+        vkUpdateDescriptorSets(VulkanLogicalDevice, 1U, &WriteDescriptor, 0U, nullptr);
     }
 }
 
@@ -421,11 +455,15 @@ void PipelineManager::DestroyResources()
         m_RenderPass = VK_NULL_HANDLE;
     }
 
-    if (m_DescriptorSetLayout != VK_NULL_HANDLE)
+    for (auto& DescriptorSetLayoutIter: m_DescriptorSetLayouts)
     {
-        vkDestroyDescriptorSetLayout(VulkanLogicalDevice, m_DescriptorSetLayout, nullptr);
-        m_DescriptorSetLayout = VK_NULL_HANDLE;
+        if (DescriptorSetLayoutIter != VK_NULL_HANDLE)
+        {
+            vkDestroyDescriptorSetLayout(VulkanLogicalDevice, DescriptorSetLayoutIter, nullptr);
+            DescriptorSetLayoutIter = VK_NULL_HANDLE;
+        }
     }
+    m_DescriptorSetLayouts.clear();
 
     if (m_DescriptorPool != VK_NULL_HANDLE)
     {
@@ -456,9 +494,9 @@ VkPipelineCache const& PipelineManager::GetPipelineCache() const
     return m_PipelineCache;
 }
 
-VkDescriptorSetLayout const& PipelineManager::GetDescriptorSetLayout() const
+std::vector<VkDescriptorSetLayout> const& PipelineManager::GetDescriptorSetLayouts() const
 {
-    return m_DescriptorSetLayout;
+    return m_DescriptorSetLayouts;
 }
 
 VkDescriptorPool const& PipelineManager::GetDescriptorPool() const

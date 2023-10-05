@@ -59,8 +59,6 @@ export namespace RenderCore
             VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR};
 
-    constexpr std::uint8_t g_MaxFramesInFlight = 1U;
-
     constexpr std::uint64_t g_BufferMemoryAllocationSize      = 65536U;
     constexpr std::uint64_t g_ImageBufferMemoryAllocationSize = 262144U;
 

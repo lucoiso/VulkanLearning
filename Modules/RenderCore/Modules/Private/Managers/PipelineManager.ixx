@@ -14,6 +14,16 @@ export namespace RenderCore
 {
     class PipelineManager final
     {
+        static constexpr std::uint32_t g_NumDescriptorSetLayouts = 2U;
+
+        VkRenderPass m_RenderPass;
+        VkPipeline m_Pipeline;
+        VkPipelineLayout m_PipelineLayout;
+        VkPipelineCache m_PipelineCache;
+        VkDescriptorPool m_DescriptorPool;
+        std::vector<VkDescriptorSetLayout> m_DescriptorSetLayouts;
+        std::vector<VkDescriptorSet> m_DescriptorSets;
+
     public:
         PipelineManager();
 
@@ -38,17 +48,8 @@ export namespace RenderCore
         [[nodiscard]] VkPipeline const& GetPipeline() const;
         [[nodiscard]] VkPipelineLayout const& GetPipelineLayout() const;
         [[nodiscard]] VkPipelineCache const& GetPipelineCache() const;
-        [[nodiscard]] VkDescriptorSetLayout const& GetDescriptorSetLayout() const;
+        [[nodiscard]] std::vector<VkDescriptorSetLayout> const& GetDescriptorSetLayouts() const;
         [[nodiscard]] VkDescriptorPool const& GetDescriptorPool() const;
         [[nodiscard]] std::vector<VkDescriptorSet> const& GetDescriptorSets() const;
-
-    private:
-        VkRenderPass m_RenderPass;
-        VkPipeline m_Pipeline;
-        VkPipelineLayout m_PipelineLayout;
-        VkPipelineCache m_PipelineCache;
-        VkDescriptorPool m_DescriptorPool;
-        VkDescriptorSetLayout m_DescriptorSetLayout;
-        std::vector<VkDescriptorSet> m_DescriptorSets;
     };
 }// namespace RenderCore

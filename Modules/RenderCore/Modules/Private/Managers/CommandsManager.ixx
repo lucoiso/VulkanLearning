@@ -29,7 +29,6 @@ export namespace RenderCore
         VkSemaphore m_RenderFinishedSemaphore;
         VkFence m_Fence;
         bool m_SynchronizationObjectsCreated;
-        std::uint8_t m_FrameIndex;
         std::vector<struct ObjectAllocation> m_ImGuiFontsAllocation;
 
     public:

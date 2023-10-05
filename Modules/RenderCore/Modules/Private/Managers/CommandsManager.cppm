@@ -37,8 +37,7 @@ CommandsManager::CommandsManager()
       m_ImageAvailableSemaphore(VK_NULL_HANDLE),
       m_RenderFinishedSemaphore(VK_NULL_HANDLE),
       m_Fence(VK_NULL_HANDLE),
-      m_SynchronizationObjectsCreated(false),
-      m_FrameIndex(0U)
+      m_SynchronizationObjectsCreated(false)
 {
 }
 
@@ -267,11 +266,22 @@ void CommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
 
     if (!DescriptorSets.empty())
     {
-        VkDescriptorSet const& DescriptorSet = DescriptorSets.at(m_FrameIndex);
-        vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, 1U, &DescriptorSet, 0U, nullptr);
+        std::vector<VkDescriptorSet> ValidDescriptorSets;
+        for (VkDescriptorSet const& DescriptorSetIter: DescriptorSets)
+        {
+            if (DescriptorSetIter != VK_NULL_HANDLE)
+            {
+                ValidDescriptorSets.push_back(DescriptorSetIter);
+            }
+        }
+
+        vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, static_cast<std::uint32_t>(ValidDescriptorSets.size()), ValidDescriptorSets.data(), 0U, nullptr);
     }
 
-    vkCmdPushConstants(MainCommandBuffer, PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0U, sizeof(UniformBufferObject), &UniformBufferObj);
+    std::uint32_t PushConstantOffset        = 0U;
+    constexpr std::size_t UniformBufferSize = sizeof(UniformBufferObject);
+    vkCmdPushConstants(MainCommandBuffer, PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, PushConstantOffset, UniformBufferSize, &UniformBufferObj);
+    PushConstantOffset += static_cast<std::uint32_t>(UniformBufferSize);
 
     bool ActiveVertexBinding = false;
     if (VertexBuffer != VK_NULL_HANDLE)
@@ -301,52 +311,94 @@ void CommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
         {
             ResetImGuiFontsAllocation();
 
+            ImVec2 const DisplaySize     = ImGuiDrawData->DisplaySize;
+            ImVec2 const DisplayPosition = ImGuiDrawData->DisplayPos;
+            ImVec2 const BufferScale     = ImGuiDrawData->FramebufferScale;
+
+            auto const WidthScale  = static_cast<std::int32_t>(DisplaySize.x * ImGuiDrawData->FramebufferScale.x);
+            auto const HeightScale = static_cast<std::int32_t>(DisplaySize.y * ImGuiDrawData->FramebufferScale.y);// Setup viewport:
+
+            VkViewport const ImGuiViewport {
+                    .x        = 0U,
+                    .y        = 0U,
+                    .width    = static_cast<float>(WidthScale),
+                    .height   = static_cast<float>(HeightScale),
+                    .minDepth = 0.F,
+                    .maxDepth = 1.F};
+
+            vkCmdSetViewport(MainCommandBuffer, 0U, 1U, &ImGuiViewport);
+
+            std::array const Scale {
+                    2.F / DisplaySize.x,
+                    2.F / DisplaySize.y};
+
+            std::array const Translation {
+                    -1.F - DisplayPosition.x * Scale.at(0U),
+                    -1.F - DisplayPosition.y * Scale.at(1U)};
+
+            auto const ScaleSize       = static_cast<std::uint32_t>(sizeof(float) * Scale.size());
+            auto const TranslationSize = static_cast<std::uint32_t>(sizeof(float) * Translation.size());
+
+            vkCmdPushConstants(MainCommandBuffer, PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, PushConstantOffset, ScaleSize, Scale.data());
+            PushConstantOffset += ScaleSize;
+
+            vkCmdPushConstants(MainCommandBuffer, PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, PushConstantOffset, TranslationSize, Translation.data());
+            PushConstantOffset += TranslationSize;
+
             std::span const ImGuiCmdListSpan(ImGuiDrawData->CmdLists.Data, ImGuiDrawData->CmdListsCount);
+
+            std::uint32_t VertexBufferOffset {0U};
+            std::uint32_t IndexBufferOffset {0U};
 
             for (std::vector const ImGuiCmdList(ImGuiCmdListSpan.begin(), ImGuiCmdListSpan.end());
                  ImDrawList const* const ImGuiCmdListIter: ImGuiCmdList)
             {
                 ObjectAllocation& NewAllocation = m_ImGuiFontsAllocation.emplace_back();
 
+                bool ImGuiVertexBound = false;
                 // Bind Vertex Buffers
                 {
                     VkDeviceSize const AllocationSize = ImGuiCmdListIter->VtxBuffer.Size * sizeof(ImDrawVert);
 
-                    std::vector<Vertex> Vertices;
-                    Vertices.reserve(ImGuiCmdListIter->VtxBuffer.Size);
-
+                    std::vector<Vertex> Vertices(ImGuiCmdListIter->VtxBuffer.Size);
                     for (ImDrawVert const& ImGuiVertexIter: ImGuiCmdListIter->VtxBuffer)
                     {
-                        Vertices.push_back(
-                                Vertex {
-                                        .Position          = {ImGuiVertexIter.pos.x, ImGuiVertexIter.pos.y, 0.F},
-                                        .Color             = {static_cast<float>(ImGuiVertexIter.col), static_cast<float>(ImGuiVertexIter.col), static_cast<float>(ImGuiVertexIter.col)},
-                                        .TextureCoordinate = {ImGuiVertexIter.uv.x, ImGuiVertexIter.uv.y}});
+                        Vertices.push_back(Vertex {
+                                .Position          = {ImGuiVertexIter.pos.x, ImGuiVertexIter.pos.y, 0.F},
+                                .Color             = {static_cast<float>(ImGuiVertexIter.col), static_cast<float>(ImGuiVertexIter.col), static_cast<float>(ImGuiVertexIter.col)},
+                                .TextureCoordinate = {ImGuiVertexIter.uv.x, ImGuiVertexIter.uv.y}});
                     }
 
-                    BufferManager::Get().CreateVertexBuffer(NewAllocation, AllocationSize, Vertices);
-                    vkCmdBindVertexBuffers(MainCommandBuffer, 0U, 1U, &NewAllocation.VertexBuffer.Buffer, Offsets.data());
+                    if (BufferManager::Get().CreateVertexBuffer(NewAllocation, AllocationSize, Vertices);
+                        NewAllocation.VertexBuffer.Buffer != VK_NULL_HANDLE)
+                    {
+                        vkCmdBindVertexBuffers(MainCommandBuffer, 0U, 1U, &NewAllocation.VertexBuffer.Buffer, Offsets.data());
+                        ImGuiVertexBound = true;
+                    }
                 }
 
+                bool ImGuiIndexBound = false;
                 // Bind Index Buffers
                 {
                     VkDeviceSize const AllocationSize = ImGuiCmdListIter->IdxBuffer.Size * sizeof(ImDrawIdx);
 
-                    std::vector<std::uint32_t> Indices;
-                    Indices.reserve(ImGuiCmdListIter->IdxBuffer.Size);
-
+                    std::vector<std::uint32_t> Indices(ImGuiCmdListIter->IdxBuffer.Size);
                     for (ImDrawIdx const& ImGuiIndexIter: ImGuiCmdListIter->IdxBuffer)
                     {
                         Indices.push_back(ImGuiIndexIter);
                     }
 
-                    BufferManager::Get().CreateIndexBuffer(NewAllocation, AllocationSize, Indices);
-                    vkCmdBindIndexBuffer(MainCommandBuffer, NewAllocation.IndexBuffer.Buffer, 0U, VK_INDEX_TYPE_UINT32);
+                    if (BufferManager::Get().CreateIndexBuffer(NewAllocation, AllocationSize, Indices);
+                        NewAllocation.IndexBuffer.Buffer != VK_NULL_HANDLE)
+                    {
+                        vkCmdBindIndexBuffer(MainCommandBuffer, NewAllocation.IndexBuffer.Buffer, 0U, VK_INDEX_TYPE_UINT32);
+                        ImGuiIndexBound = true;
+                    }
                 }
 
                 std::span const ImGuiCmdBufferSpan(ImGuiCmdListIter->CmdBuffer.Data, ImGuiCmdListIter->CmdBuffer.Size);
                 for (std::vector const ImGuiCmdBuffers(ImGuiCmdBufferSpan.begin(), ImGuiCmdBufferSpan.end());
-                     ImDrawCmd const ImGuiCmdBufferIter: ImGuiCmdBuffers)
+                     ImDrawCmd ImGuiCmdBufferIter: ImGuiCmdBuffers)
                 {
                     if (ImGuiCmdBufferIter.UserCallback != nullptr)
                     {
@@ -354,24 +406,68 @@ void CommandsManager::RecordCommandBuffers(std::uint32_t const ImageIndex)
                     }
                     else
                     {
-                        VkRect2D const ImGuiScissor {
-                                .offset = {
-                                        static_cast<std::int32_t>(ImGuiCmdBufferIter.ClipRect.x),
-                                        static_cast<std::int32_t>(ImGuiCmdBufferIter.ClipRect.y)},
-                                .extent = {static_cast<std::uint32_t>(ImGuiCmdBufferIter.ClipRect.z - ImGuiCmdBufferIter.ClipRect.x), static_cast<std::uint32_t>(ImGuiCmdBufferIter.ClipRect.w - ImGuiCmdBufferIter.ClipRect.y)}};
+                        ImVec2 ClipMin((ImGuiCmdBufferIter.ClipRect.x - DisplayPosition.x) * BufferScale.x, (ImGuiCmdBufferIter.ClipRect.y - DisplayPosition.y) * BufferScale.y);
+                        ImVec2 ClipMax((ImGuiCmdBufferIter.ClipRect.z - DisplayPosition.x) * BufferScale.x, (ImGuiCmdBufferIter.ClipRect.w - DisplayPosition.y) * BufferScale.y);
 
-                        vkCmdSetScissor(MainCommandBuffer, 0U, 1U, &ImGuiScissor);
+                        if (ClipMin.x < 0.F)
+                        {
+                            ClipMin.x = 0.F;
+                        }
 
-                        vkCmdDrawIndexed(
-                                MainCommandBuffer,
-                                static_cast<std::uint32_t>(ImGuiCmdBufferIter.ElemCount),
-                                1U,
-                                static_cast<std::uint32_t>(ImGuiCmdBufferIter.IdxOffset),
-                                static_cast<std::int32_t>(ImGuiCmdBufferIter.VtxOffset),
-                                0U);
+                        if (ClipMax.x > static_cast<float>(WidthScale))
+                        {
+                            ClipMax.x = static_cast<float>(WidthScale);
+                        }
+
+                        if (ClipMin.y < 0.F)
+                        {
+                            ClipMin.y = 0.F;
+                        }
+
+                        if (ClipMax.y > static_cast<float>(HeightScale))
+                        {
+                            ClipMax.y = static_cast<float>(HeightScale);
+                        }
+
+                        if (ClipMax.x <= ClipMin.x || ClipMax.y <= ClipMin.y)
+                        {
+                            continue;
+                        }
+
+                        {
+                            VkRect2D const ImGuiScissor {
+                                    .offset {.x = static_cast<std::int32_t>(ClipMin.x),
+                                             .y = static_cast<std::int32_t>(ClipMin.y)},
+                                    .extent {.width  = static_cast<std::uint32_t>(ClipMax.x - ClipMin.x),
+                                             .height = static_cast<std::uint32_t>(ClipMax.y - ClipMin.y)}};
+
+                            vkCmdSetScissor(MainCommandBuffer, 0U, 1U, &ImGuiScissor);
+                        }
+
+                        if (ImGuiVertexBound && ImGuiIndexBound)
+                        {
+                            vkCmdDrawIndexed(
+                                    MainCommandBuffer,
+                                    static_cast<std::uint32_t>(ImGuiCmdBufferIter.ElemCount),
+                                    1U,
+                                    static_cast<std::uint32_t>(ImGuiCmdBufferIter.IdxOffset + IndexBufferOffset),
+                                    static_cast<std::int32_t>(ImGuiCmdBufferIter.VtxOffset + VertexBufferOffset),
+                                    0U);
+                        }
                     }
                 }
+
+                VertexBufferOffset = ImGuiCmdListIter->VtxBuffer.Size;
+                IndexBufferOffset  = ImGuiCmdListIter->IdxBuffer.Size;
             }
+
+            VkRect2D const ImGuiScissor {
+                    .offset {.x = 0U,
+                             .y = 0U},
+                    .extent {.width  = static_cast<std::uint32_t>(WidthScale),
+                             .height = static_cast<std::uint32_t>(HeightScale)}};
+
+            vkCmdSetScissor(MainCommandBuffer, 0, 1, &ImGuiScissor);
         }
     }
 
@@ -427,8 +523,6 @@ void CommandsManager::PresentFrame(std::uint32_t const ImageIndice)
             throw std::runtime_error("Vulkan operation failed with result: " + std::string(ResultToString(OperationResult)));
         }
     }
-
-    m_FrameIndex = (m_FrameIndex + 1U) % g_MaxFramesInFlight;
 }
 
 void CommandsManager::CreateGraphicsCommandPool()

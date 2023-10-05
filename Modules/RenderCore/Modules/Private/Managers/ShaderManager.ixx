@@ -24,6 +24,8 @@ export namespace RenderCore
 
     class ShaderManager final
     {
+        std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> m_StageInfos;
+
     public:
         ShaderManager();
 
@@ -51,9 +53,6 @@ export namespace RenderCore
 
     private:
         static bool Compile(std::string_view Source, EShLanguage Language, std::vector<uint32_t>& OutSPIRVCode);
-
         void StageInfo(VkShaderModule const& Module, EShLanguage Language);
-
-        std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> m_StageInfos;
     };
 }// namespace RenderCore

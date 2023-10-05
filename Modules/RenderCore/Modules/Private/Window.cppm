@@ -41,7 +41,7 @@ static void GLFWWindowResized(GLFWwindow* const Window, [[maybe_unused]] std::in
 {
     DeviceManager::Get().UpdateDeviceProperties(Window);
     ImGui::GetIO().DisplaySize             = ImVec2(static_cast<float>(Width), static_cast<float>(Height));
-    ImGui::GetIO().DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+    ImGui::GetIO().DisplayFramebufferScale = ImVec2(1.F, 1.F);
     ImGui::GetIO().DeltaTime               = static_cast<float>(glfwGetTime());
 }
 
@@ -122,8 +122,8 @@ static void GLFWCursorPositionCallback(GLFWwindow* Window, double NewCursorPosX,
 
             if (LeftButtonEvent == GLFW_PRESS)
             {
-                Matrix = glm::rotate(Matrix, static_cast<float>(OffsetX * s_CursorCallbackRate), glm::vec3(0.0f, 0.0f, 1.0f));
-                Matrix = glm::rotate(Matrix, static_cast<float>(OffsetY * s_CursorCallbackRate), glm::vec3(0.0f, 1.0f, 0.0f));
+                Matrix = glm::rotate(Matrix, static_cast<float>(OffsetX * s_CursorCallbackRate), glm::vec3(0.F, 0.F, 1.F));
+                Matrix = glm::rotate(Matrix, static_cast<float>(OffsetY * s_CursorCallbackRate), glm::vec3(0.F, 1.F, 0.F));
             }
 
             if (MiddleButtonEvent == GLFW_PRESS || RightButtonEvent == GLFW_PRESS)
@@ -300,9 +300,7 @@ void Window::PollEvents()
 
 void Window::CreateOverlay()
 {
-    ImGui::Begin("Hello World!");
-    ImGui::Text("How r u doing?");
-    ImGui::End();
+    ImGui::ShowDemoWindow();
 }
 
 bool Window::InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title)
