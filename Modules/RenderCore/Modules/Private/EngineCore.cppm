@@ -58,7 +58,6 @@ static std::uint64_t s_ObjectID {0U};
 
 #ifdef _DEBUG
 VkDebugUtilsMessengerEXT s_DebugMessenger {VK_NULL_HANDLE};
-;
 #endif
 
 std::optional<std::int32_t> TryRequestDrawImage()

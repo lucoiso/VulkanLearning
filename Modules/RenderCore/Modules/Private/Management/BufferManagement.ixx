@@ -4,8 +4,8 @@
 
 module;
 
-#include <vk_mem_alloc.h>
 #include <volk.h>
+#include <vk_mem_alloc.h>
 
 export module RenderCore.Management.BufferManagement;
 
@@ -16,10 +16,10 @@ export namespace RenderCore
 {
     struct ImageAllocation
     {
-        VkImage Image;
-        VkImageView View;
-        VkSampler Sampler;
-        VmaAllocation Allocation;
+        VkImage Image{VK_NULL_HANDLE};
+        VkImageView View{VK_NULL_HANDLE};
+        VkSampler Sampler{VK_NULL_HANDLE};
+        VmaAllocation Allocation{VK_NULL_HANDLE};
 
         [[nodiscard]] bool IsValid() const;
         void DestroyResources();
@@ -27,8 +27,8 @@ export namespace RenderCore
 
     struct BufferAllocation
     {
-        VkBuffer Buffer;
-        VmaAllocation Allocation;
+        VkBuffer Buffer{VK_NULL_HANDLE};
+        VmaAllocation Allocation{VK_NULL_HANDLE};
 
         [[nodiscard]] bool IsValid() const;
         void DestroyResources();
@@ -36,10 +36,10 @@ export namespace RenderCore
 
     struct ObjectAllocation
     {
-        ImageAllocation TextureImage;
-        BufferAllocation VertexBuffer;
-        BufferAllocation IndexBuffer;
-        std::uint32_t IndicesCount;
+        ImageAllocation TextureImage{};
+        BufferAllocation VertexBuffer{};
+        BufferAllocation IndexBuffer{};
+        std::uint32_t IndicesCount{0U};
 
         [[nodiscard]] bool IsValid() const;
         void DestroyResources();

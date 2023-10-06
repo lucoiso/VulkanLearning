@@ -325,10 +325,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
         vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, static_cast<std::uint32_t>(ValidDescriptorSets.size()), ValidDescriptorSets.data(), 0U, nullptr);
     }
 
-    std::uint32_t PushConstantOffset        = 0U;
-    constexpr std::size_t UniformBufferSize = sizeof(UniformBufferObject);
-    vkCmdPushConstants(MainCommandBuffer, PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, PushConstantOffset, UniformBufferSize, &UniformBufferObj);
-    PushConstantOffset += static_cast<std::uint32_t>(UniformBufferSize);
+    vkCmdPushConstants(MainCommandBuffer, PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0U, sizeof(UniformBufferObj), &UniformBufferObj);
 
     bool ActiveVertexBinding = false;
     if (VertexBuffer != VK_NULL_HANDLE)
