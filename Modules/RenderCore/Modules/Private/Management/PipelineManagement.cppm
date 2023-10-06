@@ -7,14 +7,14 @@ module;
 #include <boost/log/trivial.hpp>
 #include <volk.h>
 
-module RenderCore.Managers.PipelineManager;
+module RenderCore.Management.PipelineManagement;
 
 import <array>;
 import <vector>;
 
-import RenderCore.Managers.DeviceManager;
-import RenderCore.Managers.BufferManager;
-import RenderCore.Managers.ShaderManager;
+import RenderCore.Management.DeviceManagement;
+import RenderCore.Management.BufferManagement;
+import RenderCore.Management.ShaderManagement;
 import RenderCore.Types.UniformBufferObject;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
@@ -23,44 +23,24 @@ import RenderCore.Types.TextureData;
 
 using namespace RenderCore;
 
-PipelineManager::PipelineManager()
-    : m_RenderPass(VK_NULL_HANDLE),
-      m_Pipeline(VK_NULL_HANDLE),
-      m_PipelineLayout(VK_NULL_HANDLE),
-      m_PipelineCache(VK_NULL_HANDLE),
-      m_DescriptorPool(VK_NULL_HANDLE),
-      m_DescriptorSetLayouts({}),
-      m_DescriptorSets({})
-{
-}
+static VkRenderPass s_RenderPass {VK_NULL_HANDLE};
+static VkPipeline s_Pipeline {VK_NULL_HANDLE};
+static VkPipelineLayout s_PipelineLayout {VK_NULL_HANDLE};
+static VkPipelineCache s_PipelineCache {VK_NULL_HANDLE};
+static VkDescriptorPool s_DescriptorPool {VK_NULL_HANDLE};
+static std::array<VkDescriptorSetLayout, 1U> s_DescriptorSetLayouts {};
+static std::vector<VkDescriptorSet> s_DescriptorSets {};
 
-PipelineManager::~PipelineManager()
+void RenderCore::CreateRenderPass()
 {
-    try
+    if (s_RenderPass != VK_NULL_HANDLE)
     {
-        Shutdown();
-    }
-    catch (...)
-    {
-    }
-}
-
-PipelineManager& PipelineManager::Get()
-{
-    static PipelineManager Instance {};
-    return Instance;
-}
-
-void PipelineManager::CreateRenderPass()
-{
-    if (m_RenderPass != VK_NULL_HANDLE)
-    {
-        vkDestroyRenderPass(DeviceManager::Get().GetLogicalDevice(), m_RenderPass, nullptr);
+        vkDestroyRenderPass(GetLogicalDevice(), s_RenderPass, nullptr);
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render pass";
 
-    auto const& [Format, DepthFormat, Mode, Extent, Capabilities] = DeviceManager::Get().GetDeviceProperties();
+    auto const& [Format, DepthFormat, Mode, Extent, Capabilities] = GetDeviceProperties();
 
     VkAttachmentDescription const ColorAttachmentDescription {
             .format         = Format.format,
@@ -117,29 +97,15 @@ void PipelineManager::CreateRenderPass()
             .dependencyCount = 1U,
             .pDependencies   = &SubpassDependency};
 
-    Helpers::CheckVulkanResult(vkCreateRenderPass(DeviceManager::Get().GetLogicalDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass));
+    CheckVulkanResult(vkCreateRenderPass(GetLogicalDevice(), &RenderPassCreateInfo, nullptr, &s_RenderPass));
 }
 
-void PipelineManager::CreateDefaultRenderPass()
-{
-    constexpr VkRenderPassCreateInfo RenderPassCreateInfo {
-            .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-            .attachmentCount = 0U,
-            .pAttachments    = nullptr,
-            .subpassCount    = 0U,
-            .pSubpasses      = nullptr,
-            .dependencyCount = 0U,
-            .pDependencies   = nullptr};
-
-    Helpers::CheckVulkanResult(vkCreateRenderPass(DeviceManager::Get().GetLogicalDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass));
-}
-
-void PipelineManager::CreateGraphicsPipeline()
+void RenderCore::CreateGraphicsPipeline()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan graphics pipeline";
 
-    auto const BindingDescription    = Helpers::GetBindingDescriptors();
-    auto const AttributeDescriptions = Helpers::GetAttributeDescriptions();
+    auto const BindingDescription    = GetBindingDescriptors();
+    auto const AttributeDescriptions = GetAttributeDescriptions();
 
     VkPipelineVertexInputStateCreateInfo const VertexInputState {
             .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -219,19 +185,19 @@ void PipelineManager::CreateGraphicsPipeline()
 
     VkPipelineLayoutCreateInfo const PipelineLayoutCreateInfo {
             .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount         = static_cast<std::uint32_t>(m_DescriptorSetLayouts.size()),
-            .pSetLayouts            = m_DescriptorSetLayouts.data(),
+            .setLayoutCount         = static_cast<std::uint32_t>(s_DescriptorSetLayouts.size()),
+            .pSetLayouts            = s_DescriptorSetLayouts.data(),
             .pushConstantRangeCount = static_cast<std::uint32_t>(PushConstantRanges.size()),
             .pPushConstantRanges    = PushConstantRanges.data()};
 
-    VkDevice const& VulkanLogicalDevice = DeviceManager::Get().GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
 
-    Helpers::CheckVulkanResult(vkCreatePipelineLayout(VulkanLogicalDevice, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
+    CheckVulkanResult(vkCreatePipelineLayout(VulkanLogicalDevice, &PipelineLayoutCreateInfo, nullptr, &s_PipelineLayout));
 
     constexpr VkPipelineCacheCreateInfo PipelineCacheCreateInfo {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
 
-    Helpers::CheckVulkanResult(vkCreatePipelineCache(VulkanLogicalDevice, &PipelineCacheCreateInfo, nullptr, &m_PipelineCache));
+    CheckVulkanResult(vkCreatePipelineCache(VulkanLogicalDevice, &PipelineCacheCreateInfo, nullptr, &s_PipelineCache));
 
     constexpr VkPipelineDepthStencilStateCreateInfo DepthStencilState {
             .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
@@ -245,7 +211,7 @@ void PipelineManager::CreateGraphicsPipeline()
             .minDepthBounds        = 0.F,
             .maxDepthBounds        = 1.F};
 
-    std::vector<VkPipelineShaderStageCreateInfo> const ShaderStages = ShaderManager::Get().GetStageInfos();
+    std::vector<VkPipelineShaderStageCreateInfo> const ShaderStages = GetStageInfos();
 
     VkGraphicsPipelineCreateInfo const GraphicsPipelineCreateInfo {
             .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -259,16 +225,16 @@ void PipelineManager::CreateGraphicsPipeline()
             .pDepthStencilState  = &DepthStencilState,
             .pColorBlendState    = &ColorBlendState,
             .pDynamicState       = &DynamicState,
-            .layout              = m_PipelineLayout,
-            .renderPass          = m_RenderPass,
+            .layout              = s_PipelineLayout,
+            .renderPass          = s_RenderPass,
             .subpass             = 0U,
             .basePipelineHandle  = VK_NULL_HANDLE,
             .basePipelineIndex   = -1};
 
-    Helpers::CheckVulkanResult(vkCreateGraphicsPipelines(VulkanLogicalDevice, VK_NULL_HANDLE, 1U, &GraphicsPipelineCreateInfo, nullptr, &m_Pipeline));
+    CheckVulkanResult(vkCreateGraphicsPipelines(VulkanLogicalDevice, VK_NULL_HANDLE, 1U, &GraphicsPipelineCreateInfo, nullptr, &s_Pipeline));
 }
 
-void PipelineManager::CreateDescriptorSetLayout()
+void RenderCore::CreateDescriptorSetLayout()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
 
@@ -293,29 +259,11 @@ void PipelineManager::CreateDescriptorSetLayout()
                 .bindingCount = static_cast<std::uint32_t>(LayoutBindings.size()),
                 .pBindings    = LayoutBindings.data()};
 
-        Helpers::CheckVulkanResult(vkCreateDescriptorSetLayout(DeviceManager::Get().GetLogicalDevice(), &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayouts.emplace_back()));
-    }
-
-    // ImGUI UI Bindings
-    {
-        constexpr std::array LayoutBindings {
-                VkDescriptorSetLayoutBinding {
-                        .binding            = 2U,
-                        .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                        .descriptorCount    = 1U,
-                        .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-                        .pImmutableSamplers = nullptr}};
-
-        VkDescriptorSetLayoutCreateInfo const DescriptorSetLayoutInfo {
-                .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-                .bindingCount = static_cast<std::uint32_t>(LayoutBindings.size()),
-                .pBindings    = LayoutBindings.data()};
-
-        Helpers::CheckVulkanResult(vkCreateDescriptorSetLayout(DeviceManager::Get().GetLogicalDevice(), &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayouts.emplace_back()));
+        CheckVulkanResult(vkCreateDescriptorSetLayout(GetLogicalDevice(), &DescriptorSetLayoutInfo, nullptr, &s_DescriptorSetLayouts.at(0U)));
     }
 }
 
-void PipelineManager::CreateDescriptorPool()
+void RenderCore::CreateDescriptorPool()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor pool";
 
@@ -329,29 +277,29 @@ void PipelineManager::CreateDescriptorPool()
 
     VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .maxSets       = PipelineManager::g_NumDescriptorSetLayouts,
+            .maxSets       = static_cast<std::uint32_t>(s_DescriptorSetLayouts.size()),
             .poolSizeCount = static_cast<std::uint32_t>(DescriptorPoolSizes.size()),
             .pPoolSizes    = DescriptorPoolSizes.data()};
 
-    Helpers::CheckVulkanResult(vkCreateDescriptorPool(DeviceManager::Get().GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool));
+    CheckVulkanResult(vkCreateDescriptorPool(GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &s_DescriptorPool));
 }
 
-void PipelineManager::CreateDescriptorSets()
+void RenderCore::CreateDescriptorSets()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor sets";
 
-    VkDevice const& VulkanLogicalDevice = DeviceManager::Get().GetLogicalDevice();
-    auto const AllocatedTextures        = BufferManager::Get().GetAllocatedTextures();
+    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
+    auto const AllocatedTextures        = GetAllocatedTextures();
 
-    m_DescriptorSets.resize(m_DescriptorSetLayouts.size());
+    s_DescriptorSets.resize(s_DescriptorSetLayouts.size());
 
     VkDescriptorSetAllocateInfo const DescriptorSetAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .descriptorPool     = m_DescriptorPool,
-            .descriptorSetCount = static_cast<std::uint32_t>(m_DescriptorSets.size()),
-            .pSetLayouts        = m_DescriptorSetLayouts.data()};
+            .descriptorPool     = s_DescriptorPool,
+            .descriptorSetCount = static_cast<std::uint32_t>(s_DescriptorSets.size()),
+            .pSetLayouts        = s_DescriptorSetLayouts.data()};
 
-    Helpers::CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, m_DescriptorSets.data()));
+    CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, s_DescriptorSets.data()));
 
     // Object Bindings
     {
@@ -365,15 +313,6 @@ void PipelineManager::CreateDescriptorSets()
                             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
         }
 
-        if (AllocatedTextures.empty())
-        {
-            ImageInfos.push_back(
-                    VkDescriptorImageInfo {
-                            .sampler     = VK_NULL_HANDLE,
-                            .imageView   = VK_NULL_HANDLE,
-                            .imageLayout = VK_IMAGE_LAYOUT_UNDEFINED});
-        }
-
         std::vector<VkWriteDescriptorSet> WriteDescriptors {};
 
         for (auto ImageInfoIterator = ImageInfos.begin(); ImageInfoIterator != ImageInfos.end(); ++ImageInfoIterator)
@@ -381,7 +320,7 @@ void PipelineManager::CreateDescriptorSets()
             WriteDescriptors.push_back(
                     VkWriteDescriptorSet {
                             .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                            .dstSet           = m_DescriptorSets.at(0U),
+                            .dstSet           = s_DescriptorSets.at(0U),
                             .dstBinding       = 1U,
                             .dstArrayElement  = 0U,
                             .descriptorCount  = 1U,
@@ -393,69 +332,39 @@ void PipelineManager::CreateDescriptorSets()
 
         vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(WriteDescriptors.size()), WriteDescriptors.data(), 0U, nullptr);
     }
-
-    // ImGui UI Bindings
-    {
-        VulkanTextureData const ImGuiTextureAllocation = BufferManager::Get().GetAllocatedImGuiFontTexture();
-
-        VkDescriptorImageInfo const ImageInfo {
-                .sampler     = ImGuiTextureAllocation.Sampler,
-                .imageView   = ImGuiTextureAllocation.ImageView,
-                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-
-        VkWriteDescriptorSet const WriteDescriptor {
-                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet           = m_DescriptorSets.at(1U),
-                .dstBinding       = 2U,
-                .dstArrayElement  = 0U,
-                .descriptorCount  = 1U,
-                .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .pImageInfo       = &ImageInfo,
-                .pBufferInfo      = nullptr,
-                .pTexelBufferView = nullptr};
-
-        vkUpdateDescriptorSets(VulkanLogicalDevice, 1U, &WriteDescriptor, 0U, nullptr);
-    }
 }
 
-void PipelineManager::Shutdown()
+void RenderCore::ReleasePipelineResources()
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan pipelines";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan pipeline resources";
 
-    DestroyResources();
-}
+    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
 
-void PipelineManager::DestroyResources()
-{
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan pipelines resources";
-
-    VkDevice const& VulkanLogicalDevice = DeviceManager::Get().GetLogicalDevice();
-
-    if (m_Pipeline != VK_NULL_HANDLE)
+    if (s_Pipeline != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(VulkanLogicalDevice, m_Pipeline, nullptr);
-        m_Pipeline = VK_NULL_HANDLE;
+        vkDestroyPipeline(VulkanLogicalDevice, s_Pipeline, nullptr);
+        s_Pipeline = VK_NULL_HANDLE;
     }
 
-    if (m_PipelineLayout != VK_NULL_HANDLE)
+    if (s_PipelineLayout != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineLayout(VulkanLogicalDevice, m_PipelineLayout, nullptr);
-        m_PipelineLayout = VK_NULL_HANDLE;
+        vkDestroyPipelineLayout(VulkanLogicalDevice, s_PipelineLayout, nullptr);
+        s_PipelineLayout = VK_NULL_HANDLE;
     }
 
-    if (m_PipelineCache != VK_NULL_HANDLE)
+    if (s_PipelineCache != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineCache(VulkanLogicalDevice, m_PipelineCache, nullptr);
-        m_PipelineCache = VK_NULL_HANDLE;
+        vkDestroyPipelineCache(VulkanLogicalDevice, s_PipelineCache, nullptr);
+        s_PipelineCache = VK_NULL_HANDLE;
     }
 
-    if (m_RenderPass != VK_NULL_HANDLE)
+    if (s_RenderPass != VK_NULL_HANDLE)
     {
-        vkDestroyRenderPass(VulkanLogicalDevice, m_RenderPass, nullptr);
-        m_RenderPass = VK_NULL_HANDLE;
+        vkDestroyRenderPass(VulkanLogicalDevice, s_RenderPass, nullptr);
+        s_RenderPass = VK_NULL_HANDLE;
     }
 
-    for (auto& DescriptorSetLayoutIter: m_DescriptorSetLayouts)
+    for (auto& DescriptorSetLayoutIter: s_DescriptorSetLayouts)
     {
         if (DescriptorSetLayoutIter != VK_NULL_HANDLE)
         {
@@ -463,48 +372,32 @@ void PipelineManager::DestroyResources()
             DescriptorSetLayoutIter = VK_NULL_HANDLE;
         }
     }
-    m_DescriptorSetLayouts.clear();
 
-    if (m_DescriptorPool != VK_NULL_HANDLE)
+    if (s_DescriptorPool != VK_NULL_HANDLE)
     {
-        vkDestroyDescriptorPool(VulkanLogicalDevice, m_DescriptorPool, nullptr);
-        m_DescriptorPool = VK_NULL_HANDLE;
+        vkDestroyDescriptorPool(VulkanLogicalDevice, s_DescriptorPool, nullptr);
+        s_DescriptorPool = VK_NULL_HANDLE;
     }
 
-    m_DescriptorSets.clear();
+    s_DescriptorSets.clear();
 }
 
-VkRenderPass const& PipelineManager::GetRenderPass() const
+VkRenderPass const& RenderCore::GetRenderPass()
 {
-    return m_RenderPass;
+    return s_RenderPass;
 }
 
-VkPipeline const& PipelineManager::GetPipeline() const
+VkPipeline const& RenderCore::GetPipeline()
 {
-    return m_Pipeline;
+    return s_Pipeline;
 }
 
-VkPipelineLayout const& PipelineManager::GetPipelineLayout() const
+VkPipelineLayout const& RenderCore::GetPipelineLayout()
 {
-    return m_PipelineLayout;
+    return s_PipelineLayout;
 }
 
-VkPipelineCache const& PipelineManager::GetPipelineCache() const
+std::vector<VkDescriptorSet> const& RenderCore::GetDescriptorSets()
 {
-    return m_PipelineCache;
-}
-
-std::vector<VkDescriptorSetLayout> const& PipelineManager::GetDescriptorSetLayouts() const
-{
-    return m_DescriptorSetLayouts;
-}
-
-VkDescriptorPool const& PipelineManager::GetDescriptorPool() const
-{
-    return m_DescriptorPool;
-}
-
-std::vector<VkDescriptorSet> const& PipelineManager::GetDescriptorSets() const
-{
-    return m_DescriptorSets;
+    return s_DescriptorSets;
 }

@@ -19,85 +19,81 @@ import <span>;
 
 export namespace RenderCore
 {
-    class Helpers
+    std::vector<char const*> GetGLFWExtensions();
+
+    VkExtent2D GetWindowExtent(GLFWwindow*, VkSurfaceCapabilitiesKHR const&);
+
+    std::vector<VkLayerProperties> GetAvailableInstanceLayers();
+
+    std::vector<std::string> GetAvailableInstanceLayersNames();
+
+    std::vector<VkExtensionProperties> GetAvailableInstanceExtensions();
+
+    std::vector<std::string> GetAvailableInstanceExtensionsNames();
+
+#ifdef _DEBUG
+    void ListAvailableInstanceLayers();
+
+    void ListAvailableInstanceExtensions();
+#endif
+
+    std::vector<VkExtensionProperties> GetAvailableLayerExtensions(std::string_view);
+
+    std::vector<std::string> GetAvailableLayerExtensionsNames(std::string_view);
+
+#ifdef _DEBUG
+    void ListAvailableInstanceLayerExtensions(std::string_view);
+#endif
+
+    std::array<VkVertexInputBindingDescription, 1U> GetBindingDescriptors();
+
+    std::array<VkVertexInputAttributeDescription, 3U> GetAttributeDescriptions();
+
+    template<typename T1, typename T2>
+    constexpr void AddFlags(T1& Lhs, T2 const Rhs)
     {
-    public:
-        static std::vector<char const*> GetGLFWExtensions();
+        Lhs = static_cast<T1>(static_cast<std::uint8_t>(Lhs) | static_cast<std::uint8_t>(Rhs));
+    }
 
-        static VkExtent2D GetWindowExtent(GLFWwindow* Window, VkSurfaceCapabilitiesKHR const& Capabilities);
+    template<typename T1, typename T2>
+    constexpr void RemoveFlags(T1& Lhs, T2 const Rhs)
+    {
+        Lhs = static_cast<T1>(static_cast<std::uint8_t>(Lhs) & ~static_cast<std::uint8_t>(Rhs));
+    }
 
-        static std::vector<VkLayerProperties> GetAvailableInstanceLayers();
+    template<typename T1, typename T2>
+    constexpr bool HasFlag(T1 const Lhs, T2 const Rhs)
+    {
+        return (Lhs & Rhs) == Rhs;
+    }
 
-        static std::vector<std::string> GetAvailableInstanceLayersNames();
+    template<typename T1, typename T2>
+    constexpr bool HasAnyFlag(T1 const Lhs, T2 const Rhs)
+    {
+        return static_cast<std::uint8_t>(Lhs & Rhs) != 0U;
+    }
 
-        static std::vector<VkExtensionProperties> GetAvailableInstanceExtensions();
+    template<typename T>
+    constexpr bool HasAnyFlag(T const Lhs)
+    {
+        return static_cast<std::uint8_t>(Lhs) != 0U;
+    }
 
-        static std::vector<std::string> GetAvailableInstanceExtensionsNames();
+    void InitializeSingleCommandQueue(VkCommandPool&, VkCommandBuffer&, std::uint8_t);
 
-#ifdef _DEBUG
-        static void ListAvailableInstanceLayers();
+    void FinishSingleCommandQueue(VkQueue const&, VkCommandPool const&, VkCommandBuffer const&);
 
-        static void ListAvailableInstanceExtensions();
-#endif
+    struct UniformBufferObject GetUniformBufferObject();
 
-        static std::vector<VkExtensionProperties> GetAvailableLayerExtensions(std::string_view LayerName);
-
-        static std::vector<std::string> GetAvailableLayerExtensionsNames(std::string_view LayerName);
-
-#ifdef _DEBUG
-        static void ListAvailableInstanceLayerExtensions(std::string_view LayerName);
-#endif
-
-        static std::array<VkVertexInputBindingDescription, 1U> GetBindingDescriptors();
-
-        static std::array<VkVertexInputAttributeDescription, 3U> GetAttributeDescriptions();
-
-        template<typename T1, typename T2>
-        static constexpr void AddFlags(T1& Lhs, T2 const Rhs)
+    template<typename T>
+    constexpr bool CheckVulkanResult(T&& InputOperation)
+    {
+        if (VkResult const OperationResult = InputOperation;
+            OperationResult != VK_SUCCESS)
         {
-            Lhs = static_cast<T1>(static_cast<std::uint8_t>(Lhs) | static_cast<std::uint8_t>(Rhs));
+            return false;
         }
 
-        template<typename T1, typename T2>
-        static constexpr void RemoveFlags(T1& Lhs, T2 const Rhs)
-        {
-            Lhs = static_cast<T1>(static_cast<std::uint8_t>(Lhs) & ~static_cast<std::uint8_t>(Rhs));
-        }
-
-        template<typename T1, typename T2>
-        static constexpr bool HasFlag(T1 const Lhs, T2 const Rhs)
-        {
-            return (Lhs & Rhs) == Rhs;
-        }
-
-        template<typename T1, typename T2>
-        static constexpr bool HasAnyFlag(T1 const Lhs, T2 const Rhs)
-        {
-            return static_cast<std::uint8_t>(Lhs & Rhs) != 0U;
-        }
-
-        template<typename T>
-        static constexpr bool HasAnyFlag(T const Lhs)
-        {
-            return static_cast<std::uint8_t>(Lhs) != 0U;
-        }
-
-        static void InitializeSingleCommandQueue(VkCommandPool& CommandPool, VkCommandBuffer& CommandBuffer, std::uint8_t QueueFamilyIndex);
-
-        static void FinishSingleCommandQueue(VkQueue const& Queue, VkCommandPool const& CommandPool, VkCommandBuffer const& CommandBuffer);
-
-        static struct UniformBufferObject GetUniformBufferObject();
-
-        template<typename T>
-        constexpr static bool CheckVulkanResult(T&& InputOperation)
-        {
-            if (VkResult const OperationResult = InputOperation;
-                OperationResult != VK_SUCCESS)
-            {
-                return false;
-            }
-
-            return true;
-        }
-    };
+        return true;
+    }
 }// namespace RenderCore

@@ -17,10 +17,10 @@ using namespace RenderCore;
 VKAPI_ATTR VkBool32
 
         VKAPI_CALL
-        DebugHelpers::ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT const MessageSeverity,
-                                                   [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT MessageType,
-                                                   VkDebugUtilsMessengerCallbackDataEXT const* const CallbackData,
-                                                   [[maybe_unused]] void* UserData)
+        RenderCore::ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT const MessageSeverity,
+                                                 [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT MessageType,
+                                                 VkDebugUtilsMessengerCallbackDataEXT const* const CallbackData,
+                                                 [[maybe_unused]] void* UserData)
 {
     if (MessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
     {
@@ -30,10 +30,10 @@ VKAPI_ATTR VkBool32
     return VK_FALSE;
 }
 
-VkResult DebugHelpers::CreateDebugUtilsMessenger(VkInstance const Instance,
-                                                 VkDebugUtilsMessengerCreateInfoEXT const* const CreateInfo,
-                                                 VkAllocationCallbacks const* const Allocator,
-                                                 VkDebugUtilsMessengerEXT* const DebugMessenger)
+VkResult RenderCore::CreateDebugUtilsMessenger(VkInstance const Instance,
+                                               VkDebugUtilsMessengerCreateInfoEXT const* const CreateInfo,
+                                               VkAllocationCallbacks const* const Allocator,
+                                               VkDebugUtilsMessengerEXT* const DebugMessenger)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating debug messenger";
 
@@ -44,7 +44,7 @@ VkResult DebugHelpers::CreateDebugUtilsMessenger(VkInstance const Instance,
     return VK_ERROR_EXTENSION_NOT_PRESENT;
 }
 
-void DebugHelpers::DestroyDebugUtilsMessenger(VkInstance const Instance, VkDebugUtilsMessengerEXT const DebugMessenger, VkAllocationCallbacks const* const Allocator)
+void RenderCore::DestroyDebugUtilsMessenger(VkInstance const Instance, VkDebugUtilsMessengerEXT const DebugMessenger, VkAllocationCallbacks const* const Allocator)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying debug messenger";
 
@@ -54,7 +54,7 @@ void DebugHelpers::DestroyDebugUtilsMessenger(VkInstance const Instance, VkDebug
     }
 }
 
-VkValidationFeaturesEXT DebugHelpers::GetInstanceValidationFeatures()
+VkValidationFeaturesEXT RenderCore::GetInstanceValidationFeatures()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting validation features";
 
@@ -66,7 +66,7 @@ VkValidationFeaturesEXT DebugHelpers::GetInstanceValidationFeatures()
     return InstanceValidationFeatures;
 }
 
-void DebugHelpers::PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT& Info, void* const UserData)
+void RenderCore::PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT& Info, void* const UserData)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Populating debug info";
 

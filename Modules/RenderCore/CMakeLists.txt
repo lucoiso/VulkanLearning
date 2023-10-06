@@ -12,20 +12,20 @@ SET(PUBLIC_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public)
 SET(PRIVATE_MODULES
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Window.cppm
 	${PRIVATE_MODULES_BASE_DIRECTORY}/EngineCore.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/ShaderManager.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/CommandsManager.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/PipelineManager.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/BufferManager.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/DeviceManager.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/ShaderManagement.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/CommandsManagement.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/PipelineManagement.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/BufferManagement.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/DeviceManagement.cppm
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Helpers.cppm
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/DebugHelpers.cppm
 
 	${PRIVATE_MODULES_BASE_DIRECTORY}/EngineCore.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/ShaderManager.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/CommandsManager.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/PipelineManager.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/BufferManager.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Managers/DeviceManager.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/ShaderManagement.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/CommandsManagement.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/PipelineManagement.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/BufferManagement.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/DeviceManagement.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Helpers.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/DebugHelpers.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Constants.ixx

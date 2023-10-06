@@ -20,60 +20,18 @@ import <vector>;
 
 export namespace RenderCore
 {
-    class EngineCore final
-    {
-        enum class EngineCoreStateFlags : std::uint8_t
-        {
-            NONE                             = 0,
-            INITIALIZED                      = 1 << 0,
-            PENDING_DEVICE_PROPERTIES_UPDATE = 1 << 1,
-            PENDING_RESOURCES_DESTRUCTION    = 1 << 2,
-            PENDING_RESOURCES_CREATION       = 1 << 3,
-            PENDING_PIPELINE_REFRESH         = 1 << 4,
-        };
+    void InitializeEngine(GLFWwindow*);
+    void ShutdownEngine();
 
-    public:
-        EngineCore();
+    void DrawFrame(GLFWwindow*);
+    [[nodiscard]] bool IsEngineInitialized();
 
-        EngineCore(EngineCore const&)            = delete;
-        EngineCore& operator=(EngineCore const&) = delete;
+    void LoadScene(std::string_view, std::string_view);
+    void UnloadScene();
 
-        ~EngineCore();
+    [[nodiscard]] VkInstance& GetInstance();
+    [[nodiscard]] VkSurfaceKHR& GetSurface();
 
-        static EngineCore& Get();
-
-        void Initialize(GLFWwindow* Window);
-        void Shutdown();
-
-        void DrawFrame(GLFWwindow* Window) const;
-        bool IsInitialized() const;
-
-        void LoadScene(std::string_view ModelPath, std::string_view TexturePath);
-        void UnloadScene() const;
-
-        [[nodiscard]] VkInstance& GetInstance();
-        [[nodiscard]] VkSurfaceKHR& GetSurface();
-
-        [[nodiscard]] glm::mat4 GetCameraMatrix() const;
-        void SetCameraMatrix(glm::mat4 const& Value);
-
-    private:
-        std::optional<std::int32_t> TryRequestDrawImage() const;
-
-        void CreateVulkanInstance();
-        void CreateVulkanSurface(GLFWwindow* Window);
-        void InitializeRenderCore() const;
-
-        static std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders();
-
-        VkInstance m_Instance;
-        VkSurfaceKHR m_Surface;
-        mutable EngineCoreStateFlags m_StateFlags;
-        glm::mat4 m_CameraMatrix;
-        std::uint64_t m_ObjectID;
-
-#ifdef _DEBUG
-        VkDebugUtilsMessengerEXT m_DebugMessenger;
-#endif
-    };
+    [[nodiscard]] glm::mat4 GetCameraMatrix();
+    void SetCameraMatrix(glm::mat4 const&);
 }// namespace RenderCore

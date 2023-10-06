@@ -35,8 +35,7 @@ export namespace RenderCore
             "VK_EXT_validation_features"};
 
     constexpr std::array g_DebugDeviceExtensions = {
-            "VK_EXT_validation_cache",
-            "VK_EXT_tooling_info"};
+            "VK_EXT_validation_cache"};
 
     constexpr std::array g_EnabledInstanceValidationFeatures = {
             // VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
@@ -53,7 +52,8 @@ export namespace RenderCore
     constexpr std::array<char const*, 0U> g_RequiredInstanceExtensions = {};
 
     constexpr std::array g_RequiredDeviceExtensions = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+            VK_EXT_ROBUSTNESS_2_EXTENSION_NAME};
 
     constexpr std::array g_DynamicStates = {
             VK_DYNAMIC_STATE_VIEWPORT,
@@ -66,6 +66,8 @@ export namespace RenderCore
 
     constexpr std::uint8_t g_FrameRate = 75U;
 
+    constexpr std::uint32_t g_Timeout = std::numeric_limits<std::uint32_t>::max();
+
     constexpr std::array g_ClearValues {
             VkClearValue {
                     .color = {
@@ -74,4 +76,7 @@ export namespace RenderCore
                              0.5F,
                              1.F}}},
             VkClearValue {.depthStencil = {1.0F, 0U}}};
+
+    constexpr float s_KeyCallbackRate    = g_FrameRate / 5000.f;
+    constexpr float s_CursorCallbackRate = g_FrameRate / 25000.f;
 }// namespace RenderCore

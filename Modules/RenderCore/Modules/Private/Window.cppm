@@ -21,81 +21,80 @@ import <unordered_map>;
 
 import Timer.Manager;
 import RenderCore.EngineCore;
-import RenderCore.Managers.DeviceManager;
+import RenderCore.Management.DeviceManagement;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
 static GLFWwindow* s_Window {nullptr};
-static constexpr float s_KeyCallbackRate    = g_FrameRate / 1000.f;
-static constexpr float s_CursorCallbackRate = g_FrameRate / 25000.f;
 
-static void GLFWWindowCloseRequested(GLFWwindow* const Window)
+void GLFWWindowCloseRequested(GLFWwindow* const Window)
 {
-    EngineCore::Get().Shutdown();
+    ShutdownEngine();
     glfwSetWindowShouldClose(Window, GLFW_TRUE);
 }
 
-static void GLFWWindowResized(GLFWwindow* const Window, [[maybe_unused]] std::int32_t const Width, [[maybe_unused]] std::int32_t const Height)
+void GLFWWindowResized(GLFWwindow* const Window, [[maybe_unused]] std::int32_t const Width, [[maybe_unused]] std::int32_t const Height)
 {
-    DeviceManager::Get().UpdateDeviceProperties(Window);
+    UpdateDeviceProperties(Window);
     ImGui::GetIO().DisplaySize             = ImVec2(static_cast<float>(Width), static_cast<float>(Height));
     ImGui::GetIO().DisplayFramebufferScale = ImVec2(1.F, 1.F);
     ImGui::GetIO().DeltaTime               = static_cast<float>(glfwGetTime());
 }
 
-static void GLFWErrorCallback(std::int32_t const Error, char const* const Description)
+void GLFWErrorCallback(std::int32_t const Error, char const* const Description)
 {
     BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: GLFW Error: " << Error << " - " << Description;
 }
 
-static void GLFWKeyCallback(GLFWwindow* const Window, std::int32_t const Key, [[maybe_unused]] std::int32_t const Scancode, std::int32_t const Action, [[maybe_unused]] int const Mods)
+void GLFWKeyCallback(GLFWwindow* const Window, std::int32_t const Key, [[maybe_unused]] std::int32_t const Scancode, std::int32_t const Action, [[maybe_unused]] int const Mods)
 {
     if (Key == GLFW_KEY_ESCAPE && Action == GLFW_PRESS)
     {
         GLFWWindowCloseRequested(Window);
     }
 
-    if (Action != GLFW_RELEASE)
+    const auto IsKeyPressed = [](std::int32_t const Key) {
+        return glfwGetKey(s_Window, Key) == GLFW_PRESS;
+    };
+
+    glm::mat4 Matrix = GetCameraMatrix();
+
+    if (IsKeyPressed(GLFW_KEY_W) || IsKeyPressed(GLFW_KEY_V))
     {
-        glm::mat4 Matrix = EngineCore::Get().GetCameraMatrix();
-
-        if (Key == GLFW_KEY_W || Key == GLFW_KEY_V)
-        {
-            Matrix[3][2] += s_KeyCallbackRate;
-        }
-
-        if (Key == GLFW_KEY_S || Key == GLFW_KEY_C)
-        {
-            Matrix[3][2] -= s_KeyCallbackRate;
-        }
-
-        if (Key == GLFW_KEY_A || Key == GLFW_KEY_LEFT)
-        {
-            Matrix[3][0] += s_KeyCallbackRate;
-        }
-
-        if (Key == GLFW_KEY_D || Key == GLFW_KEY_RIGHT)
-        {
-            Matrix[3][0] -= s_KeyCallbackRate;
-        }
-
-        if (Key == GLFW_KEY_SPACE || Key == GLFW_KEY_UP)
-        {
-            Matrix[3][1] -= s_KeyCallbackRate;
-        }
-
-        if (Key == GLFW_KEY_LEFT_CONTROL || Key == GLFW_KEY_DOWN)
-        {
-            Matrix[3][1] += s_KeyCallbackRate;
-        }
-
-        EngineCore::Get().SetCameraMatrix(Matrix);
+        Matrix[3][2] += s_KeyCallbackRate;
     }
+
+    if (IsKeyPressed(GLFW_KEY_S) || IsKeyPressed(GLFW_KEY_C))
+    {
+        Matrix[3][2] -= s_KeyCallbackRate;
+    }
+
+    if (IsKeyPressed(GLFW_KEY_A) || IsKeyPressed(GLFW_KEY_LEFT))
+    {
+        Matrix[3][0] += s_KeyCallbackRate;
+    }
+
+    if (IsKeyPressed(GLFW_KEY_D) || IsKeyPressed(GLFW_KEY_RIGHT))
+    {
+        Matrix[3][0] -= s_KeyCallbackRate;
+    }
+
+    if (IsKeyPressed(GLFW_KEY_SPACE) || IsKeyPressed(GLFW_KEY_UP))
+    {
+        Matrix[3][1] -= s_KeyCallbackRate;
+    }
+
+    if (IsKeyPressed(GLFW_KEY_LEFT_CONTROL) || IsKeyPressed(GLFW_KEY_DOWN))
+    {
+        Matrix[3][1] += s_KeyCallbackRate;
+    }
+
+    SetCameraMatrix(Matrix);
 }
 
-static void GLFWCursorPositionCallback(GLFWwindow* Window, double NewCursorPosX, double NewCursorPosY)
+void GLFWCursorPositionCallback(GLFWwindow* Window, double NewCursorPosX, double NewCursorPosY)
 {
     static bool StartOperation {false};
     static double CursorPosX {NewCursorPosX};
@@ -115,7 +114,7 @@ static void GLFWCursorPositionCallback(GLFWwindow* Window, double NewCursorPosX,
         }
         else
         {
-            glm::mat4 Matrix = EngineCore::Get().GetCameraMatrix();
+            glm::mat4 Matrix = GetCameraMatrix();
 
             double const OffsetX = NewCursorPosX - CursorPosX;
             double const OffsetY = NewCursorPosY - CursorPosY;
@@ -135,7 +134,7 @@ static void GLFWCursorPositionCallback(GLFWwindow* Window, double NewCursorPosX,
             CursorPosX = NewCursorPosX;
             CursorPosY = NewCursorPosY;
 
-            EngineCore::Get().SetCameraMatrix(Matrix);
+            SetCameraMatrix(Matrix);
         }
     }
     else
@@ -146,11 +145,72 @@ static void GLFWCursorPositionCallback(GLFWwindow* Window, double NewCursorPosX,
     }
 }
 
-static void GLFWCursorScrollCallback(GLFWwindow* const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)
+void GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow* const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)
 {
-    glm::mat4 Matrix = EngineCore::Get().GetCameraMatrix();
+    glm::mat4 Matrix = GetCameraMatrix();
     Matrix[3][2] += static_cast<float>(OffsetY * s_KeyCallbackRate);
-    EngineCore::Get().SetCameraMatrix(Matrix);
+    SetCameraMatrix(Matrix);
+}
+
+bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title)
+{
+    if (glfwInit() == 0)
+    {
+        throw std::runtime_error("Failed to initialize GLFW");
+    }
+
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+
+    if (s_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr);
+        s_Window == nullptr)
+    {
+        throw std::runtime_error("Failed to create GLFW Window");
+    }
+
+    glfwSetWindowCloseCallback(s_Window, &GLFWWindowCloseRequested);
+    glfwSetWindowSizeCallback(s_Window, &GLFWWindowResized);
+    glfwSetKeyCallback(s_Window, &GLFWKeyCallback);
+    glfwSetCursorPosCallback(s_Window, &GLFWCursorPositionCallback);
+    glfwSetScrollCallback(s_Window, &GLFWCursorScrollCallback);
+    glfwSetErrorCallback(&GLFWErrorCallback);
+
+    return s_Window != nullptr;
+}
+
+bool InitializeEngineCore()
+{
+    InitializeEngine(s_Window);
+
+    if (UpdateDeviceProperties(s_Window))
+    {
+        return IsEngineInitialized();
+    }
+
+    return false;
+}
+
+bool InitializeImGui()
+{
+    try
+    {
+        ImGui::CreateContext();
+        ImGui::StyleColorsDark();
+
+        ImGuiIO& IO                  = ImGui::GetIO();
+        VkExtent2D const DisplaySize = GetWindowExtent(
+                s_Window,
+                GetAvailablePhysicalDeviceSurfaceCapabilities());
+
+        IO.DisplaySize = ImVec2(static_cast<float>(DisplaySize.width), static_cast<float>(DisplaySize.height));
+    }
+    catch (std::exception const& Ex)
+    {
+        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
+        return false;
+    }
+
+    return true;
 }
 
 Window::Window()
@@ -219,12 +279,12 @@ void Window::Shutdown()
         m_EventIDQueue.pop();
     }
 
-    EngineCore::Get().Shutdown();
+    ShutdownEngine();
 }
 
 bool Window::IsInitialized() const
 {
-    return IsOpen() && EngineCore::Get().IsInitialized();
+    return IsOpen() && IsEngineInitialized();
 }
 
 bool Window::IsOpen() const
@@ -274,15 +334,15 @@ void Window::PollEvents()
                         ImGui::Render();
                     }
 
-                    EngineCore::Get().DrawFrame(s_Window);
+                    DrawFrame(s_Window);
                     break;
                 }
                 case ApplicationEventFlags::LOAD_SCENE: {
-                    EngineCore::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+                    LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
                     break;
                 }
                 case ApplicationEventFlags::UNLOAD_SCENE: {
-                    EngineCore::Get().UnloadScene();
+                    UnloadScene();
                     break;
                 }
                 default:
@@ -301,67 +361,6 @@ void Window::PollEvents()
 void Window::CreateOverlay()
 {
     ImGui::ShowDemoWindow();
-}
-
-bool Window::InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title)
-{
-    if (glfwInit() == 0)
-    {
-        throw std::runtime_error("Failed to initialize GLFW");
-    }
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-
-    if (s_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr);
-        s_Window == nullptr)
-    {
-        throw std::runtime_error("Failed to create GLFW Window");
-    }
-
-    glfwSetWindowCloseCallback(s_Window, &GLFWWindowCloseRequested);
-    glfwSetWindowSizeCallback(s_Window, &GLFWWindowResized);
-    glfwSetKeyCallback(s_Window, &GLFWKeyCallback);
-    glfwSetCursorPosCallback(s_Window, &GLFWCursorPositionCallback);
-    glfwSetScrollCallback(s_Window, &GLFWCursorScrollCallback);
-    glfwSetErrorCallback(&GLFWErrorCallback);
-
-    return s_Window != nullptr;
-}
-
-bool Window::InitializeEngineCore() const
-{
-    EngineCore::Get().Initialize(s_Window);
-
-    if (DeviceManager::Get().UpdateDeviceProperties(s_Window))
-    {
-        return EngineCore::Get().IsInitialized();
-    }
-
-    return false;
-}
-
-bool Window::InitializeImGui() const
-{
-    try
-    {
-        ImGui::CreateContext();
-        ImGui::StyleColorsDark();
-
-        ImGuiIO& IO                  = ImGui::GetIO();
-        VkExtent2D const DisplaySize = Helpers::GetWindowExtent(
-                s_Window,
-                DeviceManager::Get().GetAvailablePhysicalDeviceSurfaceCapabilities());
-
-        IO.DisplaySize = ImVec2(static_cast<float>(DisplaySize.width), static_cast<float>(DisplaySize.height));
-    }
-    catch (std::exception const& Ex)
-    {
-        BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
-        return false;
-    }
-
-    return true;
 }
 
 void Window::RegisterTimers()

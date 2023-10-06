@@ -52,10 +52,6 @@ export namespace RenderCore
         virtual void CreateOverlay();
 
     private:
-        [[nodiscard]] bool InitializeGLFW(std::uint16_t Width, std::uint16_t Height, std::string_view Title);
-        [[nodiscard]] bool InitializeEngineCore() const;
-        [[nodiscard]] bool InitializeImGui() const;
-
         void RegisterTimers();
     };
 }// namespace RenderCore

@@ -11,24 +11,20 @@ export module RenderCore.Utils.DebugHelpers;
 export namespace RenderCore
 {
 #ifdef _DEBUG
-    class DebugHelpers
-    {
-    public:
-        static VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT MessageSeverity,
-                                                                           VkDebugUtilsMessageTypeFlagsEXT MessageType,
-                                                                           VkDebugUtilsMessengerCallbackDataEXT const* CallbackData,
-                                                                           void* UserData);
+    VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT,
+                                                                VkDebugUtilsMessageTypeFlagsEXT,
+                                                                VkDebugUtilsMessengerCallbackDataEXT const*,
+                                                                void*);
 
-        static VkResult CreateDebugUtilsMessenger(VkInstance Instance,
-                                                  VkDebugUtilsMessengerCreateInfoEXT const* CreateInfo,
-                                                  VkAllocationCallbacks const* Allocator,
-                                                  VkDebugUtilsMessengerEXT* DebugMessenger);
+    VkResult CreateDebugUtilsMessenger(VkInstance,
+                                       VkDebugUtilsMessengerCreateInfoEXT const*,
+                                       VkAllocationCallbacks const*,
+                                       VkDebugUtilsMessengerEXT*);
 
-        static void DestroyDebugUtilsMessenger(VkInstance Instance, VkDebugUtilsMessengerEXT DebugMessenger, VkAllocationCallbacks const* Allocator);
+    void DestroyDebugUtilsMessenger(VkInstance, VkDebugUtilsMessengerEXT, VkAllocationCallbacks const*);
 
-        static VkValidationFeaturesEXT GetInstanceValidationFeatures();
+    VkValidationFeaturesEXT GetInstanceValidationFeatures();
 
-        static void PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT& Info, void* UserData = nullptr);
-    };
+    void PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT&, void*);
 #endif
 }// namespace RenderCore
