@@ -4,7 +4,9 @@
 
 module;
 
-#include "RenderCoreModule.h"
+#pragma once
+
+#include <RenderCoreModule.h>
 
 export module RenderCore.Types.UniformBufferObject;
 
@@ -12,9 +14,9 @@ import <array>;
 
 constexpr std::uint32_t MATRIX_SIZE = 4U;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    struct RENDERCOREMODULE_API UniformBufferObject
+    export struct RENDERCOREMODULE_API UniformBufferObject
     {
         std::array<std::array<float, MATRIX_SIZE>, MATRIX_SIZE> ModelViewProjection {};
 

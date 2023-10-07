@@ -4,6 +4,8 @@
 
 module;
 
+#pragma once
+
 #include <volk.h>
 
 export module RenderCore.Management.CommandsManagement;
@@ -11,18 +13,18 @@ export module RenderCore.Management.CommandsManagement;
 import <optional>;
 import <cstdint>;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    void ReleaseCommandsResources();
+    export void ReleaseCommandsResources();
 
-    [[nodiscard]] VkCommandPool CreateCommandPool(std::uint8_t);
+    export [[nodiscard]] VkCommandPool CreateCommandPool(std::uint8_t);
 
-    void CreateCommandsSynchronizationObjects();
-    void DestroyCommandsSynchronizationObjects();
+    export void CreateCommandsSynchronizationObjects();
+    export void DestroyCommandsSynchronizationObjects();
 
-    [[nodiscard]] std::optional<std::int32_t> RequestSwapChainImage();
+    export [[nodiscard]] std::optional<std::int32_t> RequestSwapChainImage();
 
-    void RecordCommandBuffers(std::uint32_t);
-    void SubmitCommandBuffers();
-    void PresentFrame(std::uint32_t);
+    export void RecordCommandBuffers(std::uint32_t);
+    export void SubmitCommandBuffers();
+    export void PresentFrame(std::uint32_t);
 }// namespace RenderCore

@@ -4,6 +4,8 @@
 
 module;
 
+#pragma once
+
 #include <glslang/Public/ShaderLang.h>
 #include <volk.h>
 
@@ -12,17 +14,17 @@ export module RenderCore.Management.ShaderManagement;
 import <vector>;
 import <string_view>;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    [[nodiscard]] bool Compile(std::string_view, std::vector<uint32_t>&);
-    [[nodiscard]] bool Load(std::string_view, std::vector<uint32_t>&);
-    [[nodiscard]] bool CompileOrLoadIfExists(std::string_view, std::vector<uint32_t>&);
-    [[nodiscard]] VkShaderModule CreateModule(VkDevice const&, std::vector<uint32_t> const&, EShLanguage);
+    export [[nodiscard]] bool Compile(std::string_view, std::vector<uint32_t>&);
+    export [[nodiscard]] bool Load(std::string_view, std::vector<uint32_t>&);
+    export [[nodiscard]] bool CompileOrLoadIfExists(std::string_view, std::vector<uint32_t>&);
+    export [[nodiscard]] VkShaderModule CreateModule(VkDevice const&, std::vector<uint32_t> const&, EShLanguage);
 
-    [[nodiscard]] VkPipelineShaderStageCreateInfo GetStageInfo(VkShaderModule const& Module);
-    [[nodiscard]] std::vector<VkShaderModule> GetShaderModules();
-    [[nodiscard]] std::vector<VkPipelineShaderStageCreateInfo> GetStageInfos();
+    export [[nodiscard]] VkPipelineShaderStageCreateInfo GetStageInfo(VkShaderModule const& Module);
+    export [[nodiscard]] std::vector<VkShaderModule> GetShaderModules();
+    export [[nodiscard]] std::vector<VkPipelineShaderStageCreateInfo> GetStageInfos();
 
-    void ReleaseShaderResources();
-    void FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const&);
+    export void ReleaseShaderResources();
+    export void FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const&);
 }// namespace RenderCore

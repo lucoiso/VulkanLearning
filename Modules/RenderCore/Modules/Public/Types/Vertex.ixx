@@ -4,17 +4,20 @@
 
 module;
 
-#include "RenderCoreModule.h"
+#pragma once
+
+#include <RenderCoreModule.h>
 
 export module RenderCore.Types.Vertex;
 
 import <array>;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    struct RENDERCOREMODULE_API Vertex
+    export struct RENDERCOREMODULE_API Vertex
     {
         std::array<float, 3U> Position {};
+        std::array<float, 3U> Normal {};
         std::array<float, 3U> Color {};
         std::array<float, 2U> TextureCoordinate {};
     };

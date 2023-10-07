@@ -4,6 +4,8 @@
 
 module;
 
+#pragma once
+
 #include <volk.h>
 
 export module RenderCore.Management.PipelineManagement;
@@ -11,18 +13,17 @@ export module RenderCore.Management.PipelineManagement;
 import <vector>;
 import <array>;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    void CreateRenderPass();
-    void CreateGraphicsPipeline();
-    void CreateDescriptorSetLayout();
-    void CreateDescriptorPool();
-    void CreateDescriptorSets();
+    export void CreateRenderPass();
+    export void CreateGraphicsPipeline();
+    export void CreateDescriptorSetLayout();
+    export void CreateDescriptorPool();
+    export void CreateDescriptorSets();
+    export void ReleasePipelineResources();
 
-    void ReleasePipelineResources();
-
-    [[nodiscard]] VkRenderPass const& GetRenderPass();
-    [[nodiscard]] VkPipeline const& GetPipeline();
-    [[nodiscard]] VkPipelineLayout const& GetPipelineLayout();
-    [[nodiscard]] std::vector<VkDescriptorSet> const& GetDescriptorSets();
+    export [[nodiscard]] VkRenderPass const& GetRenderPass();
+    export [[nodiscard]] VkPipeline const& GetPipeline();
+    export [[nodiscard]] VkPipelineLayout const& GetPipelineLayout();
+    export [[nodiscard]] std::vector<VkDescriptorSet> const& GetDescriptorSets();
 }// namespace RenderCore

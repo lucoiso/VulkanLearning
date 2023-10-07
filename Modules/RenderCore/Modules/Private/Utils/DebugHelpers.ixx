@@ -4,11 +4,13 @@
 
 module;
 
+#pragma once
+
 #include <volk.h>
 
 export module RenderCore.Utils.DebugHelpers;
 
-export namespace RenderCore
+namespace RenderCore
 {
 #ifdef _DEBUG
     VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT,
@@ -16,15 +18,15 @@ export namespace RenderCore
                                                                 VkDebugUtilsMessengerCallbackDataEXT const*,
                                                                 void*);
 
-    VkResult CreateDebugUtilsMessenger(VkInstance,
-                                       VkDebugUtilsMessengerCreateInfoEXT const*,
-                                       VkAllocationCallbacks const*,
-                                       VkDebugUtilsMessengerEXT*);
+    export VkResult CreateDebugUtilsMessenger(VkInstance,
+                                              VkDebugUtilsMessengerCreateInfoEXT const*,
+                                              VkAllocationCallbacks const*,
+                                              VkDebugUtilsMessengerEXT*);
 
-    void DestroyDebugUtilsMessenger(VkInstance, VkDebugUtilsMessengerEXT, VkAllocationCallbacks const*);
+    export void DestroyDebugUtilsMessenger(VkInstance, VkDebugUtilsMessengerEXT, VkAllocationCallbacks const*);
 
-    VkValidationFeaturesEXT GetInstanceValidationFeatures();
+    export VkValidationFeaturesEXT GetInstanceValidationFeatures();
 
-    void PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT&, void*);
+    export void PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT&, void*);
 #endif
 }// namespace RenderCore

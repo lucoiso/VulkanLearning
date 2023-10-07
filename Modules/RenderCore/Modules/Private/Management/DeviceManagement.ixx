@@ -4,6 +4,8 @@
 
 module;
 
+#pragma once
+
 #include <GLFW/glfw3.h>
 #include <volk.h>
 
@@ -13,37 +15,36 @@ import <string_view>;
 import <vector>;
 import <cstdint>;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    void PickPhysicalDevice();
-    void CreateLogicalDevice();
+    export void PickPhysicalDevice();
+    export void CreateLogicalDevice();
+    export void ReleaseDeviceResources();
 
-    void ReleaseDeviceResources();
+    export [[nodiscard]] std::vector<VkPhysicalDevice> GetAvailablePhysicalDevices();
+    export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions();
+    export [[nodiscard]] std::vector<VkLayerProperties> GetAvailablePhysicalDeviceLayers();
+    export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(std::string_view);
+    export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceExtensionsNames();
+    export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view);
+    export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayersNames();
+    export [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities();
+    export [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats();
+    export [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes();
+    export [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment();
 
-    [[nodiscard]] std::vector<VkPhysicalDevice> GetAvailablePhysicalDevices();
-    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions();
-    [[nodiscard]] std::vector<VkLayerProperties> GetAvailablePhysicalDeviceLayers();
-    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(std::string_view);
-    [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceExtensionsNames();
-    [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view);
-    [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayersNames();
-    [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities();
-    [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats();
-    [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes();
-    [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment();
+    export bool UpdateDeviceProperties(GLFWwindow* Window);
+    export [[nodiscard]] struct DeviceProperties& GetDeviceProperties();
 
-    bool UpdateDeviceProperties(GLFWwindow* Window);
-    [[nodiscard]] struct VulkanDeviceProperties& GetDeviceProperties();
+    export [[nodiscard]] VkDevice& GetLogicalDevice();
+    export [[nodiscard]] VkPhysicalDevice& GetPhysicalDevice();
 
-    [[nodiscard]] VkDevice& GetLogicalDevice();
-    [[nodiscard]] VkPhysicalDevice& GetPhysicalDevice();
+    export [[nodiscard]] std::pair<std::uint8_t, VkQueue>& GetGraphicsQueue();
+    export [[nodiscard]] std::pair<std::uint8_t, VkQueue>& GetPresentationQueue();
+    export [[nodiscard]] std::pair<std::uint8_t, VkQueue>& GetTransferQueue();
 
-    [[nodiscard]] std::pair<std::uint8_t, VkQueue>& GetGraphicsQueue();
-    [[nodiscard]] std::pair<std::uint8_t, VkQueue>& GetPresentationQueue();
-    [[nodiscard]] std::pair<std::uint8_t, VkQueue>& GetTransferQueue();
+    export [[nodiscard]] std::vector<std::uint8_t>& GetUniqueQueueFamilyIndices();
+    export [[nodiscard]] std::vector<std::uint32_t> GetUniqueQueueFamilyIndicesU32();
 
-    [[nodiscard]] std::vector<std::uint8_t>& GetUniqueQueueFamilyIndices();
-    [[nodiscard]] std::vector<std::uint32_t> GetUniqueQueueFamilyIndicesU32();
-
-    [[nodiscard]] std::uint32_t GetMinImageCount();
+    export [[nodiscard]] std::uint32_t GetMinImageCount();
 }// namespace RenderCore

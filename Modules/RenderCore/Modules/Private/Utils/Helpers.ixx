@@ -4,6 +4,8 @@
 
 module;
 
+#pragma once
+
 #include <GLFW/glfw3.h>
 #include <volk.h>
 
@@ -17,75 +19,66 @@ import <cstdint>;
 import <string>;
 import <span>;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    std::vector<char const*> GetGLFWExtensions();
-
-    VkExtent2D GetWindowExtent(GLFWwindow*, VkSurfaceCapabilitiesKHR const&);
-
-    std::vector<VkLayerProperties> GetAvailableInstanceLayers();
-
-    std::vector<std::string> GetAvailableInstanceLayersNames();
-
-    std::vector<VkExtensionProperties> GetAvailableInstanceExtensions();
-
-    std::vector<std::string> GetAvailableInstanceExtensionsNames();
+    export std::vector<char const*> GetGLFWExtensions();
+    export VkExtent2D GetWindowExtent(GLFWwindow*, VkSurfaceCapabilitiesKHR const&);
+    export std::vector<VkLayerProperties> GetAvailableInstanceLayers();
+    export std::vector<std::string> GetAvailableInstanceLayersNames();
+    export std::vector<VkExtensionProperties> GetAvailableInstanceExtensions();
+    export std::vector<std::string> GetAvailableInstanceExtensionsNames();
 
 #ifdef _DEBUG
-    void ListAvailableInstanceLayers();
-
-    void ListAvailableInstanceExtensions();
+    export void ListAvailableInstanceLayers();
+    export void ListAvailableInstanceExtensions();
 #endif
 
-    std::vector<VkExtensionProperties> GetAvailableLayerExtensions(std::string_view);
-
-    std::vector<std::string> GetAvailableLayerExtensionsNames(std::string_view);
+    export std::vector<VkExtensionProperties> GetAvailableLayerExtensions(std::string_view);
+    export std::vector<std::string> GetAvailableLayerExtensionsNames(std::string_view);
 
 #ifdef _DEBUG
-    void ListAvailableInstanceLayerExtensions(std::string_view);
+    export void ListAvailableInstanceLayerExtensions(std::string_view);
 #endif
 
-    std::array<VkVertexInputBindingDescription, 1U> GetBindingDescriptors();
+    export std::array<VkVertexInputBindingDescription, 1U> GetBindingDescriptors();
+    export std::array<VkVertexInputAttributeDescription, 4U> GetAttributeDescriptions();
 
-    std::array<VkVertexInputAttributeDescription, 3U> GetAttributeDescriptions();
-
-    template<typename T1, typename T2>
+    export template<typename T1, typename T2>
     constexpr void AddFlags(T1& Lhs, T2 const Rhs)
     {
         Lhs = static_cast<T1>(static_cast<std::uint8_t>(Lhs) | static_cast<std::uint8_t>(Rhs));
     }
 
-    template<typename T1, typename T2>
+    export template<typename T1, typename T2>
     constexpr void RemoveFlags(T1& Lhs, T2 const Rhs)
     {
         Lhs = static_cast<T1>(static_cast<std::uint8_t>(Lhs) & ~static_cast<std::uint8_t>(Rhs));
     }
 
-    template<typename T1, typename T2>
+    export template<typename T1, typename T2>
     constexpr bool HasFlag(T1 const Lhs, T2 const Rhs)
     {
         return (Lhs & Rhs) == Rhs;
     }
 
-    template<typename T1, typename T2>
+    export template<typename T1, typename T2>
     constexpr bool HasAnyFlag(T1 const Lhs, T2 const Rhs)
     {
         return static_cast<std::uint8_t>(Lhs & Rhs) != 0U;
     }
 
-    template<typename T>
+    export template<typename T>
     constexpr bool HasAnyFlag(T const Lhs)
     {
         return static_cast<std::uint8_t>(Lhs) != 0U;
     }
 
-    void InitializeSingleCommandQueue(VkCommandPool&, VkCommandBuffer&, std::uint8_t);
+    export void InitializeSingleCommandQueue(VkCommandPool&, VkCommandBuffer&, std::uint8_t);
+    export void FinishSingleCommandQueue(VkQueue const&, VkCommandPool const&, VkCommandBuffer const&);
 
-    void FinishSingleCommandQueue(VkQueue const&, VkCommandPool const&, VkCommandBuffer const&);
+    export struct UniformBufferObject GetUniformBufferObject();
 
-    struct UniformBufferObject GetUniformBufferObject();
-
-    template<typename T>
+    export template<typename T>
     constexpr bool CheckVulkanResult(T&& InputOperation)
     {
         if (VkResult const OperationResult = InputOperation;

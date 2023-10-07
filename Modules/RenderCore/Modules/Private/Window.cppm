@@ -13,7 +13,6 @@ module;
 module RenderCore.Window;
 
 import <thread>;
-import <mutex>;
 import <queue>;
 import <string_view>;
 import <stdexcept>;
@@ -24,133 +23,12 @@ import RenderCore.EngineCore;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
+import RenderCore.Utils.GLFWCallbacks;
+import RenderCore.Types.Camera;
 
 using namespace RenderCore;
 
 GLFWwindow* g_Window {nullptr};
-
-void GLFWWindowCloseRequested(GLFWwindow* const Window)
-{
-    ShutdownEngine();
-    glfwSetWindowShouldClose(Window, GLFW_TRUE);
-}
-
-void GLFWWindowResized(GLFWwindow* const Window, [[maybe_unused]] std::int32_t const Width, [[maybe_unused]] std::int32_t const Height)
-{
-    UpdateDeviceProperties(Window);
-    ImGui::GetIO().DisplaySize             = ImVec2(static_cast<float>(Width), static_cast<float>(Height));
-    ImGui::GetIO().DisplayFramebufferScale = ImVec2(1.F, 1.F);
-    ImGui::GetIO().DeltaTime               = static_cast<float>(glfwGetTime());
-}
-
-void GLFWErrorCallback(std::int32_t const Error, char const* const Description)
-{
-    BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: GLFW Error: " << Error << " - " << Description;
-}
-
-void GLFWKeyCallback(GLFWwindow* const Window, std::int32_t const Key, [[maybe_unused]] std::int32_t const Scancode, std::int32_t const Action, [[maybe_unused]] int const Mods)
-{
-    if (Key == GLFW_KEY_ESCAPE && Action == GLFW_PRESS)
-    {
-        GLFWWindowCloseRequested(Window);
-    }
-
-    const auto IsKeyPressed = [](std::int32_t const Key) {
-        return glfwGetKey(g_Window, Key) == GLFW_PRESS;
-    };
-
-    glm::mat4 Matrix = GetCameraMatrix();
-
-    if (IsKeyPressed(GLFW_KEY_W) || IsKeyPressed(GLFW_KEY_V))
-    {
-        Matrix[3][2] += g_KeyCallbackRate;
-    }
-
-    if (IsKeyPressed(GLFW_KEY_S) || IsKeyPressed(GLFW_KEY_C))
-    {
-        Matrix[3][2] -= g_KeyCallbackRate;
-    }
-
-    if (IsKeyPressed(GLFW_KEY_A) || IsKeyPressed(GLFW_KEY_LEFT))
-    {
-        Matrix[3][0] += g_KeyCallbackRate;
-    }
-
-    if (IsKeyPressed(GLFW_KEY_D) || IsKeyPressed(GLFW_KEY_RIGHT))
-    {
-        Matrix[3][0] -= g_KeyCallbackRate;
-    }
-
-    if (IsKeyPressed(GLFW_KEY_SPACE) || IsKeyPressed(GLFW_KEY_UP))
-    {
-        Matrix[3][1] -= g_KeyCallbackRate;
-    }
-
-    if (IsKeyPressed(GLFW_KEY_LEFT_CONTROL) || IsKeyPressed(GLFW_KEY_DOWN))
-    {
-        Matrix[3][1] += g_KeyCallbackRate;
-    }
-
-    SetCameraMatrix(Matrix);
-}
-
-void GLFWCursorPositionCallback(GLFWwindow* Window, double NewCursorPosX, double NewCursorPosY)
-{
-    static bool StartOperation {false};
-    static double CursorPosX {NewCursorPosX};
-    static double CursorPosY {NewCursorPosY};
-
-    std::int32_t const LeftButtonEvent   = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_LEFT);
-    std::int32_t const MiddleButtonEvent = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_MIDDLE);
-    std::int32_t const RightButtonEvent  = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_RIGHT);
-
-    if (LeftButtonEvent == GLFW_PRESS || MiddleButtonEvent == GLFW_PRESS || RightButtonEvent == GLFW_PRESS)
-    {
-        if (!StartOperation)
-        {
-            CursorPosX     = NewCursorPosX;
-            CursorPosY     = NewCursorPosY;
-            StartOperation = true;
-        }
-        else
-        {
-            glm::mat4 Matrix = GetCameraMatrix();
-
-            double const OffsetX = NewCursorPosX - CursorPosX;
-            double const OffsetY = NewCursorPosY - CursorPosY;
-
-            if (LeftButtonEvent == GLFW_PRESS)
-            {
-                Matrix = glm::rotate(Matrix, static_cast<float>(OffsetX * g_CursorCallbackRate), glm::vec3(0.F, 0.F, 1.F));
-                Matrix = glm::rotate(Matrix, static_cast<float>(OffsetY * g_CursorCallbackRate), glm::vec3(0.F, 1.F, 0.F));
-            }
-
-            if (MiddleButtonEvent == GLFW_PRESS || RightButtonEvent == GLFW_PRESS)
-            {
-                Matrix[3][0] += static_cast<float>(OffsetX * g_CursorCallbackRate);
-                Matrix[3][1] -= static_cast<float>(OffsetY * g_CursorCallbackRate);
-            }
-
-            CursorPosX = NewCursorPosX;
-            CursorPosY = NewCursorPosY;
-
-            SetCameraMatrix(Matrix);
-        }
-    }
-    else
-    {
-        CursorPosX     = 0.0;
-        CursorPosY     = 0.0;
-        StartOperation = false;
-    }
-}
-
-void GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow* const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)
-{
-    glm::mat4 Matrix = GetCameraMatrix();
-    Matrix[3][2] += static_cast<float>(OffsetY * g_ScrollCallbackRate);
-    SetCameraMatrix(Matrix);
-}
 
 bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title)
 {
@@ -174,6 +52,8 @@ bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::
     glfwSetCursorPosCallback(g_Window, &GLFWCursorPositionCallback);
     glfwSetScrollCallback(g_Window, &GLFWCursorScrollCallback);
     glfwSetErrorCallback(&GLFWErrorCallback);
+
+    glfwSetInputMode(g_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     return g_Window != nullptr;
 }
@@ -216,7 +96,6 @@ bool InitializeImGui()
 Window::Window()
     : m_DrawTimerID(0U),
       m_EventIDQueue(),
-      m_Mutex(),
       m_MainThreadID(std::this_thread::get_id())
 {
 }
@@ -271,8 +150,6 @@ void Window::Shutdown()
         return;
     }
 
-    std::lock_guard const Lock(m_Mutex);
-
     Timer::Manager::Get().StopTimer(m_DrawTimerID);
     while (!m_EventIDQueue.empty())
     {
@@ -303,7 +180,6 @@ void Window::PollEvents()
     {
         glfwPollEvents();
 
-        std::lock_guard const Lock(m_Mutex);
         std::unordered_map<ApplicationEventFlags, std::uint8_t> ProcessedEvents;
 
         for (std::uint8_t Iterator = 0U; Iterator < static_cast<std::underlying_type_t<ApplicationEventFlags>>(ApplicationEventFlags::MAX); ++Iterator)
@@ -323,6 +199,11 @@ void Window::PollEvents()
                     {
                         break;
                     }
+
+                    static double DeltaTime = glfwGetTime();
+                    DeltaTime               = glfwGetTime() - DeltaTime;
+
+                    GetViewportCamera().UpdateCameraMovement(g_Window, static_cast<float>(DeltaTime));
 
                     if (ImGuiIO& IO = ImGui::GetIO();
                         IO.Fonts->IsBuilt())

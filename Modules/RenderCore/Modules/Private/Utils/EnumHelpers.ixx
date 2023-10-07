@@ -2,8 +2,6 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRender
 
-module;
-
 export module RenderCore.Utils.EnumHelpers;
 
 import <type_traits>;

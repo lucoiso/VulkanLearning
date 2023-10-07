@@ -27,16 +27,16 @@ import <stdexcept>;
 import <string_view>;
 import <vector>;
 
-import RenderCore.Utils.Constants;
-import RenderCore.Types.DeviceProperties;
 import RenderCore.Management.CommandsManagement;
 import RenderCore.Management.BufferManagement;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.PipelineManagement;
 import RenderCore.Management.ShaderManagement;
+import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.DebugHelpers;
 import RenderCore.Utils.EnumHelpers;
+import RenderCore.Types.DeviceProperties;
 
 using namespace RenderCore;
 
@@ -53,7 +53,6 @@ enum class EngineCoreStateFlags : std::uint8_t
 VkInstance g_Instance {VK_NULL_HANDLE};
 VkSurfaceKHR g_Surface {VK_NULL_HANDLE};
 EngineCoreStateFlags g_StateFlags {EngineCoreStateFlags::NONE};
-glm::mat4 g_CameraMatrix {lookAt(glm::vec3(2.F, 2.F, 2.F), glm::vec3(0.F, 0.F, 0.F), glm::vec3(0.F, 0.F, 1.F))};
 std::uint32_t g_ObjectID {0U};
 
 #ifdef _DEBUG
@@ -386,14 +385,4 @@ VkInstance& RenderCore::GetInstance()
 VkSurfaceKHR& RenderCore::GetSurface()
 {
     return g_Surface;
-}
-
-glm::mat4 RenderCore::GetCameraMatrix()
-{
-    return g_CameraMatrix;
-}
-
-void RenderCore::SetCameraMatrix(glm::mat4 const& Value)
-{
-    g_CameraMatrix = Value;
 }

@@ -26,11 +26,11 @@ import <cstdint>;
 import <string>;
 import <span>;
 
-import RenderCore.EngineCore;
 import RenderCore.Management.BufferManagement;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Types.UniformBufferObject;
 import RenderCore.Types.Vertex;
+import RenderCore.Types.Camera;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.EnumConverter;
 
@@ -153,7 +153,7 @@ std::array<VkVertexInputBindingDescription, 1U> RenderCore::GetBindingDescriptor
                     .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
 }
 
-std::array<VkVertexInputAttributeDescription, 3U> RenderCore::GetAttributeDescriptions()
+std::array<VkVertexInputAttributeDescription, 4U> RenderCore::GetAttributeDescriptions()
 {
     return {
             VkVertexInputAttributeDescription {
@@ -165,9 +165,14 @@ std::array<VkVertexInputAttributeDescription, 3U> RenderCore::GetAttributeDescri
                     .location = 1U,
                     .binding  = 0U,
                     .format   = VK_FORMAT_R32G32B32_SFLOAT,
-                    .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Color))},
+                    .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Normal))},
             VkVertexInputAttributeDescription {
                     .location = 2U,
+                    .binding  = 0U,
+                    .format   = VK_FORMAT_R32G32B32_SFLOAT,
+                    .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Color))},
+            VkVertexInputAttributeDescription {
+                    .location = 3U,
                     .binding  = 0U,
                     .format   = VK_FORMAT_R32G32_SFLOAT,
                     .offset   = static_cast<std::uint32_t>(offsetof(Vertex, TextureCoordinate))}};
@@ -276,11 +281,17 @@ UniformBufferObject RenderCore::GetUniformBufferObject()
 {
     auto const& [Width, Height] = GetSwapChainExtent();
 
-    glm::mat4 const Model = glm::mat4(1.F);
-    glm::mat4 Projection  = glm::perspective(glm::radians(45.F), static_cast<float>(Width) / static_cast<float>(Height), 0.1F, 10.F);
+    glm::mat4 Model = glm::mat4(1.F);
+
+    // Temp fix: The model that we are using in this project is rotated
+    Model = glm::rotate(Model, glm::radians(90.F), glm::vec3(0.F, 0.F, -1.F));
+    Model = glm::rotate(Model, glm::radians(90.F), glm::vec3(0.F, -1.F, 0.F));
+    Model = glm::translate(Model, glm::vec3(0.F, 0.F, -0.25F));
+
+    glm::mat4 Projection = glm::perspective(glm::radians(45.F), static_cast<float>(Width) / static_cast<float>(Height), 0.1F, 100.F);
     Projection[1][1] *= -1;
 
-    glm::mat4 const ModelViewProjection = Projection * GetCameraMatrix() * Model;
+    glm::mat4 const ModelViewProjection = Projection * GetViewportCamera().GetMatrix() * Model;
 
     std::array<std::array<float, 4U>, 4U> ModelViewProjectionArray {};
     for (std::uint8_t Column = 0U; Column < static_cast<std::uint8_t>(ModelViewProjectionArray.size()); ++Column)

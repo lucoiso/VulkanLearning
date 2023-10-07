@@ -29,93 +29,115 @@ import <ranges>;
 import <cstdint>;
 import <filesystem>;
 
-import RenderCore.Utils.Helpers;
 import RenderCore.EngineCore;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.PipelineManagement;
 import RenderCore.Types.DeviceProperties;
 import RenderCore.Types.Vertex;
-import RenderCore.Utils.Constants;
 import RenderCore.Types.TextureData;
+import RenderCore.Utils.Constants;
+import RenderCore.Utils.Helpers;
 
 using namespace RenderCore;
 
-bool ImageAllocation::IsValid() const
+namespace Allocation
 {
-    return Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE;
-}
-
-void ImageAllocation::DestroyResources()
-{
-    if (Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
+    struct ImageAllocation
     {
-        vmaDestroyImage(RenderCore::GetAllocator(), Image, Allocation);
-        Image      = VK_NULL_HANDLE;
-        Allocation = VK_NULL_HANDLE;
-    }
+        VkImage Image {VK_NULL_HANDLE};
+        VkImageView View {VK_NULL_HANDLE};
+        VkSampler Sampler {VK_NULL_HANDLE};
+        VmaAllocation Allocation {VK_NULL_HANDLE};
 
-    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
-
-    if (View != VK_NULL_HANDLE)
-    {
-        vkDestroyImageView(VulkanLogicalDevice, View, nullptr);
-        View = VK_NULL_HANDLE;
-
-        if (Image != VK_NULL_HANDLE)
+        [[nodiscard]] bool IsValid() const
         {
-            Image = VK_NULL_HANDLE;
-        }
-    }
-
-    if (Sampler != VK_NULL_HANDLE)
-    {
-        vkDestroySampler(VulkanLogicalDevice, Sampler, nullptr);
-        Sampler = VK_NULL_HANDLE;
-    }
-}
-
-bool BufferAllocation::IsValid() const
-{
-    return Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE;
-}
-
-void BufferAllocation::DestroyResources()
-{
-    if (Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
-    {
-        if (Allocation->GetMappedData() != nullptr)
-        {
-            vmaUnmapMemory(RenderCore::GetAllocator(), Allocation);
+            return Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE;
         }
 
-        vmaDestroyBuffer(RenderCore::GetAllocator(), Buffer, Allocation);
-        Allocation = VK_NULL_HANDLE;
-        Buffer     = VK_NULL_HANDLE;
-    }
-}
+        void DestroyResources()
+        {
+            if (Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
+            {
+                vmaDestroyImage(GetAllocator(), Image, Allocation);
+                Image      = VK_NULL_HANDLE;
+                Allocation = VK_NULL_HANDLE;
+            }
 
-bool ObjectAllocation::IsValid() const
-{
-    return TextureImage.IsValid() && VertexBuffer.IsValid() && IndexBuffer.IsValid() && IndicesCount != 0U;
-}
+            if (View != VK_NULL_HANDLE)
+            {
+                vkDestroyImageView(GetLogicalDevice(), View, nullptr);
+                View = VK_NULL_HANDLE;
 
-void ObjectAllocation::DestroyResources()
-{
-    VertexBuffer.DestroyResources();
-    IndexBuffer.DestroyResources();
-    TextureImage.DestroyResources();
-    IndicesCount = 0U;
-}
+                if (Image != VK_NULL_HANDLE)
+                {
+                    Image = VK_NULL_HANDLE;
+                }
+            }
+
+            if (Sampler != VK_NULL_HANDLE)
+            {
+                vkDestroySampler(GetLogicalDevice(), Sampler, nullptr);
+                Sampler = VK_NULL_HANDLE;
+            }
+        }
+    };
+
+    struct BufferAllocation
+    {
+        VkBuffer Buffer {VK_NULL_HANDLE};
+        VmaAllocation Allocation {VK_NULL_HANDLE};
+
+        [[nodiscard]] bool IsValid() const
+        {
+            return Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE;
+        }
+
+        void DestroyResources()
+        {
+            if (Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
+            {
+                if (Allocation->GetMappedData() != nullptr)
+                {
+                    vmaUnmapMemory(GetAllocator(), Allocation);
+                }
+
+                vmaDestroyBuffer(GetAllocator(), Buffer, Allocation);
+                Allocation = VK_NULL_HANDLE;
+                Buffer     = VK_NULL_HANDLE;
+            }
+        }
+    };
+
+    struct ObjectAllocation
+    {
+        ImageAllocation TextureImage {};
+        BufferAllocation VertexBuffer {};
+        BufferAllocation IndexBuffer {};
+        std::uint32_t IndicesCount {0U};
+
+        [[nodiscard]] bool IsValid() const
+        {
+            return TextureImage.IsValid() && VertexBuffer.IsValid() && IndexBuffer.IsValid() && IndicesCount != 0U;
+        }
+
+        void DestroyResources()
+        {
+            VertexBuffer.DestroyResources();
+            IndexBuffer.DestroyResources();
+            TextureImage.DestroyResources();
+            IndicesCount = 0U;
+        }
+    };
+}// namespace Allocation
 
 VmaAllocator g_Allocator {VK_NULL_HANDLE};
 VkSwapchainKHR g_SwapChain {VK_NULL_HANDLE};
 VkSwapchainKHR g_OldSwapChain {VK_NULL_HANDLE};
 VkExtent2D g_SwapChainExtent {0U, 0U};
-std::vector<ImageAllocation> g_SwapChainImages {};
-ImageAllocation g_DepthImage {};
-ImageAllocation g_ImGuiFontImage {};
+std::vector<Allocation::ImageAllocation> g_SwapChainImages {};
+Allocation::ImageAllocation g_DepthImage {};
 std::vector<VkFramebuffer> g_FrameBuffers {};
-std::unordered_map<std::uint32_t, ObjectAllocation> g_Objects {};
+std::unordered_map<std::uint32_t, Allocation::ObjectAllocation> g_Objects {};
 std::atomic<std::uint32_t> g_ObjectIDCounter {0U};
 
 VmaAllocationInfo CreateBuffer(VkDeviceSize const& Size, VkBufferUsageFlags const Usage, VkMemoryPropertyFlags const Flags, VkBuffer& Buffer, VmaAllocation& Allocation)
@@ -155,7 +177,7 @@ void CopyBuffer(VkBuffer const& Source, VkBuffer const& Destination, VkDeviceSiz
     FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
 }
 
-void CreateVertexBuffer(ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<Vertex> const& Vertices)
+void CreateVertexBuffer(Allocation::ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<Vertex> const& Vertices)
 {
     if (g_Allocator == VK_NULL_HANDLE)
     {
@@ -189,7 +211,7 @@ void CreateVertexBuffer(ObjectAllocation& Object, VkDeviceSize const& Allocation
     vmaDestroyBuffer(g_Allocator, StagingBuffer, StagingBufferMemory);
 }
 
-void CreateIndexBuffer(ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<std::uint32_t> const& Indices)
+void CreateIndexBuffer(Allocation::ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<std::uint32_t> const& Indices)
 {
     if (g_Allocator == VK_NULL_HANDLE)
     {
@@ -252,12 +274,12 @@ void CreateImage(VkFormat const& ImageFormat,
             .usage         = Usage,
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
 
-    VmaAllocationCreateInfo const ImageAllocationCreateInfo {
+    VmaAllocationCreateInfo const ImageCreateInfo {
             .flags = Flags,
             .usage = VMA_MEMORY_USAGE_AUTO};
 
     VmaAllocationInfo AllocationInfo;
-    CheckVulkanResult(vmaCreateImage(g_Allocator, &ImageViewCreateInfo, &ImageAllocationCreateInfo, &Image, &Allocation, &AllocationInfo));
+    CheckVulkanResult(vmaCreateImage(g_Allocator, &ImageViewCreateInfo, &ImageCreateInfo, &Image, &Allocation, &AllocationInfo));
 }
 
 void CreateImageView(VkImage const& Image, VkFormat const& Format, VkImageAspectFlags const& AspectFlags, VkImageView& ImageView)
@@ -286,12 +308,12 @@ void CreateSwapChainImageViews(VkFormat const& ImageFormat)
     }
 }
 
-void CreateTextureImageView(ImageAllocation& Allocation)
+void CreateTextureImageView(Allocation::ImageAllocation& Allocation)
 {
     CreateImageView(Allocation.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, Allocation.View);
 }
 
-void CreateTextureSampler(ImageAllocation& Allocation)
+void CreateTextureSampler(Allocation::ImageAllocation& Allocation)
 {
     if (g_Allocator == VK_NULL_HANDLE)
     {
@@ -417,9 +439,9 @@ void MoveImageLayout(VkImage const& Image,
     FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
 }
 
-ImageAllocation AllocateTexture(unsigned char const* Data, std::uint32_t const Width, std::uint32_t const Height, std::size_t const AllocationSize)
+Allocation::ImageAllocation AllocateTexture(unsigned char const* Data, std::uint32_t const Width, std::uint32_t const Height, std::size_t const AllocationSize)
 {
-    ImageAllocation ImageAllocation {};
+    Allocation::ImageAllocation ImageAllocation {};
 
     constexpr VkBufferUsageFlags SourceUsageFlags             = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -465,7 +487,7 @@ ImageAllocation AllocateTexture(unsigned char const* Data, std::uint32_t const W
     return ImageAllocation;
 }
 
-void LoadTexture(ObjectAllocation& Object, std::string_view const TexturePath)
+void LoadTexture(Allocation::ObjectAllocation& Object, std::string_view const TexturePath)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan texture image";
 
@@ -489,7 +511,7 @@ void LoadTexture(ObjectAllocation& Object, std::string_view const TexturePath)
 
     if (ImagePixels == nullptr)
     {
-        throw std::runtime_error("STB Image is invalid. Path: " + std::string(TexturePath));
+        throw std::runtime_error("STB ImageAllocation is invalid. Path: " + std::string(TexturePath));
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded image from path: '" << TexturePath << "'";
@@ -525,7 +547,7 @@ void RenderCore::CreateSwapChain()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain";
 
-    VulkanDeviceProperties const& Properties = GetDeviceProperties();
+    DeviceProperties const& Properties = GetDeviceProperties();
 
     std::vector<std::uint32_t> const QueueFamilyIndices = GetUniqueQueueFamilyIndicesU32();
     auto const QueueFamilyIndicesCount                  = static_cast<std::uint32_t>(QueueFamilyIndices.size());
@@ -567,7 +589,7 @@ void RenderCore::CreateSwapChain()
     std::vector<VkImage> SwapChainImages(Count, VK_NULL_HANDLE);
     CheckVulkanResult(vkGetSwapchainImagesKHR(VulkanLogicalDevice, g_SwapChain, &Count, SwapChainImages.data()));
 
-    g_SwapChainImages.resize(Count, ImageAllocation());
+    g_SwapChainImages.resize(Count, Allocation::ImageAllocation());
     for (std::uint32_t Iterator = 0U; Iterator < Count; ++Iterator)
     {
         g_SwapChainImages.at(Iterator).Image = SwapChainImages.at(Iterator);
@@ -606,8 +628,8 @@ void RenderCore::CreateDepthResources()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan depth resources";
 
-    VulkanDeviceProperties const& Properties = GetDeviceProperties();
-    auto const& [FamilyIndex, Queue]         = GetGraphicsQueue();
+    DeviceProperties const& Properties = GetDeviceProperties();
+    auto const& [FamilyIndex, Queue]   = GetGraphicsQueue();
 
     constexpr VkImageTiling Tiling                      = VK_IMAGE_TILING_OPTIMAL;
     constexpr VkImageUsageFlagBits Usage                = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -621,7 +643,7 @@ void RenderCore::CreateDepthResources()
     MoveImageLayout(g_DepthImage.Image, Properties.DepthFormat, InitialLayout, DestinationLayout, Queue, FamilyIndex);
 }
 
-void CreateVertexBuffers(ObjectAllocation& Object, std::vector<Vertex> const& Vertices)
+void CreateVertexBuffers(Allocation::ObjectAllocation& Object, std::vector<Vertex> const& Vertices)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan vertex buffers";
 
@@ -629,7 +651,7 @@ void CreateVertexBuffers(ObjectAllocation& Object, std::vector<Vertex> const& Ve
     CreateVertexBuffer(Object, BufferSize, Vertices);
 }
 
-void CreateIndexBuffers(ObjectAllocation& Object, std::vector<std::uint32_t> const& Indices)
+void CreateIndexBuffers(Allocation::ObjectAllocation& Object, std::vector<std::uint32_t> const& Indices)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
 
@@ -640,7 +662,7 @@ void CreateIndexBuffers(ObjectAllocation& Object, std::vector<std::uint32_t> con
 std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::string_view const TexturePath)
 {
     Assimp::Importer Importer;
-    aiScene const* const Scene = Importer.ReadFile(ModelPath.data(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType);
+    aiScene const* const Scene = Importer.ReadFile(ModelPath.data(), (aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_FlipUVs));
 
     if (Scene == nullptr || (Scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) != 0U || Scene->mRootNode == nullptr)
     {
@@ -664,23 +686,40 @@ std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::stri
          aiMesh const* MeshIter: Meshes)
     {
         std::span const AiVerticesSpan(MeshIter->mVertices, MeshIter->mNumVertices);
-        for (std::vector const VerticesSpan(AiVerticesSpan.begin(), AiVerticesSpan.end());
-             aiVector3D const& Position: VerticesSpan)
-        {
-            auto const Index              = static_cast<std::uint32_t>(Vertices.size());
-            aiVector3D const TextureCoord = MeshIter->mTextureCoords[0][Index];
+        std::vector const VerticesContainer(AiVerticesSpan.begin(), AiVerticesSpan.end());
 
-            Vertices.push_back(
-                    Vertex {
-                            .Position          = {Position.x, Position.y, Position.z},
-                            .Color             = {1.F, 1.F, 1.F},
-                            .TextureCoordinate = {TextureCoord.x, TextureCoord.y}});
+        for (auto VerticesIter = VerticesContainer.begin(); VerticesIter != VerticesContainer.end(); ++VerticesIter)
+        {
+            aiVector3D const& Position   = *VerticesIter;
+            aiVector3D TextureCoordinate = {};
+            aiVector3D Normal            = {};
+
+            if (MeshIter->HasTextureCoords(0))
+            {
+                TextureCoordinate = MeshIter->mTextureCoords[0][VerticesIter - VerticesContainer.begin()];
+            }
+
+            if (MeshIter->HasNormals())
+            {
+                Normal = MeshIter->mNormals[VerticesIter - VerticesContainer.begin()];
+            }
+
+            Vertices.push_back(Vertex {
+                    .Position          = {Position.x, Position.y, Position.z},
+                    .Normal            = {Normal.x, Normal.y, Normal.z},
+                    .Color             = {1.F, 1.F, 1.F},
+                    .TextureCoordinate = {TextureCoordinate.x, TextureCoordinate.y}});
         }
 
         std::span const AiFacesSpan(MeshIter->mFaces, MeshIter->mNumFaces);
         for (std::vector const Faces(AiFacesSpan.begin(), AiFacesSpan.end());
              aiFace const& Face: Faces)
         {
+            if (Face.mNumIndices != 3U)
+            {
+                continue;
+            }
+
             std::span const AiIndicesSpan(Face.mIndices, Face.mNumIndices);
             for (std::vector const AiIndices(AiIndicesSpan.begin(), AiIndicesSpan.end());
                  std::uint32_t const IndiceIter: AiIndices)
@@ -690,7 +729,7 @@ std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::stri
         }
     }
 
-    ObjectAllocation NewObject {
+    Allocation::ObjectAllocation NewObject {
             .IndicesCount = static_cast<std::uint32_t>(Indices.size())};
 
     CreateVertexBuffers(NewObject, Vertices);
@@ -737,7 +776,7 @@ void RenderCore::DestroyBufferResources(bool const ClearScene)
 
     VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
 
-    for (ImageAllocation& ImageViewIter: g_SwapChainImages)
+    for (Allocation::ImageAllocation& ImageViewIter: g_SwapChainImages)
     {
         ImageViewIter.DestroyResources();
     }
@@ -754,7 +793,6 @@ void RenderCore::DestroyBufferResources(bool const ClearScene)
     g_FrameBuffers.clear();
 
     g_DepthImage.DestroyResources();
-    g_ImGuiFontImage.DestroyResources();
 
     if (ClearScene)
     {
@@ -816,13 +854,13 @@ std::uint32_t RenderCore::GetIndicesCount(std::uint32_t const ObjectID)
     return g_Objects.at(ObjectID).IndicesCount;
 }
 
-std::vector<VulkanTextureData> RenderCore::GetAllocatedTextures()
+std::vector<TextureData> RenderCore::GetAllocatedTextures()
 {
-    std::vector<VulkanTextureData> Output;
+    std::vector<TextureData> Output;
     for (auto const& [TextureImage, VertexBuffer, IndexBuffer, IndicesCount]: g_Objects | std::views::values)
     {
         Output.push_back(
-                VulkanTextureData {
+                TextureData {
                         .ImageView = TextureImage.View,
                         .Sampler   = TextureImage.Sampler});
     }

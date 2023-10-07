@@ -2,11 +2,9 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRender
 
-module;
-
-#include <benchmark/benchmark.h>
-
 export module Benchmark.Placeholder;
+
+import <benchmark/benchmark.h>;
 
 static void Placeholder(benchmark::State& State)
 {

@@ -4,64 +4,34 @@
 
 module;
 
+#pragma once
+
 #include <vk_mem_alloc.h>
-#include <volk.h>
 
 export module RenderCore.Management.BufferManagement;
 
 import <string_view>;
 import <vector>;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    struct ImageAllocation
-    {
-        VkImage Image {VK_NULL_HANDLE};
-        VkImageView View {VK_NULL_HANDLE};
-        VkSampler Sampler {VK_NULL_HANDLE};
-        VmaAllocation Allocation {VK_NULL_HANDLE};
+    export void CreateMemoryAllocator();
+    export void CreateSwapChain();
+    export void CreateFrameBuffers();
+    export void CreateDepthResources();
 
-        [[nodiscard]] bool IsValid() const;
-        void DestroyResources();
-    };
+    export std::uint32_t LoadObject(std::string_view, std::string_view);
+    export void UnLoadObject(std::uint32_t);
 
-    struct BufferAllocation
-    {
-        VkBuffer Buffer {VK_NULL_HANDLE};
-        VmaAllocation Allocation {VK_NULL_HANDLE};
+    export void DestroyBufferResources(bool);
+    export void ReleaseBufferResources();
 
-        [[nodiscard]] bool IsValid() const;
-        void DestroyResources();
-    };
-
-    struct ObjectAllocation
-    {
-        ImageAllocation TextureImage {};
-        BufferAllocation VertexBuffer {};
-        BufferAllocation IndexBuffer {};
-        std::uint32_t IndicesCount {0U};
-
-        [[nodiscard]] bool IsValid() const;
-        void DestroyResources();
-    };
-
-    void CreateMemoryAllocator();
-    void CreateSwapChain();
-    void CreateFrameBuffers();
-    void CreateDepthResources();
-
-    std::uint32_t LoadObject(std::string_view, std::string_view);
-    void UnLoadObject(std::uint32_t);
-
-    void DestroyBufferResources(bool);
-    void ReleaseBufferResources();
-
-    [[nodiscard]] VmaAllocator const& GetAllocator();
-    [[nodiscard]] VkSwapchainKHR const& GetSwapChain();
-    [[nodiscard]] VkExtent2D const& GetSwapChainExtent();
-    [[nodiscard]] std::vector<VkFramebuffer> const& GetFrameBuffers();
-    [[nodiscard]] VkBuffer GetVertexBuffer(std::uint32_t);
-    [[nodiscard]] VkBuffer GetIndexBuffer(std::uint32_t);
-    [[nodiscard]] std::uint32_t GetIndicesCount(std::uint32_t);
-    [[nodiscard]] std::vector<struct VulkanTextureData> GetAllocatedTextures();
+    export [[nodiscard]] VmaAllocator const& GetAllocator();
+    export [[nodiscard]] VkSwapchainKHR const& GetSwapChain();
+    export [[nodiscard]] VkExtent2D const& GetSwapChainExtent();
+    export [[nodiscard]] std::vector<VkFramebuffer> const& GetFrameBuffers();
+    export [[nodiscard]] VkBuffer GetVertexBuffer(std::uint32_t);
+    export [[nodiscard]] VkBuffer GetIndexBuffer(std::uint32_t);
+    export [[nodiscard]] std::uint32_t GetIndicesCount(std::uint32_t);
+    export [[nodiscard]] std::vector<struct TextureData> GetAllocatedTextures();
 }// namespace RenderCore

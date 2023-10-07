@@ -4,6 +4,8 @@
 
 module;
 
+#pragma once
+
 #include <volk.h>
 
 export module RenderCore.Utils.Constants;

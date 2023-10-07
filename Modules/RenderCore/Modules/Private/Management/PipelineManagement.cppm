@@ -238,7 +238,7 @@ void RenderCore::CreateDescriptorSetLayout()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
 
-    // Object Bindings
+    // ObjectAllocation Bindings
     {
         constexpr std::array LayoutBindings {
                 VkDescriptorSetLayoutBinding {
@@ -301,10 +301,10 @@ void RenderCore::CreateDescriptorSets()
 
     CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, g_DescriptorSets.data()));
 
-    // Object Bindings
+    // ObjectAllocation Bindings
     {
         std::vector<VkDescriptorImageInfo> ImageInfos {};
-        for (VulkanTextureData const& TextureDataIter: AllocatedTextures)
+        for (TextureData const& TextureDataIter: AllocatedTextures)
         {
             ImageInfos.push_back(
                     VkDescriptorImageInfo {

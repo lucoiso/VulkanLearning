@@ -4,33 +4,33 @@
 
 module;
 
-#include "RenderCoreModule.h"
+#pragma once
+
+#include <RenderCoreModule.h>
 
 export module RenderCore.Window;
 
 import <thread>;
-import <mutex>;
 import <queue>;
 import <string_view>;
 import <stdexcept>;
 import <unordered_map>;
 import <functional>;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    class RENDERCOREMODULE_API Window
+    enum class ApplicationEventFlags : std::uint8_t
     {
-        enum class ApplicationEventFlags : std::uint8_t
-        {
-            DRAW_FRAME,
-            LOAD_SCENE,
-            UNLOAD_SCENE,
-            MAX
-        };
+        DRAW_FRAME,
+        LOAD_SCENE,
+        UNLOAD_SCENE,
+        MAX
+    };
 
+    export class RENDERCOREMODULE_API Window
+    {
         std::uint32_t m_DrawTimerID {0U};
         std::queue<std::uint8_t> m_EventIDQueue;
-        std::mutex m_Mutex;
         std::thread::id m_MainThreadID;
 
     public:

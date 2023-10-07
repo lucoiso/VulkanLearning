@@ -4,13 +4,15 @@
 
 module;
 
+#pragma once
+
 #include <volk.h>
 
 export module RenderCore.Types.DeviceProperties;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    struct VulkanDeviceProperties
+    export struct DeviceProperties
     {
         VkSurfaceFormatKHR Format;
         VkFormat DepthFormat;
@@ -23,7 +25,7 @@ export namespace RenderCore
             return Extent.height != 0U && Extent.width != 0U;
         }
 
-        bool operator!=(VulkanDeviceProperties const& Other) const
+        bool operator!=(DeviceProperties const& Other) const
         {
             return Format.format != Other.Format.format
                    || Format.colorSpace != Other.Format.colorSpace

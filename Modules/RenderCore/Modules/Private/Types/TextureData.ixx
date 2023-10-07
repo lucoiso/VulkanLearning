@@ -4,13 +4,15 @@
 
 module;
 
+#pragma once
+
 #include <volk.h>
 
 export module RenderCore.Types.TextureData;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    struct VulkanTextureData
+    export struct TextureData
     {
         VkImageView ImageView;
         VkSampler Sampler;

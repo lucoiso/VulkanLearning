@@ -2,7 +2,7 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRender
 
-#include <memory>
+import <memory>;
 import RenderCore.Window;
 
 int main([[maybe_unused]] int Argc, [[maybe_unused]] char* Argv[])

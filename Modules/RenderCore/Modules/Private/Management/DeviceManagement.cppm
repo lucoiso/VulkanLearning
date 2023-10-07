@@ -26,7 +26,7 @@ using namespace RenderCore;
 
 VkPhysicalDevice g_PhysicalDevice {VK_NULL_HANDLE};
 VkDevice g_Device {VK_NULL_HANDLE};
-VulkanDeviceProperties g_DeviceProperties {};
+DeviceProperties g_DeviceProperties {};
 std::pair<std::uint8_t, VkQueue> g_GraphicsQueue {};
 std::pair<std::uint8_t, VkQueue> g_PresentationQueue {};
 std::pair<std::uint8_t, VkQueue> g_TransferQueue {};
@@ -130,12 +130,12 @@ void ListAvailablePhysicalDeviceSurfaceCapabilities()
 
     VkSurfaceCapabilitiesKHR const SurfaceCapabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min Image Count: " << SurfaceCapabilities.minImageCount;
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max Image Count: " << SurfaceCapabilities.maxImageCount;
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min ImageAllocation Count: " << SurfaceCapabilities.minImageCount;
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max ImageAllocation Count: " << SurfaceCapabilities.maxImageCount;
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Current Extent: (" << SurfaceCapabilities.currentExtent.width << ", " << SurfaceCapabilities.currentExtent.height << ")";
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min Image Extent: (" << SurfaceCapabilities.minImageExtent.width << ", " << SurfaceCapabilities.minImageExtent.height << ")";
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max Image Extent: (" << SurfaceCapabilities.maxImageExtent.width << ", " << SurfaceCapabilities.maxImageExtent.height << ")";
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max Image Array Layers: " << SurfaceCapabilities.maxImageArrayLayers;
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min ImageAllocation Extent: (" << SurfaceCapabilities.minImageExtent.width << ", " << SurfaceCapabilities.minImageExtent.height << ")";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max ImageAllocation Extent: (" << SurfaceCapabilities.maxImageExtent.width << ", " << SurfaceCapabilities.maxImageExtent.height << ")";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max ImageAllocation Array Layers: " << SurfaceCapabilities.maxImageArrayLayers;
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Transforms: " << TransformFlagToString(static_cast<VkSurfaceTransformFlagBitsKHR>(SurfaceCapabilities.supportedTransforms));
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Current Transform: " << TransformFlagToString(SurfaceCapabilities.currentTransform);
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Composite Alpha: " << CompositeAlphaFlagToString(SurfaceCapabilities.supportedCompositeAlpha);
@@ -394,7 +394,7 @@ bool RenderCore::UpdateDeviceProperties(GLFWwindow* const Window)
     return GetDeviceProperties().IsValid();
 }
 
-VulkanDeviceProperties& RenderCore::GetDeviceProperties()
+DeviceProperties& RenderCore::GetDeviceProperties()
 {
     return g_DeviceProperties;
 }

@@ -4,6 +4,8 @@
 
 module;
 
+#pragma once
+
 #include <GLFW/glfw3.h>
 #include <glm/ext.hpp>
 #include <volk.h>
@@ -18,20 +20,17 @@ import <stdexcept>;
 import <string_view>;
 import <vector>;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    void InitializeEngine(GLFWwindow*);
-    void ShutdownEngine();
+    export void InitializeEngine(GLFWwindow*);
+    export void ShutdownEngine();
 
-    void DrawFrame(GLFWwindow*);
-    [[nodiscard]] bool IsEngineInitialized();
+    export void DrawFrame(GLFWwindow*);
+    export [[nodiscard]] bool IsEngineInitialized();
 
-    void LoadScene(std::string_view, std::string_view);
-    void UnloadScene();
+    export void LoadScene(std::string_view, std::string_view);
+    export void UnloadScene();
 
-    [[nodiscard]] VkInstance& GetInstance();
-    [[nodiscard]] VkSurfaceKHR& GetSurface();
-
-    [[nodiscard]] glm::mat4 GetCameraMatrix();
-    void SetCameraMatrix(glm::mat4 const&);
+    export [[nodiscard]] VkInstance& GetInstance();
+    export [[nodiscard]] VkSurfaceKHR& GetSurface();
 }// namespace RenderCore

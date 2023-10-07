@@ -36,7 +36,6 @@ VkSemaphore g_ImageAvailableSemaphore {};
 VkSemaphore g_RenderFinishedSemaphore {};
 VkFence g_Fence {};
 bool g_SynchronizationObjectsCreated {};
-std::vector<struct ObjectAllocation> g_ImGuiFontsAllocation {};
 
 void CreateGraphicsCommandPool()
 {
@@ -84,15 +83,6 @@ void WaitAndResetFences()
 
     CheckVulkanResult(vkWaitForFences(VulkanLogicalDevice, 1U, &g_Fence, VK_TRUE, g_Timeout));
     CheckVulkanResult(vkResetFences(VulkanLogicalDevice, 1U, &g_Fence));
-}
-
-void ResetImGuiFontsAllocation()
-{
-    for (ObjectAllocation& ObjectAllocationIter: g_ImGuiFontsAllocation)
-    {
-        ObjectAllocationIter.DestroyResources();
-    }
-    g_ImGuiFontsAllocation.clear();
 }
 
 void FreeCommandBuffers()
@@ -189,8 +179,6 @@ void RenderCore::DestroyCommandsSynchronizationObjects()
         g_Fence = VK_NULL_HANDLE;
     }
 
-    ResetImGuiFontsAllocation();
-
     g_SynchronizationObjectsCreated = false;
 }
 
@@ -205,7 +193,7 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
 
     if (g_ImageAvailableSemaphore == VK_NULL_HANDLE)
     {
-        throw std::runtime_error("Vulkan semaphore: Image Available is invalid.");
+        throw std::runtime_error("Vulkan semaphore: ImageAllocation Available is invalid.");
     }
 
     if (g_Fence == VK_NULL_HANDLE)
