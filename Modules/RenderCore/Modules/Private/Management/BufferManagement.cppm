@@ -107,20 +107,20 @@ void ObjectAllocation::DestroyResources()
     IndicesCount = 0U;
 }
 
-static VmaAllocator s_Allocator {VK_NULL_HANDLE};
-static VkSwapchainKHR s_SwapChain {VK_NULL_HANDLE};
-static VkSwapchainKHR s_OldSwapChain {VK_NULL_HANDLE};
-static VkExtent2D s_SwapChainExtent {0U, 0U};
-static std::vector<ImageAllocation> s_SwapChainImages {};
-static ImageAllocation s_DepthImage {};
-static ImageAllocation s_ImGuiFontImage {};
-static std::vector<VkFramebuffer> s_FrameBuffers {};
-static std::unordered_map<std::uint64_t, ObjectAllocation> s_Objects {};
-static std::atomic<std::uint64_t> s_ObjectIDCounter {0U};
+VmaAllocator g_Allocator {VK_NULL_HANDLE};
+VkSwapchainKHR g_SwapChain {VK_NULL_HANDLE};
+VkSwapchainKHR g_OldSwapChain {VK_NULL_HANDLE};
+VkExtent2D g_SwapChainExtent {0U, 0U};
+std::vector<ImageAllocation> g_SwapChainImages {};
+ImageAllocation g_DepthImage {};
+ImageAllocation g_ImGuiFontImage {};
+std::vector<VkFramebuffer> g_FrameBuffers {};
+std::unordered_map<std::uint32_t, ObjectAllocation> g_Objects {};
+std::atomic<std::uint32_t> g_ObjectIDCounter {0U};
 
 VmaAllocationInfo CreateBuffer(VkDeviceSize const& Size, VkBufferUsageFlags const Usage, VkMemoryPropertyFlags const Flags, VkBuffer& Buffer, VmaAllocation& Allocation)
 {
-    if (s_Allocator == VK_NULL_HANDLE)
+    if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
@@ -135,7 +135,7 @@ VmaAllocationInfo CreateBuffer(VkDeviceSize const& Size, VkBufferUsageFlags cons
             .usage = Usage};
 
     VmaAllocationInfo MemoryAllocationInfo;
-    CheckVulkanResult(vmaCreateBuffer(s_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &Buffer, &Allocation, &MemoryAllocationInfo));
+    CheckVulkanResult(vmaCreateBuffer(g_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &Buffer, &Allocation, &MemoryAllocationInfo));
 
     return MemoryAllocationInfo;
 }
@@ -157,7 +157,7 @@ void CopyBuffer(VkBuffer const& Source, VkBuffer const& Destination, VkDeviceSiz
 
 void CreateVertexBuffer(ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<Vertex> const& Vertices)
 {
-    if (s_Allocator == VK_NULL_HANDLE)
+    if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
@@ -186,12 +186,12 @@ void CreateVertexBuffer(ObjectAllocation& Object, VkDeviceSize const& Allocation
     CreateBuffer(AllocationSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.VertexBuffer.Buffer, Object.VertexBuffer.Allocation);
     CopyBuffer(StagingBuffer, Object.VertexBuffer.Buffer, AllocationSize, Queue, FamilyIndex);
 
-    vmaDestroyBuffer(s_Allocator, StagingBuffer, StagingBufferMemory);
+    vmaDestroyBuffer(g_Allocator, StagingBuffer, StagingBufferMemory);
 }
 
 void CreateIndexBuffer(ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<std::uint32_t> const& Indices)
 {
-    if (s_Allocator == VK_NULL_HANDLE)
+    if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
@@ -216,12 +216,12 @@ void CreateIndexBuffer(ObjectAllocation& Object, VkDeviceSize const& AllocationS
                     StagingBufferMemory);
 
     std::memcpy(StagingInfo.pMappedData, Indices.data(), AllocationSize);
-    CheckVulkanResult(vmaFlushAllocation(s_Allocator, StagingBufferMemory, 0U, AllocationSize));
+    CheckVulkanResult(vmaFlushAllocation(g_Allocator, StagingBufferMemory, 0U, AllocationSize));
 
     CreateBuffer(AllocationSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.IndexBuffer.Buffer, Object.IndexBuffer.Allocation);
     CopyBuffer(StagingBuffer, Object.IndexBuffer.Buffer, AllocationSize, Queue, FamilyIndex);
 
-    vmaDestroyBuffer(s_Allocator, StagingBuffer, StagingBufferMemory);
+    vmaDestroyBuffer(g_Allocator, StagingBuffer, StagingBufferMemory);
 }
 
 void CreateImage(VkFormat const& ImageFormat,
@@ -232,7 +232,7 @@ void CreateImage(VkFormat const& ImageFormat,
                  VkImage& Image,
                  VmaAllocation& Allocation)
 {
-    if (s_Allocator == VK_NULL_HANDLE)
+    if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
@@ -257,7 +257,7 @@ void CreateImage(VkFormat const& ImageFormat,
             .usage = VMA_MEMORY_USAGE_AUTO};
 
     VmaAllocationInfo AllocationInfo;
-    CheckVulkanResult(vmaCreateImage(s_Allocator, &ImageViewCreateInfo, &ImageAllocationCreateInfo, &Image, &Allocation, &AllocationInfo));
+    CheckVulkanResult(vmaCreateImage(g_Allocator, &ImageViewCreateInfo, &ImageAllocationCreateInfo, &Image, &Allocation, &AllocationInfo));
 }
 
 void CreateImageView(VkImage const& Image, VkFormat const& Format, VkImageAspectFlags const& AspectFlags, VkImageView& ImageView)
@@ -280,7 +280,7 @@ void CreateImageView(VkImage const& Image, VkFormat const& Format, VkImageAspect
 void CreateSwapChainImageViews(VkFormat const& ImageFormat)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan swap chain image views";
-    for (auto& [Image, View, Sampler, Allocation]: s_SwapChainImages)
+    for (auto& [Image, View, Sampler, Allocation]: g_SwapChainImages)
     {
         CreateImageView(Image, ImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, View);
     }
@@ -293,13 +293,13 @@ void CreateTextureImageView(ImageAllocation& Allocation)
 
 void CreateTextureSampler(ImageAllocation& Allocation)
 {
-    if (s_Allocator == VK_NULL_HANDLE)
+    if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
 
     VkPhysicalDeviceProperties DeviceProperties;
-    vkGetPhysicalDeviceProperties(s_Allocator->GetPhysicalDevice(), &DeviceProperties);
+    vkGetPhysicalDeviceProperties(g_Allocator->GetPhysicalDevice(), &DeviceProperties);
 
     VkSamplerCreateInfo const SamplerCreateInfo {
             .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -460,7 +460,7 @@ ImageAllocation AllocateTexture(unsigned char const* Data, std::uint32_t const W
 
     CreateTextureImageView(ImageAllocation);
     CreateTextureSampler(ImageAllocation);
-    vmaDestroyBuffer(s_Allocator, StagingBuffer, StagingBufferMemory);
+    vmaDestroyBuffer(g_Allocator, StagingBuffer, StagingBufferMemory);
 
     return ImageAllocation;
 }
@@ -469,7 +469,7 @@ void LoadTexture(ObjectAllocation& Object, std::string_view const TexturePath)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan texture image";
 
-    if (s_Allocator == VK_NULL_HANDLE)
+    if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
@@ -518,7 +518,7 @@ void RenderCore::CreateMemoryAllocator()
             .vulkanApiVersion               = VK_API_VERSION_1_0,
             .pTypeExternalMemoryHandleTypes = nullptr};
 
-    CheckVulkanResult(vmaCreateAllocator(&AllocatorInfo, &s_Allocator));
+    CheckVulkanResult(vmaCreateAllocator(&AllocatorInfo, &g_Allocator));
 }
 
 void RenderCore::CreateSwapChain()
@@ -530,8 +530,8 @@ void RenderCore::CreateSwapChain()
     std::vector<std::uint32_t> const QueueFamilyIndices = GetUniqueQueueFamilyIndicesU32();
     auto const QueueFamilyIndicesCount                  = static_cast<std::uint32_t>(QueueFamilyIndices.size());
 
-    s_OldSwapChain    = s_SwapChain;
-    s_SwapChainExtent = Properties.Extent;
+    g_OldSwapChain    = g_SwapChain;
+    g_SwapChainExtent = Properties.Extent;
 
     VkSwapchainCreateInfoKHR const SwapChainCreateInfo {
             .sType                 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -539,7 +539,7 @@ void RenderCore::CreateSwapChain()
             .minImageCount         = GetMinImageCount(),
             .imageFormat           = Properties.Format.format,
             .imageColorSpace       = Properties.Format.colorSpace,
-            .imageExtent           = s_SwapChainExtent,
+            .imageExtent           = g_SwapChainExtent,
             .imageArrayLayers      = 1U,
             .imageUsage            = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             .imageSharingMode      = QueueFamilyIndicesCount > 1U ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
@@ -549,28 +549,28 @@ void RenderCore::CreateSwapChain()
             .compositeAlpha        = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             .presentMode           = Properties.Mode,
             .clipped               = VK_TRUE,
-            .oldSwapchain          = s_OldSwapChain};
+            .oldSwapchain          = g_OldSwapChain};
 
     VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
 
-    CheckVulkanResult(vkCreateSwapchainKHR(VulkanLogicalDevice, &SwapChainCreateInfo, nullptr, &s_SwapChain));
+    CheckVulkanResult(vkCreateSwapchainKHR(VulkanLogicalDevice, &SwapChainCreateInfo, nullptr, &g_SwapChain));
 
-    if (s_OldSwapChain != VK_NULL_HANDLE)
+    if (g_OldSwapChain != VK_NULL_HANDLE)
     {
-        vkDestroySwapchainKHR(VulkanLogicalDevice, s_OldSwapChain, nullptr);
-        s_OldSwapChain = VK_NULL_HANDLE;
+        vkDestroySwapchainKHR(VulkanLogicalDevice, g_OldSwapChain, nullptr);
+        g_OldSwapChain = VK_NULL_HANDLE;
     }
 
     std::uint32_t Count = 0U;
-    CheckVulkanResult(vkGetSwapchainImagesKHR(VulkanLogicalDevice, s_SwapChain, &Count, nullptr));
+    CheckVulkanResult(vkGetSwapchainImagesKHR(VulkanLogicalDevice, g_SwapChain, &Count, nullptr));
 
     std::vector<VkImage> SwapChainImages(Count, VK_NULL_HANDLE);
-    CheckVulkanResult(vkGetSwapchainImagesKHR(VulkanLogicalDevice, s_SwapChain, &Count, SwapChainImages.data()));
+    CheckVulkanResult(vkGetSwapchainImagesKHR(VulkanLogicalDevice, g_SwapChain, &Count, SwapChainImages.data()));
 
-    s_SwapChainImages.resize(Count, ImageAllocation());
+    g_SwapChainImages.resize(Count, ImageAllocation());
     for (std::uint32_t Iterator = 0U; Iterator < Count; ++Iterator)
     {
-        s_SwapChainImages.at(Iterator).Image = SwapChainImages.at(Iterator);
+        g_SwapChainImages.at(Iterator).Image = SwapChainImages.at(Iterator);
     }
 
     CreateSwapChainImageViews(Properties.Format.format);
@@ -582,23 +582,23 @@ void RenderCore::CreateFrameBuffers()
 
     VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
 
-    s_FrameBuffers.resize(s_SwapChainImages.size(), VK_NULL_HANDLE);
-    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(s_FrameBuffers.size()); ++Iterator)
+    g_FrameBuffers.resize(g_SwapChainImages.size(), VK_NULL_HANDLE);
+    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(g_FrameBuffers.size()); ++Iterator)
     {
         std::array const Attachments {
-                s_SwapChainImages.at(Iterator).View,
-                s_DepthImage.View};
+                g_SwapChainImages.at(Iterator).View,
+                g_DepthImage.View};
 
         VkFramebufferCreateInfo const FrameBufferCreateInfo {
                 .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .renderPass      = GetRenderPass(),
                 .attachmentCount = static_cast<std::uint32_t>(Attachments.size()),
                 .pAttachments    = Attachments.data(),
-                .width           = s_SwapChainExtent.width,
-                .height          = s_SwapChainExtent.height,
+                .width           = g_SwapChainExtent.width,
+                .height          = g_SwapChainExtent.height,
                 .layers          = 1U};
 
-        CheckVulkanResult(vkCreateFramebuffer(VulkanLogicalDevice, &FrameBufferCreateInfo, nullptr, &s_FrameBuffers.at(Iterator)));
+        CheckVulkanResult(vkCreateFramebuffer(VulkanLogicalDevice, &FrameBufferCreateInfo, nullptr, &g_FrameBuffers.at(Iterator)));
     }
 }
 
@@ -616,9 +616,9 @@ void RenderCore::CreateDepthResources()
     constexpr VkImageLayout InitialLayout               = VK_IMAGE_LAYOUT_UNDEFINED;
     constexpr VkImageLayout DestinationLayout           = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    CreateImage(Properties.DepthFormat, s_SwapChainExtent, Tiling, Usage, MemoryPropertyFlags, s_DepthImage.Image, s_DepthImage.Allocation);
-    CreateImageView(s_DepthImage.Image, Properties.DepthFormat, Aspect, s_DepthImage.View);
-    MoveImageLayout(s_DepthImage.Image, Properties.DepthFormat, InitialLayout, DestinationLayout, Queue, FamilyIndex);
+    CreateImage(Properties.DepthFormat, g_SwapChainExtent, Tiling, Usage, MemoryPropertyFlags, g_DepthImage.Image, g_DepthImage.Allocation);
+    CreateImageView(g_DepthImage.Image, Properties.DepthFormat, Aspect, g_DepthImage.View);
+    MoveImageLayout(g_DepthImage.Image, Properties.DepthFormat, InitialLayout, DestinationLayout, Queue, FamilyIndex);
 }
 
 void CreateVertexBuffers(ObjectAllocation& Object, std::vector<Vertex> const& Vertices)
@@ -637,7 +637,7 @@ void CreateIndexBuffers(ObjectAllocation& Object, std::vector<std::uint32_t> con
     CreateIndexBuffer(Object, BufferSize, Indices);
 }
 
-std::uint64_t RenderCore::LoadObject(std::string_view const ModelPath, std::string_view const TexturePath)
+std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::string_view const TexturePath)
 {
     Assimp::Importer Importer;
     aiScene const* const Scene = Importer.ReadFile(ModelPath.data(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType);
@@ -649,7 +649,12 @@ std::uint64_t RenderCore::LoadObject(std::string_view const ModelPath, std::stri
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded model from path: '" << ModelPath << "'";
 
-    std::uint64_t const NewID = s_ObjectIDCounter.fetch_add(1U);
+    if (g_Objects.empty())
+    {
+        g_ObjectIDCounter = 0U;
+    }
+
+    std::uint32_t const NewID = g_ObjectIDCounter.fetch_add(1U);
 
     std::vector<Vertex> Vertices;
     std::vector<std::uint32_t> Indices;
@@ -692,20 +697,20 @@ std::uint64_t RenderCore::LoadObject(std::string_view const ModelPath, std::stri
     CreateIndexBuffers(NewObject, Indices);
     LoadTexture(NewObject, TexturePath);
 
-    s_Objects.emplace(NewID, NewObject);
+    g_Objects.emplace(NewID, NewObject);
 
     return NewID;
 }
 
-void RenderCore::UnLoadObject(std::uint64_t const ObjectID)
+void RenderCore::UnLoadObject(std::uint32_t const ObjectID)
 {
-    if (!s_Objects.contains(ObjectID))
+    if (!g_Objects.contains(ObjectID))
     {
         return;
     }
 
-    s_Objects.at(ObjectID).DestroyResources();
-    s_Objects.erase(ObjectID);
+    g_Objects.at(ObjectID).DestroyResources();
+    g_Objects.erase(ObjectID);
 }
 
 void RenderCore::ReleaseBufferResources()
@@ -714,16 +719,16 @@ void RenderCore::ReleaseBufferResources()
 
     VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
 
-    if (s_SwapChain != VK_NULL_HANDLE)
+    if (g_SwapChain != VK_NULL_HANDLE)
     {
-        vkDestroySwapchainKHR(VulkanLogicalDevice, s_SwapChain, nullptr);
-        s_SwapChain = VK_NULL_HANDLE;
+        vkDestroySwapchainKHR(VulkanLogicalDevice, g_SwapChain, nullptr);
+        g_SwapChain = VK_NULL_HANDLE;
     }
 
     DestroyBufferResources(true);
 
-    vmaDestroyAllocator(s_Allocator);
-    s_Allocator = VK_NULL_HANDLE;
+    vmaDestroyAllocator(g_Allocator);
+    g_Allocator = VK_NULL_HANDLE;
 }
 
 void RenderCore::DestroyBufferResources(bool const ClearScene)
@@ -732,13 +737,13 @@ void RenderCore::DestroyBufferResources(bool const ClearScene)
 
     VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
 
-    for (ImageAllocation& ImageViewIter: s_SwapChainImages)
+    for (ImageAllocation& ImageViewIter: g_SwapChainImages)
     {
         ImageViewIter.DestroyResources();
     }
-    s_SwapChainImages.clear();
+    g_SwapChainImages.clear();
 
-    for (VkFramebuffer& FrameBufferIter: s_FrameBuffers)
+    for (VkFramebuffer& FrameBufferIter: g_FrameBuffers)
     {
         if (FrameBufferIter != VK_NULL_HANDLE)
         {
@@ -746,74 +751,75 @@ void RenderCore::DestroyBufferResources(bool const ClearScene)
             FrameBufferIter = VK_NULL_HANDLE;
         }
     }
-    s_FrameBuffers.clear();
+    g_FrameBuffers.clear();
 
-    s_DepthImage.DestroyResources();
-    s_ImGuiFontImage.DestroyResources();
+    g_DepthImage.DestroyResources();
+    g_ImGuiFontImage.DestroyResources();
 
     if (ClearScene)
     {
-        for (auto& ObjectIter: s_Objects | std::views::values)
+        for (auto& ObjectIter: g_Objects | std::views::values)
         {
             ObjectIter.DestroyResources();
         }
+        g_Objects.clear();
     }
 }
 
 VmaAllocator const& RenderCore::GetAllocator()
 {
-    return s_Allocator;
+    return g_Allocator;
 }
 
 VkSwapchainKHR const& RenderCore::GetSwapChain()
 {
-    return s_SwapChain;
+    return g_SwapChain;
 }
 
 VkExtent2D const& RenderCore::GetSwapChainExtent()
 {
-    return s_SwapChainExtent;
+    return g_SwapChainExtent;
 }
 
 std::vector<VkFramebuffer> const& RenderCore::GetFrameBuffers()
 {
-    return s_FrameBuffers;
+    return g_FrameBuffers;
 }
 
-VkBuffer RenderCore::GetVertexBuffer(std::uint64_t const ObjectID)
+VkBuffer RenderCore::GetVertexBuffer(std::uint32_t const ObjectID)
 {
-    if (!s_Objects.contains(ObjectID))
+    if (!g_Objects.contains(ObjectID))
     {
         return VK_NULL_HANDLE;
     }
 
-    return s_Objects.at(ObjectID).VertexBuffer.Buffer;
+    return g_Objects.at(ObjectID).VertexBuffer.Buffer;
 }
 
-VkBuffer RenderCore::GetIndexBuffer(std::uint64_t const ObjectID)
+VkBuffer RenderCore::GetIndexBuffer(std::uint32_t const ObjectID)
 {
-    if (!s_Objects.contains(ObjectID))
+    if (!g_Objects.contains(ObjectID))
     {
         return VK_NULL_HANDLE;
     }
 
-    return s_Objects.at(ObjectID).IndexBuffer.Buffer;
+    return g_Objects.at(ObjectID).IndexBuffer.Buffer;
 }
 
-std::uint32_t RenderCore::GetIndicesCount(std::uint64_t const ObjectID)
+std::uint32_t RenderCore::GetIndicesCount(std::uint32_t const ObjectID)
 {
-    if (!s_Objects.contains(ObjectID))
+    if (!g_Objects.contains(ObjectID))
     {
         return 0U;
     }
 
-    return s_Objects.at(ObjectID).IndicesCount;
+    return g_Objects.at(ObjectID).IndicesCount;
 }
 
 std::vector<VulkanTextureData> RenderCore::GetAllocatedTextures()
 {
     std::vector<VulkanTextureData> Output;
-    for (auto const& [TextureImage, VertexBuffer, IndexBuffer, IndicesCount]: s_Objects | std::views::values)
+    for (auto const& [TextureImage, VertexBuffer, IndexBuffer, IndicesCount]: g_Objects | std::views::values)
     {
         Output.push_back(
                 VulkanTextureData {

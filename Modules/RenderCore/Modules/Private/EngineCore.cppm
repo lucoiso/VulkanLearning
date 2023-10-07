@@ -50,36 +50,36 @@ enum class EngineCoreStateFlags : std::uint8_t
     PENDING_PIPELINE_REFRESH         = 1 << 4,
 };
 
-static VkInstance s_Instance {VK_NULL_HANDLE};
-static VkSurfaceKHR s_Surface {VK_NULL_HANDLE};
-static EngineCoreStateFlags s_StateFlags {EngineCoreStateFlags::NONE};
-static glm::mat4 s_CameraMatrix {lookAt(glm::vec3(2.F, 2.F, 2.F), glm::vec3(0.F, 0.F, 0.F), glm::vec3(0.F, 0.F, 1.F))};
-static std::uint64_t s_ObjectID {0U};
+VkInstance g_Instance {VK_NULL_HANDLE};
+VkSurfaceKHR g_Surface {VK_NULL_HANDLE};
+EngineCoreStateFlags g_StateFlags {EngineCoreStateFlags::NONE};
+glm::mat4 g_CameraMatrix {lookAt(glm::vec3(2.F, 2.F, 2.F), glm::vec3(0.F, 0.F, 0.F), glm::vec3(0.F, 0.F, 1.F))};
+std::uint32_t g_ObjectID {0U};
 
 #ifdef _DEBUG
-VkDebugUtilsMessengerEXT s_DebugMessenger {VK_NULL_HANDLE};
+VkDebugUtilsMessengerEXT g_DebugMessenger {VK_NULL_HANDLE};
 #endif
 
 std::optional<std::int32_t> TryRequestDrawImage()
 {
     if (!GetDeviceProperties().IsValid())
     {
-        AddFlags(s_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
-        AddFlags(s_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+        AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
 
         return std::nullopt;
     }
-    RemoveFlags(s_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+    RemoveFlags(g_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
 
     std::optional<std::int32_t> const Output = RequestSwapChainImage();
 
     if (!Output.has_value())
     {
-        AddFlags(s_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
     }
     else
     {
-        RemoveFlags(s_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        RemoveFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
     }
 
     return Output;
@@ -158,12 +158,12 @@ void CreateVulkanInstance()
     CreateInfo.enabledExtensionCount   = static_cast<std::uint32_t>(Extensions.size());
     CreateInfo.ppEnabledExtensionNames = Extensions.data();
 
-    CheckVulkanResult(vkCreateInstance(&CreateInfo, nullptr, &s_Instance));
-    volkLoadInstance(s_Instance);
+    CheckVulkanResult(vkCreateInstance(&CreateInfo, nullptr, &g_Instance));
+    volkLoadInstance(g_Instance);
 
 #ifdef _DEBUG
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Setting up debug messages";
-    CheckVulkanResult(CreateDebugUtilsMessenger(s_Instance, &CreateDebugInfo, nullptr, &s_DebugMessenger));
+    CheckVulkanResult(CreateDebugUtilsMessenger(g_Instance, &CreateDebugInfo, nullptr, &g_DebugMessenger));
 #endif
 }
 
@@ -171,12 +171,12 @@ void CreateVulkanSurface(GLFWwindow* const Window)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan surface";
 
-    if (s_Instance == VK_NULL_HANDLE)
+    if (g_Instance == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan instance is invalid.");
     }
 
-    CheckVulkanResult(glfwCreateWindowSurface(s_Instance, Window, nullptr, &s_Surface));
+    CheckVulkanResult(glfwCreateWindowSurface(g_Instance, Window, nullptr, &g_Surface));
 }
 
 void InitializeRenderCore()
@@ -188,8 +188,8 @@ void InitializeRenderCore()
     CreateMemoryAllocator();
     CompileDefaultShaders();
 
-    AddFlags(s_StateFlags, EngineCoreStateFlags::INITIALIZED);
-    AddFlags(s_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+    AddFlags(g_StateFlags, EngineCoreStateFlags::INITIALIZED);
+    AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
 }
 
 void RenderCore::InitializeEngine(GLFWwindow* const Window)
@@ -229,7 +229,7 @@ void RenderCore::ShutdownEngine()
         return;
     }
 
-    RemoveFlags(s_StateFlags, EngineCoreStateFlags::INITIALIZED);
+    RemoveFlags(g_StateFlags, EngineCoreStateFlags::INITIALIZED);
 
     ReleaseShaderResources();
     ReleaseCommandsResources();
@@ -240,20 +240,20 @@ void RenderCore::ShutdownEngine()
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan engine core";
 
 #ifdef _DEBUG
-    if (s_DebugMessenger != VK_NULL_HANDLE)
+    if (g_DebugMessenger != VK_NULL_HANDLE)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan debug messenger";
 
-        DestroyDebugUtilsMessenger(s_Instance, s_DebugMessenger, nullptr);
-        s_DebugMessenger = VK_NULL_HANDLE;
+        DestroyDebugUtilsMessenger(g_Instance, g_DebugMessenger, nullptr);
+        g_DebugMessenger = VK_NULL_HANDLE;
     }
 #endif
 
-    vkDestroySurfaceKHR(s_Instance, s_Surface, nullptr);
-    s_Surface = VK_NULL_HANDLE;
+    vkDestroySurfaceKHR(g_Instance, g_Surface, nullptr);
+    g_Surface = VK_NULL_HANDLE;
 
-    vkDestroyInstance(s_Instance, nullptr);
-    s_Instance = VK_NULL_HANDLE;
+    vkDestroyInstance(g_Instance, nullptr);
+    g_Instance = VK_NULL_HANDLE;
 }
 
 void RenderCore::DrawFrame(GLFWwindow* const Window)
@@ -275,39 +275,39 @@ void RenderCore::DrawFrame(GLFWwindow* const Window)
               | EngineCoreStateFlags::PENDING_RESOURCES_CREATION
               | EngineCoreStateFlags::PENDING_PIPELINE_REFRESH;
 
-    if (HasAnyFlag(s_StateFlags, InvalidStatesToRender))
+    if (HasAnyFlag(g_StateFlags, InvalidStatesToRender))
     {
-        if (HasFlag(s_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION))
+        if (HasFlag(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
             DestroyCommandsSynchronizationObjects();
             DestroyBufferResources(false);
             ReleasePipelineResources();
 
-            RemoveFlags(s_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-            AddFlags(s_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+            RemoveFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+            AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
         }
 
-        if (HasFlag(s_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
+        if (HasFlag(g_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
         {
             if (UpdateDeviceProperties(Window))
             {
                 BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Device properties updated, starting to draw frames with new properties";
-                RemoveFlags(s_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+                RemoveFlags(g_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
             }
         }
 
-        if (HasFlag(s_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION))
+        if (HasFlag(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION) && !HasFlag(g_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
             CreateSwapChain();
             CreateDepthResources();
             CreateCommandsSynchronizationObjects();
 
-            RemoveFlags(s_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
-            AddFlags(s_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
+            RemoveFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+            AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
         }
 
-        if (HasFlag(s_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH))
+        if (HasFlag(g_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH))
         {
             CreateRenderPass();
             CreateDescriptorSetLayout();
@@ -318,11 +318,11 @@ void RenderCore::DrawFrame(GLFWwindow* const Window)
             CreateDescriptorPool();
             CreateDescriptorSets();
 
-            RemoveFlags(s_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
+            RemoveFlags(g_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
         }
     }
 
-    if (!HasAnyFlag(s_StateFlags, InvalidStatesToRender))
+    if (!HasAnyFlag(g_StateFlags, InvalidStatesToRender))
     {
         if (std::optional<std::int32_t> const ImageIndice = TryRequestDrawImage();
             ImageIndice.has_value())
@@ -336,7 +336,7 @@ void RenderCore::DrawFrame(GLFWwindow* const Window)
 
 bool RenderCore::IsEngineInitialized()
 {
-    return HasFlag(s_StateFlags, EngineCoreStateFlags::INITIALIZED);
+    return HasFlag(g_StateFlags, EngineCoreStateFlags::INITIALIZED);
 }
 
 void RenderCore::LoadScene(std::string_view const ModelPath, std::string_view const TexturePath)
@@ -358,10 +358,10 @@ void RenderCore::LoadScene(std::string_view const ModelPath, std::string_view co
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
 
-    s_ObjectID = LoadObject(ModelPath, TexturePath);
+    g_ObjectID = LoadObject(ModelPath, TexturePath);
 
-    AddFlags(s_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-    AddFlags(s_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+    AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
 }
 
 void RenderCore::UnloadScene()
@@ -373,27 +373,27 @@ void RenderCore::UnloadScene()
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading scene...";
 
-    UnLoadObject(s_ObjectID);
+    UnLoadObject(g_ObjectID);
 
-    AddFlags(s_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
 }
 
 VkInstance& RenderCore::GetInstance()
 {
-    return s_Instance;
+    return g_Instance;
 }
 
 VkSurfaceKHR& RenderCore::GetSurface()
 {
-    return s_Surface;
+    return g_Surface;
 }
 
 glm::mat4 RenderCore::GetCameraMatrix()
 {
-    return s_CameraMatrix;
+    return g_CameraMatrix;
 }
 
 void RenderCore::SetCameraMatrix(glm::mat4 const& Value)
 {
-    s_CameraMatrix = Value;
+    g_CameraMatrix = Value;
 }

@@ -28,7 +28,7 @@ export namespace RenderCore
             MAX
         };
 
-        std::uint64_t m_DrawTimerID {0U};
+        std::uint32_t m_DrawTimerID {0U};
         std::queue<std::uint8_t> m_EventIDQueue;
         std::mutex m_Mutex;
         std::thread::id m_MainThreadID;

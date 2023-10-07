@@ -77,6 +77,7 @@ export namespace RenderCore
                              1.F}}},
             VkClearValue {.depthStencil = {1.0F, 0U}}};
 
-    constexpr float s_KeyCallbackRate    = g_FrameRate / 5000.f;
-    constexpr float s_CursorCallbackRate = g_FrameRate / 25000.f;
+    constexpr float g_KeyCallbackRate    = g_FrameRate / 5000.f;
+    constexpr float g_CursorCallbackRate = g_FrameRate / 25000.f;
+    constexpr float g_ScrollCallbackRate = g_FrameRate / 500.f;
 }// namespace RenderCore

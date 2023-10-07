@@ -31,7 +31,7 @@ using namespace RenderCore;
 constexpr char const* g_EntryPoint         = "main";
 constexpr std::int32_t const g_GlslVersion = 450;
 
-static std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> s_StageInfos {};
+std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> g_StageInfos {};
 
 bool Compile(std::string_view const Source, EShLanguage const Language, std::vector<std::uint32_t>& OutSPIRVCode)
 {
@@ -157,7 +157,7 @@ void StageInfo(VkShaderModule const& Module, EShLanguage const Language)
             throw std::runtime_error("Unsupported shader language");
     }
 
-    s_StageInfos.emplace(Module, StageInfo);
+    g_StageInfos.emplace(Module, StageInfo);
 }
 
 bool RenderCore::Compile(std::string_view const Source, std::vector<uint32_t>& OutSPIRVCode)
@@ -317,13 +317,13 @@ VkShaderModule RenderCore::CreateModule(VkDevice const& Device, std::vector<std:
 
 VkPipelineShaderStageCreateInfo RenderCore::GetStageInfo(VkShaderModule const& Module)
 {
-    return s_StageInfos.at(Module);
+    return g_StageInfos.at(Module);
 }
 
 std::vector<VkShaderModule> RenderCore::GetShaderModules()
 {
     std::vector<VkShaderModule> Output;
-    for (auto const& ShaderModule: s_StageInfos | std::views::keys)
+    for (auto const& ShaderModule: g_StageInfos | std::views::keys)
     {
         Output.push_back(ShaderModule);
     }
@@ -334,7 +334,7 @@ std::vector<VkShaderModule> RenderCore::GetShaderModules()
 std::vector<VkPipelineShaderStageCreateInfo> RenderCore::GetStageInfos()
 {
     std::vector<VkPipelineShaderStageCreateInfo> Output;
-    for (auto const& StageInfo: s_StageInfos | std::views::values)
+    for (auto const& StageInfo: g_StageInfos | std::views::values)
     {
         Output.push_back(StageInfo);
     }
@@ -348,14 +348,14 @@ void RenderCore::ReleaseShaderResources()
 
     VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
 
-    for (auto const& ShaderModule: s_StageInfos | std::views::keys)
+    for (auto const& ShaderModule: g_StageInfos | std::views::keys)
     {
         if (ShaderModule != VK_NULL_HANDLE)
         {
             vkDestroyShaderModule(VulkanLogicalDevice, ShaderModule, nullptr);
         }
     }
-    s_StageInfos.clear();
+    g_StageInfos.clear();
 }
 
 void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const& StagedModules)
@@ -371,9 +371,9 @@ void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> 
             vkDestroyShaderModule(VulkanLogicalDevice, StageInfoIter.module, nullptr);
         }
 
-        if (s_StageInfos.contains(StageInfoIter.module))
+        if (g_StageInfos.contains(StageInfoIter.module))
         {
-            s_StageInfos.erase(StageInfoIter.module);
+            g_StageInfos.erase(StageInfoIter.module);
         }
     }
 }

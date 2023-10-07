@@ -23,19 +23,19 @@ import RenderCore.Types.TextureData;
 
 using namespace RenderCore;
 
-static VkRenderPass s_RenderPass {VK_NULL_HANDLE};
-static VkPipeline s_Pipeline {VK_NULL_HANDLE};
-static VkPipelineLayout s_PipelineLayout {VK_NULL_HANDLE};
-static VkPipelineCache s_PipelineCache {VK_NULL_HANDLE};
-static VkDescriptorPool s_DescriptorPool {VK_NULL_HANDLE};
-static std::array<VkDescriptorSetLayout, 1U> s_DescriptorSetLayouts {};
-static std::vector<VkDescriptorSet> s_DescriptorSets {};
+VkRenderPass g_RenderPass {VK_NULL_HANDLE};
+VkPipeline g_Pipeline {VK_NULL_HANDLE};
+VkPipelineLayout g_PipelineLayout {VK_NULL_HANDLE};
+VkPipelineCache g_PipelineCache {VK_NULL_HANDLE};
+VkDescriptorPool g_DescriptorPool {VK_NULL_HANDLE};
+std::array<VkDescriptorSetLayout, 1U> g_DescriptorSetLayouts {};
+std::vector<VkDescriptorSet> g_DescriptorSets {};
 
 void RenderCore::CreateRenderPass()
 {
-    if (s_RenderPass != VK_NULL_HANDLE)
+    if (g_RenderPass != VK_NULL_HANDLE)
     {
-        vkDestroyRenderPass(GetLogicalDevice(), s_RenderPass, nullptr);
+        vkDestroyRenderPass(GetLogicalDevice(), g_RenderPass, nullptr);
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render pass";
@@ -97,7 +97,7 @@ void RenderCore::CreateRenderPass()
             .dependencyCount = 1U,
             .pDependencies   = &SubpassDependency};
 
-    CheckVulkanResult(vkCreateRenderPass(GetLogicalDevice(), &RenderPassCreateInfo, nullptr, &s_RenderPass));
+    CheckVulkanResult(vkCreateRenderPass(GetLogicalDevice(), &RenderPassCreateInfo, nullptr, &g_RenderPass));
 }
 
 void RenderCore::CreateGraphicsPipeline()
@@ -185,19 +185,19 @@ void RenderCore::CreateGraphicsPipeline()
 
     VkPipelineLayoutCreateInfo const PipelineLayoutCreateInfo {
             .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount         = static_cast<std::uint32_t>(s_DescriptorSetLayouts.size()),
-            .pSetLayouts            = s_DescriptorSetLayouts.data(),
+            .setLayoutCount         = static_cast<std::uint32_t>(g_DescriptorSetLayouts.size()),
+            .pSetLayouts            = g_DescriptorSetLayouts.data(),
             .pushConstantRangeCount = static_cast<std::uint32_t>(PushConstantRanges.size()),
             .pPushConstantRanges    = PushConstantRanges.data()};
 
     VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
 
-    CheckVulkanResult(vkCreatePipelineLayout(VulkanLogicalDevice, &PipelineLayoutCreateInfo, nullptr, &s_PipelineLayout));
+    CheckVulkanResult(vkCreatePipelineLayout(VulkanLogicalDevice, &PipelineLayoutCreateInfo, nullptr, &g_PipelineLayout));
 
     constexpr VkPipelineCacheCreateInfo PipelineCacheCreateInfo {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
 
-    CheckVulkanResult(vkCreatePipelineCache(VulkanLogicalDevice, &PipelineCacheCreateInfo, nullptr, &s_PipelineCache));
+    CheckVulkanResult(vkCreatePipelineCache(VulkanLogicalDevice, &PipelineCacheCreateInfo, nullptr, &g_PipelineCache));
 
     constexpr VkPipelineDepthStencilStateCreateInfo DepthStencilState {
             .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
@@ -225,13 +225,13 @@ void RenderCore::CreateGraphicsPipeline()
             .pDepthStencilState  = &DepthStencilState,
             .pColorBlendState    = &ColorBlendState,
             .pDynamicState       = &DynamicState,
-            .layout              = s_PipelineLayout,
-            .renderPass          = s_RenderPass,
+            .layout              = g_PipelineLayout,
+            .renderPass          = g_RenderPass,
             .subpass             = 0U,
             .basePipelineHandle  = VK_NULL_HANDLE,
             .basePipelineIndex   = -1};
 
-    CheckVulkanResult(vkCreateGraphicsPipelines(VulkanLogicalDevice, VK_NULL_HANDLE, 1U, &GraphicsPipelineCreateInfo, nullptr, &s_Pipeline));
+    CheckVulkanResult(vkCreateGraphicsPipelines(VulkanLogicalDevice, VK_NULL_HANDLE, 1U, &GraphicsPipelineCreateInfo, nullptr, &g_Pipeline));
 }
 
 void RenderCore::CreateDescriptorSetLayout()
@@ -259,7 +259,7 @@ void RenderCore::CreateDescriptorSetLayout()
                 .bindingCount = static_cast<std::uint32_t>(LayoutBindings.size()),
                 .pBindings    = LayoutBindings.data()};
 
-        CheckVulkanResult(vkCreateDescriptorSetLayout(GetLogicalDevice(), &DescriptorSetLayoutInfo, nullptr, &s_DescriptorSetLayouts.at(0U)));
+        CheckVulkanResult(vkCreateDescriptorSetLayout(GetLogicalDevice(), &DescriptorSetLayoutInfo, nullptr, &g_DescriptorSetLayouts.at(0U)));
     }
 }
 
@@ -277,11 +277,11 @@ void RenderCore::CreateDescriptorPool()
 
     VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .maxSets       = static_cast<std::uint32_t>(s_DescriptorSetLayouts.size()),
+            .maxSets       = static_cast<std::uint32_t>(g_DescriptorSetLayouts.size()),
             .poolSizeCount = static_cast<std::uint32_t>(DescriptorPoolSizes.size()),
             .pPoolSizes    = DescriptorPoolSizes.data()};
 
-    CheckVulkanResult(vkCreateDescriptorPool(GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &s_DescriptorPool));
+    CheckVulkanResult(vkCreateDescriptorPool(GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &g_DescriptorPool));
 }
 
 void RenderCore::CreateDescriptorSets()
@@ -291,15 +291,15 @@ void RenderCore::CreateDescriptorSets()
     VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
     auto const AllocatedTextures        = GetAllocatedTextures();
 
-    s_DescriptorSets.resize(s_DescriptorSetLayouts.size());
+    g_DescriptorSets.resize(g_DescriptorSetLayouts.size());
 
     VkDescriptorSetAllocateInfo const DescriptorSetAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .descriptorPool     = s_DescriptorPool,
-            .descriptorSetCount = static_cast<std::uint32_t>(s_DescriptorSets.size()),
-            .pSetLayouts        = s_DescriptorSetLayouts.data()};
+            .descriptorPool     = g_DescriptorPool,
+            .descriptorSetCount = static_cast<std::uint32_t>(g_DescriptorSets.size()),
+            .pSetLayouts        = g_DescriptorSetLayouts.data()};
 
-    CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, s_DescriptorSets.data()));
+    CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, g_DescriptorSets.data()));
 
     // Object Bindings
     {
@@ -320,7 +320,7 @@ void RenderCore::CreateDescriptorSets()
             WriteDescriptors.push_back(
                     VkWriteDescriptorSet {
                             .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                            .dstSet           = s_DescriptorSets.at(0U),
+                            .dstSet           = g_DescriptorSets.at(0U),
                             .dstBinding       = 1U,
                             .dstArrayElement  = 0U,
                             .descriptorCount  = 1U,
@@ -340,31 +340,31 @@ void RenderCore::ReleasePipelineResources()
 
     VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
 
-    if (s_Pipeline != VK_NULL_HANDLE)
+    if (g_Pipeline != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(VulkanLogicalDevice, s_Pipeline, nullptr);
-        s_Pipeline = VK_NULL_HANDLE;
+        vkDestroyPipeline(VulkanLogicalDevice, g_Pipeline, nullptr);
+        g_Pipeline = VK_NULL_HANDLE;
     }
 
-    if (s_PipelineLayout != VK_NULL_HANDLE)
+    if (g_PipelineLayout != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineLayout(VulkanLogicalDevice, s_PipelineLayout, nullptr);
-        s_PipelineLayout = VK_NULL_HANDLE;
+        vkDestroyPipelineLayout(VulkanLogicalDevice, g_PipelineLayout, nullptr);
+        g_PipelineLayout = VK_NULL_HANDLE;
     }
 
-    if (s_PipelineCache != VK_NULL_HANDLE)
+    if (g_PipelineCache != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineCache(VulkanLogicalDevice, s_PipelineCache, nullptr);
-        s_PipelineCache = VK_NULL_HANDLE;
+        vkDestroyPipelineCache(VulkanLogicalDevice, g_PipelineCache, nullptr);
+        g_PipelineCache = VK_NULL_HANDLE;
     }
 
-    if (s_RenderPass != VK_NULL_HANDLE)
+    if (g_RenderPass != VK_NULL_HANDLE)
     {
-        vkDestroyRenderPass(VulkanLogicalDevice, s_RenderPass, nullptr);
-        s_RenderPass = VK_NULL_HANDLE;
+        vkDestroyRenderPass(VulkanLogicalDevice, g_RenderPass, nullptr);
+        g_RenderPass = VK_NULL_HANDLE;
     }
 
-    for (auto& DescriptorSetLayoutIter: s_DescriptorSetLayouts)
+    for (auto& DescriptorSetLayoutIter: g_DescriptorSetLayouts)
     {
         if (DescriptorSetLayoutIter != VK_NULL_HANDLE)
         {
@@ -373,31 +373,31 @@ void RenderCore::ReleasePipelineResources()
         }
     }
 
-    if (s_DescriptorPool != VK_NULL_HANDLE)
+    if (g_DescriptorPool != VK_NULL_HANDLE)
     {
-        vkDestroyDescriptorPool(VulkanLogicalDevice, s_DescriptorPool, nullptr);
-        s_DescriptorPool = VK_NULL_HANDLE;
+        vkDestroyDescriptorPool(VulkanLogicalDevice, g_DescriptorPool, nullptr);
+        g_DescriptorPool = VK_NULL_HANDLE;
     }
 
-    s_DescriptorSets.clear();
+    g_DescriptorSets.clear();
 }
 
 VkRenderPass const& RenderCore::GetRenderPass()
 {
-    return s_RenderPass;
+    return g_RenderPass;
 }
 
 VkPipeline const& RenderCore::GetPipeline()
 {
-    return s_Pipeline;
+    return g_Pipeline;
 }
 
 VkPipelineLayout const& RenderCore::GetPipelineLayout()
 {
-    return s_PipelineLayout;
+    return g_PipelineLayout;
 }
 
 std::vector<VkDescriptorSet> const& RenderCore::GetDescriptorSets()
 {
-    return s_DescriptorSets;
+    return g_DescriptorSets;
 }

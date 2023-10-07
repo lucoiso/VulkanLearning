@@ -30,76 +30,76 @@ import RenderCore.Utils.EnumConverter;
 
 using namespace RenderCore;
 
-static VkCommandPool s_CommandPool {};
-static std::array<VkCommandBuffer, 1U> s_CommandBuffers {};
-static VkSemaphore s_ImageAvailableSemaphore {};
-static VkSemaphore s_RenderFinishedSemaphore {};
-static VkFence s_Fence {};
-static bool s_SynchronizationObjectsCreated {};
-static std::vector<struct ObjectAllocation> s_ImGuiFontsAllocation {};
+VkCommandPool g_CommandPool {};
+std::array<VkCommandBuffer, 1U> g_CommandBuffers {};
+VkSemaphore g_ImageAvailableSemaphore {};
+VkSemaphore g_RenderFinishedSemaphore {};
+VkFence g_Fence {};
+bool g_SynchronizationObjectsCreated {};
+std::vector<struct ObjectAllocation> g_ImGuiFontsAllocation {};
 
 void CreateGraphicsCommandPool()
 {
-    s_CommandPool = RenderCore::CreateCommandPool(GetGraphicsQueue().first);
+    g_CommandPool = RenderCore::CreateCommandPool(GetGraphicsQueue().first);
 }
 
 void AllocateCommandBuffer()
 {
     VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
 
-    for (VkCommandBuffer& CommandBufferIter: s_CommandBuffers)
+    for (VkCommandBuffer& CommandBufferIter: g_CommandBuffers)
     {
         if (CommandBufferIter != VK_NULL_HANDLE)
         {
-            vkFreeCommandBuffers(VulkanLogicalDevice, s_CommandPool, 1U, &CommandBufferIter);
+            vkFreeCommandBuffers(VulkanLogicalDevice, g_CommandPool, 1U, &CommandBufferIter);
             CommandBufferIter = VK_NULL_HANDLE;
         }
     }
 
-    if (s_CommandPool != VK_NULL_HANDLE)
+    if (g_CommandPool != VK_NULL_HANDLE)
     {
-        vkDestroyCommandPool(VulkanLogicalDevice, s_CommandPool, nullptr);
-        s_CommandPool = VK_NULL_HANDLE;
+        vkDestroyCommandPool(VulkanLogicalDevice, g_CommandPool, nullptr);
+        g_CommandPool = VK_NULL_HANDLE;
     }
 
     CreateGraphicsCommandPool();
 
     VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .commandPool        = s_CommandPool,
+            .commandPool        = g_CommandPool,
             .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = static_cast<std::uint32_t>(s_CommandBuffers.size())};
+            .commandBufferCount = static_cast<std::uint32_t>(g_CommandBuffers.size())};
 
-    CheckVulkanResult(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, s_CommandBuffers.data()));
+    CheckVulkanResult(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, g_CommandBuffers.data()));
 }
 
 void WaitAndResetFences()
 {
-    if (s_Fence == VK_NULL_HANDLE)
+    if (g_Fence == VK_NULL_HANDLE)
     {
         return;
     }
 
     VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
 
-    CheckVulkanResult(vkWaitForFences(VulkanLogicalDevice, 1U, &s_Fence, VK_TRUE, g_Timeout));
-    CheckVulkanResult(vkResetFences(VulkanLogicalDevice, 1U, &s_Fence));
+    CheckVulkanResult(vkWaitForFences(VulkanLogicalDevice, 1U, &g_Fence, VK_TRUE, g_Timeout));
+    CheckVulkanResult(vkResetFences(VulkanLogicalDevice, 1U, &g_Fence));
 }
 
 void ResetImGuiFontsAllocation()
 {
-    for (ObjectAllocation& ObjectAllocationIter: s_ImGuiFontsAllocation)
+    for (ObjectAllocation& ObjectAllocationIter: g_ImGuiFontsAllocation)
     {
         ObjectAllocationIter.DestroyResources();
     }
-    s_ImGuiFontsAllocation.clear();
+    g_ImGuiFontsAllocation.clear();
 }
 
 void FreeCommandBuffers()
 {
-    vkFreeCommandBuffers(GetLogicalDevice(), s_CommandPool, static_cast<std::uint32_t>(s_CommandBuffers.size()), s_CommandBuffers.data());
+    vkFreeCommandBuffers(GetLogicalDevice(), g_CommandPool, static_cast<std::uint32_t>(g_CommandBuffers.size()), g_CommandBuffers.data());
 
-    for (VkCommandBuffer& CommandBufferIter: s_CommandBuffers)
+    for (VkCommandBuffer& CommandBufferIter: g_CommandBuffers)
     {
         CommandBufferIter = VK_NULL_HANDLE;
     }
@@ -127,7 +127,7 @@ VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex)
 
 void RenderCore::CreateCommandsSynchronizationObjects()
 {
-    if (s_SynchronizationObjectsCreated)
+    if (g_SynchronizationObjectsCreated)
     {
         return;
     }
@@ -143,16 +143,16 @@ void RenderCore::CreateCommandsSynchronizationObjects()
 
     VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
 
-    CheckVulkanResult(vkCreateSemaphore(VulkanLogicalDevice, &SemaphoreCreateInfo, nullptr, &s_ImageAvailableSemaphore));
-    CheckVulkanResult(vkCreateSemaphore(VulkanLogicalDevice, &SemaphoreCreateInfo, nullptr, &s_RenderFinishedSemaphore));
-    CheckVulkanResult(vkCreateFence(VulkanLogicalDevice, &FenceCreateInfo, nullptr, &s_Fence));
+    CheckVulkanResult(vkCreateSemaphore(VulkanLogicalDevice, &SemaphoreCreateInfo, nullptr, &g_ImageAvailableSemaphore));
+    CheckVulkanResult(vkCreateSemaphore(VulkanLogicalDevice, &SemaphoreCreateInfo, nullptr, &g_RenderFinishedSemaphore));
+    CheckVulkanResult(vkCreateFence(VulkanLogicalDevice, &FenceCreateInfo, nullptr, &g_Fence));
 
-    s_SynchronizationObjectsCreated = true;
+    g_SynchronizationObjectsCreated = true;
 }
 
 void RenderCore::DestroyCommandsSynchronizationObjects()
 {
-    if (!s_SynchronizationObjectsCreated)
+    if (!g_SynchronizationObjectsCreated)
     {
         return;
     }
@@ -165,50 +165,50 @@ void RenderCore::DestroyCommandsSynchronizationObjects()
 
     FreeCommandBuffers();
 
-    if (s_CommandPool != VK_NULL_HANDLE)
+    if (g_CommandPool != VK_NULL_HANDLE)
     {
-        vkDestroyCommandPool(VulkanLogicalDevice, s_CommandPool, nullptr);
-        s_CommandPool = VK_NULL_HANDLE;
+        vkDestroyCommandPool(VulkanLogicalDevice, g_CommandPool, nullptr);
+        g_CommandPool = VK_NULL_HANDLE;
     }
 
-    if (s_ImageAvailableSemaphore != VK_NULL_HANDLE)
+    if (g_ImageAvailableSemaphore != VK_NULL_HANDLE)
     {
-        vkDestroySemaphore(VulkanLogicalDevice, s_ImageAvailableSemaphore, nullptr);
-        s_ImageAvailableSemaphore = VK_NULL_HANDLE;
+        vkDestroySemaphore(VulkanLogicalDevice, g_ImageAvailableSemaphore, nullptr);
+        g_ImageAvailableSemaphore = VK_NULL_HANDLE;
     }
 
-    if (s_RenderFinishedSemaphore != VK_NULL_HANDLE)
+    if (g_RenderFinishedSemaphore != VK_NULL_HANDLE)
     {
-        vkDestroySemaphore(VulkanLogicalDevice, s_RenderFinishedSemaphore, nullptr);
-        s_RenderFinishedSemaphore = VK_NULL_HANDLE;
+        vkDestroySemaphore(VulkanLogicalDevice, g_RenderFinishedSemaphore, nullptr);
+        g_RenderFinishedSemaphore = VK_NULL_HANDLE;
     }
 
-    if (s_Fence != VK_NULL_HANDLE)
+    if (g_Fence != VK_NULL_HANDLE)
     {
-        vkDestroyFence(VulkanLogicalDevice, s_Fence, nullptr);
-        s_Fence = VK_NULL_HANDLE;
+        vkDestroyFence(VulkanLogicalDevice, g_Fence, nullptr);
+        g_Fence = VK_NULL_HANDLE;
     }
 
     ResetImGuiFontsAllocation();
 
-    s_SynchronizationObjectsCreated = false;
+    g_SynchronizationObjectsCreated = false;
 }
 
 std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
 {
-    if (!s_SynchronizationObjectsCreated)
+    if (!g_SynchronizationObjectsCreated)
     {
         return std::nullopt;
     }
 
     WaitAndResetFences();
 
-    if (s_ImageAvailableSemaphore == VK_NULL_HANDLE)
+    if (g_ImageAvailableSemaphore == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan semaphore: Image Available is invalid.");
     }
 
-    if (s_Fence == VK_NULL_HANDLE)
+    if (g_Fence == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan fence is invalid.");
     }
@@ -218,8 +218,8 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
                 GetLogicalDevice(),
                 GetSwapChain(),
                 g_Timeout,
-                s_ImageAvailableSemaphore,
-                s_Fence,
+                g_ImageAvailableSemaphore,
+                g_Fence,
                 &Output);
         OperationResult != VK_SUCCESS)
     {
@@ -250,7 +250,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
 {
     AllocateCommandBuffer();
 
-    VkCommandBuffer& MainCommandBuffer = s_CommandBuffers.at(0U);
+    VkCommandBuffer& MainCommandBuffer = g_CommandBuffers.at(0U);
 
     constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -367,16 +367,16 @@ void RenderCore::SubmitCommandBuffers()
     VkSubmitInfo const SubmitInfo {
             .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
             .waitSemaphoreCount   = 1U,
-            .pWaitSemaphores      = &s_ImageAvailableSemaphore,
+            .pWaitSemaphores      = &g_ImageAvailableSemaphore,
             .pWaitDstStageMask    = WaitStages.data(),
-            .commandBufferCount   = static_cast<std::uint32_t>(s_CommandBuffers.size()),
-            .pCommandBuffers      = s_CommandBuffers.data(),
+            .commandBufferCount   = static_cast<std::uint32_t>(g_CommandBuffers.size()),
+            .pCommandBuffers      = g_CommandBuffers.data(),
             .signalSemaphoreCount = 1U,
-            .pSignalSemaphores    = &s_RenderFinishedSemaphore};
+            .pSignalSemaphores    = &g_RenderFinishedSemaphore};
 
     VkQueue const& GraphicsQueue = GetGraphicsQueue().second;
 
-    CheckVulkanResult(vkQueueSubmit(GraphicsQueue, 1U, &SubmitInfo, s_Fence));
+    CheckVulkanResult(vkQueueSubmit(GraphicsQueue, 1U, &SubmitInfo, g_Fence));
     CheckVulkanResult(vkQueueWaitIdle(GraphicsQueue));
 
     FreeCommandBuffers();
@@ -387,7 +387,7 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
     VkPresentInfoKHR const PresentInfo {
             .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .waitSemaphoreCount = 1U,
-            .pWaitSemaphores    = &s_RenderFinishedSemaphore,
+            .pWaitSemaphores    = &g_RenderFinishedSemaphore,
             .swapchainCount     = 1U,
             .pSwapchains        = &GetSwapChain(),
             .pImageIndices      = &ImageIndice,
