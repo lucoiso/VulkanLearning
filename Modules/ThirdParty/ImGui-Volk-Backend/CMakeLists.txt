@@ -1,0 +1,31 @@
+# Author: Lucas Vilas-Boas
+# Year: 2023
+# Repo: https://github.com/lucoiso/cpp-submodules
+
+# ----------- Global Definitions -----------
+SET(LIBRARY_NAME ImGui-Volk-Backend)
+
+# ------------- Library Setup --------------
+SET(PRIVATE_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private)
+SET(PUBLIC_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public)
+
+SET(PRIVATE_MODULES
+	${PRIVATE_MODULES_BASE_DIRECTORY}/imgui_impl_vulkan.cpp
+)
+
+SET(PUBLIC_MODULES
+	${PUBLIC_MODULES_BASE_DIRECTORY}/imgui_impl_vulkan.h
+)
+
+ADD_LIBRARY(${LIBRARY_NAME} ${PRIVATE_MODULES})
+SET_TARGET_PROPERTIES(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PUBLIC ${PUBLIC_MODULES_BASE_DIRECTORY})
+
+FIND_PACKAGE(volk CONFIG REQUIRED)
+FIND_PACKAGE(imgui CONFIG REQUIRED)
+
+TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
+					  volk::volk_headers
+					  imgui::imgui
+)

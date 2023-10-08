@@ -31,6 +31,5 @@ namespace RenderCore
     export void LoadScene(std::string_view, std::string_view);
     export void UnloadScene();
 
-    export [[nodiscard]] VkInstance& GetInstance();
     export [[nodiscard]] VkSurfaceKHR& GetSurface();
 }// namespace RenderCore

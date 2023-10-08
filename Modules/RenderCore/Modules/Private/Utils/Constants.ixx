@@ -14,6 +14,8 @@ import <array>;
 
 export namespace RenderCore
 {
+    constexpr bool g_EnableCustomDebug = false;
+
 #ifdef _DEBUG
 #if defined(GPU_API_DUMP) && GPU_API_DUMP
     constexpr std::array g_DebugInstanceLayers = {
@@ -66,7 +68,7 @@ export namespace RenderCore
 
     constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-    constexpr std::uint8_t g_FrameRate = 75U;
+    constexpr std::uint8_t g_FrameRate = 120U;
 
     constexpr std::uint32_t g_Timeout = std::numeric_limits<std::uint32_t>::max();
 

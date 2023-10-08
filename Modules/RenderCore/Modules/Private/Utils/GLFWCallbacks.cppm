@@ -19,6 +19,8 @@ import RenderCore.Utils.EnumHelpers;
 
 using namespace RenderCore;
 
+bool g_CanMovementCamera = false;
+
 void RenderCore::GLFWWindowCloseRequested(GLFWwindow* const Window)
 {
     ShutdownEngine();
@@ -28,9 +30,6 @@ void RenderCore::GLFWWindowCloseRequested(GLFWwindow* const Window)
 void RenderCore::GLFWWindowResized(GLFWwindow* const Window, [[maybe_unused]] std::int32_t const Width, [[maybe_unused]] std::int32_t const Height)
 {
     UpdateDeviceProperties(Window);
-    ImGui::GetIO().DisplaySize             = ImVec2(static_cast<float>(Width), static_cast<float>(Height));
-    ImGui::GetIO().DisplayFramebufferScale = ImVec2(1.F, 1.F);
-    ImGui::GetIO().DeltaTime               = static_cast<float>(glfwGetTime());
 }
 
 void RenderCore::GLFWErrorCallback(std::int32_t const Error, char const* const Description)
@@ -43,11 +42,7 @@ void RenderCore::GLFWKeyCallback(GLFWwindow* const Window, std::int32_t const Ke
     Camera& Camera                                = GetViewportCamera();
     CameraMovementStateFlags CurrentMovementState = Camera.GetCameraMovementStateFlags();
 
-    if (Key == GLFW_KEY_ESCAPE && Action == GLFW_PRESS)
-    {
-        GLFWWindowCloseRequested(Window);
-    }
-    else if (Action == GLFW_PRESS)
+    if (Action == GLFW_PRESS)
     {
         switch (Key)
         {
@@ -110,40 +105,51 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
     static double LastCursorPosX = NewCursorPosX;
     static double LastCursorPosY = NewCursorPosY;
 
-    Camera& Camera = GetViewportCamera();
+    g_CanMovementCamera = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_LEFT) != GLFW_RELEASE && !ImGui::GetIO().WantCaptureMouse;
 
-    float const Sensitivity = Camera.GetSensitivity();
-
-    float const OffsetX = static_cast<float>(NewCursorPosX - LastCursorPosX) * Sensitivity;
-    float const OffsetY = static_cast<float>(LastCursorPosY - NewCursorPosY) * Sensitivity;
-
-    LastCursorPosX = NewCursorPosX;
-    LastCursorPosY = NewCursorPosY;
-
-    float const Yaw   = Camera.GetYaw() + OffsetX;
-    float const Pitch = Camera.GetPitch() + OffsetY;
-
-    if (Pitch > 89.F)
+    if (g_CanMovementCamera)
     {
-        Camera.SetPitch(89.F);
-    }
-    else if (Pitch < -89.F)
-    {
-        Camera.SetPitch(-89.F);
+        glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+        Camera& Camera = GetViewportCamera();
+
+        float const Sensitivity = Camera.GetSensitivity();
+
+        float const OffsetX = static_cast<float>(NewCursorPosX - LastCursorPosX) * Sensitivity;
+        float const OffsetY = static_cast<float>(LastCursorPosY - NewCursorPosY) * Sensitivity;
+
+        float const Yaw   = Camera.GetYaw() + OffsetX;
+        float const Pitch = Camera.GetPitch() + OffsetY;
+
+        if (Pitch > 89.F)
+        {
+            Camera.SetPitch(89.F);
+        }
+        else if (Pitch < -89.F)
+        {
+            Camera.SetPitch(-89.F);
+        }
+        else
+        {
+            Camera.SetPitch(Pitch);
+        }
+
+        Camera.SetYaw(Yaw);
+
+        glm::vec3 Front;
+        Front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+        Front.y = sin(glm::radians(Pitch));
+        Front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+
+        Camera.SetFront(glm::normalize(Front));
     }
     else
     {
-        Camera.SetPitch(Pitch);
+        glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 
-    Camera.SetYaw(Yaw);
-
-    glm::vec3 Front;
-    Front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-    Front.y = sin(glm::radians(Pitch));
-    Front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-
-    Camera.SetFront(glm::normalize(Front));
+    LastCursorPosX = NewCursorPosX;
+    LastCursorPosY = NewCursorPosY;
 }
 
 void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow* const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)

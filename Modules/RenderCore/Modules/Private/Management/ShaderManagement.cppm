@@ -345,7 +345,7 @@ void RenderCore::ReleaseShaderResources()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan shader resources";
 
-    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
     for (auto const& ShaderModule: g_StageInfos | std::views::keys)
     {
@@ -361,7 +361,7 @@ void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> 
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
 
-    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
     for (VkPipelineShaderStageCreateInfo const& StageInfoIter: StagedModules)
     {

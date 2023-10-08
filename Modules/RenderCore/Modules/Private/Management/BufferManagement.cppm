@@ -65,7 +65,7 @@ namespace Allocation
 
             if (View != VK_NULL_HANDLE)
             {
-                vkDestroyImageView(GetLogicalDevice(), View, nullptr);
+                vkDestroyImageView(volkGetLoadedDevice(), View, nullptr);
                 View = VK_NULL_HANDLE;
 
                 if (Image != VK_NULL_HANDLE)
@@ -76,7 +76,7 @@ namespace Allocation
 
             if (Sampler != VK_NULL_HANDLE)
             {
-                vkDestroySampler(GetLogicalDevice(), Sampler, nullptr);
+                vkDestroySampler(volkGetLoadedDevice(), Sampler, nullptr);
                 Sampler = VK_NULL_HANDLE;
             }
         }
@@ -296,7 +296,7 @@ void CreateImageView(VkImage const& Image, VkFormat const& Format, VkImageAspect
                     .a = VK_COMPONENT_SWIZZLE_IDENTITY},
             .subresourceRange = {.aspectMask = AspectFlags, .baseMipLevel = 0U, .levelCount = 1U, .baseArrayLayer = 0U, .layerCount = 1U}};
 
-    CheckVulkanResult(vkCreateImageView(GetLogicalDevice(), &ImageViewCreateInfo, nullptr, &ImageView));
+    CheckVulkanResult(vkCreateImageView(volkGetLoadedDevice(), &ImageViewCreateInfo, nullptr, &ImageView));
 }
 
 void CreateSwapChainImageViews(VkFormat const& ImageFormat)
@@ -341,7 +341,7 @@ void CreateTextureSampler(Allocation::ImageAllocation& Allocation)
             .borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
             .unnormalizedCoordinates = VK_FALSE};
 
-    CheckVulkanResult(vkCreateSampler(GetLogicalDevice(), &SamplerCreateInfo, nullptr, &Allocation.Sampler));
+    CheckVulkanResult(vkCreateSampler(volkGetLoadedDevice(), &SamplerCreateInfo, nullptr, &Allocation.Sampler));
 }
 
 void CopyBufferToImage(VkBuffer const& Source, VkImage const& Destination, VkExtent2D const& Extent, VkQueue const& Queue, std::uint32_t const QueueFamilyIndex)
@@ -530,13 +530,13 @@ void RenderCore::CreateMemoryAllocator()
     VmaAllocatorCreateInfo const AllocatorInfo {
             .flags                          = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT,
             .physicalDevice                 = GetPhysicalDevice(),
-            .device                         = GetLogicalDevice(),
+            .device                         = volkGetLoadedDevice(),
             .preferredLargeHeapBlockSize    = 0U /*Default: 256 MiB*/,
             .pAllocationCallbacks           = nullptr,
             .pDeviceMemoryCallbacks         = nullptr,
             .pHeapSizeLimit                 = nullptr,
             .pVulkanFunctions               = &VulkanFunctions,
-            .instance                       = GetInstance(),
+            .instance                       = volkGetLoadedInstance(),
             .vulkanApiVersion               = VK_API_VERSION_1_0,
             .pTypeExternalMemoryHandleTypes = nullptr};
 
@@ -573,7 +573,7 @@ void RenderCore::CreateSwapChain()
             .clipped               = VK_TRUE,
             .oldSwapchain          = g_OldSwapChain};
 
-    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
     CheckVulkanResult(vkCreateSwapchainKHR(VulkanLogicalDevice, &SwapChainCreateInfo, nullptr, &g_SwapChain));
 
@@ -602,7 +602,7 @@ void RenderCore::CreateFrameBuffers()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan frame buffers";
 
-    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
     g_FrameBuffers.resize(g_SwapChainImages.size(), VK_NULL_HANDLE);
     for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(g_FrameBuffers.size()); ++Iterator)
@@ -756,7 +756,7 @@ void RenderCore::ReleaseBufferResources()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan buffer resources";
 
-    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
     if (g_SwapChain != VK_NULL_HANDLE)
     {
@@ -774,7 +774,7 @@ void RenderCore::DestroyBufferResources(bool const ClearScene)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan buffer resources";
 
-    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
     for (Allocation::ImageAllocation& ImageViewIter: g_SwapChainImages)
     {

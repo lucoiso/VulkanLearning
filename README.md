@@ -4,14 +4,14 @@
 
 # Dependencies
 
-1.  Vcpkg (w/ ENVIRONMENT VARIABLE VCPKG_ROOT set to the vcpkg root directory)
-2.  CMake v3.28 (Officially supporting C++20 Modules)
-3.  Vulkan SDK v1.3.261 (Does not need any modules except the SDK core)
-4.  Git
+1. Vcpkg (w/ ENVIRONMENT VARIABLE VCPKG_ROOT set to the vcpkg root directory)
+2. CMake v3.28 (Officially supporting C++20 Modules)
+3. Vulkan SDK v1.3.261 (Does not need any modules except the SDK core)
+4. Git
 
 # Setup
 
--  Run these commands:
+- Run these commands:
 
 ```
 git clone https://github.com/lucoiso/VulkanRenderer.git

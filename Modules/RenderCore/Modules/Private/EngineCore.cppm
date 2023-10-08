@@ -32,6 +32,7 @@ import RenderCore.Management.BufferManagement;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.PipelineManagement;
 import RenderCore.Management.ShaderManagement;
+import RenderCore.Management.ImGuiManagement;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.DebugHelpers;
@@ -93,7 +94,7 @@ std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders()
 
     std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
 
-    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
     for (char const* const& FragmentShaderIter: FragmentShaders)
     {
@@ -178,7 +179,7 @@ void CreateVulkanSurface(GLFWwindow* const Window)
     CheckVulkanResult(glfwCreateWindowSurface(g_Instance, Window, nullptr, &g_Surface));
 }
 
-void InitializeRenderCore()
+void InitializeRenderCore(GLFWwindow* const Window)
 {
     PickPhysicalDevice();
     CreateLogicalDevice();
@@ -186,6 +187,11 @@ void InitializeRenderCore()
 
     CreateMemoryAllocator();
     CompileDefaultShaders();
+
+    UpdateDeviceProperties(Window);
+    CreateRenderPass();
+
+    InitializeImGui(Window);
 
     AddFlags(g_StateFlags, EngineCoreStateFlags::INITIALIZED);
     AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
@@ -218,7 +224,7 @@ void RenderCore::InitializeEngine(GLFWwindow* const Window)
 
     CreateVulkanInstance();
     CreateVulkanSurface(Window);
-    InitializeRenderCore();
+    InitializeRenderCore(Window);
 }
 
 void RenderCore::ShutdownEngine()
@@ -230,6 +236,7 @@ void RenderCore::ShutdownEngine()
 
     RemoveFlags(g_StateFlags, EngineCoreStateFlags::INITIALIZED);
 
+    ReleaseImGuiResources();
     ReleaseShaderResources();
     ReleaseCommandsResources();
     ReleaseBufferResources();
@@ -280,7 +287,7 @@ void RenderCore::DrawFrame(GLFWwindow* const Window)
         {
             DestroyCommandsSynchronizationObjects();
             DestroyBufferResources(false);
-            ReleasePipelineResources();
+            ReleaseDynamicPipelineResources();
 
             RemoveFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
             AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
@@ -308,7 +315,6 @@ void RenderCore::DrawFrame(GLFWwindow* const Window)
 
         if (HasFlag(g_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH))
         {
-            CreateRenderPass();
             CreateDescriptorSetLayout();
             CreateGraphicsPipeline();
 
@@ -375,11 +381,6 @@ void RenderCore::UnloadScene()
     UnLoadObject(g_ObjectID);
 
     AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-}
-
-VkInstance& RenderCore::GetInstance()
-{
-    return g_Instance;
 }
 
 VkSurfaceKHR& RenderCore::GetSurface()

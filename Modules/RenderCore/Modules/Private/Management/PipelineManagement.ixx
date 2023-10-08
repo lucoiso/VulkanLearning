@@ -21,9 +21,13 @@ namespace RenderCore
     export void CreateDescriptorPool();
     export void CreateDescriptorSets();
     export void ReleasePipelineResources();
+    export void ReleaseDynamicPipelineResources();
 
     export [[nodiscard]] VkRenderPass const& GetRenderPass();
     export [[nodiscard]] VkPipeline const& GetPipeline();
     export [[nodiscard]] VkPipelineLayout const& GetPipelineLayout();
+    export [[nodiscard]] VkPipelineCache const& GetPipelineCache();
+    export [[nodiscard]] VkDescriptorSetLayout const& GetDescriptorSetLayout();
+    export [[nodiscard]] VkDescriptorPool const& GetDescriptorPool();
     export [[nodiscard]] std::vector<VkDescriptorSet> const& GetDescriptorSets();
 }// namespace RenderCore

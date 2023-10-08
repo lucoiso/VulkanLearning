@@ -7,6 +7,10 @@ module;
 #include <boost/log/trivial.hpp>
 #include <volk.h>
 
+/* ImGui Headers */
+#include <imgui.h>
+#include <imgui_impl_vulkan.h>
+
 module RenderCore.Management.CommandsManagement;
 
 import <limits>;
@@ -44,7 +48,7 @@ void CreateGraphicsCommandPool()
 
 void AllocateCommandBuffer()
 {
-    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
     for (VkCommandBuffer& CommandBufferIter: g_CommandBuffers)
     {
@@ -79,7 +83,7 @@ void WaitAndResetFences()
         return;
     }
 
-    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
     CheckVulkanResult(vkWaitForFences(VulkanLogicalDevice, 1U, &g_Fence, VK_TRUE, g_Timeout));
     CheckVulkanResult(vkResetFences(VulkanLogicalDevice, 1U, &g_Fence));
@@ -87,7 +91,7 @@ void WaitAndResetFences()
 
 void FreeCommandBuffers()
 {
-    vkFreeCommandBuffers(GetLogicalDevice(), g_CommandPool, static_cast<std::uint32_t>(g_CommandBuffers.size()), g_CommandBuffers.data());
+    vkFreeCommandBuffers(volkGetLoadedDevice(), g_CommandPool, static_cast<std::uint32_t>(g_CommandBuffers.size()), g_CommandBuffers.data());
 
     for (VkCommandBuffer& CommandBufferIter: g_CommandBuffers)
     {
@@ -110,7 +114,7 @@ VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex)
             .queueFamilyIndex = static_cast<std::uint32_t>(FamilyQueueIndex)};
 
     VkCommandPool Output = VK_NULL_HANDLE;
-    CheckVulkanResult(vkCreateCommandPool(GetLogicalDevice(), &CommandPoolCreateInfo, nullptr, &Output));
+    CheckVulkanResult(vkCreateCommandPool(volkGetLoadedDevice(), &CommandPoolCreateInfo, nullptr, &Output));
 
     return Output;
 }
@@ -131,7 +135,7 @@ void RenderCore::CreateCommandsSynchronizationObjects()
             .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
             .flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
-    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
     CheckVulkanResult(vkCreateSemaphore(VulkanLogicalDevice, &SemaphoreCreateInfo, nullptr, &g_ImageAvailableSemaphore));
     CheckVulkanResult(vkCreateSemaphore(VulkanLogicalDevice, &SemaphoreCreateInfo, nullptr, &g_RenderFinishedSemaphore));
@@ -149,7 +153,7 @@ void RenderCore::DestroyCommandsSynchronizationObjects()
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan synchronization objects";
 
-    VkDevice const& VulkanLogicalDevice = GetLogicalDevice();
+    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
     vkDeviceWaitIdle(VulkanLogicalDevice);
 
@@ -203,7 +207,7 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
 
     std::uint32_t Output = 0U;
     if (VkResult const OperationResult = vkAcquireNextImageKHR(
-                GetLogicalDevice(),
+                volkGetLoadedDevice(),
                 GetSwapChain(),
                 g_Timeout,
                 g_ImageAvailableSemaphore,
@@ -339,6 +343,11 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
 
     if (ActiveRenderPass)
     {
+        if (ImDrawData* const ImGuiDrawData = ImGui::GetDrawData())
+        {
+            ImGui_ImplVulkan_RenderDrawData(ImGuiDrawData, MainCommandBuffer);
+        }
+
         vkCmdEndRenderPass(MainCommandBuffer);
     }
 

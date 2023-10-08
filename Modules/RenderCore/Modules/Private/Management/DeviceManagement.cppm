@@ -330,7 +330,7 @@ void RenderCore::CreateLogicalDevice()
 
 bool RenderCore::UpdateDeviceProperties(GLFWwindow* const Window)
 {
-    GetDeviceProperties().Capabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
+    g_DeviceProperties.Capabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
 
     std::vector<VkSurfaceFormatKHR> const SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats();
     if (SupportedFormats.empty())
@@ -344,16 +344,16 @@ bool RenderCore::UpdateDeviceProperties(GLFWwindow* const Window)
         throw std::runtime_error("No supported presentation modes found.");
     }
 
-    if (GetDeviceProperties().Capabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
+    if (g_DeviceProperties.Capabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
     {
-        GetDeviceProperties().Extent = GetDeviceProperties().Capabilities.currentExtent;
+        g_DeviceProperties.Extent = g_DeviceProperties.Capabilities.currentExtent;
     }
     else
     {
-        GetDeviceProperties().Extent = GetWindowExtent(Window, GetDeviceProperties().Capabilities);
+        g_DeviceProperties.Extent = GetWindowExtent(Window, g_DeviceProperties.Capabilities);
     }
 
-    GetDeviceProperties().Format = SupportedFormats.at(0);
+    g_DeviceProperties.Format = SupportedFormats.at(0);
     if (auto const MatchingFormat = std::ranges::find_if(
                 SupportedFormats,
                 [](VkSurfaceFormatKHR const& Iter) {
@@ -361,10 +361,10 @@ bool RenderCore::UpdateDeviceProperties(GLFWwindow* const Window)
                 });
         MatchingFormat != SupportedFormats.end())
     {
-        GetDeviceProperties().Format = *MatchingFormat;
+        g_DeviceProperties.Format = *MatchingFormat;
     }
 
-    GetDeviceProperties().Mode = VK_PRESENT_MODE_FIFO_KHR;
+    g_DeviceProperties.Mode = VK_PRESENT_MODE_FIFO_KHR;
     if (auto const MatchingMode = std::ranges::find_if(
                 SupportedPresentationModes,
                 [](VkPresentModeKHR const& Iter) {
@@ -372,7 +372,7 @@ bool RenderCore::UpdateDeviceProperties(GLFWwindow* const Window)
                 });
         MatchingMode != SupportedPresentationModes.end())
     {
-        GetDeviceProperties().Mode = *MatchingMode;
+        g_DeviceProperties.Mode = *MatchingMode;
     }
 
     for (std::vector const PreferredDepthFormats = {
@@ -386,12 +386,12 @@ bool RenderCore::UpdateDeviceProperties(GLFWwindow* const Window)
 
         if ((FormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) != 0U)
         {
-            GetDeviceProperties().DepthFormat = FormatIter;
+            g_DeviceProperties.DepthFormat = FormatIter;
             break;
         }
     }
 
-    return GetDeviceProperties().IsValid();
+    return g_DeviceProperties.IsValid();
 }
 
 DeviceProperties& RenderCore::GetDeviceProperties()
@@ -443,8 +443,8 @@ std::vector<std::uint32_t> RenderCore::GetUniqueQueueFamilyIndicesU32()
 
 std::uint32_t RenderCore::GetMinImageCount()
 {
-    bool const SupportsTripleBuffering = GetDeviceProperties().Capabilities.minImageCount < 3U && GetDeviceProperties().Capabilities.maxImageCount >= 3U;
-    return SupportsTripleBuffering ? 3U : GetDeviceProperties().Capabilities.minImageCount;
+    bool const SupportsTripleBuffering = g_DeviceProperties.Capabilities.minImageCount < 3U && g_DeviceProperties.Capabilities.maxImageCount >= 3U;
+    return SupportsTripleBuffering ? 3U : g_DeviceProperties.Capabilities.minImageCount;
 }
 
 void RenderCore::ReleaseDeviceResources()
@@ -462,7 +462,7 @@ void RenderCore::ReleaseDeviceResources()
 
 std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
 {
-    VkInstance const& VulkanInstance = GetInstance();
+    VkInstance const& VulkanInstance = volkGetLoadedInstance();
 
     std::uint32_t DeviceCount = 0U;
     CheckVulkanResult(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, nullptr));

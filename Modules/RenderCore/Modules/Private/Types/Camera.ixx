@@ -28,7 +28,7 @@ namespace RenderCore
         glm::vec3 m_CameraPosition {0.F, 0.F, 3.F};
         glm::vec3 m_CameraFront {0.F, 0.F, -1.F};
         glm::vec3 m_CameraUp {0.F, 1.F, 0.F};
-        float m_CameraSpeed {0.01F};
+        float m_CameraSpeed {0.005F};
         float m_CameraYaw {-90.F};
         float m_CameraPitch {0.F};
         float m_CameraSensitivity {0.1F};
