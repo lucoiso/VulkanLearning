@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2023
-// Repo : https://github.com/lucoiso/VulkanRender
+// Repo : https://github.com/lucoiso/VulkanRenderer
 
 #define BOOST_TEST_MODULE Application
 #include <boost/test/included/unit_test.hpp>

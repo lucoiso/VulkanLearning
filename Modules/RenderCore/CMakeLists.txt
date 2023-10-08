@@ -1,6 +1,6 @@
 # Author: Lucas Vilas-Boas
 # Year: 2023
-# Repo: https://github.com/lucoiso/VulkanRender
+# Repo: https://github.com/lucoiso/VulkanRenderer
 
 # ----------- Global Definitions -----------
 SET(LIBRARY_NAME RenderCore)

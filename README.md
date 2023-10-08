@@ -1,6 +1,6 @@
-[![VulkanRender CMake Workflow](https://github.com/lucoiso/VulkanRender/actions/workflows/windows-x64-cmake-release.yml/badge.svg)](https://github.com/lucoiso/VulkanRender/actions/workflows/windows-x64-cmake-release.yml)
+[![VulkanRenderer CMake Workflow](https://github.com/lucoiso/VulkanRenderer/actions/workflows/windows-x64-cmake-release.yml/badge.svg)](https://github.com/lucoiso/VulkanRenderer/actions/workflows/windows-x64-cmake-release.yml)
 
-![image](https://github.com/lucoiso/VulkanRender/assets/77353979/cee86fe8-dfe2-4561-b378-1ba3925a7ce4)
+![image](https://github.com/lucoiso/VulkanRenderer/assets/77353979/cee86fe8-dfe2-4561-b378-1ba3925a7ce4)
 
 # Dependencies
 
@@ -14,7 +14,7 @@
 -  Run these commands:
 
 ```
-git clone https://github.com/lucoiso/VulkanRender.git
-cd VulkanRender
+git clone https://github.com/lucoiso/VulkanRenderer.git
+cd VulkanRenderer
 git submodule update --init --recursive
 ```

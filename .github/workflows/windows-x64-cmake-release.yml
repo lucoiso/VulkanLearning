@@ -1,4 +1,4 @@
-name: VulkanRender CMake Workflow
+name: VulkanRenderer CMake Workflow
 
 on:
   push:
