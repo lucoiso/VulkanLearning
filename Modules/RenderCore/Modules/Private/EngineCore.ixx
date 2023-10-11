@@ -4,8 +4,6 @@
 
 module;
 
-#pragma once
-
 #include <GLFW/glfw3.h>
 #include <glm/ext.hpp>
 #include <volk.h>

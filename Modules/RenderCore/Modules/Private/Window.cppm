@@ -12,6 +12,7 @@ module;
 
 module RenderCore.Window;
 
+import <chrono>;
 import <thread>;
 import <queue>;
 import <string_view>;
@@ -31,6 +32,8 @@ import RenderCore.Types.DeviceProperties;
 using namespace RenderCore;
 
 GLFWwindow* g_Window {nullptr};
+std::unique_ptr<Timer::Manager> g_RenderTimerManager {std::make_unique<Timer::Manager>()};
+bool g_ActiveRender {false};
 
 bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title)
 {
@@ -71,12 +74,7 @@ bool InitializeEngineCore()
     return false;
 }
 
-Window::Window()
-    : m_DrawTimerID(0U),
-      m_EventIDQueue(),
-      m_MainThreadID(std::this_thread::get_id())
-{
-}
+Window::Window() = default;
 
 Window::~Window()
 {
@@ -88,6 +86,11 @@ Window::~Window()
     try
     {
         Shutdown();
+
+        while (g_RenderTimerManager)
+        {
+            /* Wait */
+        }
 
         glfwDestroyWindow(g_Window);
         glfwTerminate();
@@ -108,7 +111,15 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
     {
         if (InitializeGLFW(Width, Height, Title) && InitializeEngineCore())
         {
-            RegisterTimers();
+            g_ActiveRender = true;
+            g_RenderTimerManager->SetTimer(
+                    0U,
+                    [this]() {
+                        LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+                        RequestRender();
+                    });
+
+            return true;
         }
     }
     catch (std::exception const& Ex)
@@ -117,7 +128,7 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
         Shutdown();
     }
 
-    return IsInitialized();
+    return false;
 }
 
 void Window::Shutdown()
@@ -127,28 +138,22 @@ void Window::Shutdown()
         return;
     }
 
-    Timer::Manager::Get().StopTimer(m_DrawTimerID);
-    while (!m_EventIDQueue.empty())
-    {
-        m_EventIDQueue.pop();
-    }
-
-    ShutdownEngine();
+    g_ActiveRender = false;
 }
 
-bool Window::IsInitialized() const
+bool Window::IsInitialized()
 {
     return IsOpen() && IsEngineInitialized();
 }
 
-bool Window::IsOpen() const
+bool Window::IsOpen()
 {
     return g_Window != nullptr && glfwWindowShouldClose(g_Window) == 0;
 }
 
 void Window::PollEvents()
 {
-    if (!IsInitialized() || m_MainThreadID != std::this_thread::get_id())
+    if (!IsInitialized())
     {
         return;
     }
@@ -156,53 +161,6 @@ void Window::PollEvents()
     try
     {
         glfwPollEvents();
-
-        std::unordered_map<ApplicationEventFlags, std::uint8_t> ProcessedEvents;
-
-        for (std::uint8_t Iterator = 0U; Iterator < static_cast<std::underlying_type_t<ApplicationEventFlags>>(ApplicationEventFlags::MAX); ++Iterator)
-        {
-            ProcessedEvents.emplace(static_cast<ApplicationEventFlags>(Iterator), 0U);
-        }
-
-        while (!m_EventIDQueue.empty())
-        {
-            auto const EventFlags = static_cast<ApplicationEventFlags>(m_EventIDQueue.front());
-            m_EventIDQueue.pop();
-
-            switch (EventFlags)
-            {
-                case ApplicationEventFlags::DRAW_FRAME: {
-                    if (ProcessedEvents.at(EventFlags) > 0U)
-                    {
-                        break;
-                    }
-
-                    static double DeltaTime = glfwGetTime();
-                    DeltaTime               = glfwGetTime() - DeltaTime;
-
-                    GetViewportCamera().UpdateCameraMovement(g_Window, static_cast<float>(DeltaTime));
-
-                    DrawImGuiFrame([this]() {
-                        CreateOverlay();
-                    });
-
-                    DrawFrame(g_Window);
-                    break;
-                }
-                case ApplicationEventFlags::LOAD_SCENE: {
-                    LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
-                    break;
-                }
-                case ApplicationEventFlags::UNLOAD_SCENE: {
-                    UnloadScene();
-                    break;
-                }
-                default:
-                    break;
-            }
-
-            ++ProcessedEvents.at(EventFlags);
-        }
     }
     catch (std::exception const& Ex)
     {
@@ -228,37 +186,30 @@ void Window::CreateOverlay()
     ImGui::End();
 }
 
-void Window::RegisterTimers()
+void Window::RequestRender()
 {
-    Timer::Manager::Get().SetTickInterval(std::chrono::milliseconds(1));
-
+    if (g_ActiveRender)
     {
-        // Draw Frame
-        constexpr Timer::Parameters DrawFrameTimer {
-                .EventID     = static_cast<std::uint8_t>(ApplicationEventFlags::DRAW_FRAME),
-                .Interval    = 1000U / g_FrameRate,
-                .RepeatCount = std::nullopt};
+        static double DeltaTime = glfwGetTime();
+        DeltaTime               = glfwGetTime() - DeltaTime;
 
-        m_DrawTimerID = Timer::Manager::Get().StartTimer(DrawFrameTimer, m_EventIDQueue);
+        GetViewportCamera().UpdateCameraMovement(g_Window, static_cast<float>(DeltaTime));
+
+        DrawImGuiFrame([this]() {
+            CreateOverlay();
+        });
+
+        DrawFrame(g_Window);
+
+        g_RenderTimerManager->SetTimer(
+                1000U / g_FrameRate,
+                [this]() {
+                    RequestRender();
+                });
     }
-
+    else
     {
-        constexpr Timer::Parameters LoadSceneTimer {
-                .EventID     = static_cast<std::uint8_t>(ApplicationEventFlags::LOAD_SCENE),
-                .Interval    = 250U,
-                .RepeatCount = 0U};
-
-        auto const Discard = Timer::Manager::Get().StartTimer(LoadSceneTimer, m_EventIDQueue);
-    }
-
-    if constexpr (g_EnableCustomDebug)
-    {
-        // Unload Scene: Testing Only
-        constexpr Timer::Parameters UnLoadSceneTimer {
-                .EventID     = static_cast<std::uint8_t>(ApplicationEventFlags::UNLOAD_SCENE),
-                .Interval    = 10000U,
-                .RepeatCount = 0U};
-
-        auto const Discard = Timer::Manager::Get().StartTimer(UnLoadSceneTimer, m_EventIDQueue);
+        g_RenderTimerManager.reset();
+        ShutdownEngine();
     }
 }

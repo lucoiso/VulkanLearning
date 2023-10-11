@@ -4,8 +4,6 @@
 
 module;
 
-#pragma once
-
 #include <RenderCoreModule.h>
 
 export module RenderCore.Types.Vertex;

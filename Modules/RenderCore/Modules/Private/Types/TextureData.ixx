@@ -4,8 +4,6 @@
 
 module;
 
-#pragma once
-
 #include <volk.h>
 
 export module RenderCore.Types.TextureData;

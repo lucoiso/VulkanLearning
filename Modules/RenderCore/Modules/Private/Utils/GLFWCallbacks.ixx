@@ -4,8 +4,6 @@
 
 module;
 
-#pragma once
-
 #include <GLFW/glfw3.h>
 
 export module RenderCore.Utils.GLFWCallbacks;

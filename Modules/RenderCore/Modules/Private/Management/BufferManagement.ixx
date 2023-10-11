@@ -4,8 +4,6 @@
 
 module;
 
-#pragma once
-
 #include <vk_mem_alloc.h>
 
 export module RenderCore.Management.BufferManagement;

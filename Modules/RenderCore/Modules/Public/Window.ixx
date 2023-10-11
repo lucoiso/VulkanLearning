@@ -4,35 +4,17 @@
 
 module;
 
-#pragma once
-
 #include <RenderCoreModule.h>
 
 export module RenderCore.Window;
 
-import <thread>;
-import <queue>;
 import <string_view>;
-import <stdexcept>;
-import <unordered_map>;
-import <functional>;
+import <cstdint>;
 
 namespace RenderCore
 {
-    enum class ApplicationEventFlags : std::uint8_t
-    {
-        DRAW_FRAME,
-        LOAD_SCENE,
-        UNLOAD_SCENE,
-        MAX
-    };
-
     export class RENDERCOREMODULE_API Window
     {
-        std::uint32_t m_DrawTimerID {0U};
-        std::queue<std::uint8_t> m_EventIDQueue;
-        std::thread::id m_MainThreadID;
-
     public:
         Window();
 
@@ -41,17 +23,18 @@ namespace RenderCore
 
         virtual ~Window();
 
-        bool Initialize(std::uint16_t Width, std::uint16_t Height, std::string_view Title);
-        void Shutdown();
+        bool Initialize(std::uint16_t, std::uint16_t, std::string_view);
+        static void Shutdown();
 
-        [[nodiscard]] bool IsInitialized() const;
-        [[nodiscard]] bool IsOpen() const;
+        [[nodiscard]] static bool IsInitialized();
+        [[nodiscard]] static bool IsOpen();
 
         void PollEvents();
 
+    protected:
         virtual void CreateOverlay();
 
     private:
-        void RegisterTimers();
+        void RequestRender();
     };
 }// namespace RenderCore

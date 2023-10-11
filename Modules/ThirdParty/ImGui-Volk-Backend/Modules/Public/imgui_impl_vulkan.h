@@ -25,8 +25,6 @@
 // - Helper ImGui_ImplVulkanH_XXX functions and structures are only used by this example (main.cpp) and by
 //   the backend itself (imgui_impl_vulkan.cpp), but should PROBABLY NOT be used by your own engine/app code.
 // Read comments in imgui_impl_vulkan.h.
-
-#pragma once
 #ifndef IMGUI_DISABLE
 #include "imgui.h"// IMGUI_IMPL_API
 

@@ -4,8 +4,6 @@
 
 module;
 
-#pragma once
-
 #include <glslang/Public/ShaderLang.h>
 #include <volk.h>
 
