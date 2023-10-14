@@ -8,12 +8,12 @@ import RenderCore.EngineCore;
 
 using namespace RenderCore;
 
-[[nodiscard]] std::uint32_t LoadObject(std::string_view ModelPath, std::string_view ModelTexture)
+std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::string_view const ModelTexture)
 {
     return LoadScene(ModelPath, ModelTexture);
 }
 
-void UnloadObject(std::uint32_t ObjectID)
+void RenderCore::UnloadObject(std::uint32_t ObjectID)
 {
     UnloadScene(ObjectID);
 }

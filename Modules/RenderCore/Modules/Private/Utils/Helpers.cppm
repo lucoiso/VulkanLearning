@@ -291,17 +291,6 @@ UniformBufferObject RenderCore::GetUniformBufferObject()
     glm::mat4 Projection = glm::perspective(glm::radians(45.F), static_cast<float>(Width) / static_cast<float>(Height), 0.1F, 100.F);
     Projection[1][1] *= -1;
 
-    glm::mat4 const ModelViewProjection = Projection * GetViewportCamera().GetMatrix() * Model;
-
-    std::array<std::array<float, 4U>, 4U> ModelViewProjectionArray {};
-    for (std::uint8_t Column = 0U; Column < static_cast<std::uint8_t>(ModelViewProjectionArray.size()); ++Column)
-    {
-        for (std::uint8_t Line = 0U; Line < static_cast<std::uint8_t>(ModelViewProjectionArray[Column].size()); ++Line)
-        {
-            ModelViewProjectionArray[Column][Line] = ModelViewProjection[Column][Line];
-        }
-    }
-
     return UniformBufferObject {
-            .ModelViewProjection = ModelViewProjectionArray};
+            .ModelViewProjection = Projection * GetViewportCamera().GetMatrix() * Model};
 }

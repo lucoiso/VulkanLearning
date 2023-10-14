@@ -355,11 +355,6 @@ std::uint32_t RenderCore::LoadScene(std::string_view const ModelPath, std::strin
         throw std::runtime_error("Model path is invalid");
     }
 
-    if (!std::filesystem::exists(TexturePath))
-    {
-        throw std::runtime_error("Texture path is invalid");
-    }
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading object...";
 
     std::uint32_t const OutputID = LoadObject(ModelPath, TexturePath);

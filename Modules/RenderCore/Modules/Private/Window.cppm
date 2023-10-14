@@ -26,6 +26,7 @@ import RenderCore.Management.ImGuiManagement;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.GLFWCallbacks;
+import RenderCore.Utils.RenderUtils;
 import RenderCore.Types.Camera;
 import RenderCore.Types.DeviceProperties;
 
@@ -170,19 +171,52 @@ void Window::PollEvents() const
 
 void Window::CreateOverlay()
 {
-    constexpr ImGuiWindowFlags OverlayWindowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+    ImGui::Begin("Vulkan Renderer Options", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+    {
+        ImGui::BeginGroup();
+        {
+            ImGui::Text("Frame Rate: %.1f", ImGui::GetIO().Framerate);
+            ImGui::Text("Frame Time: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
+            ImGui::Text("Camera Position: %.3f, %.3f, %.3f", GetViewportCamera().GetPosition().x, GetViewportCamera().GetPosition().y, GetViewportCamera().GetPosition().z);
+            ImGui::Text("Camera Yaw: %.3f", GetViewportCamera().GetYaw());
+            ImGui::Text("Camera Pitch: %.3f", GetViewportCamera().GetPitch());
+            ImGui::Text("Camera Movement State: %d", static_cast<std::underlying_type_t<CameraMovementStateFlags>>(GetViewportCamera().GetCameraMovementStateFlags()));
+        }
+        ImGui::EndGroup();
 
-    ImGui::Begin("Vulkan Renderer Options",
-                 nullptr,
-                 OverlayWindowFlags);
+        ImGui::Spacing();
 
-    ImGui::Text("Frame Rate: %.1f", ImGui::GetIO().Framerate);
-    ImGui::Text("Frame Time: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
-    ImGui::Text("Camera Position: %.3f, %.3f, %.3f", GetViewportCamera().GetPosition().x, GetViewportCamera().GetPosition().y, GetViewportCamera().GetPosition().z);
-    ImGui::Text("Camera Yaw: %.3f", GetViewportCamera().GetYaw());
-    ImGui::Text("Camera Pitch: %.3f", GetViewportCamera().GetPitch());
-    ImGui::Text("Camera Movement State: %d", static_cast<std::underlying_type_t<CameraMovementStateFlags>>(GetViewportCamera().GetCameraMovementStateFlags()));
+        ImGui::BeginGroup();
+        {
+            constexpr size_t const MaxPathSize = 256;
 
+            static std::string s_ModelPath(MaxPathSize, '\0');
+            ImGui::InputText("Model Path", s_ModelPath.data(), MaxPathSize);
+
+            static std::string s_TexturePath(MaxPathSize, '\0');
+            ImGui::InputText("Texture Path", s_TexturePath.data(), MaxPathSize);
+
+            if (ImGui::Button("Load Model"))
+            {
+                static std::uint32_t s_ModelId {0U};
+
+                try
+                {
+                    UnloadObject(s_ModelId);
+
+                    std::string const ModelPathInternal   = s_ModelPath.substr(0, s_ModelPath.find('\0'));
+                    std::string const TexturePathInternal = s_TexturePath.substr(0, s_TexturePath.find('\0'));
+
+                    s_ModelId = LoadObject(ModelPathInternal, TexturePathInternal);
+                }
+                catch (std::exception const& Ex)
+                {
+                    BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
+                }
+            }
+        }
+        ImGui::EndGroup();
+    }
     ImGui::End();
 }
 
