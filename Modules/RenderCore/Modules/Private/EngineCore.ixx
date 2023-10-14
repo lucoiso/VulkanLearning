@@ -26,8 +26,8 @@ namespace RenderCore
     export void DrawFrame(GLFWwindow*);
     export [[nodiscard]] bool IsEngineInitialized();
 
-    export void LoadScene(std::string_view, std::string_view);
-    export void UnloadScene();
+    export [[nodiscard]] std::uint32_t LoadScene(std::string_view, std::string_view);
+    export void UnloadScene(std::uint32_t);
 
     export [[nodiscard]] VkSurfaceKHR& GetSurface();
 }// namespace RenderCore

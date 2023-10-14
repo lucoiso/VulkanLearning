@@ -25,13 +25,13 @@ namespace RenderCore
             return *this;
         }
 
-        UniformBufferObject& operator=(float value)
+        UniformBufferObject& operator=(float const& Value)
         {
             for (std::array<float, MATRIX_SIZE>& Column: ModelViewProjection)
             {
                 for (float& Line: Column)
                 {
-                    Line = value;
+                    Line = Value;
                 }
             }
 

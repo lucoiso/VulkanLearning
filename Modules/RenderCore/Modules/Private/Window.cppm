@@ -115,7 +115,7 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
             g_RenderTimerManager->SetTimer(
                     0U,
                     [this]() {
-                        LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+                        auto const _ = LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
                         RequestRender();
                     });
 
@@ -151,7 +151,7 @@ bool Window::IsOpen()
     return g_Window != nullptr && glfwWindowShouldClose(g_Window) == 0;
 }
 
-void Window::PollEvents()
+void Window::PollEvents() const
 {
     if (!IsInitialized())
     {

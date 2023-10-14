@@ -29,7 +29,7 @@ namespace RenderCore
         [[nodiscard]] static bool IsInitialized();
         [[nodiscard]] static bool IsOpen();
 
-        void PollEvents();
+        void PollEvents() const;
 
     protected:
         virtual void CreateOverlay();

@@ -54,7 +54,6 @@ enum class EngineCoreStateFlags : std::uint8_t
 VkInstance g_Instance {VK_NULL_HANDLE};
 VkSurfaceKHR g_Surface {VK_NULL_HANDLE};
 EngineCoreStateFlags g_StateFlags {EngineCoreStateFlags::NONE};
-std::uint32_t g_ObjectID {0U};
 
 #ifdef _DEBUG
 VkDebugUtilsMessengerEXT g_DebugMessenger {VK_NULL_HANDLE};
@@ -344,11 +343,11 @@ bool RenderCore::IsEngineInitialized()
     return HasFlag(g_StateFlags, EngineCoreStateFlags::INITIALIZED);
 }
 
-void RenderCore::LoadScene(std::string_view const ModelPath, std::string_view const TexturePath)
+std::uint32_t RenderCore::LoadScene(std::string_view const ModelPath, std::string_view const TexturePath)
 {
     if (!IsEngineInitialized())
     {
-        return;
+        return 0U;
     }
 
     if (!std::filesystem::exists(ModelPath))
@@ -361,24 +360,26 @@ void RenderCore::LoadScene(std::string_view const ModelPath, std::string_view co
         throw std::runtime_error("Texture path is invalid");
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading object...";
 
-    g_ObjectID = LoadObject(ModelPath, TexturePath);
+    std::uint32_t const OutputID = LoadObject(ModelPath, TexturePath);
 
     AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
     AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+
+    return OutputID;
 }
 
-void RenderCore::UnloadScene()
+void RenderCore::UnloadScene(std::uint32_t const ObjectID)
 {
     if (!IsEngineInitialized())
     {
         return;
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading scene...";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading object...";
 
-    UnLoadObject(g_ObjectID);
+    UnLoadObject(ObjectID);
 
     AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
 }
