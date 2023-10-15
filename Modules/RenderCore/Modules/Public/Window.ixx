@@ -10,11 +10,14 @@ export module RenderCore.Window;
 
 import <string_view>;
 import <cstdint>;
+import <mutex>;
 
 namespace RenderCore
 {
     export class RENDERCOREMODULE_API Window
     {
+        mutable std::mutex m_RenderMutex;
+
     public:
         Window();
 

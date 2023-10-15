@@ -116,7 +116,7 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
             g_RenderTimerManager->SetTimer(
                     0U,
                     [this]() {
-                        auto const _ = LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+                        [[maybe_unused]] auto const _ = LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
                         RequestRender();
                     });
 
@@ -177,9 +177,9 @@ void Window::CreateOverlay()
         {
             ImGui::Text("Frame Rate: %.1f", ImGui::GetIO().Framerate);
             ImGui::Text("Frame Time: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
-            ImGui::Text("Camera Position: %.3f, %.3f, %.3f", GetViewportCamera().GetPosition().x, GetViewportCamera().GetPosition().y, GetViewportCamera().GetPosition().z);
-            ImGui::Text("Camera Yaw: %.3f", GetViewportCamera().GetYaw());
-            ImGui::Text("Camera Pitch: %.3f", GetViewportCamera().GetPitch());
+            ImGui::Text("Camera Position: %.3f, %.3f, %.3f", GetViewportCamera().GetPosition().X, GetViewportCamera().GetPosition().X, GetViewportCamera().GetPosition().Z);
+            ImGui::Text("Camera Yaw: %.3f", GetViewportCamera().GetRotation().Yaw);
+            ImGui::Text("Camera Pitch: %.3f", GetViewportCamera().GetRotation().Pitch);
             ImGui::Text("Camera Movement State: %d", static_cast<std::underlying_type_t<CameraMovementStateFlags>>(GetViewportCamera().GetCameraMovementStateFlags()));
         }
         ImGui::EndGroup();
@@ -222,6 +222,8 @@ void Window::CreateOverlay()
 
 void Window::RequestRender()
 {
+    std::lock_guard<std::mutex> Lock(m_RenderMutex);
+
     if (g_ActiveRender)
     {
         static double DeltaTime = glfwGetTime();

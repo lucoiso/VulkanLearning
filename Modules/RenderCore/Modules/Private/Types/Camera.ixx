@@ -8,6 +8,7 @@ module;
 #include <glm/ext.hpp>
 
 export module RenderCore.Types.Camera;
+export import RenderCore.Types.Transform;
 
 namespace RenderCore
 {
@@ -23,33 +24,23 @@ namespace RenderCore
 
     export class Camera
     {
-        glm::vec3 m_CameraPosition {0.F, 0.F, 3.F};
-        glm::vec3 m_CameraFront {0.F, 0.F, -1.F};
-        glm::vec3 m_CameraUp {0.F, 1.F, 0.F};
+        Vector m_CameraPosition {0.F, 0.F, 3.F};
+        Rotator m_CameraRotation {0.F, -90.F, 0.F};
+
         float m_CameraSpeed {0.005F};
-        float m_CameraYaw {-90.F};
-        float m_CameraPitch {0.F};
         float m_CameraSensitivity {0.1F};
+
         CameraMovementStateFlags m_CameraMovementStateFlags {CameraMovementStateFlags::NONE};
 
     public:
-        [[nodiscard]] glm::vec3 GetPosition() const;
-        void SetPosition(glm::vec3 const&);
+        [[nodiscard]] Vector GetPosition() const;
+        void SetPosition(Vector const&);
 
-        [[nodiscard]] glm::vec3 GetFront() const;
-        void SetFront(glm::vec3 const&);
-
-        [[nodiscard]] glm::vec3 GetUp() const;
-        void SetUp(glm::vec3 const&);
+        [[nodiscard]] Rotator GetRotation() const;
+        void SetRotation(Rotator const&);
 
         [[nodiscard]] float GetSpeed() const;
         void SetSpeed(float);
-
-        [[nodiscard]] float GetYaw() const;
-        void SetYaw(float);
-
-        [[nodiscard]] float GetPitch() const;
-        void SetPitch(float);
 
         [[nodiscard]] float GetSensitivity() const;
         void SetSensitivity(float);

@@ -10,37 +10,28 @@ module;
 module RenderCore.Types.Camera;
 
 import RenderCore.Utils.EnumHelpers;
+import RenderCore.Types.Transform;
 
 using namespace RenderCore;
 
-glm::vec3 RenderCore::Camera::GetPosition() const
+Vector RenderCore::Camera::GetPosition() const
 {
     return m_CameraPosition;
 }
 
-void RenderCore::Camera::SetPosition(glm::vec3 const& Position)
+void RenderCore::Camera::SetPosition(Vector const& Position)
 {
     m_CameraPosition = Position;
 }
 
-glm::vec3 RenderCore::Camera::GetFront() const
+Rotator RenderCore::Camera::GetRotation() const
 {
-    return m_CameraFront;
+    return m_CameraRotation;
 }
 
-void RenderCore::Camera::SetFront(glm::vec3 const& Front)
+void RenderCore::Camera::SetRotation(Rotator const& Rotation)
 {
-    m_CameraFront = Front;
-}
-
-glm::vec3 RenderCore::Camera::GetUp() const
-{
-    return m_CameraUp;
-}
-
-void RenderCore::Camera::SetUp(glm::vec3 const& Up)
-{
-    m_CameraUp = Up;
+    m_CameraRotation = Rotation;
 }
 
 float RenderCore::Camera::GetSpeed() const
@@ -51,26 +42,6 @@ float RenderCore::Camera::GetSpeed() const
 void RenderCore::Camera::SetSpeed(float const Speed)
 {
     m_CameraSpeed = Speed;
-}
-
-float RenderCore::Camera::GetYaw() const
-{
-    return m_CameraYaw;
-}
-
-void RenderCore::Camera::SetYaw(float const Yaw)
-{
-    m_CameraYaw = Yaw;
-}
-
-float RenderCore::Camera::GetPitch() const
-{
-    return m_CameraPitch;
-}
-
-void RenderCore::Camera::SetPitch(float const Pitch)
-{
-    m_CameraPitch = Pitch;
 }
 
 float RenderCore::Camera::GetSensitivity() const
@@ -85,7 +56,7 @@ void RenderCore::Camera::SetSensitivity(float const Sensitivity)
 
 glm::mat4 RenderCore::Camera::GetMatrix() const
 {
-    return glm::lookAt(m_CameraPosition, m_CameraPosition + m_CameraFront, m_CameraUp);
+    return glm::lookAt(m_CameraPosition.ToGlmVec3(), (m_CameraPosition + m_CameraRotation.GetFront()).ToGlmVec3(), m_CameraRotation.GetUp().ToGlmVec3());
 }
 
 CameraMovementStateFlags RenderCore::Camera::GetCameraMovementStateFlags()
@@ -100,11 +71,11 @@ void RenderCore::Camera::SetCameraMovementStateFlags(CameraMovementStateFlags co
 
 void RenderCore::Camera::UpdateCameraMovement(GLFWwindow* const Window, float const DeltaTime)
 {
-    float const CameraSpeed     = GetSpeed();
-    glm::vec3 const CameraFront = GetFront();
-    glm::vec3 const CameraRight = glm::normalize(glm::cross(CameraFront, GetUp()));
+    float const CameraSpeed {GetSpeed()};
+    Vector const CameraFront {m_CameraRotation.GetFront()};
+    Vector const CameraRight {m_CameraRotation.GetRight()};
 
-    glm::vec3 NewPosition = GetPosition();
+    Vector NewPosition {GetPosition()};
 
     if ((m_CameraMovementStateFlags & CameraMovementStateFlags::FORWARD) == CameraMovementStateFlags::FORWARD)
     {
@@ -118,22 +89,22 @@ void RenderCore::Camera::UpdateCameraMovement(GLFWwindow* const Window, float co
 
     if ((m_CameraMovementStateFlags & CameraMovementStateFlags::LEFT) == CameraMovementStateFlags::LEFT)
     {
-        NewPosition -= CameraSpeed * CameraRight * DeltaTime;
+        NewPosition += CameraSpeed * CameraRight * DeltaTime;
     }
 
     if ((m_CameraMovementStateFlags & CameraMovementStateFlags::RIGHT) == CameraMovementStateFlags::RIGHT)
     {
-        NewPosition += CameraSpeed * CameraRight * DeltaTime;
+        NewPosition -= CameraSpeed * CameraRight * DeltaTime;
     }
 
     if ((m_CameraMovementStateFlags & CameraMovementStateFlags::UP) == CameraMovementStateFlags::UP)
     {
-        NewPosition += CameraSpeed * GetUp() * DeltaTime;
+        NewPosition += CameraSpeed * m_CameraRotation.GetUp() * DeltaTime;
     }
 
     if ((m_CameraMovementStateFlags & CameraMovementStateFlags::DOWN) == CameraMovementStateFlags::DOWN)
     {
-        NewPosition -= CameraSpeed * GetUp() * DeltaTime;
+        NewPosition -= CameraSpeed * m_CameraRotation.GetUp() * DeltaTime;
     }
 
     SetPosition(NewPosition);

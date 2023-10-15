@@ -111,37 +111,27 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
     {
         glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-        Camera& Camera = GetViewportCamera();
+        Camera& Camera {GetViewportCamera()};
 
-        float const Sensitivity = Camera.GetSensitivity();
+        float const Sensitivity {Camera.GetSensitivity()};
 
-        float const OffsetX = static_cast<float>(NewCursorPosX - LastCursorPosX) * Sensitivity;
-        float const OffsetY = static_cast<float>(LastCursorPosY - NewCursorPosY) * Sensitivity;
+        float const OffsetX {static_cast<float>(NewCursorPosX - LastCursorPosX) * Sensitivity};
+        float const OffsetY {static_cast<float>(LastCursorPosY - NewCursorPosY) * Sensitivity};
 
-        float const Yaw   = Camera.GetYaw() + OffsetX;
-        float const Pitch = Camera.GetPitch() + OffsetY;
+        Rotator Rotation {Camera.GetRotation()};
+        Rotation.Pitch += OffsetY;
+        Rotation.Yaw += OffsetX;
 
-        if (Pitch > 89.F)
+        if (Rotation.Pitch > 89.F)
         {
-            Camera.SetPitch(89.F);
+            Rotation.Pitch = 89.F;
         }
-        else if (Pitch < -89.F)
+        else if (Rotation.Pitch < -89.F)
         {
-            Camera.SetPitch(-89.F);
-        }
-        else
-        {
-            Camera.SetPitch(Pitch);
+            Rotation.Pitch = -89.F;
         }
 
-        Camera.SetYaw(Yaw);
-
-        glm::vec3 Front;
-        Front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-        Front.y = sin(glm::radians(Pitch));
-        Front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-
-        Camera.SetFront(glm::normalize(Front));
+        Camera.SetRotation(Rotation);
     }
     else
     {
@@ -156,5 +146,5 @@ void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow* const Win
 {
     Camera& Camera   = GetViewportCamera();
     float const Zoom = static_cast<float>(OffsetY) * 0.1f;
-    Camera.SetPosition(Camera.GetPosition() + Camera.GetFront() * Zoom);
+    Camera.SetPosition(Camera.GetPosition() + Camera.GetRotation().GetFront() * Zoom);
 }
