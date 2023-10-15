@@ -116,7 +116,7 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
             g_RenderTimerManager->SetTimer(
                     0U,
                     [this]() {
-                        [[maybe_unused]] auto const _ = LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+                        [[maybe_unused]] auto const _ = LoadModel(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
                         RequestRender();
                     });
 

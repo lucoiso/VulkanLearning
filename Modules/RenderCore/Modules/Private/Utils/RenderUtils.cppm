@@ -10,10 +10,10 @@ using namespace RenderCore;
 
 std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::string_view const ModelTexture)
 {
-    return LoadScene(ModelPath, ModelTexture);
+    return LoadModel(ModelPath, ModelTexture);
 }
 
 void RenderCore::UnloadObject(std::uint32_t ObjectID)
 {
-    UnloadScene(ObjectID);
+    UnLoadModel(ObjectID);
 }

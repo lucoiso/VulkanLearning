@@ -8,7 +8,8 @@ module;
 #include <glm/ext.hpp>
 
 export module RenderCore.Types.Camera;
-export import RenderCore.Types.Transform;
+
+import RenderCore.Types.Transform;
 
 namespace RenderCore
 {

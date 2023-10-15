@@ -16,7 +16,7 @@ namespace RenderCore
     {
         glm::vec3 Position {};
         glm::vec3 Normal {};
-        glm::vec3 Color {};
-        glm::vec2 TextureCoordinate {};
+        glm::vec3 TextureCoordinate {};
+        glm::vec4 Color {};
     };
 }// namespace RenderCore

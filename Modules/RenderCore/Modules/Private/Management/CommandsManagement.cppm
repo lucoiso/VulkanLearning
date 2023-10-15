@@ -27,7 +27,6 @@ import RenderCore.Utils.Constants;
 import RenderCore.Management.BufferManagement;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.PipelineManagement;
-import RenderCore.Types.UniformBufferObject;
 import RenderCore.Types.Vertex;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumConverter;
@@ -259,7 +258,8 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
     VkBuffer const& VertexBuffer                   = GetVertexBuffer(0U);
     VkBuffer const& IndexBuffer                    = GetIndexBuffer(0U);
     std::uint32_t const IndexCount                 = GetIndicesCount(0U);
-    UniformBufferObject const UniformBufferObj     = GetUniformBufferObject();
+
+    UpdateUniformBuffers();
 
     constexpr std::array<VkDeviceSize, 1U> Offsets {0U};
 
@@ -316,8 +316,6 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
 
         vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, static_cast<std::uint32_t>(ValidDescriptorSets.size()), ValidDescriptorSets.data(), 0U, nullptr);
     }
-
-    vkCmdPushConstants(MainCommandBuffer, PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0U, sizeof(UniformBufferObj), &UniformBufferObj);
 
     bool ActiveVertexBinding = false;
     if (VertexBuffer != VK_NULL_HANDLE)

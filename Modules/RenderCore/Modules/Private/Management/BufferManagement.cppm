@@ -32,9 +32,11 @@ import <filesystem>;
 import RenderCore.EngineCore;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.PipelineManagement;
+import RenderCore.Types.UniformBufferObject;
 import RenderCore.Types.DeviceProperties;
 import RenderCore.Types.Vertex;
 import RenderCore.Types.TextureData;
+import RenderCore.Types.ObjectData;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 
@@ -86,6 +88,7 @@ namespace Allocation
     {
         VkBuffer Buffer {VK_NULL_HANDLE};
         VmaAllocation Allocation {VK_NULL_HANDLE};
+        void* MappedData {nullptr};
 
         [[nodiscard]] bool IsValid() const
         {
@@ -96,9 +99,10 @@ namespace Allocation
         {
             if (Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
             {
-                if (Allocation->GetMappedData() != nullptr)
+                if (MappedData)
                 {
                     vmaUnmapMemory(GetAllocator(), Allocation);
+                    MappedData = nullptr;
                 }
 
                 vmaDestroyBuffer(GetAllocator(), Buffer, Allocation);
@@ -113,6 +117,7 @@ namespace Allocation
         ImageAllocation TextureImage {};
         BufferAllocation VertexBuffer {};
         BufferAllocation IndexBuffer {};
+        BufferAllocation UniformBuffer {};
         std::uint32_t IndicesCount {0U};
 
         [[nodiscard]] bool IsValid() const
@@ -125,6 +130,7 @@ namespace Allocation
             VertexBuffer.DestroyResources();
             IndexBuffer.DestroyResources();
             TextureImage.DestroyResources();
+            UniformBuffer.DestroyResources();
             IndicesCount = 0U;
         }
     };
@@ -192,8 +198,8 @@ void CreateVertexBuffer(Allocation::ObjectAllocation& Object, VkDeviceSize const
     constexpr VkBufferUsageFlags DestinationUsageFlags             = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = 0U;
 
-    VkBuffer StagingBuffer            = nullptr;
-    VmaAllocation StagingBufferMemory = nullptr;
+    VkBuffer StagingBuffer            = VK_NULL_HANDLE;
+    VmaAllocation StagingBufferMemory = VK_NULL_HANDLE;
     VmaAllocationInfo const
             StagingInfo
             = CreateBuffer(
@@ -226,8 +232,8 @@ void CreateIndexBuffer(Allocation::ObjectAllocation& Object, VkDeviceSize const&
     constexpr VkBufferUsageFlags DestinationUsageFlags             = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = 0U;
 
-    VkBuffer StagingBuffer            = nullptr;
-    VmaAllocation StagingBufferMemory = nullptr;
+    VkBuffer StagingBuffer            = VK_NULL_HANDLE;
+    VmaAllocation StagingBufferMemory = VK_NULL_HANDLE;
     VmaAllocationInfo const
             StagingInfo
             = CreateBuffer(
@@ -244,6 +250,20 @@ void CreateIndexBuffer(Allocation::ObjectAllocation& Object, VkDeviceSize const&
     CopyBuffer(StagingBuffer, Object.IndexBuffer.Buffer, AllocationSize, Queue, FamilyIndex);
 
     vmaDestroyBuffer(g_Allocator, StagingBuffer, StagingBufferMemory);
+}
+
+void CreateUniformBuffer(Allocation::ObjectAllocation& Object, VkDeviceSize const& AllocationSize)
+{
+    if (g_Allocator == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan memory allocator is invalid.");
+    }
+
+    constexpr VkBufferUsageFlags DestinationUsageFlags             = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+    CreateBuffer(AllocationSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.UniformBuffer.Buffer, Object.UniformBuffer.Allocation);
+    vmaMapMemory(g_Allocator, Object.UniformBuffer.Allocation, &Object.UniformBuffer.MappedData);
 }
 
 void CreateImage(VkFormat const& ImageFormat,
@@ -659,6 +679,14 @@ void CreateIndexBuffers(Allocation::ObjectAllocation& Object, std::vector<std::u
     CreateIndexBuffer(Object, BufferSize, Indices);
 }
 
+void CreateUniformBuffers(Allocation::ObjectAllocation& Object)
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan uniform buffers";
+
+    VkDeviceSize const BufferSize = sizeof(UniformBufferObject);
+    CreateUniformBuffer(Object, BufferSize);
+}
+
 std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::string_view const TexturePath)
 {
     Assimp::Importer Importer;
@@ -681,10 +709,14 @@ std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::stri
     std::vector<Vertex> Vertices;
     std::vector<std::uint32_t> Indices;
 
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading Meshes: '" << Scene->mNumMeshes << "'";
+
     std::span const AiMeshesSpan(Scene->mMeshes, Scene->mNumMeshes);
     for (std::vector const Meshes(AiMeshesSpan.begin(), AiMeshesSpan.end());
          aiMesh const* MeshIter: Meshes)
     {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading Vertices: '" << MeshIter->mNumVertices << "'";
+
         std::span const AiVerticesSpan(MeshIter->mVertices, MeshIter->mNumVertices);
         std::vector const VerticesContainer(AiVerticesSpan.begin(), AiVerticesSpan.end());
 
@@ -693,6 +725,7 @@ std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::stri
             aiVector3D const& Position   = *VerticesIter;
             aiVector3D TextureCoordinate = {};
             aiVector3D Normal            = {};
+            aiColor4D Color              = {1.F, 1.F, 1.F, 1.F};
 
             if (MeshIter->HasTextureCoords(0))
             {
@@ -704,12 +737,19 @@ std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::stri
                 Normal = MeshIter->mNormals[VerticesIter - VerticesContainer.begin()];
             }
 
+            if (MeshIter->HasVertexColors(0))
+            {
+                Color = MeshIter->mColors[0][VerticesIter - VerticesContainer.begin()];
+            }
+
             Vertices.push_back(Vertex {
                     .Position          = {Position.x, Position.y, Position.z},
                     .Normal            = {Normal.x, Normal.y, Normal.z},
-                    .Color             = {1.F, 1.F, 1.F},
-                    .TextureCoordinate = {TextureCoordinate.x, TextureCoordinate.y}});
+                    .TextureCoordinate = {TextureCoordinate.x, TextureCoordinate.y, TextureCoordinate.z},
+                    .Color             = {Color.r, Color.g, Color.b, Color.a}});
         }
+
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading Faces: '" << MeshIter->mNumFaces << "'";
 
         std::span const AiFacesSpan(MeshIter->mFaces, MeshIter->mNumFaces);
         for (std::vector const Faces(AiFacesSpan.begin(), AiFacesSpan.end());
@@ -734,6 +774,7 @@ std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::stri
 
     CreateVertexBuffers(NewObject, Vertices);
     CreateIndexBuffers(NewObject, Indices);
+    CreateUniformBuffers(NewObject);
     LoadTexture(NewObject, TexturePath);
 
     g_Objects.emplace(NewID, NewObject);
@@ -854,15 +895,52 @@ std::uint32_t RenderCore::GetIndicesCount(std::uint32_t const ObjectID)
     return g_Objects.at(ObjectID).IndicesCount;
 }
 
+void* RenderCore::GetUniformData(std::uint32_t const ObjectID)
+{
+    if (!g_Objects.contains(ObjectID))
+    {
+        return nullptr;
+    }
+
+    return g_Objects.at(ObjectID).UniformBuffer.MappedData;
+}
+
+bool RenderCore::ContainsObject(std::uint32_t const ID)
+{
+    return g_Objects.contains(ID);
+}
+
 std::vector<TextureData> RenderCore::GetAllocatedTextures()
 {
     std::vector<TextureData> Output;
-    for (auto const& [TextureImage, VertexBuffer, IndexBuffer, IndicesCount]: g_Objects | std::views::values)
+    for (auto const& [Key, Value]: g_Objects)
     {
         Output.push_back(
                 TextureData {
-                        .ImageView = TextureImage.View,
-                        .Sampler   = TextureImage.Sampler});
+                        .ObjectID  = Key,
+                        .ImageView = Value.TextureImage.View,
+                        .Sampler   = Value.TextureImage.Sampler});
     }
+
+    return Output;
+}
+
+std::vector<ObjectData> RenderCore::GetAllocatedObjects()
+{
+    std::vector<ObjectData> Output;
+    for (auto const& [Key, Value]: g_Objects)
+    {
+        if (!Value.UniformBuffer.Allocation)
+        {
+            continue;
+        }
+
+        Output.push_back(
+                ObjectData {
+                        .ObjectID          = Key,
+                        .UniformBuffer     = Value.UniformBuffer.Buffer,
+                        .UniformBufferData = Value.UniformBuffer.Allocation->GetMappedData()});
+    }
+
     return Output;
 }

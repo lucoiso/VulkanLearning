@@ -6,16 +6,16 @@ module;
 
 #include <volk.h>
 
-export module RenderCore.Types.TextureData;
+export module RenderCore.Types.ObjectData;
 
 import <cstdint>;
 
 namespace RenderCore
 {
-    export struct TextureData
+    export struct ObjectData
     {
         std::uint32_t const ObjectID {0U};
-        VkImageView ImageView {VK_NULL_HANDLE};
-        VkSampler Sampler {VK_NULL_HANDLE};
+        VkBuffer UniformBuffer {VK_NULL_HANDLE};
+        void* UniformBufferData {nullptr};
     };
 }// namespace RenderCore

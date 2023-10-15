@@ -25,7 +25,7 @@ namespace RenderCore
         {
         }
 
-        Vector(float const X, float Y, float Z)
+        Vector(float const X, float const Y, float const Z)
             : X(X), Y(Y), Z(Z)
         {
         }
@@ -40,8 +40,7 @@ namespace RenderCore
         {
         }
 
-        auto operator<=>(Vector const& Value) const = default;
-        Vector& operator=(Vector const& Value)      = default;
+        Vector& operator=(Vector const& Value) = default;
 
         Vector& operator=(glm::vec3 const& Value)
         {
@@ -229,7 +228,7 @@ namespace RenderCore
         {
         }
 
-        Rotator(float const Pitch, float Yaw, float Roll)
+        Rotator(float const Pitch, float const Yaw, float const Roll)
             : Pitch(Pitch), Yaw(Yaw), Roll(Roll)
         {
         }
@@ -244,8 +243,7 @@ namespace RenderCore
         {
         }
 
-        auto operator<=>(Rotator const& Value) const = default;
-        Rotator& operator=(Rotator const& Value)     = default;
+        Rotator& operator=(Rotator const& Value) = default;
 
         Rotator& operator=(glm::vec3 const& Value)
         {
@@ -414,9 +412,9 @@ namespace RenderCore
 
     export struct RENDERCOREMODULE_API Transform
     {
-        Vector Position {};
+        Vector Position {0.F};
         Vector Scale {1.F};
-        Rotator Rotation {};
+        Rotator Rotation {0.F};
 
         Transform() = default;
 
@@ -425,8 +423,14 @@ namespace RenderCore
         {
         }
 
-        auto operator<=>(Transform const& Value) const = default;
-        Transform& operator=(Transform const& Value)   = default;
+        Transform(glm::mat4 const& TransformMatrix)
+            : Position(Vector(TransformMatrix[3])),
+              Scale(Vector(glm::vec3(TransformMatrix[0][0], TransformMatrix[1][1], TransformMatrix[2][2]))),
+              Rotation(Rotator(glm::eulerAngles(glm::quat(TransformMatrix))))
+        {
+        }
+
+        Transform& operator=(Transform const& Value) = default;
 
         Transform& operator=(float const Value)
         {

@@ -38,6 +38,7 @@ import RenderCore.Utils.Helpers;
 import RenderCore.Utils.DebugHelpers;
 import RenderCore.Utils.EnumHelpers;
 import RenderCore.Types.DeviceProperties;
+import RenderCore.Types.Object;
 
 using namespace RenderCore;
 
@@ -51,6 +52,7 @@ enum class EngineCoreStateFlags : std::uint8_t
     PENDING_PIPELINE_REFRESH         = 1 << 4,
 };
 
+std::vector<Object> g_Objects {};
 VkInstance g_Instance {VK_NULL_HANDLE};
 VkSurfaceKHR g_Surface {VK_NULL_HANDLE};
 EngineCoreStateFlags g_StateFlags {EngineCoreStateFlags::NONE};
@@ -343,7 +345,7 @@ bool RenderCore::IsEngineInitialized()
     return HasFlag(g_StateFlags, EngineCoreStateFlags::INITIALIZED);
 }
 
-std::uint32_t RenderCore::LoadScene(std::string_view const ModelPath, std::string_view const TexturePath)
+std::uint32_t RenderCore::LoadModel(std::string_view const ModelPath, std::string_view const TexturePath)
 {
     if (!IsEngineInitialized())
     {
@@ -358,6 +360,7 @@ std::uint32_t RenderCore::LoadScene(std::string_view const ModelPath, std::strin
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading object...";
 
     std::uint32_t const OutputID = LoadObject(ModelPath, TexturePath);
+    g_Objects.emplace_back(OutputID, ModelPath);
 
     AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
     AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
@@ -365,7 +368,7 @@ std::uint32_t RenderCore::LoadScene(std::string_view const ModelPath, std::strin
     return OutputID;
 }
 
-void RenderCore::UnloadScene(std::uint32_t const ObjectID)
+void RenderCore::UnLoadModel(std::uint32_t const ObjectID)
 {
     if (!IsEngineInitialized())
     {
@@ -376,7 +379,16 @@ void RenderCore::UnloadScene(std::uint32_t const ObjectID)
 
     UnLoadObject(ObjectID);
 
+    std::erase_if(g_Objects, [ObjectID](Object const& ObjectIter) {
+        return ObjectIter.GetID() == ObjectID;
+    });
+
     AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+}
+
+std::vector<Object> const& RenderCore::GetObjects()
+{
+    return g_Objects;
 }
 
 VkSurfaceKHR& RenderCore::GetSurface()

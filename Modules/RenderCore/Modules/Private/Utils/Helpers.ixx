@@ -74,7 +74,7 @@ namespace RenderCore
     export void InitializeSingleCommandQueue(VkCommandPool&, VkCommandBuffer&, std::uint8_t);
     export void FinishSingleCommandQueue(VkQueue const&, VkCommandPool const&, VkCommandBuffer const&);
 
-    export struct UniformBufferObject GetUniformBufferObject();
+    export void UpdateUniformBuffers();
 
     export template<typename T>
     constexpr bool CheckVulkanResult(T&& InputOperation)

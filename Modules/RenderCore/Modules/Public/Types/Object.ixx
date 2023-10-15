@@ -7,32 +7,42 @@ module;
 #include "RenderCoreModule.h"
 
 #include <glm/ext.hpp>
+#include <utility>
 
 export module RenderCore.Types.Object;
-export import RenderCore.Types.Transform;
 
 import <cstdint>;
+import <string>;
+
+import RenderCore.Types.Transform;
 
 namespace RenderCore
 {
     export class RENDERCOREMODULE_API Object
     {
         std::uint32_t m_ID {};
+        std::string m_Path {};
         Transform m_Transform {};
 
     public:
-        Object()                         = delete;
-        Object(Object const&)            = delete;
-        Object& operator=(Object const&) = delete;
+        Object() = delete;
 
-        explicit Object(std::uint32_t const ID)
-            : m_ID(ID)
+        Object(Object const&)            = default;
+        Object& operator=(Object const&) = default;
+
+        Object(std::uint32_t const ID, std::string_view const Path)
+            : m_ID(ID), m_Path(Path)
         {
         }
 
         [[nodiscard]] std::uint32_t GetID() const
         {
             return m_ID;
+        }
+
+        [[nodiscard]] std::string const& GetPath() const
+        {
+            return m_Path;
         }
 
         virtual ~Object() = default;

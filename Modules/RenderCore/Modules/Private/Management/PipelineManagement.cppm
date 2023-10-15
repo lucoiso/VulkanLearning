@@ -20,6 +20,7 @@ import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Types.DeviceProperties;
 import RenderCore.Types.TextureData;
+import RenderCore.Types.ObjectData;
 
 using namespace RenderCore;
 
@@ -175,20 +176,10 @@ void RenderCore::CreateGraphicsPipeline()
             .dynamicStateCount = static_cast<uint32_t>(g_DynamicStates.size()),
             .pDynamicStates    = g_DynamicStates.data()};
 
-    constexpr std::uint8_t ImGuiPushConstantSize = sizeof(float) * 4U;
-
-    constexpr std::array PushConstantRanges {
-            VkPushConstantRange {
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-                    .offset     = 0U,
-                    .size       = sizeof(UniformBufferObject) + ImGuiPushConstantSize}};
-
     VkPipelineLayoutCreateInfo const PipelineLayoutCreateInfo {
-            .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount         = static_cast<std::uint32_t>(g_DescriptorSetLayouts.size()),
-            .pSetLayouts            = g_DescriptorSetLayouts.data(),
-            .pushConstantRangeCount = static_cast<std::uint32_t>(PushConstantRanges.size()),
-            .pPushConstantRanges    = PushConstantRanges.data()};
+            .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .setLayoutCount = static_cast<std::uint32_t>(g_DescriptorSetLayouts.size()),
+            .pSetLayouts    = g_DescriptorSetLayouts.data()};
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
@@ -290,6 +281,7 @@ void RenderCore::CreateDescriptorSets()
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
     auto const AllocatedTextures        = GetAllocatedTextures();
+    auto const AllocatedObjects         = GetAllocatedObjects();
 
     g_DescriptorSets.resize(g_DescriptorSetLayouts.size());
 
@@ -303,17 +295,41 @@ void RenderCore::CreateDescriptorSets()
 
     // ObjectAllocation Bindings
     {
+        std::vector<VkDescriptorBufferInfo> UniformBuffers {};
+        for (auto ObjectIter = AllocatedObjects.begin(); ObjectIter != AllocatedObjects.end(); ++ObjectIter)
+        {
+            UniformBuffers.push_back(
+                    VkDescriptorBufferInfo {
+                            .buffer = ObjectIter->UniformBuffer,
+                            .offset = 0U,
+                            .range  = sizeof(UniformBufferObject)});
+        }
+
         std::vector<VkDescriptorImageInfo> ImageInfos {};
-        for (TextureData const& TextureDataIter: AllocatedTextures)
+        for (auto TextureDataIter = AllocatedTextures.begin(); TextureDataIter != AllocatedTextures.end(); ++TextureDataIter)
         {
             ImageInfos.push_back(
                     VkDescriptorImageInfo {
-                            .sampler     = TextureDataIter.Sampler,
-                            .imageView   = TextureDataIter.ImageView,
+                            .sampler     = TextureDataIter->Sampler,
+                            .imageView   = TextureDataIter->ImageView,
                             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
         }
 
         std::vector<VkWriteDescriptorSet> WriteDescriptors {};
+        for (auto UniformBufferIterator = UniformBuffers.begin(); UniformBufferIterator != UniformBuffers.end(); ++UniformBufferIterator)
+        {
+            WriteDescriptors.push_back(
+                    VkWriteDescriptorSet {
+                            .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                            .dstSet           = g_DescriptorSets.at(0U),
+                            .dstBinding       = 0U,
+                            .dstArrayElement  = 0U,
+                            .descriptorCount  = 1U,
+                            .descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                            .pImageInfo       = nullptr,
+                            .pBufferInfo      = &(*UniformBufferIterator),
+                            .pTexelBufferView = nullptr});
+        }
 
         for (auto ImageInfoIterator = ImageInfos.begin(); ImageInfoIterator != ImageInfos.end(); ++ImageInfoIterator)
         {

@@ -31,5 +31,8 @@ namespace RenderCore
     export [[nodiscard]] VkBuffer GetVertexBuffer(std::uint32_t);
     export [[nodiscard]] VkBuffer GetIndexBuffer(std::uint32_t);
     export [[nodiscard]] std::uint32_t GetIndicesCount(std::uint32_t);
+    export [[nodiscard]] void* GetUniformData(std::uint32_t);
+    export [[nodiscard]] bool ContainsObject(std::uint32_t);
     export [[nodiscard]] std::vector<struct TextureData> GetAllocatedTextures();
+    export [[nodiscard]] std::vector<struct ObjectData> GetAllocatedObjects();
 }// namespace RenderCore
