@@ -79,6 +79,12 @@
 #pragma warning(disable : 4127)// condition expression is constant
 #endif
 
+// ~ Begin of Custom Constants:
+#include <algorithm>
+#include <cstdint>
+constexpr std::uint64_t g_IMGUI_ImageBufferMemoryAllocationSize = 262144U;
+// ~ End of Custom Constants:
+
 // Reusable buffers used for rendering 1 current in-flight frame, for ImGui_ImplVulkan_RenderDrawData()
 // [Please zero-clear before use!]
 struct ImGui_ImplVulkanH_FrameRenderBuffers
@@ -387,7 +393,7 @@ static void CreateOrResizeBuffer(VkBuffer& buffer, VkDeviceMemory& buffer_memory
     bd->BufferMemoryAlignment       = (bd->BufferMemoryAlignment > req.alignment) ? bd->BufferMemoryAlignment : req.alignment;
     VkMemoryAllocateInfo alloc_info = {};
     alloc_info.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    alloc_info.allocationSize       = req.size;
+    alloc_info.allocationSize       = std::clamp(req.size, g_IMGUI_ImageBufferMemoryAllocationSize, UINT64_MAX);
     alloc_info.memoryTypeIndex      = ImGui_ImplVulkan_MemoryType(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, req.memoryTypeBits);
     err                             = vkAllocateMemory(v->Device, &alloc_info, v->Allocator, &buffer_memory);
     check_vk_result(err);
@@ -630,7 +636,7 @@ bool ImGui_ImplVulkan_CreateFontsTexture(VkCommandBuffer command_buffer)
         vkGetImageMemoryRequirements(v->Device, bd->FontImage, &req);
         VkMemoryAllocateInfo alloc_info = {};
         alloc_info.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        alloc_info.allocationSize       = req.size;
+        alloc_info.allocationSize       = std::clamp(req.size, g_IMGUI_ImageBufferMemoryAllocationSize, UINT64_MAX);
         alloc_info.memoryTypeIndex      = ImGui_ImplVulkan_MemoryType(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, req.memoryTypeBits);
         err                             = vkAllocateMemory(v->Device, &alloc_info, v->Allocator, &bd->FontMemory);
         check_vk_result(err);
@@ -669,7 +675,7 @@ bool ImGui_ImplVulkan_CreateFontsTexture(VkCommandBuffer command_buffer)
         bd->BufferMemoryAlignment       = (bd->BufferMemoryAlignment > req.alignment) ? bd->BufferMemoryAlignment : req.alignment;
         VkMemoryAllocateInfo alloc_info = {};
         alloc_info.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        alloc_info.allocationSize       = req.size;
+        alloc_info.allocationSize       = std::clamp(req.size, g_IMGUI_ImageBufferMemoryAllocationSize, UINT64_MAX);
         alloc_info.memoryTypeIndex      = ImGui_ImplVulkan_MemoryType(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, req.memoryTypeBits);
         err                             = vkAllocateMemory(v->Device, &alloc_info, v->Allocator, &bd->UploadBufferMemory);
         check_vk_result(err);

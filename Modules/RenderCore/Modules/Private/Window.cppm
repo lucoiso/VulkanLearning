@@ -18,6 +18,8 @@ import <queue>;
 import <string_view>;
 import <stdexcept>;
 import <unordered_map>;
+import <mutex>;
+import <future>;
 
 import Timer.Manager;
 import RenderCore.EngineCore;
@@ -34,7 +36,6 @@ using namespace RenderCore;
 
 GLFWwindow* g_Window {nullptr};
 std::unique_ptr<Timer::Manager> g_RenderTimerManager {std::make_unique<Timer::Manager>()};
-bool g_ActiveRender {false};
 
 bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title)
 {
@@ -88,11 +89,6 @@ Window::~Window()
     {
         Shutdown();
 
-        while (g_RenderTimerManager)
-        {
-            /* Wait */
-        }
-
         glfwDestroyWindow(g_Window);
         glfwTerminate();
     }
@@ -112,7 +108,6 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
     {
         if (InitializeGLFW(Width, Height, Title) && InitializeEngineCore())
         {
-            g_ActiveRender = true;
             g_RenderTimerManager->SetTimer(
                     0U,
                     [this]() {
@@ -139,7 +134,17 @@ void Window::Shutdown()
         return;
     }
 
-    g_ActiveRender = false;
+    g_RenderTimerManager->ClearTimers();
+    std::future<void> const Task = std::async(std::launch::deferred, [] {
+        g_RenderTimerManager->SetTimer(
+                0U,
+                []() {
+                    ShutdownEngine();
+                });
+    });
+
+    Task.wait();
+    g_RenderTimerManager->SetActive(false);
 }
 
 bool Window::IsInitialized()
@@ -222,9 +227,9 @@ void Window::CreateOverlay()
 
 void Window::RequestRender()
 {
-    std::lock_guard<std::mutex> Lock(m_RenderMutex);
+    std::lock_guard<std::mutex> Lock(g_CriticalEventMutex);
 
-    if (g_ActiveRender)
+    if (IsOpen())
     {
         static double DeltaTime = glfwGetTime();
         DeltaTime               = glfwGetTime() - DeltaTime;
@@ -242,10 +247,5 @@ void Window::RequestRender()
                 [this]() {
                     RequestRender();
                 });
-    }
-    else
-    {
-        g_RenderTimerManager.reset();
-        ShutdownEngine();
     }
 }

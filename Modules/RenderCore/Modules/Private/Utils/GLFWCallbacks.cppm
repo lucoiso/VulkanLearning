@@ -11,7 +11,10 @@ module;
 
 module RenderCore.Utils.GLFWCallbacks;
 
+import <mutex>;
+
 import RenderCore.EngineCore;
+import RenderCore.Utils.Helpers;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Types.Camera;
 import RenderCore.Utils.Constants;
@@ -23,7 +26,8 @@ bool g_CanMovementCamera = false;
 
 void RenderCore::GLFWWindowCloseRequested(GLFWwindow* const Window)
 {
-    ShutdownEngine();
+    std::lock_guard<std::mutex> Lock(g_CriticalEventMutex);
+
     glfwSetWindowShouldClose(Window, GLFW_TRUE);
 }
 

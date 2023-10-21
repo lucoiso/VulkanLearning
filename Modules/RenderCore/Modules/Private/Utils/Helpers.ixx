@@ -16,9 +16,12 @@ import <concepts>;
 import <cstdint>;
 import <string>;
 import <span>;
+import <mutex>;
 
 namespace RenderCore
 {
+    export std::mutex g_CriticalEventMutex;
+
     export std::vector<char const*> GetGLFWExtensions();
     export VkExtent2D GetWindowExtent(GLFWwindow*, VkSurfaceCapabilitiesKHR const&);
     export std::vector<VkLayerProperties> GetAvailableInstanceLayers();
