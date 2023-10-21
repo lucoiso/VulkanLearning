@@ -21,6 +21,7 @@ namespace RenderCore
     export class RENDERCOREMODULE_API Object
     {
         std::uint32_t m_ID {};
+        std::string m_Name {};
         std::string m_Path {};
         Transform m_Transform {};
 
@@ -33,6 +34,7 @@ namespace RenderCore
         Object(std::uint32_t const ID, std::string_view const Path)
             : m_ID(ID), m_Path(Path)
         {
+            m_Name = m_Path.substr(m_Path.find_last_of('/') + 1, m_Path.find_last_of('.') - m_Path.find_last_of('/') - 1);
         }
 
         [[nodiscard]] std::uint32_t GetID() const
@@ -40,9 +42,14 @@ namespace RenderCore
             return m_ID;
         }
 
-        [[nodiscard]] std::string const& GetPath() const
+        [[nodiscard]] std::string_view GetPath() const
         {
             return m_Path;
+        }
+
+        [[nodiscard]] std::string_view GetName() const
+        {
+            return m_Name;
         }
 
         virtual ~Object() = default;

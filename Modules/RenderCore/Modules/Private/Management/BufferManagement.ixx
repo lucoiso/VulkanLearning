@@ -10,6 +10,7 @@ export module RenderCore.Management.BufferManagement;
 
 import <string_view>;
 import <vector>;
+import <list>;
 
 namespace RenderCore
 {
@@ -18,8 +19,8 @@ namespace RenderCore
     export void CreateFrameBuffers();
     export void CreateDepthResources();
 
-    export std::uint32_t LoadObject(std::string_view, std::string_view);
-    export void UnLoadObject(std::uint32_t);
+    export std::list<std::uint32_t> AllocateScene(std::string_view, std::string_view);
+    export void ReleaseScene(std::list<std::uint32_t> const&);
 
     export void DestroyBufferResources(bool);
     export void ReleaseBufferResources();
@@ -33,6 +34,6 @@ namespace RenderCore
     export [[nodiscard]] std::uint32_t GetIndicesCount(std::uint32_t);
     export [[nodiscard]] void* GetUniformData(std::uint32_t);
     export [[nodiscard]] bool ContainsObject(std::uint32_t);
-    export [[nodiscard]] std::vector<struct TextureData> GetAllocatedTextures();
-    export [[nodiscard]] std::vector<struct ObjectData> GetAllocatedObjects();
+    export [[nodiscard]] std::list<struct TextureData> GetAllocatedTextures();
+    export [[nodiscard]] std::list<struct ObjectData> GetAllocatedObjects();
 }// namespace RenderCore

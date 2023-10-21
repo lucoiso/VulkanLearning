@@ -423,7 +423,7 @@ namespace RenderCore
         {
         }
 
-        Transform(glm::mat4 const& TransformMatrix)
+        explicit Transform(glm::mat4 const& TransformMatrix)
             : Position(Vector(TransformMatrix[3])),
               Scale(Vector(glm::vec3(TransformMatrix[0][0], TransformMatrix[1][1], TransformMatrix[2][2]))),
               Rotation(Rotator(glm::eulerAngles(glm::quat(TransformMatrix))))

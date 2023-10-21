@@ -5,15 +5,33 @@
 module RenderCore.Utils.RenderUtils;
 
 import RenderCore.EngineCore;
+import RenderCore.Types.Object;
 
 using namespace RenderCore;
 
-std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::string_view const ModelTexture)
+std::list<std::uint32_t> RenderCore::LoadObject(std::string_view const ObjectPath, std::string_view const ModelTexture)
 {
-    return LoadModel(ModelPath, ModelTexture);
+    return LoadScene(ObjectPath, ModelTexture);
 }
 
-void RenderCore::UnloadObject(std::uint32_t ObjectID)
+void RenderCore::UnloadObject(std::list<std::uint32_t> const& ObjectIDs)
 {
-    UnLoadModel(ObjectID);
+    UnloadScene(ObjectIDs);
+}
+
+std::list<std::uint32_t> RenderCore::GetLoadedIDs()
+{
+    std::list<std::uint32_t> IDs {};
+
+    for (auto const& Object: GetObjects())
+    {
+        IDs.push_back(Object.GetID());
+    }
+
+    return IDs;
+}
+
+std::vector<Object> RenderCore::GetLoadedObjects()
+{
+    return GetObjects();
 }

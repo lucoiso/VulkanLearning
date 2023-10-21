@@ -16,6 +16,7 @@ module RenderCore.Management.CommandsManagement;
 import <limits>;
 import <optional>;
 import <vector>;
+import <list>;
 import <array>;
 import <cstdint>;
 import <optional>;
@@ -70,7 +71,7 @@ void AllocateCommandBuffer()
             .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .commandPool        = g_CommandPool,
             .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = static_cast<std::uint32_t>(g_CommandBuffers.size())};
+            .commandBufferCount = static_cast<std::uint32_t>(std::size(g_CommandBuffers))};
 
     CheckVulkanResult(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, g_CommandBuffers.data()));
 }
@@ -90,7 +91,7 @@ void WaitAndResetFences()
 
 void FreeCommandBuffers()
 {
-    vkFreeCommandBuffers(volkGetLoadedDevice(), g_CommandPool, static_cast<std::uint32_t>(g_CommandBuffers.size()), g_CommandBuffers.data());
+    vkFreeCommandBuffers(volkGetLoadedDevice(), g_CommandPool, static_cast<std::uint32_t>(std::size(g_CommandBuffers)), g_CommandBuffers.data());
 
     for (VkCommandBuffer& CommandBufferIter: g_CommandBuffers)
     {
@@ -291,7 +292,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
                                 0,
                                 0},
                          .extent = Extent},
-                .clearValueCount = static_cast<std::uint32_t>(g_ClearValues.size()),
+                .clearValueCount = static_cast<std::uint32_t>(std::size(g_ClearValues)),
                 .pClearValues    = g_ClearValues.data()};
 
         vkCmdBeginRenderPass(MainCommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -314,7 +315,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
             }
         }
 
-        vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, static_cast<std::uint32_t>(ValidDescriptorSets.size()), ValidDescriptorSets.data(), 0U, nullptr);
+        vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, static_cast<std::uint32_t>(std::size(ValidDescriptorSets)), ValidDescriptorSets.data(), 0U, nullptr);
     }
 
     bool ActiveVertexBinding = false;
@@ -364,7 +365,7 @@ void RenderCore::SubmitCommandBuffers()
             .waitSemaphoreCount   = 1U,
             .pWaitSemaphores      = &g_ImageAvailableSemaphore,
             .pWaitDstStageMask    = WaitStages.data(),
-            .commandBufferCount   = static_cast<std::uint32_t>(g_CommandBuffers.size()),
+            .commandBufferCount   = static_cast<std::uint32_t>(std::size(g_CommandBuffers)),
             .pCommandBuffers      = g_CommandBuffers.data(),
             .signalSemaphoreCount = 1U,
             .pSignalSemaphores    = &g_RenderFinishedSemaphore};

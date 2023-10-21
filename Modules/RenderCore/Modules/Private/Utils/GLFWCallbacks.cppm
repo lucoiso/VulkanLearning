@@ -41,7 +41,7 @@ void RenderCore::GLFWErrorCallback(std::int32_t const Error, char const* const D
     BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: GLFW Error: " << Error << " - " << Description;
 }
 
-void RenderCore::GLFWKeyCallback(GLFWwindow* const Window, std::int32_t const Key, [[maybe_unused]] std::int32_t const Scancode, std::int32_t const Action, [[maybe_unused]] std::int32_t const Mods)
+void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow* const Window, std::int32_t const Key, [[maybe_unused]] std::int32_t const Scancode, std::int32_t const Action, [[maybe_unused]] std::int32_t const Mods)
 {
     Camera& Camera                                = GetViewportCamera();
     CameraMovementStateFlags CurrentMovementState = Camera.GetCameraMovementStateFlags();

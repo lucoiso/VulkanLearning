@@ -9,6 +9,7 @@ module;
 
 export module RenderCore.Management.ShaderManagement;
 
+import <list>;
 import <vector>;
 import <string_view>;
 
@@ -20,7 +21,7 @@ namespace RenderCore
     export [[nodiscard]] VkShaderModule CreateModule(VkDevice const&, std::vector<uint32_t> const&, EShLanguage);
 
     export [[nodiscard]] VkPipelineShaderStageCreateInfo GetStageInfo(VkShaderModule const& Module);
-    export [[nodiscard]] std::vector<VkShaderModule> GetShaderModules();
+    export [[nodiscard]] std::list<VkShaderModule> GetShaderModules();
     export [[nodiscard]] std::vector<VkPipelineShaderStageCreateInfo> GetStageInfos();
 
     export void ReleaseShaderResources();

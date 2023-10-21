@@ -60,7 +60,7 @@ VkValidationFeaturesEXT RenderCore::GetInstanceValidationFeatures()
 
     constexpr VkValidationFeaturesEXT InstanceValidationFeatures {
             .sType                         = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
-            .enabledValidationFeatureCount = static_cast<uint32_t>(g_EnabledInstanceValidationFeatures.size()),
+            .enabledValidationFeatureCount = static_cast<uint32_t>(std::size(g_EnabledInstanceValidationFeatures)),
             .pEnabledValidationFeatures    = g_EnabledInstanceValidationFeatures.data()};
 
     return InstanceValidationFeatures;

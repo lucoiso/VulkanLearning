@@ -91,7 +91,7 @@ void RenderCore::CreateRenderPass()
 
     VkRenderPassCreateInfo const RenderPassCreateInfo {
             .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-            .attachmentCount = static_cast<std::uint32_t>(AttachmentDescriptions.size()),
+            .attachmentCount = static_cast<std::uint32_t>(std::size(AttachmentDescriptions)),
             .pAttachments    = AttachmentDescriptions.data(),
             .subpassCount    = 1U,
             .pSubpasses      = &SubpassDescription,
@@ -110,9 +110,9 @@ void RenderCore::CreateGraphicsPipeline()
 
     VkPipelineVertexInputStateCreateInfo const VertexInputState {
             .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            .vertexBindingDescriptionCount   = static_cast<std::uint32_t>(BindingDescription.size()),
+            .vertexBindingDescriptionCount   = static_cast<std::uint32_t>(std::size(BindingDescription)),
             .pVertexBindingDescriptions      = BindingDescription.data(),
-            .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(AttributeDescriptions.size()),
+            .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(std::size(AttributeDescriptions)),
             .pVertexAttributeDescriptions    = AttributeDescriptions.data()};
 
     constexpr VkPipelineInputAssemblyStateCreateInfo InputAssemblyState {
@@ -173,12 +173,12 @@ void RenderCore::CreateGraphicsPipeline()
 
     constexpr VkPipelineDynamicStateCreateInfo DynamicState {
             .sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-            .dynamicStateCount = static_cast<uint32_t>(g_DynamicStates.size()),
+            .dynamicStateCount = static_cast<uint32_t>(std::size(g_DynamicStates)),
             .pDynamicStates    = g_DynamicStates.data()};
 
     VkPipelineLayoutCreateInfo const PipelineLayoutCreateInfo {
             .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = static_cast<std::uint32_t>(g_DescriptorSetLayouts.size()),
+            .setLayoutCount = static_cast<std::uint32_t>(std::size(g_DescriptorSetLayouts)),
             .pSetLayouts    = g_DescriptorSetLayouts.data()};
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
@@ -206,7 +206,7 @@ void RenderCore::CreateGraphicsPipeline()
 
     VkGraphicsPipelineCreateInfo const GraphicsPipelineCreateInfo {
             .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-            .stageCount          = static_cast<std::uint32_t>(ShaderStages.size()),
+            .stageCount          = static_cast<std::uint32_t>(std::size(ShaderStages)),
             .pStages             = ShaderStages.data(),
             .pVertexInputState   = &VertexInputState,
             .pInputAssemblyState = &InputAssemblyState,
@@ -247,7 +247,7 @@ void RenderCore::CreateDescriptorSetLayout()
 
         VkDescriptorSetLayoutCreateInfo const DescriptorSetLayoutInfo {
                 .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-                .bindingCount = static_cast<std::uint32_t>(LayoutBindings.size()),
+                .bindingCount = static_cast<std::uint32_t>(std::size(LayoutBindings)),
                 .pBindings    = LayoutBindings.data()};
 
         CheckVulkanResult(vkCreateDescriptorSetLayout(volkGetLoadedDevice(), &DescriptorSetLayoutInfo, nullptr, &g_DescriptorSetLayouts.at(0U)));
@@ -268,8 +268,8 @@ void RenderCore::CreateDescriptorPool()
 
     VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .maxSets       = static_cast<std::uint32_t>(g_DescriptorSetLayouts.size()),
-            .poolSizeCount = static_cast<std::uint32_t>(DescriptorPoolSizes.size()),
+            .maxSets       = static_cast<std::uint32_t>(std::size(g_DescriptorSetLayouts)),
+            .poolSizeCount = static_cast<std::uint32_t>(std::size(DescriptorPoolSizes)),
             .pPoolSizes    = DescriptorPoolSizes.data()};
 
     CheckVulkanResult(vkCreateDescriptorPool(volkGetLoadedDevice(), &DescriptorPoolCreateInfo, nullptr, &g_DescriptorPool));
@@ -283,12 +283,12 @@ void RenderCore::CreateDescriptorSets()
     auto const AllocatedTextures        = GetAllocatedTextures();
     auto const AllocatedObjects         = GetAllocatedObjects();
 
-    g_DescriptorSets.resize(g_DescriptorSetLayouts.size());
+    g_DescriptorSets.resize(std::size(g_DescriptorSetLayouts));
 
     VkDescriptorSetAllocateInfo const DescriptorSetAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .descriptorPool     = g_DescriptorPool,
-            .descriptorSetCount = static_cast<std::uint32_t>(g_DescriptorSets.size()),
+            .descriptorSetCount = static_cast<std::uint32_t>(std::size(g_DescriptorSets)),
             .pSetLayouts        = g_DescriptorSetLayouts.data()};
 
     CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, g_DescriptorSets.data()));
@@ -296,7 +296,7 @@ void RenderCore::CreateDescriptorSets()
     // ObjectAllocation Bindings
     {
         std::vector<VkDescriptorBufferInfo> UniformBuffers {};
-        for (auto ObjectIter = AllocatedObjects.begin(); ObjectIter != AllocatedObjects.end(); ++ObjectIter)
+        for (auto ObjectIter = std::cbegin(AllocatedObjects); ObjectIter != std::cend(AllocatedObjects); ++ObjectIter)
         {
             UniformBuffers.push_back(
                     VkDescriptorBufferInfo {
@@ -306,7 +306,7 @@ void RenderCore::CreateDescriptorSets()
         }
 
         std::vector<VkDescriptorImageInfo> ImageInfos {};
-        for (auto TextureDataIter = AllocatedTextures.begin(); TextureDataIter != AllocatedTextures.end(); ++TextureDataIter)
+        for (auto TextureDataIter = std::cbegin(AllocatedTextures); TextureDataIter != std::cend(AllocatedTextures); ++TextureDataIter)
         {
             ImageInfos.push_back(
                     VkDescriptorImageInfo {
@@ -316,7 +316,7 @@ void RenderCore::CreateDescriptorSets()
         }
 
         std::vector<VkWriteDescriptorSet> WriteDescriptors {};
-        for (auto UniformBufferIterator = UniformBuffers.begin(); UniformBufferIterator != UniformBuffers.end(); ++UniformBufferIterator)
+        for (auto UniformBufferIterator = std::cbegin(UniformBuffers); UniformBufferIterator != std::cend(UniformBuffers); ++UniformBufferIterator)
         {
             WriteDescriptors.push_back(
                     VkWriteDescriptorSet {
@@ -331,7 +331,7 @@ void RenderCore::CreateDescriptorSets()
                             .pTexelBufferView = nullptr});
         }
 
-        for (auto ImageInfoIterator = ImageInfos.begin(); ImageInfoIterator != ImageInfos.end(); ++ImageInfoIterator)
+        for (auto ImageInfoIterator = std::cbegin(ImageInfos); ImageInfoIterator != std::cend(ImageInfos); ++ImageInfoIterator)
         {
             WriteDescriptors.push_back(
                     VkWriteDescriptorSet {
@@ -346,7 +346,7 @@ void RenderCore::CreateDescriptorSets()
                             .pTexelBufferView = nullptr});
         }
 
-        vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(WriteDescriptors.size()), WriteDescriptors.data(), 0U, nullptr);
+        vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(std::size(WriteDescriptors)), WriteDescriptors.data(), 0U, nullptr);
     }
 }
 

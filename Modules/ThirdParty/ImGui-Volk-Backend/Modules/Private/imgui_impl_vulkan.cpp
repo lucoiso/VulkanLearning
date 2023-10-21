@@ -72,7 +72,6 @@
 #include "imgui.h"
 #ifndef IMGUI_DISABLE
 #include "imgui_impl_vulkan.h"
-#include <stdio.h>
 
 // Visual Studio warnings
 #ifdef _MSC_VER
@@ -109,28 +108,28 @@ struct ImGui_ImplVulkanH_WindowRenderBuffers
 // Vulkan data
 struct ImGui_ImplVulkan_Data
 {
-    ImGui_ImplVulkan_InitInfo VulkanInitInfo;
-    VkRenderPass RenderPass;
-    VkDeviceSize BufferMemoryAlignment;
-    VkPipelineCreateFlags PipelineCreateFlags;
-    VkDescriptorSetLayout DescriptorSetLayout;
-    VkPipelineLayout PipelineLayout;
-    VkPipeline Pipeline;
-    uint32_t Subpass;
-    VkShaderModule ShaderModuleVert;
-    VkShaderModule ShaderModuleFrag;
+    ImGui_ImplVulkan_InitInfo VulkanInitInfo {};
+    VkRenderPass RenderPass {};
+    VkDeviceSize BufferMemoryAlignment {};
+    VkPipelineCreateFlags PipelineCreateFlags {};
+    VkDescriptorSetLayout DescriptorSetLayout {};
+    VkPipelineLayout PipelineLayout {};
+    VkPipeline Pipeline {};
+    uint32_t Subpass {};
+    VkShaderModule ShaderModuleVert {};
+    VkShaderModule ShaderModuleFrag {};
 
     // Font data
-    VkSampler FontSampler;
-    VkDeviceMemory FontMemory;
-    VkImage FontImage;
-    VkImageView FontView;
-    VkDescriptorSet FontDescriptorSet;
-    VkDeviceMemory UploadBufferMemory;
-    VkBuffer UploadBuffer;
+    VkSampler FontSampler {};
+    VkDeviceMemory FontMemory {};
+    VkImage FontImage {};
+    VkImageView FontView {};
+    VkDescriptorSet FontDescriptorSet {};
+    VkDeviceMemory UploadBufferMemory {};
+    VkBuffer UploadBuffer {};
 
     // Render buffers for main window
-    ImGui_ImplVulkanH_WindowRenderBuffers MainWindowRenderBuffers;
+    ImGui_ImplVulkanH_WindowRenderBuffers MainWindowRenderBuffers {};
 
     ImGui_ImplVulkan_Data()
     {
@@ -253,7 +252,7 @@ void main()
     gl_Position = vec4(aPos * pc.uScale + pc.uTranslate, 0, 1);
 }
 */
-static uint32_t __glsl_shader_vert_spv[] = {
+static uint32_t glsl_shader_vert_spv[] = {
         0x07230203, 0x00010000, 0x00080001, 0x0000002e, 0x00000000, 0x00020011, 0x00000001, 0x0006000b,
         0x00000001, 0x4c534c47, 0x6474732e, 0x3035342e, 0x00000000, 0x0003000e, 0x00000000, 0x00000001,
         0x000a000f, 0x00000000, 0x00000004, 0x6e69616d, 0x00000000, 0x0000000b, 0x0000000f, 0x00000015,
@@ -308,7 +307,7 @@ void main()
     fColor = In.Color * texture(sTexture, In.UV.st);
 }
 */
-static uint32_t __glsl_shader_frag_spv[] = {
+static uint32_t glsl_shader_frag_spv[] = {
         0x07230203, 0x00010000, 0x00080001, 0x0000001e, 0x00000000, 0x00020011, 0x00000001, 0x0006000b,
         0x00000001, 0x4c534c47, 0x6474732e, 0x3035342e, 0x00000000, 0x0003000e, 0x00000000, 0x00000001,
         0x0007000f, 0x00000004, 0x00000004, 0x6e69616d, 0x00000000, 0x00000009, 0x0000000d, 0x00030010,
@@ -418,7 +417,7 @@ static void ImGui_ImplVulkan_SetupRenderState(ImDrawData* draw_data, VkPipeline 
         VkBuffer vertex_buffers[1]    = {rb->VertexBuffer};
         VkDeviceSize vertex_offset[1] = {0};
         vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offset);
-        vkCmdBindIndexBuffer(command_buffer, rb->IndexBuffer, 0, sizeof(ImDrawIdx) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(command_buffer, rb->IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
     }
 
     // Setup viewport:
@@ -553,13 +552,13 @@ void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer comm
                 {
                     clip_min.y = 0.0f;
                 }
-                if (clip_max.x > fb_width)
+                if (clip_max.x > static_cast<float>(fb_width))
                 {
-                    clip_max.x = (float)fb_width;
+                    clip_max.x = static_cast<float>(fb_width);
                 }
-                if (clip_max.y > fb_height)
+                if (clip_max.y > static_cast<float>(fb_height))
                 {
-                    clip_max.y = (float)fb_height;
+                    clip_max.y = static_cast<float>(fb_height);
                 }
                 if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
                     continue;
@@ -574,16 +573,10 @@ void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer comm
 
                 // Bind DescriptorSet with font or user texture
                 VkDescriptorSet desc_set[1] = {(VkDescriptorSet)pcmd->TextureId};
-                if (sizeof(ImTextureID) < sizeof(ImU64))
-                {
-                    // We don't support texture switches if ImTextureID hasn't been redefined to be 64-bit. Do a flaky check that other textures haven't been used.
-                    IM_ASSERT(pcmd->TextureId == (ImTextureID)bd->FontDescriptorSet);
-                    desc_set[0] = bd->FontDescriptorSet;
-                }
                 vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, bd->PipelineLayout, 0, 1, desc_set, 0, nullptr);
 
                 // Draw
-                vkCmdDrawIndexed(command_buffer, pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset, 0);
+                vkCmdDrawIndexed(command_buffer, pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset, static_cast<int>(pcmd->VtxOffset) + global_vtx_offset, 0);
             }
         }
         global_idx_offset += cmd_list->IdxBuffer.Size;
@@ -750,8 +743,8 @@ static void ImGui_ImplVulkan_CreateShaderModules(VkDevice device, const VkAlloca
     {
         VkShaderModuleCreateInfo vert_info = {};
         vert_info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        vert_info.codeSize                 = sizeof(__glsl_shader_vert_spv);
-        vert_info.pCode                    = (uint32_t*)__glsl_shader_vert_spv;
+        vert_info.codeSize                 = sizeof(glsl_shader_vert_spv);
+        vert_info.pCode                    = (uint32_t*)glsl_shader_vert_spv;
         VkResult err                       = vkCreateShaderModule(device, &vert_info, allocator, &bd->ShaderModuleVert);
         check_vk_result(err);
     }
@@ -759,8 +752,8 @@ static void ImGui_ImplVulkan_CreateShaderModules(VkDevice device, const VkAlloca
     {
         VkShaderModuleCreateInfo frag_info = {};
         frag_info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        frag_info.codeSize                 = sizeof(__glsl_shader_frag_spv);
-        frag_info.pCode                    = (uint32_t*)__glsl_shader_frag_spv;
+        frag_info.codeSize                 = sizeof(glsl_shader_frag_spv);
+        frag_info.pCode                    = (uint32_t*)glsl_shader_frag_spv;
         VkResult err                       = vkCreateShaderModule(device, &frag_info, allocator, &bd->ShaderModuleFrag);
         check_vk_result(err);
     }
@@ -1023,7 +1016,7 @@ bool ImGui_ImplVulkan_LoadFunctions(PFN_vkVoidFunction (*loader_func)(const char
 #ifdef VK_NO_PROTOTYPES
 #define IMGUI_VULKAN_FUNC_LOAD(func)                                        \
     func = reinterpret_cast<decltype(func)>(loader_func(#func, user_data)); \
-    if (func == nullptr)                                                    \
+    if ((func) == nullptr)                                                  \
         return false;
     IMGUI_VULKAN_FUNC_MAP(IMGUI_VULKAN_FUNC_LOAD)
 #undef IMGUI_VULKAN_FUNC_LOAD
@@ -1064,7 +1057,7 @@ bool ImGui_ImplVulkan_Init(ImGui_ImplVulkan_InitInfo* info, VkRenderPass render_
     IM_ASSERT(io.BackendRendererUserData == nullptr && "Already initialized a renderer backend!");
 
     // Setup backend capabilities flags
-    ImGui_ImplVulkan_Data* bd  = IM_NEW(ImGui_ImplVulkan_Data)();
+    auto* bd                   = IM_NEW(ImGui_ImplVulkan_Data)();
     io.BackendRendererUserData = (void*)bd;
     io.BackendRendererName     = "imgui_impl_vulkan";
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;// We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
@@ -1076,7 +1069,7 @@ bool ImGui_ImplVulkan_Init(ImGui_ImplVulkan_InitInfo* info, VkRenderPass render_
     IM_ASSERT(info->DescriptorPool != VK_NULL_HANDLE);
     IM_ASSERT(info->MinImageCount >= 2);
     IM_ASSERT(info->ImageCount >= info->MinImageCount);
-    if (info->UseDynamicRendering == false)
+    if (!info->UseDynamicRendering)
         IM_ASSERT(render_pass != VK_NULL_HANDLE);
 
     bd->VulkanInitInfo = *info;
@@ -1218,8 +1211,8 @@ VkSurfaceFormatKHR ImGui_ImplVulkanH_SelectSurfaceFormat(VkPhysicalDevice physic
         // Request several formats, the first found will be used
         for (int request_i = 0; request_i < request_formats_count; request_i++)
             for (uint32_t avail_i = 0; avail_i < avail_count; avail_i++)
-                if (avail_format[avail_i].format == request_formats[request_i] && avail_format[avail_i].colorSpace == request_color_space)
-                    return avail_format[avail_i];
+                if (avail_format[static_cast<int>(avail_i)].format == request_formats[request_i] && avail_format[static_cast<int>(avail_i)].colorSpace == request_color_space)
+                    return avail_format[static_cast<int>(avail_i)];
 
         // If none of the requested image formats could be found, use the first available
         return avail_format[0];
@@ -1243,7 +1236,7 @@ VkPresentModeKHR ImGui_ImplVulkanH_SelectPresentMode(VkPhysicalDevice physical_d
 
     for (int request_i = 0; request_i < request_modes_count; request_i++)
         for (uint32_t avail_i = 0; avail_i < avail_count; avail_i++)
-            if (request_modes[request_i] == avail_modes[avail_i])
+            if (request_modes[request_i] == avail_modes[static_cast<int>(avail_i)])
                 return request_modes[request_i];
 
     return VK_PRESENT_MODE_FIFO_KHR;// Always available
@@ -1369,8 +1362,8 @@ void ImGui_ImplVulkanH_CreateWindowSwapChain(VkPhysicalDevice physical_device, V
         }
         else
         {
-            info.imageExtent.width = wd->Width = cap.currentExtent.width;
-            info.imageExtent.height = wd->Height = cap.currentExtent.height;
+            info.imageExtent.width = wd->Width = static_cast<int>(cap.currentExtent.width);
+            info.imageExtent.height = wd->Height = static_cast<int>(cap.currentExtent.height);
         }
         err = vkCreateSwapchainKHR(device, &info, allocator, &wd->Swapchain);
         check_vk_result(err);
@@ -1457,7 +1450,7 @@ void ImGui_ImplVulkanH_CreateWindowSwapChain(VkPhysicalDevice physical_device, V
     }
 
     // Create Framebuffer
-    if (wd->UseDynamicRendering == false)
+    if (!wd->UseDynamicRendering)
     {
         VkImageView attachment[1];
         VkFramebufferCreateInfo info = {};

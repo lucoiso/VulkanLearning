@@ -4,7 +4,6 @@
 
 module;
 
-#include <GLFW/glfw3.h>
 #include <glm/ext.hpp>
 
 export module RenderCore.Types.Camera;
@@ -50,7 +49,7 @@ namespace RenderCore
 
         [[nodiscard]] CameraMovementStateFlags GetCameraMovementStateFlags();
         void SetCameraMovementStateFlags(CameraMovementStateFlags);
-        void UpdateCameraMovement(GLFWwindow*, float);
+        void UpdateCameraMovement(float);
     };
 
     export [[nodiscard]] Camera& GetViewportCamera();

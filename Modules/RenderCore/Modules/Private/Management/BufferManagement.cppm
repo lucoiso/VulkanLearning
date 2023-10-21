@@ -570,7 +570,7 @@ void RenderCore::CreateSwapChain()
     DeviceProperties const& Properties = GetDeviceProperties();
 
     std::vector<std::uint32_t> const QueueFamilyIndices = GetUniqueQueueFamilyIndicesU32();
-    auto const QueueFamilyIndicesCount                  = static_cast<std::uint32_t>(QueueFamilyIndices.size());
+    auto const QueueFamilyIndicesCount                  = static_cast<std::uint32_t>(std::size(QueueFamilyIndices));
 
     g_OldSwapChain    = g_SwapChain;
     g_SwapChainExtent = Properties.Extent;
@@ -624,8 +624,8 @@ void RenderCore::CreateFrameBuffers()
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
-    g_FrameBuffers.resize(g_SwapChainImages.size(), VK_NULL_HANDLE);
-    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(g_FrameBuffers.size()); ++Iterator)
+    g_FrameBuffers.resize(std::size(g_SwapChainImages), VK_NULL_HANDLE);
+    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(g_FrameBuffers)); ++Iterator)
     {
         std::array const Attachments {
                 g_SwapChainImages.at(Iterator).View,
@@ -634,7 +634,7 @@ void RenderCore::CreateFrameBuffers()
         VkFramebufferCreateInfo const FrameBufferCreateInfo {
                 .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .renderPass      = GetRenderPass(),
-                .attachmentCount = static_cast<std::uint32_t>(Attachments.size()),
+                .attachmentCount = static_cast<std::uint32_t>(std::size(Attachments)),
                 .pAttachments    = Attachments.data(),
                 .width           = g_SwapChainExtent.width,
                 .height          = g_SwapChainExtent.height,
@@ -667,7 +667,7 @@ void CreateVertexBuffers(Allocation::ObjectAllocation& Object, std::vector<Verte
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan vertex buffers";
 
-    VkDeviceSize const BufferSize = Vertices.size() * sizeof(Vertex);
+    VkDeviceSize const BufferSize = std::size(Vertices) * sizeof(Vertex);
     CreateVertexBuffer(Object, BufferSize, Vertices);
 }
 
@@ -675,7 +675,7 @@ void CreateIndexBuffers(Allocation::ObjectAllocation& Object, std::vector<std::u
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
 
-    VkDeviceSize const BufferSize = Indices.size() * sizeof(std::uint32_t);
+    VkDeviceSize const BufferSize = std::size(Indices) * sizeof(std::uint32_t);
     CreateIndexBuffer(Object, BufferSize, Indices);
 }
 
@@ -687,7 +687,7 @@ void CreateUniformBuffers(Allocation::ObjectAllocation& Object)
     CreateUniformBuffer(Object, BufferSize);
 }
 
-std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::string_view const TexturePath)
+std::list<std::uint32_t> RenderCore::AllocateScene(std::string_view const ModelPath, std::string_view const TexturePath)
 {
     Assimp::Importer Importer;
     aiScene const* const Scene = Importer.ReadFile(ModelPath.data(), (aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_FlipUVs));
@@ -704,23 +704,30 @@ std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::stri
         g_ObjectIDCounter = 0U;
     }
 
-    std::uint32_t const NewID = g_ObjectIDCounter.fetch_add(1U);
+    struct InternalObjectData
+    {
+        std::uint32_t ID {};
+        std::vector<Vertex> Vertices {};
+        std::vector<std::uint32_t> Indices {};
+    };
 
-    std::vector<Vertex> Vertices;
-    std::vector<std::uint32_t> Indices;
+    std::list<InternalObjectData> LoadedMeshes(Scene->mNumMeshes);
+    auto LoadedMeshIterator = std::begin(LoadedMeshes);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading Meshes: '" << Scene->mNumMeshes << "'";
 
     std::span const AiMeshesSpan(Scene->mMeshes, Scene->mNumMeshes);
-    for (std::vector const Meshes(AiMeshesSpan.begin(), AiMeshesSpan.end());
+    for (std::vector const Meshes(std::cbegin(AiMeshesSpan), std::cend(AiMeshesSpan));
          aiMesh const* MeshIter: Meshes)
     {
+        *LoadedMeshIterator = {.ID = g_ObjectIDCounter.fetch_add(1U)};
+
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading Vertices: '" << MeshIter->mNumVertices << "'";
 
         std::span const AiVerticesSpan(MeshIter->mVertices, MeshIter->mNumVertices);
-        std::vector const VerticesContainer(AiVerticesSpan.begin(), AiVerticesSpan.end());
+        std::vector const VerticesContainer(std::cbegin(AiVerticesSpan), std::cend(AiVerticesSpan));
 
-        for (auto VerticesIter = VerticesContainer.begin(); VerticesIter != VerticesContainer.end(); ++VerticesIter)
+        for (auto VerticesIter = std::cbegin(VerticesContainer); VerticesIter != std::cend(VerticesContainer); ++VerticesIter)
         {
             aiVector3D const& Position   = *VerticesIter;
             aiVector3D TextureCoordinate = {};
@@ -729,20 +736,20 @@ std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::stri
 
             if (MeshIter->HasTextureCoords(0))
             {
-                TextureCoordinate = MeshIter->mTextureCoords[0][VerticesIter - VerticesContainer.begin()];
+                TextureCoordinate = MeshIter->mTextureCoords[0][VerticesIter - std::cbegin(VerticesContainer)];
             }
 
             if (MeshIter->HasNormals())
             {
-                Normal = MeshIter->mNormals[VerticesIter - VerticesContainer.begin()];
+                Normal = MeshIter->mNormals[VerticesIter - std::cbegin(VerticesContainer)];
             }
 
             if (MeshIter->HasVertexColors(0))
             {
-                Color = MeshIter->mColors[0][VerticesIter - VerticesContainer.begin()];
+                Color = MeshIter->mColors[0][VerticesIter - std::cbegin(VerticesContainer)];
             }
 
-            Vertices.push_back(Vertex {
+            LoadedMeshIterator->Vertices.push_back(Vertex {
                     .Position          = {Position.x, Position.y, Position.z},
                     .Normal            = {Normal.x, Normal.y, Normal.z},
                     .TextureCoordinate = {TextureCoordinate.x, TextureCoordinate.y, TextureCoordinate.z},
@@ -752,7 +759,7 @@ std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::stri
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading Faces: '" << MeshIter->mNumFaces << "'";
 
         std::span const AiFacesSpan(MeshIter->mFaces, MeshIter->mNumFaces);
-        for (std::vector const Faces(AiFacesSpan.begin(), AiFacesSpan.end());
+        for (std::vector const Faces(std::cbegin(AiFacesSpan), std::cend(AiFacesSpan));
              aiFace const& Face: Faces)
         {
             if (Face.mNumIndices != 3U)
@@ -761,36 +768,49 @@ std::uint32_t RenderCore::LoadObject(std::string_view const ModelPath, std::stri
             }
 
             std::span const AiIndicesSpan(Face.mIndices, Face.mNumIndices);
-            for (std::vector const AiIndices(AiIndicesSpan.begin(), AiIndicesSpan.end());
+            for (std::vector const AiIndices(std::cbegin(AiIndicesSpan), std::cend(AiIndicesSpan));
                  std::uint32_t const IndiceIter: AiIndices)
             {
-                Indices.push_back(IndiceIter);
+                LoadedMeshIterator->Indices.push_back(IndiceIter);
             }
         }
+
+        ++LoadedMeshIterator;
     }
 
-    Allocation::ObjectAllocation NewObject {
-            .IndicesCount = static_cast<std::uint32_t>(Indices.size())};
+    std::list<std::uint32_t> Output(std::size(LoadedMeshes));
+    auto OutputIterator = Output.begin();
+    for (auto& [ID, Vertices, Indices]: LoadedMeshes)
+    {
+        Allocation::ObjectAllocation NewObject {
+                .IndicesCount = static_cast<std::uint32_t>(std::size(Indices))};
 
-    CreateVertexBuffers(NewObject, Vertices);
-    CreateIndexBuffers(NewObject, Indices);
-    CreateUniformBuffers(NewObject);
-    LoadTexture(NewObject, TexturePath);
+        CreateVertexBuffers(NewObject, Vertices);
+        CreateIndexBuffers(NewObject, Indices);
+        CreateUniformBuffers(NewObject);
+        LoadTexture(NewObject, TexturePath);
 
-    g_Objects.emplace(NewID, NewObject);
+        g_Objects.emplace(ID, NewObject);
 
-    return NewID;
+        *OutputIterator = ID;
+        ++OutputIterator;
+    }
+
+    return Output;
 }
 
-void RenderCore::UnLoadObject(std::uint32_t const ObjectID)
+void RenderCore::ReleaseScene(std::list<std::uint32_t> const& ObjectIDs)
 {
-    if (!g_Objects.contains(ObjectID))
+    for (std::uint32_t const ObjectIDIter: ObjectIDs)
     {
-        return;
-    }
+        if (!g_Objects.contains(ObjectIDIter))
+        {
+            return;
+        }
 
-    g_Objects.at(ObjectID).DestroyResources();
-    g_Objects.erase(ObjectID);
+        g_Objects.at(ObjectIDIter).DestroyResources();
+        g_Objects.erase(ObjectIDIter);
+    }
 }
 
 void RenderCore::ReleaseBufferResources()
@@ -910,9 +930,9 @@ bool RenderCore::ContainsObject(std::uint32_t const ID)
     return g_Objects.contains(ID);
 }
 
-std::vector<TextureData> RenderCore::GetAllocatedTextures()
+std::list<TextureData> RenderCore::GetAllocatedTextures()
 {
-    std::vector<TextureData> Output;
+    std::list<TextureData> Output;
     for (auto const& [Key, Value]: g_Objects)
     {
         Output.push_back(
@@ -925,9 +945,9 @@ std::vector<TextureData> RenderCore::GetAllocatedTextures()
     return Output;
 }
 
-std::vector<ObjectData> RenderCore::GetAllocatedObjects()
+std::list<ObjectData> RenderCore::GetAllocatedObjects()
 {
-    std::vector<ObjectData> Output;
+    std::list<ObjectData> Output;
     for (auto const& [Key, Value]: g_Objects)
     {
         if (!Value.UniformBuffer.Allocation)

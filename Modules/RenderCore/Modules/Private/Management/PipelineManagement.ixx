@@ -9,7 +9,6 @@ module;
 export module RenderCore.Management.PipelineManagement;
 
 import <vector>;
-import <array>;
 
 namespace RenderCore
 {

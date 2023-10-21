@@ -138,25 +138,25 @@ void CreateVulkanInstance()
             .pApplicationInfo  = &AppInfo,
             .enabledLayerCount = 0U};
 
-    std::vector Layers(g_RequiredInstanceLayers.begin(), g_RequiredInstanceLayers.end());
+    std::vector Layers(std::cbegin(g_RequiredInstanceLayers), std::cend(g_RequiredInstanceLayers));
     std::vector<char const*> Extensions = GetGLFWExtensions();
-    Extensions.insert(Extensions.end(), g_RequiredInstanceExtensions.begin(), g_RequiredInstanceExtensions.end());
+    Extensions.insert(std::cend(Extensions), std::cbegin(g_RequiredInstanceExtensions), std::cend(g_RequiredInstanceExtensions));
 
 #ifdef _DEBUG
     VkValidationFeaturesEXT const ValidationFeatures = GetInstanceValidationFeatures();
     CreateInfo.pNext                                 = &ValidationFeatures;
 
-    Layers.insert(Layers.end(), g_DebugInstanceLayers.begin(), g_DebugInstanceLayers.end());
-    Extensions.insert(Extensions.end(), g_DebugInstanceExtensions.begin(), g_DebugInstanceExtensions.end());
+    Layers.insert(std::cend(Layers), std::cbegin(g_DebugInstanceLayers), std::cend(g_DebugInstanceLayers));
+    Extensions.insert(std::cend(Extensions), std::cbegin(g_DebugInstanceExtensions), std::cend(g_DebugInstanceExtensions));
 
     VkDebugUtilsMessengerCreateInfoEXT CreateDebugInfo {};
     PopulateDebugInfo(CreateDebugInfo, nullptr);
 #endif
 
-    CreateInfo.enabledLayerCount   = static_cast<std::uint32_t>(Layers.size());
+    CreateInfo.enabledLayerCount   = static_cast<std::uint32_t>(std::size(Layers));
     CreateInfo.ppEnabledLayerNames = Layers.data();
 
-    CreateInfo.enabledExtensionCount   = static_cast<std::uint32_t>(Extensions.size());
+    CreateInfo.enabledExtensionCount   = static_cast<std::uint32_t>(std::size(Extensions));
     CreateInfo.ppEnabledExtensionNames = Extensions.data();
 
     CheckVulkanResult(vkCreateInstance(&CreateInfo, nullptr, &g_Instance));
@@ -345,43 +345,49 @@ bool RenderCore::IsEngineInitialized()
     return HasFlag(g_StateFlags, EngineCoreStateFlags::INITIALIZED);
 }
 
-std::uint32_t RenderCore::LoadModel(std::string_view const ModelPath, std::string_view const TexturePath)
+std::list<std::uint32_t> RenderCore::LoadScene(std::string_view const ObjectPath, std::string_view const TexturePath)
 {
     if (!IsEngineInitialized())
     {
-        return 0U;
+        return {};
     }
 
-    if (!std::filesystem::exists(ModelPath))
+    if (!std::filesystem::exists(ObjectPath))
     {
-        throw std::runtime_error("Model path is invalid");
+        throw std::runtime_error("Object path is invalid");
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading object...";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
 
-    std::uint32_t const OutputID = LoadObject(ModelPath, TexturePath);
-    g_Objects.emplace_back(OutputID, ModelPath);
+    std::list<std::uint32_t> const LoadedObjects = AllocateScene(ObjectPath, TexturePath);
+    for (std::uint32_t const ObjectIDITer: LoadedObjects)
+    {
+        g_Objects.emplace_back(ObjectIDITer, ObjectPath);
+    }
 
     AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
     AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
 
-    return OutputID;
+    return LoadedObjects;
 }
 
-void RenderCore::UnLoadModel(std::uint32_t const ObjectID)
+void RenderCore::UnloadScene(std::list<std::uint32_t> const& ObjectIDs)
 {
     if (!IsEngineInitialized())
     {
         return;
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading object...";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading scene...";
 
-    UnLoadObject(ObjectID);
+    ReleaseScene(ObjectIDs);
 
-    std::erase_if(g_Objects, [ObjectID](Object const& ObjectIter) {
-        return ObjectIter.GetID() == ObjectID;
-    });
+    for (std::uint32_t const ObjectID: ObjectIDs)
+    {
+        std::erase_if(g_Objects, [ObjectID](Object const& ObjectIter) {
+            return ObjectIter.GetID() == ObjectID;
+        });
+    }
 
     AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
 }

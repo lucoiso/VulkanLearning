@@ -48,7 +48,7 @@ std::vector<char const*> RenderCore::GetGLFWExtensions()
     char const** const GLFWExtensions = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
 
     std::span const GLFWExtensionsSpan(GLFWExtensions, GLFWExtensionsCount);
-    std::vector Output(GLFWExtensionsSpan.begin(), GLFWExtensionsSpan.end());
+    std::vector Output(std::cbegin(GLFWExtensionsSpan), std::cend(GLFWExtensionsSpan));
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found extensions:";
 
@@ -185,7 +185,7 @@ std::array<VkVertexInputAttributeDescription, 4U> RenderCore::GetAttributeDescri
 std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::string_view const LayerName)
 {
     if (std::vector<std::string> const AvailableLayers = GetAvailableInstanceLayersNames();
-        std::ranges::find(AvailableLayers, LayerName) == AvailableLayers.end())
+        std::ranges::find(AvailableLayers, LayerName) == std::cend(AvailableLayers))
     {
         return {};
     }

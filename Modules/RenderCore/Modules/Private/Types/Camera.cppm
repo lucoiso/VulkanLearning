@@ -4,7 +4,6 @@
 
 module;
 
-#include <GLFW/glfw3.h>
 #include <glm/ext.hpp>
 
 module RenderCore.Types.Camera;
@@ -69,7 +68,7 @@ void RenderCore::Camera::SetCameraMovementStateFlags(CameraMovementStateFlags co
     m_CameraMovementStateFlags = State;
 }
 
-void RenderCore::Camera::UpdateCameraMovement(GLFWwindow* const Window, float const DeltaTime)
+void RenderCore::Camera::UpdateCameraMovement(float const DeltaTime)
 {
     float const CameraSpeed {GetSpeed()};
     Vector const CameraFront {m_CameraRotation.GetFront()};

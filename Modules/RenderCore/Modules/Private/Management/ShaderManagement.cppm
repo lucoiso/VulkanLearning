@@ -234,7 +234,7 @@ bool RenderCore::Compile(std::string_view const Source, std::vector<uint32_t>& O
             throw std::runtime_error("Failed to open SPIRV file: " + SPIRVPath);
         }
 
-        SPIRVFile << std::string(reinterpret_cast<char const*>(OutSPIRVCode.data()), OutSPIRVCode.size() * sizeof(uint32_t));
+        SPIRVFile << std::string(reinterpret_cast<char const*>(OutSPIRVCode.data()), std::size(OutSPIRVCode) * sizeof(std::uint32_t));
         SPIRVFile.close();
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compiled, generated SPIR-V shader file: " << SPIRVPath;
@@ -303,7 +303,7 @@ VkShaderModule RenderCore::CreateModule(VkDevice const& Device, std::vector<std:
 
     VkShaderModuleCreateInfo const CreateInfo {
             .sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-            .codeSize = SPIRVCode.size() * sizeof(std::uint32_t),
+            .codeSize = std::size(SPIRVCode) * sizeof(std::uint32_t),
             .pCode    = SPIRVCode.data()};
 
     VkShaderModule Output = nullptr;
@@ -319,9 +319,9 @@ VkPipelineShaderStageCreateInfo RenderCore::GetStageInfo(VkShaderModule const& M
     return g_StageInfos.at(Module);
 }
 
-std::vector<VkShaderModule> RenderCore::GetShaderModules()
+std::list<VkShaderModule> RenderCore::GetShaderModules()
 {
-    std::vector<VkShaderModule> Output;
+    std::list<VkShaderModule> Output;
     for (auto const& ShaderModule: g_StageInfos | std::views::keys)
     {
         Output.push_back(ShaderModule);

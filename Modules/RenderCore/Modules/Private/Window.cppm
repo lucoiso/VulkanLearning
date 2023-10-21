@@ -111,7 +111,7 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
             g_RenderTimerManager->SetTimer(
                     0U,
                     [this]() {
-                        [[maybe_unused]] auto const _ = LoadModel(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+                        [[maybe_unused]] auto const _ = LoadObject(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
                         RequestRender();
                     });
 
@@ -203,16 +203,14 @@ void Window::CreateOverlay()
 
             if (ImGui::Button("Load Model"))
             {
-                static std::uint32_t s_ModelId {0U};
-
                 try
                 {
-                    UnloadObject(s_ModelId);
+                    UnloadObject(GetLoadedIDs());
 
                     std::string const ModelPathInternal   = s_ModelPath.substr(0, s_ModelPath.find('\0'));
                     std::string const TexturePathInternal = s_TexturePath.substr(0, s_TexturePath.find('\0'));
 
-                    s_ModelId = LoadObject(ModelPathInternal, TexturePathInternal);
+                    [[maybe_unused]] auto const _ = LoadObject(ModelPathInternal, TexturePathInternal);
                 }
                 catch (std::exception const& Ex)
                 {
@@ -234,7 +232,7 @@ void Window::RequestRender()
         static double DeltaTime = glfwGetTime();
         DeltaTime               = glfwGetTime() - DeltaTime;
 
-        GetViewportCamera().UpdateCameraMovement(g_Window, static_cast<float>(DeltaTime));
+        GetViewportCamera().UpdateCameraMovement(static_cast<float>(DeltaTime));
 
         DrawImGuiFrame([this]() {
             CreateOverlay();

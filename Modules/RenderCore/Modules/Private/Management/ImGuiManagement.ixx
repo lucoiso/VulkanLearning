@@ -5,7 +5,6 @@
 module;
 
 #include <GLFW/glfw3.h>
-#include <volk.h>
 
 export module RenderCore.Management.ImGuiManagement;
 

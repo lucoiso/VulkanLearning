@@ -5,10 +5,15 @@
 export module RenderCore.Utils.RenderUtils;
 
 import <cstdint>;
+import <vector>;
+import <list>;
 import <string_view>;
 
 export namespace RenderCore
 {
-    [[nodiscard]] std::uint32_t LoadObject(std::string_view ModelPath, std::string_view ModelTexture);
-    void UnloadObject(std::uint32_t ObjectID);
+    [[nodiscard]] std::list<std::uint32_t> LoadObject(std::string_view ObjectPath, std::string_view ModelTexture);
+    void UnloadObject(std::list<std::uint32_t> const& ObjectID);
+
+    [[nodiscard]] std::list<std::uint32_t> GetLoadedIDs();
+    [[nodiscard]] std::vector<class Object> GetLoadedObjects();
 }// namespace RenderCore
