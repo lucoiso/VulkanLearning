@@ -689,7 +689,7 @@ void CreateUniformBuffers(Allocation::ObjectAllocation& Object)
 std::list<std::uint32_t> RenderCore::AllocateScene(std::string_view const ModelPath, std::string_view const TexturePath)
 {
     Assimp::Importer Importer;
-    aiScene const* const Scene = Importer.ReadFile(ModelPath.data(), (aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_FlipUVs));
+    aiScene const* const Scene = Importer.ReadFile(ModelPath.data(), (aiProcessPreset_TargetRealtime_Fast | aiProcess_FlipUVs));
 
     if (Scene == nullptr || (Scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) != 0U || Scene->mRootNode == nullptr)
     {
@@ -715,66 +715,77 @@ std::list<std::uint32_t> RenderCore::AllocateScene(std::string_view const ModelP
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading Meshes: '" << Scene->mNumMeshes << "'";
 
+    std::vector<std::jthread> WorkerThreads;
+    WorkerThreads.reserve(Scene->mNumMeshes);
+
     std::span const AiMeshesSpan(Scene->mMeshes, Scene->mNumMeshes);
     for (std::vector const Meshes(std::cbegin(AiMeshesSpan), std::cend(AiMeshesSpan));
          aiMesh const* MeshIter: Meshes)
     {
         *LoadedMeshIterator = {.ID = g_ObjectIDCounter.fetch_add(1U)};
 
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading Vertices: '" << MeshIter->mNumVertices << "'";
+        auto WorkerThread = std::jthread([MeshIter, LoadedMeshIterator, __func_name_internal__ = __func__]() {
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func_name_internal__ << "]: Loading Vertices: '" << MeshIter->mNumVertices << "'";
 
-        std::span const AiVerticesSpan(MeshIter->mVertices, MeshIter->mNumVertices);
-        std::vector const VerticesContainer(std::cbegin(AiVerticesSpan), std::cend(AiVerticesSpan));
+            std::span const AiVerticesSpan(MeshIter->mVertices, MeshIter->mNumVertices);
+            std::vector const VerticesContainer(std::cbegin(AiVerticesSpan), std::cend(AiVerticesSpan));
 
-        for (auto VerticesIter = std::cbegin(VerticesContainer); VerticesIter != std::cend(VerticesContainer); ++VerticesIter)
-        {
-            aiVector3D const& Position   = *VerticesIter;
-            aiVector3D TextureCoordinate = {};
-            aiVector3D Normal            = {};
-            aiColor4D Color              = {1.F, 1.F, 1.F, 1.F};
-
-            if (MeshIter->HasTextureCoords(0))
+            for (auto VerticesIter = std::cbegin(VerticesContainer); VerticesIter != std::cend(VerticesContainer); ++VerticesIter)
             {
-                TextureCoordinate = MeshIter->mTextureCoords[0][VerticesIter - std::cbegin(VerticesContainer)];
+                aiVector3D const& Position   = *VerticesIter;
+                aiVector3D TextureCoordinate = {};
+                aiVector3D Normal            = {};
+                aiColor4D Color              = {1.F, 1.F, 1.F, 1.F};
+
+                if (MeshIter->HasTextureCoords(0))
+                {
+                    TextureCoordinate = MeshIter->mTextureCoords[0][VerticesIter - std::cbegin(VerticesContainer)];
+                }
+
+                if (MeshIter->HasNormals())
+                {
+                    Normal = MeshIter->mNormals[VerticesIter - std::cbegin(VerticesContainer)];
+                }
+
+                if (MeshIter->HasVertexColors(0))
+                {
+                    Color = MeshIter->mColors[0][VerticesIter - std::cbegin(VerticesContainer)];
+                }
+
+                LoadedMeshIterator->Vertices.push_back(Vertex {
+                        .Position          = {Position.x, Position.y, Position.z},
+                        .Normal            = {Normal.x, Normal.y, Normal.z},
+                        .TextureCoordinate = {TextureCoordinate.x, TextureCoordinate.y, TextureCoordinate.z},
+                        .Color             = {Color.r, Color.g, Color.b, Color.a}});
             }
 
-            if (MeshIter->HasNormals())
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func_name_internal__ << "]: Loading Faces: '" << MeshIter->mNumFaces << "'";
+
+            std::span const AiFacesSpan(MeshIter->mFaces, MeshIter->mNumFaces);
+            for (std::vector const Faces(std::cbegin(AiFacesSpan), std::cend(AiFacesSpan));
+                 aiFace const& Face: Faces)
             {
-                Normal = MeshIter->mNormals[VerticesIter - std::cbegin(VerticesContainer)];
+                if (Face.mNumIndices != 3U)
+                {
+                    continue;
+                }
+
+                std::span const AiIndicesSpan(Face.mIndices, Face.mNumIndices);
+                for (std::vector const AiIndices(std::cbegin(AiIndicesSpan), std::cend(AiIndicesSpan));
+                     std::uint32_t const IndiceIter: AiIndices)
+                {
+                    LoadedMeshIterator->Indices.push_back(IndiceIter);
+                }
             }
+        });
 
-            if (MeshIter->HasVertexColors(0))
-            {
-                Color = MeshIter->mColors[0][VerticesIter - std::cbegin(VerticesContainer)];
-            }
-
-            LoadedMeshIterator->Vertices.push_back(Vertex {
-                    .Position          = {Position.x, Position.y, Position.z},
-                    .Normal            = {Normal.x, Normal.y, Normal.z},
-                    .TextureCoordinate = {TextureCoordinate.x, TextureCoordinate.y, TextureCoordinate.z},
-                    .Color             = {Color.r, Color.g, Color.b, Color.a}});
-        }
-
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading Faces: '" << MeshIter->mNumFaces << "'";
-
-        std::span const AiFacesSpan(MeshIter->mFaces, MeshIter->mNumFaces);
-        for (std::vector const Faces(std::cbegin(AiFacesSpan), std::cend(AiFacesSpan));
-             aiFace const& Face: Faces)
-        {
-            if (Face.mNumIndices != 3U)
-            {
-                continue;
-            }
-
-            std::span const AiIndicesSpan(Face.mIndices, Face.mNumIndices);
-            for (std::vector const AiIndices(std::cbegin(AiIndicesSpan), std::cend(AiIndicesSpan));
-                 std::uint32_t const IndiceIter: AiIndices)
-            {
-                LoadedMeshIterator->Indices.push_back(IndiceIter);
-            }
-        }
-
+        WorkerThreads.emplace_back(std::move(WorkerThread));
         ++LoadedMeshIterator;
+    }
+
+    for (auto& WorkerThreadIter: WorkerThreads)
+    {
+        WorkerThreadIter.join();
     }
 
     std::list<std::uint32_t> Output(std::size(LoadedMeshes));
