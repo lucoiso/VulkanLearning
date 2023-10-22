@@ -8,9 +8,14 @@ module;
 
 export module RenderCore.Management.BufferManagement;
 
-import <string_view>;
-import <vector>;
-import <list>;
+export import <string_view>;
+export import <cstdint>;
+export import <list>;
+export import <vector>;
+
+export import RenderCore.Types.ObjectData;
+export import RenderCore.Types.TextureData;
+export import RenderCore.Types.UniformBufferObject;
 
 namespace RenderCore
 {
@@ -34,6 +39,8 @@ namespace RenderCore
     export [[nodiscard]] std::uint32_t GetIndicesCount(std::uint32_t);
     export [[nodiscard]] void* GetUniformData(std::uint32_t);
     export [[nodiscard]] bool ContainsObject(std::uint32_t);
-    export [[nodiscard]] std::list<struct TextureData> GetAllocatedTextures();
-    export [[nodiscard]] std::list<struct ObjectData> GetAllocatedObjects();
+    export [[nodiscard]] std::list<TextureData> GetAllocatedTextures();
+    export [[nodiscard]] std::list<ObjectData> GetAllocatedObjects();
+
+    export void UpdateUniformBuffers();
 }// namespace RenderCore

@@ -8,8 +8,6 @@ module;
 
 export module RenderCore.Types.Vertex;
 
-import <array>;
-
 namespace RenderCore
 {
     export struct Vertex

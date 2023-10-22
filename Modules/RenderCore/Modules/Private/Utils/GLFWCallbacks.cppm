@@ -11,13 +11,9 @@ module;
 
 module RenderCore.Utils.GLFWCallbacks;
 
-import <mutex>;
-
-import RenderCore.EngineCore;
-import RenderCore.Utils.Helpers;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Types.Camera;
-import RenderCore.Utils.Constants;
+import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
 
 using namespace RenderCore;
@@ -51,23 +47,23 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow* const Window, std:
         switch (Key)
         {
             case GLFW_KEY_W:
-                CurrentMovementState |= CameraMovementStateFlags::FORWARD;
+                AddFlags(CurrentMovementState, CameraMovementStateFlags::FORWARD);
                 break;
             case GLFW_KEY_S:
-                CurrentMovementState |= CameraMovementStateFlags::BACKWARD;
+                AddFlags(CurrentMovementState, CameraMovementStateFlags::BACKWARD);
                 break;
             case GLFW_KEY_A:
-                CurrentMovementState |= CameraMovementStateFlags::LEFT;
+                AddFlags(CurrentMovementState, CameraMovementStateFlags::LEFT);
                 break;
             case GLFW_KEY_D:
-                CurrentMovementState |= CameraMovementStateFlags::RIGHT;
+                AddFlags(CurrentMovementState, CameraMovementStateFlags::RIGHT);
                 break;
             case GLFW_KEY_Q:
-                CurrentMovementState |= CameraMovementStateFlags::DOWN;
+                AddFlags(CurrentMovementState, CameraMovementStateFlags::DOWN);
                 break;
             case GLFW_KEY_E:
             case GLFW_KEY_SPACE:
-                CurrentMovementState |= CameraMovementStateFlags::UP;
+                AddFlags(CurrentMovementState, CameraMovementStateFlags::UP);
                 break;
             default:
                 break;
@@ -78,23 +74,23 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow* const Window, std:
         switch (Key)
         {
             case GLFW_KEY_W:
-                CurrentMovementState &= ~CameraMovementStateFlags::FORWARD;
+                RemoveFlags(CurrentMovementState, CameraMovementStateFlags::FORWARD);
                 break;
             case GLFW_KEY_S:
-                CurrentMovementState &= ~CameraMovementStateFlags::BACKWARD;
+                RemoveFlags(CurrentMovementState, CameraMovementStateFlags::BACKWARD);
                 break;
             case GLFW_KEY_A:
-                CurrentMovementState &= ~CameraMovementStateFlags::LEFT;
+                RemoveFlags(CurrentMovementState, CameraMovementStateFlags::LEFT);
                 break;
             case GLFW_KEY_D:
-                CurrentMovementState &= ~CameraMovementStateFlags::RIGHT;
+                RemoveFlags(CurrentMovementState, CameraMovementStateFlags::RIGHT);
                 break;
             case GLFW_KEY_Q:
-                CurrentMovementState &= ~CameraMovementStateFlags::DOWN;
+                RemoveFlags(CurrentMovementState, CameraMovementStateFlags::DOWN);
                 break;
             case GLFW_KEY_E:
             case GLFW_KEY_SPACE:
-                CurrentMovementState &= ~CameraMovementStateFlags::UP;
+                RemoveFlags(CurrentMovementState, CameraMovementStateFlags::UP);
                 break;
             default:
                 break;

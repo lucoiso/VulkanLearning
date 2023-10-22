@@ -14,12 +14,11 @@ module RenderCore.Management.ImGuiManagement;
 
 import <array>;
 
-import RenderCore.EngineCore;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.PipelineManagement;
-import RenderCore.Utils.Helpers;
+import RenderCore.Management.CommandsManagement;
 import RenderCore.Utils.Constants;
-import RenderCore.Types.DeviceProperties;
+import RenderCore.Utils.Helpers;
 
 using namespace RenderCore;
 

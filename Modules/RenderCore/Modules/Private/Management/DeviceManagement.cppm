@@ -10,16 +10,9 @@ module;
 
 module RenderCore.Management.DeviceManagement;
 
-import <optional>;
-import <string_view>;
-import <vector>;
-import <cstdint>;
-import <unordered_map>;
-
 import RenderCore.EngineCore;
-import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
-import RenderCore.Types.DeviceProperties;
+import RenderCore.Utils.Constants;
 import RenderCore.Utils.EnumConverter;
 
 using namespace RenderCore;
@@ -333,13 +326,13 @@ bool RenderCore::UpdateDeviceProperties(GLFWwindow* const Window)
     g_DeviceProperties.Capabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
 
     std::list<VkSurfaceFormatKHR> const SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats();
-    if (SupportedFormats.empty())
+    if (std::empty(SupportedFormats))
     {
         throw std::runtime_error("No supported surface formats found.");
     }
 
     std::list<VkPresentModeKHR> const SupportedPresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes();
-    if (SupportedFormats.empty())
+    if (std::empty(SupportedFormats))
     {
         throw std::runtime_error("No supported presentation modes found.");
     }

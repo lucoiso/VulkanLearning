@@ -10,17 +10,12 @@ module;
 module RenderCore.Management.PipelineManagement;
 
 import <array>;
-import <vector>;
 
+import RenderCore.Management.ShaderManagement;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.BufferManagement;
-import RenderCore.Management.ShaderManagement;
-import RenderCore.Types.UniformBufferObject;
-import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
-import RenderCore.Types.DeviceProperties;
-import RenderCore.Types.TextureData;
-import RenderCore.Types.ObjectData;
+import RenderCore.Utils.Helpers;
 
 using namespace RenderCore;
 

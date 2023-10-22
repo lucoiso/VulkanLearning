@@ -12,27 +12,19 @@ module;
 
 module RenderCore.Window;
 
-import <chrono>;
-import <thread>;
-import <queue>;
-import <string_view>;
-import <stdexcept>;
-import <unordered_map>;
-import <mutex>;
+using namespace RenderCore;
+
 import <future>;
 
 import Timer.Manager;
 import RenderCore.EngineCore;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.ImGuiManagement;
-import RenderCore.Utils.Helpers;
-import RenderCore.Utils.Constants;
+import RenderCore.Types.Camera;
 import RenderCore.Utils.GLFWCallbacks;
 import RenderCore.Utils.RenderUtils;
-import RenderCore.Types.Camera;
-import RenderCore.Types.DeviceProperties;
-
-using namespace RenderCore;
+import RenderCore.Utils.Constants;
+import RenderCore.Utils.Helpers;
 
 GLFWwindow* g_Window {nullptr};
 std::unique_ptr<Timer::Manager> g_RenderTimerManager {std::make_unique<Timer::Manager>()};

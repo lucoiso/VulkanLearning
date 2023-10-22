@@ -7,23 +7,17 @@ module;
 #include <boost/log/trivial.hpp>
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
+#include <spirv-tools/libspirv.hpp>
 #include <volk.h>
 
 module RenderCore.Management.ShaderManagement;
 
-import <unordered_map>;
-import <vector>;
-import <ranges>;
-import <format>;
-import <fstream>;
-import <sstream>;
-import <string>;
-import <string_view>;
 import <filesystem>;
-import <span>;
+import <fstream>;
+import <ranges>;
 
-import RenderCore.Management.DeviceManagement;
 import RenderCore.Utils.Helpers;
+import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
@@ -79,13 +73,13 @@ bool Compile(std::string_view const Source, EShLanguage const Language, std::vec
     glslang::FinalizeProcess();
 
     if (std::string const GeneratedLogs = Logger.getAllMessages();
-        !GeneratedLogs.empty())
+        !std::empty(GeneratedLogs))
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compilation result log:\n"
                                  << GeneratedLogs;
     }
 
-    return !OutSPIRVCode.empty();
+    return !std::empty(OutSPIRVCode);
 }
 
 void StageInfo(VkShaderModule const& Module, EShLanguage const Language)
@@ -159,7 +153,28 @@ void StageInfo(VkShaderModule const& Module, EShLanguage const Language)
     g_StageInfos.emplace(Module, StageInfo);
 }
 
-bool RenderCore::Compile(std::string_view const Source, std::vector<uint32_t>& OutSPIRVCode)
+bool ValidateSPIRV(const std::vector<std::uint32_t>& SPIRVData)
+{
+    static spvtools::SpirvTools SPIRVToolsInstance(SPV_ENV_VULKAN_1_3);
+    if (!SPIRVToolsInstance.IsValid())
+    {
+        throw std::runtime_error("Failed to initialize SPIRV-Tools");
+    }
+
+    if constexpr (g_EnableCustomDebug)
+    {
+        if (std::string DisassemblySPIRVData;
+            SPIRVToolsInstance.Disassemble(SPIRVData, &DisassemblySPIRVData))
+        {
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Generated SPIR-V shader disassembly:\n"
+                                     << DisassemblySPIRVData;
+        }
+    }
+
+    return SPIRVToolsInstance.Validate(SPIRVData);
+}
+
+bool RenderCore::Compile(std::string_view const Source, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     EShLanguage Language = EShLangVertex;
     std::filesystem::path const Path(Source);
@@ -227,6 +242,11 @@ bool RenderCore::Compile(std::string_view const Source, std::vector<uint32_t>& O
     bool const Result = Compile(ShaderSource.str(), Language, OutSPIRVCode);
     if (Result)
     {
+        if (!ValidateSPIRV(OutSPIRVCode))
+        {
+            throw std::runtime_error("Failed to validate SPIR-V code");
+        }
+
         std::string const SPIRVPath = std::format("{}.spv", Source);
         std::ofstream SPIRVFile(SPIRVPath, std::ios::binary);
         if (!SPIRVFile.is_open())
@@ -261,8 +281,7 @@ bool RenderCore::Load(std::string_view const Source, std::vector<std::uint32_t>&
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading shader: " << Source;
 
-    size_t const FileSize = File.tellg();
-
+    std::size_t const FileSize = File.tellg();
     if (FileSize == 0)
     {
         throw std::runtime_error("Shader file is empty");
@@ -294,9 +313,14 @@ VkShaderModule RenderCore::CreateModule(VkDevice const& Device, std::vector<std:
         throw std::runtime_error("Invalid vulkan logical device");
     }
 
-    if (SPIRVCode.empty())
+    if (std::empty(SPIRVCode))
     {
         throw std::runtime_error("Invalid SPIRV code");
+    }
+
+    if (!ValidateSPIRV(SPIRVCode))
+    {
+        throw std::runtime_error("Failed to validate SPIR-V code");
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating shader module...";

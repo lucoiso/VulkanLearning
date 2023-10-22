@@ -79,6 +79,7 @@ FIND_PACKAGE(assimp CONFIG REQUIRED)
 
 FIND_PACKAGE(volk CONFIG REQUIRED)
 FIND_PACKAGE(VulkanMemoryAllocator CONFIG REQUIRED)
+FIND_PACKAGE(SPIRV-Tools CONFIG REQUIRED)
 
 FIND_PACKAGE(glslang CONFIG REQUIRED)
 
@@ -93,6 +94,7 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
 
 					  volk::volk_headers
 					  GPUOpen::VulkanMemoryAllocator
+					  SPIRV-Tools-static
 
 					  glslang::glslang
 					  glslang::glslang-default-resource-limits

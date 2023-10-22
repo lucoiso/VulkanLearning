@@ -8,7 +8,7 @@ module;
 
 export module RenderCore.Types.ObjectData;
 
-import <cstdint>;
+export import <cstdint>;
 
 namespace RenderCore
 {

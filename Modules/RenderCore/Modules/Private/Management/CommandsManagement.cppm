@@ -13,23 +13,13 @@ module;
 
 module RenderCore.Management.CommandsManagement;
 
-import <limits>;
-import <optional>;
-import <vector>;
-import <list>;
 import <array>;
-import <cstdint>;
-import <optional>;
-import <stdexcept>;
-import <string>;
-import <span>;
 
-import RenderCore.Utils.Constants;
-import RenderCore.Management.BufferManagement;
 import RenderCore.Management.DeviceManagement;
+import RenderCore.Management.BufferManagement;
 import RenderCore.Management.PipelineManagement;
-import RenderCore.Types.Vertex;
 import RenderCore.Utils.Helpers;
+import RenderCore.Utils.Constants;
 import RenderCore.Utils.EnumConverter;
 
 using namespace RenderCore;
@@ -281,7 +271,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
             .extent = Extent};
 
     bool ActiveRenderPass = false;
-    if (RenderPass != VK_NULL_HANDLE && !FrameBuffers.empty())
+    if (RenderPass != VK_NULL_HANDLE && !std::empty(FrameBuffers))
     {
         VkRenderPassBeginInfo const RenderPassBeginInfo {
                 .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -304,7 +294,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
         vkCmdBindPipeline(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
     }
 
-    if (!DescriptorSets.empty())
+    if (!std::empty(DescriptorSets))
     {
         std::vector<VkDescriptorSet> ValidDescriptorSets;
         for (VkDescriptorSet const& DescriptorSetIter: DescriptorSets)
@@ -397,4 +387,60 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
             throw std::runtime_error("Vulkan operation failed with result: " + std::string(ResultToString(OperationResult)));
         }
     }
+}
+
+void RenderCore::InitializeSingleCommandQueue(VkCommandPool& CommandPool, VkCommandBuffer& CommandBuffer, std::uint8_t const QueueFamilyIndex)
+{
+    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
+
+    VkCommandPoolCreateInfo const CommandPoolCreateInfo {
+            .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+            .queueFamilyIndex = static_cast<std::uint32_t>(QueueFamilyIndex)};
+
+    CheckVulkanResult(vkCreateCommandPool(VulkanLogicalDevice, &CommandPoolCreateInfo, nullptr, &CommandPool));
+
+    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+    };
+
+    VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
+            .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool        = CommandPool,
+            .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = 1U,
+    };
+
+    CheckVulkanResult(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, &CommandBuffer));
+    CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
+}
+
+void RenderCore::FinishSingleCommandQueue(VkQueue const& Queue, VkCommandPool const& CommandPool, VkCommandBuffer const& CommandBuffer)
+{
+    if (CommandPool == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan command pool is invalid.");
+    }
+
+    if (CommandBuffer == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan command buffer is invalid.");
+    }
+
+    CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
+
+    VkSubmitInfo const SubmitInfo {
+            .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount = 1U,
+            .pCommandBuffers    = &CommandBuffer,
+    };
+
+    CheckVulkanResult(vkQueueSubmit(Queue, 1U, &SubmitInfo, VK_NULL_HANDLE));
+    CheckVulkanResult(vkQueueWaitIdle(Queue));
+
+    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
+
+    vkFreeCommandBuffers(VulkanLogicalDevice, CommandPool, 1U, &CommandBuffer);
+    vkDestroyCommandPool(VulkanLogicalDevice, CommandPool, nullptr);
 }

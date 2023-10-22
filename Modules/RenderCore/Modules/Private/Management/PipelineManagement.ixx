@@ -8,7 +8,7 @@ module;
 
 export module RenderCore.Management.PipelineManagement;
 
-import <vector>;
+export import <vector>;
 
 namespace RenderCore
 {

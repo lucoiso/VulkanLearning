@@ -10,14 +10,10 @@ module;
 
 export module RenderCore.EngineCore;
 
-import <array>;
-import <cstdint>;
-import <filesystem>;
-import <optional>;
-import <stdexcept>;
-import <string_view>;
-import <vector>;
-import <list>;
+export import <cstdint>;
+export import <list>;
+export import <vector>;
+export import <string_view>;
 
 namespace RenderCore
 {

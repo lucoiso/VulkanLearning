@@ -9,6 +9,7 @@ module;
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <boost/log/trivial.hpp>
+#include <glm/ext.hpp>
 #include <volk.h>
 
 #ifndef VMA_IMPLEMENTATION
@@ -23,22 +24,20 @@ module;
 
 module RenderCore.Management.BufferManagement;
 
-import <span>;
-import <vector>;
-import <ranges>;
-import <cstdint>;
 import <filesystem>;
+import <span>;
+import <algorithm>;
+import <ranges>;
 
 import RenderCore.EngineCore;
+import RenderCore.Management.CommandsManagement;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.PipelineManagement;
-import RenderCore.Types.UniformBufferObject;
-import RenderCore.Types.DeviceProperties;
-import RenderCore.Types.Vertex;
-import RenderCore.Types.TextureData;
-import RenderCore.Types.ObjectData;
-import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
+import RenderCore.Utils.Constants;
+import RenderCore.Types.Vertex;
+import RenderCore.Types.Camera;
+import RenderCore.Types.Object;
 
 using namespace RenderCore;
 
@@ -699,7 +698,7 @@ std::list<std::uint32_t> RenderCore::AllocateScene(std::string_view const ModelP
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded model from path: '" << ModelPath << "'";
 
-    if (g_Objects.empty())
+    if (std::empty(g_Objects))
     {
         g_ObjectIDCounter = 0U;
     }
@@ -963,4 +962,29 @@ std::list<ObjectData> RenderCore::GetAllocatedObjects()
     }
 
     return Output;
+}
+
+void RenderCore::UpdateUniformBuffers()
+{
+    auto const& [Width, Height] = GetSwapChainExtent();
+    glm::mat4 Projection        = glm::perspective(glm::radians(45.F), static_cast<float>(Width) / static_cast<float>(Height), 0.1F, 100.F);
+    Projection[1][1] *= -1;
+
+    for (Object const& ObjectIter: GetObjects())
+    {
+        if (!ContainsObject(ObjectIter.GetID()))
+        {
+            continue;
+        }
+
+        if (void* UniformBufferData = GetUniformData(ObjectIter.GetID()))
+        {
+            UniformBufferObject const UpdatedUBO {
+                    .Model      = ObjectIter.GetMatrix(),
+                    .View       = GetViewportCamera().GetMatrix(),
+                    .Projection = Projection};
+
+            std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(UniformBufferObject));
+        }
+    }
 }

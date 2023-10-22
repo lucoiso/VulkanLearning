@@ -8,9 +8,10 @@ module;
 
 export module RenderCore.Utils.EnumConverter;
 
+import <cstdint>;
 import <array>;
+import <span>;
 import <charconv>;
-import <ranges>;
 
 namespace RenderCore
 {

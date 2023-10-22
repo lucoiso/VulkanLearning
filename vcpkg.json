@@ -12,6 +12,7 @@
     "assimp",
     "volk",
     "vulkan-memory-allocator",
+    "spirv-tools",
     "glslang",
     {
       "name": "imgui",

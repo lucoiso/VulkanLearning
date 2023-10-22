@@ -9,10 +9,12 @@ module;
 
 export module RenderCore.Management.DeviceManagement;
 
-import <string_view>;
-import <vector>;
-import <list>;
-import <cstdint>;
+export import <list>;
+export import <vector>;
+export import <string>;
+export import <string_view>;
+
+export import RenderCore.Types.DeviceProperties;
 
 namespace RenderCore
 {
@@ -33,7 +35,7 @@ namespace RenderCore
     export [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment();
 
     export bool UpdateDeviceProperties(GLFWwindow* Window);
-    export [[nodiscard]] struct DeviceProperties& GetDeviceProperties();
+    export [[nodiscard]] DeviceProperties& GetDeviceProperties();
 
     export [[nodiscard]] VkDevice& GetLogicalDevice();
     export [[nodiscard]] VkPhysicalDevice& GetPhysicalDevice();

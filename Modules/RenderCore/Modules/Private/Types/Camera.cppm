@@ -9,7 +9,6 @@ module;
 module RenderCore.Types.Camera;
 
 import RenderCore.Utils.EnumHelpers;
-import RenderCore.Types.Transform;
 
 using namespace RenderCore;
 
@@ -76,32 +75,32 @@ void RenderCore::Camera::UpdateCameraMovement(float const DeltaTime)
 
     Vector NewPosition {GetPosition()};
 
-    if ((m_CameraMovementStateFlags & CameraMovementStateFlags::FORWARD) == CameraMovementStateFlags::FORWARD)
+    if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::FORWARD))
     {
         NewPosition += CameraSpeed * CameraFront * DeltaTime;
     }
 
-    if ((m_CameraMovementStateFlags & CameraMovementStateFlags::BACKWARD) == CameraMovementStateFlags::BACKWARD)
+    if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::BACKWARD))
     {
         NewPosition -= CameraSpeed * CameraFront * DeltaTime;
     }
 
-    if ((m_CameraMovementStateFlags & CameraMovementStateFlags::LEFT) == CameraMovementStateFlags::LEFT)
+    if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::LEFT))
     {
         NewPosition += CameraSpeed * CameraRight * DeltaTime;
     }
 
-    if ((m_CameraMovementStateFlags & CameraMovementStateFlags::RIGHT) == CameraMovementStateFlags::RIGHT)
+    if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::RIGHT))
     {
         NewPosition -= CameraSpeed * CameraRight * DeltaTime;
     }
 
-    if ((m_CameraMovementStateFlags & CameraMovementStateFlags::UP) == CameraMovementStateFlags::UP)
+    if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::UP))
     {
         NewPosition += CameraSpeed * m_CameraRotation.GetUp() * DeltaTime;
     }
 
-    if ((m_CameraMovementStateFlags & CameraMovementStateFlags::DOWN) == CameraMovementStateFlags::DOWN)
+    if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::DOWN))
     {
         NewPosition -= CameraSpeed * m_CameraRotation.GetUp() * DeltaTime;
     }

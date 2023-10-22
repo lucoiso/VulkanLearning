@@ -8,8 +8,8 @@ module;
 
 export module RenderCore.Window;
 
-import <string_view>;
-import <cstdint>;
+export import <cstdint>;
+export import <string_view>;
 
 namespace RenderCore
 {

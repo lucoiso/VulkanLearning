@@ -8,7 +8,9 @@ module;
 
 export module RenderCore.Types.Camera;
 
-import RenderCore.Types.Transform;
+export import <cstdint>;
+
+export import RenderCore.Types.Transform;
 
 namespace RenderCore
 {

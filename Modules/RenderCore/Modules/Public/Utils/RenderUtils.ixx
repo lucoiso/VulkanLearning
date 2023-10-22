@@ -4,10 +4,11 @@
 
 export module RenderCore.Utils.RenderUtils;
 
-import <cstdint>;
-import <vector>;
-import <list>;
-import <string_view>;
+export import <list>;
+export import <cstdint>;
+export import <vector>;
+export import <string_view>;
+export import RenderCore.Types.Object;
 
 export namespace RenderCore
 {
@@ -15,5 +16,5 @@ export namespace RenderCore
     void UnloadObject(std::list<std::uint32_t> const& ObjectID);
 
     [[nodiscard]] std::list<std::uint32_t> GetLoadedIDs();
-    [[nodiscard]] std::vector<class Object> GetLoadedObjects();
+    [[nodiscard]] std::vector<Object> const& GetLoadedObjects();
 }// namespace RenderCore

@@ -8,7 +8,7 @@ module;
 
 export module RenderCore.Utils.GLFWCallbacks;
 
-import <cstdint>;
+export import <cstdint>;
 
 namespace RenderCore
 {

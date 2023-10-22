@@ -18,25 +18,10 @@ module;
 
 module RenderCore.Utils.Helpers;
 
-import <algorithm>;
-import <array>;
-import <chrono>;
-import <concepts>;
-import <cstdint>;
-import <string>;
 import <span>;
+import <array>;
 
-import RenderCore.EngineCore;
-import RenderCore.Management.BufferManagement;
-import RenderCore.Management.DeviceManagement;
-import RenderCore.Types.UniformBufferObject;
-import RenderCore.Types.ObjectData;
-import RenderCore.Types.Object;
-import RenderCore.Types.Transform;
 import RenderCore.Types.Vertex;
-import RenderCore.Types.Camera;
-import RenderCore.Utils.Constants;
-import RenderCore.Utils.EnumConverter;
 
 using namespace RenderCore;
 
@@ -171,12 +156,12 @@ std::array<VkVertexInputAttributeDescription, 4U> RenderCore::GetAttributeDescri
                     .format   = VK_FORMAT_R32G32B32_SFLOAT,
                     .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Normal))},
             VkVertexInputAttributeDescription {
-                    .location = 3U,
+                    .location = 2U,
                     .binding  = 0U,
                     .format   = VK_FORMAT_R32G32B32_SFLOAT,
                     .offset   = static_cast<std::uint32_t>(offsetof(Vertex, TextureCoordinate))},
             VkVertexInputAttributeDescription {
-                    .location = 2U,
+                    .location = 3U,
                     .binding  = 0U,
                     .format   = VK_FORMAT_R32G32B32A32_SFLOAT,
                     .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Color))}};
@@ -222,86 +207,4 @@ void RenderCore::ListAvailableInstanceLayerExtensions(std::string_view const Lay
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Spec Version: " << SpecVer << std::endl;
     }
 }
-
 #endif
-
-void RenderCore::InitializeSingleCommandQueue(VkCommandPool& CommandPool, VkCommandBuffer& CommandBuffer, std::uint8_t const QueueFamilyIndex)
-{
-    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
-
-    VkCommandPoolCreateInfo const CommandPoolCreateInfo {
-            .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-            .queueFamilyIndex = static_cast<std::uint32_t>(QueueFamilyIndex)};
-
-    CheckVulkanResult(vkCreateCommandPool(VulkanLogicalDevice, &CommandPoolCreateInfo, nullptr, &CommandPool));
-
-    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-    };
-
-    VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
-            .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .commandPool        = CommandPool,
-            .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = 1U,
-    };
-
-    CheckVulkanResult(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, &CommandBuffer));
-    CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
-}
-
-void RenderCore::FinishSingleCommandQueue(VkQueue const& Queue, VkCommandPool const& CommandPool, VkCommandBuffer const& CommandBuffer)
-{
-    if (CommandPool == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan command pool is invalid.");
-    }
-
-    if (CommandBuffer == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan command buffer is invalid.");
-    }
-
-    CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
-
-    VkSubmitInfo const SubmitInfo {
-            .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .commandBufferCount = 1U,
-            .pCommandBuffers    = &CommandBuffer,
-    };
-
-    CheckVulkanResult(vkQueueSubmit(Queue, 1U, &SubmitInfo, VK_NULL_HANDLE));
-    CheckVulkanResult(vkQueueWaitIdle(Queue));
-
-    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
-
-    vkFreeCommandBuffers(VulkanLogicalDevice, CommandPool, 1U, &CommandBuffer);
-    vkDestroyCommandPool(VulkanLogicalDevice, CommandPool, nullptr);
-}
-
-void RenderCore::UpdateUniformBuffers()
-{
-    auto const& [Width, Height] = GetSwapChainExtent();
-    glm::mat4 Projection        = glm::perspective(glm::radians(45.F), static_cast<float>(Width) / static_cast<float>(Height), 0.1F, 100.F);
-    Projection[1][1] *= -1;
-
-    for (Object const& ObjectIter: GetObjects())
-    {
-        if (!ContainsObject(ObjectIter.GetID()))
-        {
-            continue;
-        }
-
-        if (void* UniformBufferData = GetUniformData(ObjectIter.GetID()))
-        {
-            UniformBufferObject const UpdatedUBO {
-                    .Model      = ObjectIter.GetMatrix(),
-                    .View       = GetViewportCamera().GetMatrix(),
-                    .Projection = Projection};
-
-            std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(UniformBufferObject));
-        }
-    }
-}

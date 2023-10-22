@@ -11,10 +11,9 @@ module;
 
 export module RenderCore.Types.Object;
 
-import <cstdint>;
-import <string>;
-
-import RenderCore.Types.Transform;
+export import <string>;
+export import <string_view>;
+export import RenderCore.Types.Transform;
 
 namespace RenderCore
 {

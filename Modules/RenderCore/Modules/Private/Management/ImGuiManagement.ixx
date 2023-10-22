@@ -8,7 +8,7 @@ module;
 
 export module RenderCore.Management.ImGuiManagement;
 
-import <functional>;
+export import <functional>;
 
 namespace RenderCore
 {

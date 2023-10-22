@@ -5,7 +5,6 @@
 module RenderCore.Utils.RenderUtils;
 
 import RenderCore.EngineCore;
-import RenderCore.Types.Object;
 
 using namespace RenderCore;
 
@@ -31,7 +30,7 @@ std::list<std::uint32_t> RenderCore::GetLoadedIDs()
     return IDs;
 }
 
-std::vector<Object> RenderCore::GetLoadedObjects()
+std::vector<class Object> const& RenderCore::GetLoadedObjects()
 {
     return GetObjects();
 }

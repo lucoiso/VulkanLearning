@@ -8,8 +8,8 @@ module;
 
 export module RenderCore.Management.CommandsManagement;
 
-import <optional>;
-import <cstdint>;
+export import <optional>;
+export import <cstdint>;
 
 namespace RenderCore
 {
@@ -25,4 +25,7 @@ namespace RenderCore
     export void RecordCommandBuffers(std::uint32_t);
     export void SubmitCommandBuffers();
     export void PresentFrame(std::uint32_t);
+
+    export void InitializeSingleCommandQueue(VkCommandPool&, VkCommandBuffer&, std::uint8_t);
+    export void FinishSingleCommandQueue(VkQueue const&, VkCommandPool const&, VkCommandBuffer const&);
 }// namespace RenderCore
