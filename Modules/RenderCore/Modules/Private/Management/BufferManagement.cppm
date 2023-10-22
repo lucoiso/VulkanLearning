@@ -779,7 +779,7 @@ std::list<std::uint32_t> RenderCore::AllocateScene(std::string_view const ModelP
             }
         });
 
-        WorkerThreads.emplace_back(std::move(WorkerThread));
+        WorkerThreads.push_back(std::move(WorkerThread));
         ++LoadedMeshIterator;
     }
 
