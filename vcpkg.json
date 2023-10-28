@@ -5,7 +5,7 @@
     "glfw3",
     "boost-log",
     "boost-json",
-    "boost-test",
+    "catch2",
     "benchmark",
     "glm",
     "stb",

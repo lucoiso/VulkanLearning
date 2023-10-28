@@ -14,7 +14,7 @@ module RenderCore.Window;
 
 using namespace RenderCore;
 
-import <future>;
+import <semaphore>;
 
 import Timer.Manager;
 import RenderCore.EngineCore;
@@ -27,7 +27,6 @@ import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 
 GLFWwindow* g_Window {nullptr};
-std::unique_ptr<Timer::Manager> g_RenderTimerManager {std::make_unique<Timer::Manager>()};
 
 bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title)
 {
@@ -68,7 +67,10 @@ bool InitializeEngineCore()
     return false;
 }
 
-Window::Window() = default;
+Window::Window()
+    : m_RenderTimerManager(std::make_unique<Timer::Manager>())
+{
+}
 
 Window::~Window()
 {
@@ -100,7 +102,7 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
     {
         if (InitializeGLFW(Width, Height, Title) && InitializeEngineCore())
         {
-            g_RenderTimerManager->SetTimer(
+            m_RenderTimerManager->SetTimer(
                     0U,
                     [this]() {
                         [[maybe_unused]] auto const _ = LoadObject(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
@@ -126,17 +128,17 @@ void Window::Shutdown()
         return;
     }
 
-    g_RenderTimerManager->ClearTimers();
-    std::future<void> const Task = std::async(std::launch::deferred, [] {
-        g_RenderTimerManager->SetTimer(
-                0U,
-                []() {
-                    ShutdownEngine();
-                });
-    });
+    m_RenderTimerManager->ClearTimers();
+    std::binary_semaphore Semaphore {1};
 
-    Task.wait();
-    g_RenderTimerManager->SetActive(false);
+    m_RenderTimerManager->SetTimer(
+            0U,
+            [&Semaphore]() {
+                ShutdownEngine();
+                Semaphore.release();
+            });
+
+    Semaphore.acquire();
 }
 
 bool Window::IsInitialized()
@@ -232,7 +234,7 @@ void Window::RequestRender()
 
         DrawFrame(g_Window);
 
-        g_RenderTimerManager->SetTimer(
+        m_RenderTimerManager->SetTimer(
                 1000U / g_FrameRate,
                 [this]() {
                     RequestRender();

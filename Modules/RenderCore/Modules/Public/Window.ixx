@@ -10,11 +10,16 @@ export module RenderCore.Window;
 
 export import <cstdint>;
 export import <string_view>;
+export import <memory>;
+
+import Timer.Manager;
 
 namespace RenderCore
 {
     export class RENDERCOREMODULE_API Window
     {
+        std::unique_ptr<Timer::Manager> m_RenderTimerManager {};
+
     public:
         Window();
 
@@ -24,7 +29,7 @@ namespace RenderCore
         virtual ~Window();
 
         bool Initialize(std::uint16_t, std::uint16_t, std::string_view);
-        static void Shutdown();
+        void Shutdown();
 
         [[nodiscard]] static bool IsInitialized();
         [[nodiscard]] static bool IsOpen();
