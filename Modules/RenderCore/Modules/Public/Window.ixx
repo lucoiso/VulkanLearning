@@ -31,10 +31,10 @@ namespace RenderCore
         bool Initialize(std::uint16_t, std::uint16_t, std::string_view);
         void Shutdown();
 
-        [[nodiscard]] static bool IsInitialized();
-        [[nodiscard]] static bool IsOpen();
+        [[nodiscard]] bool IsInitialized();
+        [[nodiscard]] bool IsOpen();
 
-        void PollEvents() const;
+        virtual void PollEvents();
 
     protected:
         virtual void CreateOverlay();

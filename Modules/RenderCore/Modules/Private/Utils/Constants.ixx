@@ -10,10 +10,11 @@ export module RenderCore.Utils.Constants;
 
 export import <array>;
 export import <cstdint>;
+import <numeric>;
 
 export namespace RenderCore
 {
-    constexpr bool g_EnableCustomDebug = true;
+    constexpr bool g_EnableCustomDebug = false;
 
 #ifdef _DEBUG
 #if defined(GPU_API_DUMP) && GPU_API_DUMP

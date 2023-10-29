@@ -83,8 +83,11 @@ Window::~Window()
     {
         Shutdown();
 
-        glfwDestroyWindow(g_Window);
-        glfwTerminate();
+        if (IsOpen())
+        {
+            glfwDestroyWindow(g_Window);
+            glfwTerminate();
+        }
     }
     catch (...)
     {
@@ -128,8 +131,8 @@ void Window::Shutdown()
         return;
     }
 
-    m_RenderTimerManager->ClearTimers();
-    std::binary_semaphore Semaphore {1};
+    std::lock_guard<std::mutex> Lock(g_CriticalEventMutex);
+    std::binary_semaphore Semaphore {1U};
 
     m_RenderTimerManager->SetTimer(
             0U,
@@ -143,7 +146,7 @@ void Window::Shutdown()
 
 bool Window::IsInitialized()
 {
-    return IsOpen() && IsEngineInitialized();
+    return IsEngineInitialized();
 }
 
 bool Window::IsOpen()
@@ -151,9 +154,9 @@ bool Window::IsOpen()
     return g_Window != nullptr && glfwWindowShouldClose(g_Window) == 0;
 }
 
-void Window::PollEvents() const
+void Window::PollEvents()
 {
-    if (!IsInitialized())
+    if (!IsOpen())
     {
         return;
     }

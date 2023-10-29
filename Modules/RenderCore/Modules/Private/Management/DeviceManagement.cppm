@@ -10,6 +10,8 @@ module;
 
 module RenderCore.Management.DeviceManagement;
 
+import <optional>;
+
 import RenderCore.EngineCore;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;

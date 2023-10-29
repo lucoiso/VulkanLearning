@@ -2,22 +2,19 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRenderer
 
-#include <memory>
-
 import RenderCore.Window;
 
 int main([[maybe_unused]] int Argc, [[maybe_unused]] char* Argv[])
 {
-    if (auto const Window = std::make_unique<RenderCore::Window>();
-        Window->Initialize(600U, 600U, "Vulkan Renderer"))
+    if (RenderCore::Window Window; Window.Initialize(600U, 600U, "Vulkan Renderer"))
     {
-        while (Window->IsOpen())
+        while (Window.IsOpen())
         {
-            Window->PollEvents();
+            Window.PollEvents();
         }
 
-        return EXIT_SUCCESS;
+        return 0U;
     }
 
-    return EXIT_FAILURE;
+    return 1U;
 }
