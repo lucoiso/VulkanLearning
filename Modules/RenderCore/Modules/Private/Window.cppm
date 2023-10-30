@@ -28,7 +28,7 @@ import RenderCore.Utils.Helpers;
 
 GLFWwindow* g_Window {nullptr};
 
-bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title)
+bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, bool const bHeadless)
 {
     if (glfwInit() == 0)
     {
@@ -38,9 +38,11 @@ bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+    glfwWindowHint(GLFW_VISIBLE, bHeadless ? GLFW_FALSE : GLFW_TRUE);
 
-    if (g_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr);
-        g_Window == nullptr)
+    g_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr);
+
+    if (g_Window == nullptr)
     {
         throw std::runtime_error("Failed to create GLFW Window");
     }
@@ -81,7 +83,7 @@ Window::~Window()
 
     try
     {
-        Shutdown();
+        Shutdown().Get();
 
         if (IsOpen())
         {
@@ -94,54 +96,58 @@ Window::~Window()
     }
 }
 
-bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title)
+GenericAsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, bool const bHeadless)
 {
     if (IsInitialized())
     {
-        return false;
+        co_return false;
     }
 
     try
     {
-        if (InitializeGLFW(Width, Height, Title) && InitializeEngineCore())
+        if (InitializeGLFW(Width, Height, Title, bHeadless) && InitializeEngineCore())
         {
-            m_RenderTimerManager->SetTimer(
-                    0U,
-                    [this]() {
-                        [[maybe_unused]] auto const _ = LoadObject(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
-                        RequestRender();
-                    });
-
-            return true;
+            std::binary_semaphore Semaphore {0U};
+            {
+                m_RenderTimerManager->SetTimer(
+                        0U,
+                        [this, &Semaphore]() {
+                            [[maybe_unused]] auto const _ = LoadObject(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+                            RequestRender();
+                            Semaphore.release();
+                        });
+            }
+            Semaphore.acquire();
+            co_return true;
         }
     }
     catch (std::exception const& Ex)
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
-        Shutdown();
+        Shutdown().Get();
     }
 
-    return false;
+    co_return false;
 }
 
-void Window::Shutdown()
+GenericAsyncTask Window::Shutdown()
 {
     if (!IsInitialized())
     {
-        return;
+        co_return;
     }
 
-    std::lock_guard<std::mutex> Lock(g_CriticalEventMutex);
-    std::binary_semaphore Semaphore {1U};
-
-    m_RenderTimerManager->SetTimer(
-            0U,
-            [&Semaphore]() {
-                ShutdownEngine();
-                Semaphore.release();
-            });
-
+    std::binary_semaphore Semaphore {0U};
+    {
+        m_RenderTimerManager->SetTimer(
+                0U,
+                [&Semaphore]() {
+                    ShutdownEngine();
+                    Semaphore.release();
+                });
+    }
     Semaphore.acquire();
+    co_return;
 }
 
 bool Window::IsInitialized()
@@ -222,8 +228,6 @@ void Window::CreateOverlay()
 
 void Window::RequestRender()
 {
-    std::lock_guard<std::mutex> Lock(g_CriticalEventMutex);
-
     if (IsOpen())
     {
         static double DeltaTime = glfwGetTime();

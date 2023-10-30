@@ -12,6 +12,7 @@ export import <cstdint>;
 export import <string_view>;
 export import <memory>;
 
+export import RenderCore.Types.GenericRoutine;
 import Timer.Manager;
 
 namespace RenderCore
@@ -28,8 +29,8 @@ namespace RenderCore
 
         virtual ~Window();
 
-        bool Initialize(std::uint16_t, std::uint16_t, std::string_view);
-        void Shutdown();
+        GenericAsyncOperation<bool> Initialize(std::uint16_t, std::uint16_t, std::string_view, bool const bHeadless = false);
+        GenericAsyncTask Shutdown();
 
         [[nodiscard]] bool IsInitialized();
         [[nodiscard]] bool IsOpen();

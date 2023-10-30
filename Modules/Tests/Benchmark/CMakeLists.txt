@@ -3,12 +3,12 @@
 # Repo: https://github.com/lucoiso/VulkanRenderer
 
 # ----------- Global Definitions -----------
-SET(LIBRARY_NAME Benchmark)
+SET(LIBRARY_NAME RenderCoreBenchmark)
 
 # ------------- Library Setup --------------
 SET(PRIVATE_MODULES
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Benchmark.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Placeholder.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/RenderCoreBenchmark.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/RenderCore.ixx
 )
 
 ADD_EXECUTABLE(${LIBRARY_NAME} ${PRIVATE_MODULES})
@@ -18,4 +18,5 @@ FIND_PACKAGE(benchmark CONFIG REQUIRED)
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
 					  benchmark::benchmark_main
+					  RenderCore
 )

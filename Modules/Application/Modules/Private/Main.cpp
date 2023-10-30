@@ -6,7 +6,7 @@ import RenderCore.Window;
 
 int main([[maybe_unused]] int Argc, [[maybe_unused]] char* Argv[])
 {
-    if (RenderCore::Window Window; Window.Initialize(600U, 600U, "Vulkan Renderer"))
+    if (RenderCore::Window Window; Window.Initialize(600U, 600U, "Vulkan Renderer", false).Get())
     {
         while (Window.IsOpen())
         {

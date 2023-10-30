@@ -4,6 +4,6 @@
 
 import <benchmark/benchmark.h>;
 
-import Benchmark.Placeholder;
+import Benchmark.RenderCore;
 
 BENCHMARK_MAIN();

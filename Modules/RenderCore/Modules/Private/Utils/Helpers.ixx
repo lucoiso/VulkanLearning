@@ -11,14 +11,11 @@ export module RenderCore.Utils.Helpers;
 
 export import <cstdint>;
 export import <vector>;
-export import <mutex>;
 export import <string>;
 export import <string_view>;
 
 namespace RenderCore
 {
-    export std::mutex g_CriticalEventMutex;
-
     export std::vector<char const*> GetGLFWExtensions();
     export VkExtent2D GetWindowExtent(GLFWwindow*, VkSurfaceCapabilitiesKHR const&);
     export std::vector<VkLayerProperties> GetAvailableInstanceLayers();

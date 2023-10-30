@@ -22,8 +22,6 @@ bool g_CanMovementCamera = false;
 
 void RenderCore::GLFWWindowCloseRequested(GLFWwindow* const Window)
 {
-    std::lock_guard<std::mutex> Lock(g_CriticalEventMutex);
-
     glfwSetWindowShouldClose(Window, GLFW_TRUE);
 }
 
