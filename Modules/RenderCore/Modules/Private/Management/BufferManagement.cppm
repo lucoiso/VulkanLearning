@@ -698,11 +698,6 @@ std::list<std::uint32_t> RenderCore::AllocateScene(std::string_view const ModelP
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded model from path: '" << ModelPath << "'";
 
-    if (std::empty(g_Objects))
-    {
-        g_ObjectIDCounter = 0U;
-    }
-
     struct InternalObjectData
     {
         std::uint32_t ID {};
@@ -820,6 +815,11 @@ void RenderCore::ReleaseScene(std::list<std::uint32_t> const& ObjectIDs)
 
         g_Objects.at(ObjectIDIter).DestroyResources();
         g_Objects.erase(ObjectIDIter);
+    }
+
+    if (std::empty(g_Objects))
+    {
+        g_ObjectIDCounter = 0U;
     }
 }
 

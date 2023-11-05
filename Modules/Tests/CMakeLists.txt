@@ -6,5 +6,6 @@
 ENABLE_TESTING()
 
 # -------------- Directories ---------------
+ADD_SUBDIRECTORY(SharedUtils)
 ADD_SUBDIRECTORY(Benchmark)
 ADD_SUBDIRECTORY(Unit)

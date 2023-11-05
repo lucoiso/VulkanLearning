@@ -255,6 +255,8 @@ void RenderCore::ShutdownEngine()
 
     vkDestroyInstance(g_Instance, nullptr);
     g_Instance = VK_NULL_HANDLE;
+
+    g_Objects.clear();
 }
 
 void RenderCore::DrawFrame(GLFWwindow* const Window)
@@ -354,9 +356,9 @@ std::list<std::uint32_t> RenderCore::LoadScene(std::string_view const ObjectPath
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
 
     std::list<std::uint32_t> const LoadedObjects = AllocateScene(ObjectPath, TexturePath);
-    for (std::uint32_t const ObjectIDITer: LoadedObjects)
+    for (std::uint32_t const ObjectIDIter: LoadedObjects)
     {
-        g_Objects.emplace_back(ObjectIDITer, ObjectPath);
+        g_Objects.emplace_back(ObjectIDIter, ObjectPath);
     }
 
     AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);

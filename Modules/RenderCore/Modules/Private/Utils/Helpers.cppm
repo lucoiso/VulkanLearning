@@ -25,6 +25,22 @@ import RenderCore.Types.Vertex;
 
 using namespace RenderCore;
 
+VkExtent2D RenderCore::GetWindowExtent(GLFWwindow* const Window, VkSurfaceCapabilitiesKHR const& Capabilities)
+{
+    std::int32_t Width  = 0U;
+    std::int32_t Height = 0U;
+    glfwGetFramebufferSize(Window, &Width, &Height);
+
+    VkExtent2D ActualExtent {
+            .width  = static_cast<std::uint32_t>(Width),
+            .height = static_cast<std::uint32_t>(Height)};
+
+    ActualExtent.width  = std::clamp(ActualExtent.width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
+    ActualExtent.height = std::clamp(ActualExtent.height, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
+
+    return ActualExtent;
+}
+
 std::vector<char const*> RenderCore::GetGLFWExtensions()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting GLFW extensions";
@@ -43,22 +59,6 @@ std::vector<char const*> RenderCore::GetGLFWExtensions()
     }
 
     return Output;
-}
-
-VkExtent2D RenderCore::GetWindowExtent(GLFWwindow* const Window, VkSurfaceCapabilitiesKHR const& Capabilities)
-{
-    std::int32_t Width  = 0U;
-    std::int32_t Height = 0U;
-    glfwGetFramebufferSize(Window, &Width, &Height);
-
-    VkExtent2D ActualExtent {
-            .width  = static_cast<std::uint32_t>(Width),
-            .height = static_cast<std::uint32_t>(Height)};
-
-    ActualExtent.width  = std::clamp(ActualExtent.width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
-    ActualExtent.height = std::clamp(ActualExtent.height, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
-
-    return ActualExtent;
 }
 
 std::vector<VkLayerProperties> RenderCore::GetAvailableInstanceLayers()

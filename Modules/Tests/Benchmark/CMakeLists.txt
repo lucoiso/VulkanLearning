@@ -9,14 +9,18 @@ SET(LIBRARY_NAME RenderCoreBenchmark)
 SET(PRIVATE_MODULES
 	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/RenderCoreBenchmark.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/RenderCore.ixx
+	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Helpers.ixx
 )
 
 ADD_EXECUTABLE(${LIBRARY_NAME} ${PRIVATE_MODULES})
 SET_TARGET_PROPERTIES(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
+FIND_PACKAGE(Boost REQUIRED COMPONENTS log)
 FIND_PACKAGE(benchmark CONFIG REQUIRED)
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
+					  Boost::log
 					  benchmark::benchmark_main
 					  RenderCore
+					  RenderCoreTestsSharedUtils
 )

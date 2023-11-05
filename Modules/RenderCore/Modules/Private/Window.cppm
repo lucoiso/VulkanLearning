@@ -76,20 +76,9 @@ Window::Window()
 
 Window::~Window()
 {
-    if (!IsInitialized())
-    {
-        return;
-    }
-
     try
     {
         Shutdown().Get();
-
-        if (IsOpen())
-        {
-            glfwDestroyWindow(g_Window);
-            glfwTerminate();
-        }
     }
     catch (...)
     {
@@ -132,21 +121,28 @@ GenericAsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::u
 
 GenericAsyncTask Window::Shutdown()
 {
-    if (!IsInitialized())
+    if (IsInitialized())
     {
-        co_return;
+        std::binary_semaphore Semaphore {0U};
+        {
+            m_RenderTimerManager->SetTimer(
+                    0U,
+                    [&Semaphore]() {
+                        ShutdownEngine();
+                        Semaphore.release();
+                    });
+        }
+        Semaphore.acquire();
     }
 
-    std::binary_semaphore Semaphore {0U};
+    if (IsOpen())
     {
-        m_RenderTimerManager->SetTimer(
-                0U,
-                [&Semaphore]() {
-                    ShutdownEngine();
-                    Semaphore.release();
-                });
+        glfwSetWindowShouldClose(g_Window, GLFW_TRUE);
+        glfwDestroyWindow(g_Window);
+        glfwTerminate();
+        g_Window = nullptr;
     }
-    Semaphore.acquire();
+
     co_return;
 }
 

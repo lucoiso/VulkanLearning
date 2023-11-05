@@ -16,8 +16,8 @@ export import <string_view>;
 
 namespace RenderCore
 {
-    export std::vector<char const*> GetGLFWExtensions();
     export VkExtent2D GetWindowExtent(GLFWwindow*, VkSurfaceCapabilitiesKHR const&);
+    export std::vector<char const*> GetGLFWExtensions();
     export std::vector<VkLayerProperties> GetAvailableInstanceLayers();
     export std::vector<std::string> GetAvailableInstanceLayersNames();
     export std::vector<VkExtensionProperties> GetAvailableInstanceExtensions();
@@ -39,14 +39,16 @@ namespace RenderCore
     export std::array<VkVertexInputAttributeDescription, 4U> GetAttributeDescriptions();
 
     export template<typename T>
+        requires std::is_same_v<T, VkResult> || std::is_same_v<T, VkResult&>
     constexpr bool CheckVulkanResult(T&& InputOperation)
     {
-        if (VkResult const OperationResult = InputOperation;
-            OperationResult != VK_SUCCESS)
-        {
-            return false;
-        }
+        return InputOperation == VK_SUCCESS;
+    }
 
-        return true;
+    export template<typename T>
+        requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, VkResult> || std::is_same_v<std::invoke_result_t<T>, VkResult&>)
+    constexpr bool CheckVulkanResult(T&& InputOperation)
+    {
+        return CheckVulkanResult(InputOperation());
     }
 }// namespace RenderCore

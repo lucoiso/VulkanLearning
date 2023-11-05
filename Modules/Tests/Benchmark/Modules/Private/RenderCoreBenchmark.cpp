@@ -2,8 +2,21 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRenderer
 
-import <benchmark/benchmark.h>;
+#include <benchmark/benchmark.h>
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
 
 import Benchmark.RenderCore;
+import Benchmark.RenderCore.Helpers;
 
-BENCHMARK_MAIN();
+int main(int ArgC, char** ArgV)
+{
+#ifndef _DEBUG
+    boost::log::core::get()->set_logging_enabled(false);
+#endif
+
+    benchmark::Initialize(&ArgC, ArgV);
+    benchmark::RunSpecifiedBenchmarks();
+
+    return 0;
+}
