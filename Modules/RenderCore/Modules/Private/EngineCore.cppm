@@ -240,7 +240,7 @@ std::optional<std::int32_t> RenderCore::EngineCore::TryRequestDrawImage()
     return Output;
 }
 
-void RenderCore::EngineCore::Tick(float const DeltaTime)
+void RenderCore::EngineCore::Tick(double const DeltaTime)
 {
     if (!IsEngineInitialized())
     {

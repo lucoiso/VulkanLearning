@@ -49,7 +49,7 @@ namespace RenderCore
 
         [[nodiscard]] glm::mat4 GetMatrix() const;
 
-        virtual void Tick(float) {};
+        virtual void Tick(double) {};
         virtual void OnPostLoad() {};
         virtual void OnBeginDestruction() {};
         virtual void OnPostDestruction() {};

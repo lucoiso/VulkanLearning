@@ -38,7 +38,7 @@ namespace RenderCore
         void DrawFrame(GLFWwindow*);
         std::optional<std::int32_t> TryRequestDrawImage();
 
-        void Tick(float);
+        void Tick(double);
 
         bool InitializeEngine(GLFWwindow*);
         void ShutdownEngine();

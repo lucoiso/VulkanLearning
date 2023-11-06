@@ -152,7 +152,14 @@ void Window::PollEvents()
 
     try
     {
-        glfwPollEvents();
+        static double LastFrameTime = glfwGetTime();
+
+        double const CurrentTime = glfwGetTime();
+        {
+            glfwPollEvents();
+            EngineCore::Get().Tick(CurrentTime - LastFrameTime);
+        }
+        LastFrameTime = CurrentTime;
     }
     catch (std::exception const& Ex)
     {
