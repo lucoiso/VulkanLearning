@@ -173,16 +173,20 @@ void Window::CreateOverlay()
     {
         ImGui::BeginGroup();
         {
-            ImGui::Text("Frame Rate: %.1f", ImGui::GetIO().Framerate);
-            ImGui::Text("Frame Time: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
-            ImGui::Text("Camera Position: %.3f, %.3f, %.3f", GetViewportCamera().GetPosition().X, GetViewportCamera().GetPosition().X, GetViewportCamera().GetPosition().Z);
-            ImGui::Text("Camera Yaw: %.3f", GetViewportCamera().GetRotation().Yaw);
-            ImGui::Text("Camera Pitch: %.3f", GetViewportCamera().GetRotation().Pitch);
+            ImGui::Text("Frame Rate: %.2f", ImGui::GetIO().Framerate);
+            ImGui::Text("Frame Time: %.2f ms", 1000.0f / ImGui::GetIO().Framerate);
+            ImGui::Text("Camera Position: %.2f, %.2f, %.2f", GetViewportCamera().GetPosition().X, GetViewportCamera().GetPosition().X, GetViewportCamera().GetPosition().Z);
+            ImGui::Text("Camera Yaw: %.2f", GetViewportCamera().GetRotation().Yaw);
+            ImGui::Text("Camera Pitch: %.2f", GetViewportCamera().GetRotation().Pitch);
             ImGui::Text("Camera Movement State: %d", static_cast<std::underlying_type_t<CameraMovementStateFlags>>(GetViewportCamera().GetCameraMovementStateFlags()));
+
+            float CameraSpeed = GetViewportCamera().GetSpeed();
+            ImGui::InputFloat("Camera Speed", &CameraSpeed, 0.1F, 1.0F, "%.2f");
+            GetViewportCamera().SetSpeed(CameraSpeed);
         }
         ImGui::EndGroup();
 
-        ImGui::Spacing();
+        ImGui::SameLine();
 
         ImGui::BeginGroup();
         {
@@ -209,6 +213,57 @@ void Window::CreateOverlay()
                 {
                     BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
                 }
+            }
+        }
+        ImGui::EndGroup();
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::BeginGroup();
+        {
+            auto const& Objects = EngineCore::Get().GetObjects();
+            ImGui::Text("Loaded Objects: %d", std::size(Objects));
+            ImGui::Spacing();
+
+            for (auto const& Object: Objects)
+            {
+                if (!Object)
+                {
+                    continue;
+                }
+
+                ImGui::Text("Name: %s", Object->GetName().data());
+                ImGui::SameLine();
+                ImGui::Text("ID: %d", Object->GetID());
+
+                ImGui::Spacing();
+
+                ImGui::InputFloat("Pos. X", &Object->GetMutableTransform().Position.X, 0.1F, 1.0F, "%.2f");
+                ImGui::SameLine();
+                ImGui::InputFloat("Pos. Y", &Object->GetMutableTransform().Position.Y, 0.1F, 1.0F, "%.2f");
+                ImGui::SameLine();
+                ImGui::InputFloat("Pos. Z", &Object->GetMutableTransform().Position.Z, 0.1F, 1.0F, "%.2f");
+
+                ImGui::InputFloat("Scl. X", &Object->GetMutableTransform().Scale.X, 0.1F, 1.0F, "%.2f");
+                ImGui::SameLine();
+                ImGui::InputFloat("Scl. Y", &Object->GetMutableTransform().Scale.Y, 0.1F, 1.0F, "%.2f");
+                ImGui::SameLine();
+                ImGui::InputFloat("Scl. Z", &Object->GetMutableTransform().Scale.Z, 0.1F, 1.0F, "%.2f");
+
+                ImGui::InputFloat("Rot. Y", &Object->GetMutableTransform().Rotation.Yaw, 0.1F, 1.0F, "%.2f");
+                ImGui::SameLine();
+                ImGui::InputFloat("Rot. P", &Object->GetMutableTransform().Rotation.Pitch, 0.1F, 1.0F, "%.2f");
+                ImGui::SameLine();
+                ImGui::InputFloat("Rot. R", &Object->GetMutableTransform().Rotation.Roll, 0.1F, 1.0F, "%.2f");
+
+                if (ImGui::Button("Destroy"))
+                {
+                    Object->Destroy();
+                }
+
+                ImGui::Separator();
             }
         }
         ImGui::EndGroup();

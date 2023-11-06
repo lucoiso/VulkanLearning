@@ -22,6 +22,7 @@ RenderCore::Object::Object(std::uint32_t const ID, std::string_view const Path)
 
 RenderCore::Object::~Object()
 {
+    EngineCore::Get().UnloadScene({GetID()});
 }
 
 [[nodiscard]] std::uint32_t RenderCore::Object::GetID() const
@@ -37,6 +38,11 @@ RenderCore::Object::~Object()
 [[nodiscard]] std::string_view RenderCore::Object::GetName() const
 {
     return m_Name;
+}
+
+[[nodiscard]] Transform& RenderCore::Object::GetMutableTransform()
+{
+    return m_Transform;
 }
 
 [[nodiscard]] Transform const& RenderCore::Object::GetTransform() const
@@ -86,7 +92,5 @@ void RenderCore::Object::SetScale(Vector const& Scale)
 
 void RenderCore::Object::Destroy()
 {
-    OnBeginDestruction();
     EngineCore::Get().UnloadScene({GetID()});
-    OnPostDestruction();
 }

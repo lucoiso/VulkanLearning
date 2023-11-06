@@ -40,6 +40,12 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow* const Window, std:
     Camera& Camera                                = GetViewportCamera();
     CameraMovementStateFlags CurrentMovementState = Camera.GetCameraMovementStateFlags();
 
+    if (!g_CanMovementCamera)
+    {
+        Camera.SetCameraMovementStateFlags(CameraMovementStateFlags::NONE);
+        return;
+    }
+
     if (Action == GLFW_PRESS)
     {
         switch (Key)
@@ -103,7 +109,7 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
     static double LastCursorPosX = NewCursorPosX;
     static double LastCursorPosY = NewCursorPosY;
 
-    g_CanMovementCamera = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_LEFT) != GLFW_RELEASE && !ImGui::GetIO().WantCaptureMouse;
+    g_CanMovementCamera = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_RIGHT) != GLFW_RELEASE && !ImGui::GetIO().WantCaptureMouse;
 
     if (g_CanMovementCamera)
     {
@@ -111,7 +117,7 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
 
         Camera& Camera {GetViewportCamera()};
 
-        float const Sensitivity {Camera.GetSensitivity()};
+        float const Sensitivity {Camera.GetSensitivity() * 0.1F};
 
         float const OffsetX {static_cast<float>(NewCursorPosX - LastCursorPosX) * Sensitivity};
         float const OffsetY {static_cast<float>(LastCursorPosY - NewCursorPosY) * Sensitivity};

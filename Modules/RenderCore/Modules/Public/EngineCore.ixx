@@ -10,6 +10,7 @@ module;
 export module RenderCore.EngineCore;
 
 export import <cstdint>;
+export import <memory>;
 export import <vector>;
 export import <optional>;
 export import <string_view>;
@@ -31,7 +32,7 @@ namespace RenderCore
         };
 
         EngineCoreStateFlags m_StateFlags {EngineCoreStateFlags::NONE};
-        std::vector<Object> m_Objects {};
+        std::vector<std::shared_ptr<Object>> m_Objects {};
 
         friend class Window;
 
@@ -57,6 +58,6 @@ namespace RenderCore
         [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view);
         void UnloadAllScenes();
 
-        [[nodiscard]] std::vector<Object> const& GetObjects() const;
+        [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;
     };
 }// namespace RenderCore

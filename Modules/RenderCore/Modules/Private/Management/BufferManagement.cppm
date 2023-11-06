@@ -1005,17 +1005,17 @@ void RenderCore::UpdateUniformBuffers()
     glm::mat4 Projection        = glm::perspective(glm::radians(45.F), static_cast<float>(Width) / static_cast<float>(Height), 0.1F, 100.F);
     Projection[1][1] *= -1;
 
-    for (Object const& ObjectIter: EngineCore::Get().GetObjects())
+    for (std::shared_ptr<Object> const& ObjectIter: EngineCore::Get().GetObjects())
     {
-        if (!ContainsObject(ObjectIter.GetID()))
+        if (!ObjectIter || !ContainsObject(ObjectIter->GetID()))
         {
             continue;
         }
 
-        if (void* UniformBufferData = GetUniformData(ObjectIter.GetID()))
+        if (void* UniformBufferData = GetUniformData(ObjectIter->GetID()))
         {
             UniformBufferObject const UpdatedUBO {
-                    .Model      = ObjectIter.GetMatrix(),
+                    .Model      = ObjectIter->GetMatrix(),
                     .View       = GetViewportCamera().GetMatrix(),
                     .Projection = Projection};
 

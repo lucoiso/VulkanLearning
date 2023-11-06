@@ -69,7 +69,7 @@ void RenderCore::Camera::SetCameraMovementStateFlags(CameraMovementStateFlags co
 
 void RenderCore::Camera::UpdateCameraMovement(float const DeltaTime)
 {
-    float const CameraSpeed {GetSpeed()};
+    float const CameraSpeed {GetSpeed() * 0.01F};
     Vector const CameraFront {m_CameraRotation.GetFront()};
     Vector const CameraRight {m_CameraRotation.GetRight()};
 

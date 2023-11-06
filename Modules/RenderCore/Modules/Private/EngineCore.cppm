@@ -252,9 +252,9 @@ void RenderCore::EngineCore::Tick(double const DeltaTime)
         return;
     }
 
-    for (Object& ObjectIter: m_Objects)
+    for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
     {
-        ObjectIter.Tick(DeltaTime);
+        ObjectIter->Tick(DeltaTime);
     }
 }
 
@@ -355,7 +355,7 @@ std::vector<std::uint32_t> RenderCore::EngineCore::LoadScene(std::string_view co
     std::vector<std::uint32_t> LoadedObjects = AllocateScene(ObjectPath, TexturePath).Get();
     for (std::uint32_t const ObjectIDIter: LoadedObjects)
     {
-        m_Objects.emplace_back(ObjectIDIter, ObjectPath);
+        m_Objects.emplace_back(std::make_shared<Object>(ObjectIDIter, ObjectPath));
     }
 
     AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
@@ -377,8 +377,8 @@ void RenderCore::EngineCore::UnloadScene(std::vector<std::uint32_t> const& Objec
 
     for (std::uint32_t const ObjectID: ObjectIDs)
     {
-        std::erase_if(m_Objects, [ObjectID](Object const& ObjectIter) {
-            return ObjectIter.GetID() == ObjectID;
+        std::erase_if(m_Objects, [ObjectID](std::shared_ptr<Object> const& ObjectIter) {
+            return !ObjectIter || ObjectIter->GetID() == ObjectID;
         });
     }
 
@@ -393,14 +393,18 @@ std::vector<std::uint32_t> RenderCore::EngineCore::LoadScene(std::string_view co
 void RenderCore::EngineCore::UnloadAllScenes()
 {
     std::vector<std::uint32_t> LoadedIDs {};
-    for (Object const& ObjectIter: m_Objects)
+    for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
     {
-        LoadedIDs.push_back(ObjectIter.GetID());
+        if (ObjectIter)
+        {
+            LoadedIDs.push_back(ObjectIter->GetID());
+        }
     }
     UnloadScene(LoadedIDs);
+    m_Objects.clear();
 }
 
-std::vector<Object> const& RenderCore::EngineCore::GetObjects() const
+std::vector<std::shared_ptr<Object>> const& RenderCore::EngineCore::GetObjects() const
 {
     return m_Objects;
 }

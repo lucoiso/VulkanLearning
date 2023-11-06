@@ -36,6 +36,7 @@ namespace RenderCore
         [[nodiscard]] std::string_view GetName() const;
 
         [[nodiscard]] Transform const& GetTransform() const;
+        [[nodiscard]] Transform& GetMutableTransform();
         void SetTransform(Transform const& Value);
 
         [[nodiscard]] Vector GetPosition() const;
@@ -50,10 +51,6 @@ namespace RenderCore
         [[nodiscard]] glm::mat4 GetMatrix() const;
 
         virtual void Tick(double) {};
-        virtual void OnPostLoad() {};
-        virtual void OnBeginDestruction() {};
-        virtual void OnPostDestruction() {};
-
         void Destroy();
     };
 }// namespace RenderCore

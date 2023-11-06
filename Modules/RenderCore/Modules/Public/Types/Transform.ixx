@@ -10,6 +10,8 @@ module;
 
 export module RenderCore.Types.Transform;
 
+export import <string>;
+
 namespace RenderCore
 {
     export struct RENDERCOREMODULE_API Vector
@@ -208,6 +210,11 @@ namespace RenderCore
                     Z * Value.X - X * Value.Z,
                     X * Value.Y - Y * Value.X};
         }
+
+        [[nodiscard]] std::string ToString()
+        {
+            return std::to_string(X) + ", " + std::to_string(Y) + ", " + std::to_string(Z);
+        }
     };
 
     export [[nodiscard]] Vector operator*(float const Value, Vector const& Vector)
@@ -403,6 +410,11 @@ namespace RenderCore
         {
             return GetFront().CrossInline(GetRight());
         }
+
+        [[nodiscard]] std::string ToString()
+        {
+            return std::to_string(Pitch) + ", " + std::to_string(Yaw) + ", " + std::to_string(Roll);
+        }
     };
 
     export [[nodiscard]] Rotator operator*(float const Value, Rotator const& Rotator)
@@ -553,6 +565,11 @@ namespace RenderCore
             TransformMatrix = glm::rotate(TransformMatrix, glm::radians(Rotation.Yaw), glm::vec3(0.F, 1.F, 0.F));
             TransformMatrix = glm::rotate(TransformMatrix, glm::radians(Rotation.Roll), glm::vec3(0.F, 0.F, 1.F));
             return TransformMatrix;
+        }
+
+        [[nodiscard]] std::string ToString()
+        {
+            return Position.ToString() + ", " + Scale.ToString() + ", " + Rotation.ToString();
         }
     };
 }// namespace RenderCore
