@@ -5,9 +5,7 @@
 module;
 
 #include "RenderCoreModule.h"
-
 #include <glm/ext.hpp>
-#include <utility>
 
 export module RenderCore.Types.Object;
 
@@ -20,8 +18,8 @@ namespace RenderCore
     export class RENDERCOREMODULE_API Object
     {
         std::uint32_t m_ID {};
-        std::string m_Name {};
         std::string m_Path {};
+        std::string m_Name {};
         Transform m_Transform {};
 
     public:
@@ -30,77 +28,32 @@ namespace RenderCore
         Object(Object const&)            = default;
         Object& operator=(Object const&) = default;
 
-        Object(std::uint32_t const ID, std::string_view const Path)
-            : m_ID(ID), m_Path(Path)
-        {
-            m_Name = m_Path.substr(m_Path.find_last_of('/') + 1, m_Path.find_last_of('.') - m_Path.find_last_of('/') - 1);
-        }
+        Object(std::uint32_t, std::string_view);
+        virtual ~Object();
 
-        [[nodiscard]] std::uint32_t GetID() const
-        {
-            return m_ID;
-        }
+        [[nodiscard]] std::uint32_t GetID() const;
+        [[nodiscard]] std::string_view GetPath() const;
+        [[nodiscard]] std::string_view GetName() const;
 
-        [[nodiscard]] std::string_view GetPath() const
-        {
-            return m_Path;
-        }
+        [[nodiscard]] Transform const& GetTransform() const;
+        void SetTransform(Transform const& Value);
 
-        [[nodiscard]] std::string_view GetName() const
-        {
-            return m_Name;
-        }
+        [[nodiscard]] Vector GetPosition() const;
+        void SetPosition(Vector const& Position);
 
-        virtual ~Object() = default;
+        [[nodiscard]] Rotator GetRotation() const;
+        void SetRotation(Rotator const& Rotation);
 
-        [[nodiscard]] Transform& GetTransform()
-        {
-            return m_Transform;
-        }
+        [[nodiscard]] Vector GetScale() const;
+        void SetScale(Vector const& Scale);
 
-        [[nodiscard]] Transform const& GetTransform() const
-        {
-            return m_Transform;
-        }
+        [[nodiscard]] glm::mat4 GetMatrix() const;
 
-        void SetTransform(Transform const& Value)
-        {
-            m_Transform = Value;
-        }
+        virtual void Tick(float) {};
+        virtual void OnPostLoad() {};
+        virtual void OnBeginDestruction() {};
+        virtual void OnPostDestruction() {};
 
-        [[nodiscard]] Vector GetPosition() const
-        {
-            return m_Transform.Position;
-        }
-
-        void SetPosition(Vector const& Position)
-        {
-            m_Transform.Position = Position;
-        }
-
-        [[nodiscard]] Rotator GetRotation() const
-        {
-            return m_Transform.Rotation;
-        }
-
-        void SetRotation(Rotator const& Rotation)
-        {
-            m_Transform.Rotation = Rotation;
-        }
-
-        [[nodiscard]] Vector GetScale() const
-        {
-            return m_Transform.Scale;
-        }
-
-        void SetScale(Vector const& Scale)
-        {
-            m_Transform.Scale = Scale;
-        }
-
-        [[nodiscard]] glm::mat4 GetMatrix() const
-        {
-            return m_Transform.ToGlmMat4();
-        }
+        void Destroy();
     };
 }// namespace RenderCore

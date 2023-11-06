@@ -32,53 +32,14 @@ import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
 import RenderCore.Utils.DebugHelpers;
 import RenderCore.Utils.Constants;
-import RenderCore.Types.Object;
 
 using namespace RenderCore;
 
-enum class EngineCoreStateFlags : std::uint8_t
-{
-    NONE                             = 0,
-    INITIALIZED                      = 1 << 0,
-    PENDING_DEVICE_PROPERTIES_UPDATE = 1 << 1,
-    PENDING_RESOURCES_DESTRUCTION    = 1 << 2,
-    PENDING_RESOURCES_CREATION       = 1 << 3,
-    PENDING_PIPELINE_REFRESH         = 1 << 4,
-};
-
-std::vector<Object> g_Objects {};
 VkInstance g_Instance {VK_NULL_HANDLE};
-VkSurfaceKHR g_Surface {VK_NULL_HANDLE};
-EngineCoreStateFlags g_StateFlags {EngineCoreStateFlags::NONE};
 
 #ifdef _DEBUG
 VkDebugUtilsMessengerEXT g_DebugMessenger {VK_NULL_HANDLE};
 #endif
-
-std::optional<std::int32_t> TryRequestDrawImage()
-{
-    if (!GetDeviceProperties().IsValid())
-    {
-        AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
-        AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-
-        return std::nullopt;
-    }
-    RemoveFlags(g_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
-
-    std::optional<std::int32_t> const Output = RequestSwapChainImage();
-
-    if (!Output.has_value())
-    {
-        AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-    }
-    else
-    {
-        RemoveFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-    }
-
-    return Output;
-}
 
 std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders()
 {
@@ -96,7 +57,7 @@ std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders()
         if (std::vector<std::uint32_t> FragmentShaderCode;
             CompileOrLoadIfExists(FragmentShaderIter, FragmentShaderCode))
         {
-            VkShaderModule const FragmentModule = CreateModule(VulkanLogicalDevice, FragmentShaderCode, EShLangFragment);
+            auto const FragmentModule = CreateModule(VulkanLogicalDevice, FragmentShaderCode, EShLangFragment);
             ShaderStages.push_back(GetStageInfo(FragmentModule));
         }
     }
@@ -106,7 +67,7 @@ std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders()
         if (std::vector<std::uint32_t> VertexShaderCode;
             CompileOrLoadIfExists(VertexShaderIter, VertexShaderCode))
         {
-            VkShaderModule const VertexModule = CreateModule(VulkanLogicalDevice, VertexShaderCode, EShLangVertex);
+            auto const VertexModule = CreateModule(VulkanLogicalDevice, VertexShaderCode, EShLangVertex);
             ShaderStages.push_back(GetStageInfo(VertexModule));
         }
     }
@@ -162,18 +123,6 @@ void CreateVulkanInstance()
 #endif
 }
 
-void CreateVulkanSurface(GLFWwindow* const Window)
-{
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan surface";
-
-    if (g_Instance == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan instance is invalid.");
-    }
-
-    CheckVulkanResult(glfwCreateWindowSurface(g_Instance, Window, nullptr, &g_Surface));
-}
-
 void InitializeRenderCore(GLFWwindow* const Window)
 {
     PickPhysicalDevice();
@@ -187,16 +136,133 @@ void InitializeRenderCore(GLFWwindow* const Window)
     CreateRenderPass();
 
     InitializeImGui(Window);
-
-    AddFlags(g_StateFlags, EngineCoreStateFlags::INITIALIZED);
-    AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
 }
 
-void RenderCore::InitializeEngine(GLFWwindow* const Window)
+void RenderCore::EngineCore::DrawFrame(GLFWwindow* const Window)
+{
+    if (!IsEngineInitialized())
+    {
+        return;
+    }
+
+    if (Window == nullptr)
+    {
+        throw std::runtime_error("Window is invalid");
+    }
+
+    constexpr RenderCore::EngineCore::EngineCoreStateFlags
+            InvalidStatesToRender
+            = RenderCore::EngineCore::EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE
+              | RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION
+              | RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_CREATION
+              | RenderCore::EngineCore::EngineCoreStateFlags::PENDING_PIPELINE_REFRESH;
+
+    if (HasAnyFlag(m_StateFlags, InvalidStatesToRender))
+    {
+        if (HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION))
+        {
+            DestroyCommandsSynchronizationObjects();
+            DestroyBufferResources(false);
+            ReleaseDynamicPipelineResources();
+
+            RemoveFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+            AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+        }
+
+        if (HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
+        {
+            if (UpdateDeviceProperties(Window))
+            {
+                BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Device properties updated, starting to draw frames with new properties";
+                RemoveFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+            }
+        }
+
+        if (HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_CREATION) && !HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
+        {
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
+            CreateSwapChain();
+            CreateDepthResources();
+            CreateCommandsSynchronizationObjects();
+
+            RemoveFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+            AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
+        }
+
+        if (HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_PIPELINE_REFRESH))
+        {
+            CreateDescriptorSetLayout();
+            CreateGraphicsPipeline();
+
+            CreateFrameBuffers();
+
+            CreateDescriptorPool();
+            CreateDescriptorSets();
+
+            RemoveFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
+        }
+    }
+
+    if (!HasAnyFlag(m_StateFlags, InvalidStatesToRender))
+    {
+        if (std::optional<std::int32_t> const ImageIndice = TryRequestDrawImage();
+            ImageIndice.has_value())
+        {
+            RecordCommandBuffers(ImageIndice.value());
+            SubmitCommandBuffers();
+            PresentFrame(ImageIndice.value());
+        }
+    }
+}
+
+std::optional<std::int32_t> RenderCore::EngineCore::TryRequestDrawImage()
+{
+    if (!GetDeviceProperties().IsValid())
+    {
+        AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+        AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+
+        return std::nullopt;
+    }
+    RemoveFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+
+    std::optional<std::int32_t> const Output = RequestSwapChainImage();
+
+    if (!Output.has_value())
+    {
+        AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    }
+    else
+    {
+        RemoveFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    }
+
+    return Output;
+}
+
+void RenderCore::EngineCore::Tick(float const DeltaTime)
+{
+    if (!IsEngineInitialized())
+    {
+        return;
+    }
+
+    if (DeltaTime <= 0.0f)
+    {
+        return;
+    }
+
+    for (Object& ObjectIter: m_Objects)
+    {
+        ObjectIter.Tick(DeltaTime);
+    }
+}
+
+bool RenderCore::EngineCore::InitializeEngine(GLFWwindow* const Window)
 {
     if (IsEngineInitialized())
     {
-        return;
+        return false;
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulkan engine core";
@@ -220,16 +286,21 @@ void RenderCore::InitializeEngine(GLFWwindow* const Window)
     CreateVulkanInstance();
     CreateVulkanSurface(Window);
     InitializeRenderCore(Window);
+
+    AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::INITIALIZED);
+    AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+
+    return UpdateDeviceProperties(Window) && IsEngineInitialized();
 }
 
-void RenderCore::ShutdownEngine()
+void RenderCore::EngineCore::ShutdownEngine()
 {
     if (!IsEngineInitialized())
     {
         return;
     }
 
-    RemoveFlags(g_StateFlags, EngineCoreStateFlags::INITIALIZED);
+    RemoveFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::INITIALIZED);
 
     ReleaseImGuiResources();
     ReleaseShaderResources();
@@ -250,98 +321,24 @@ void RenderCore::ShutdownEngine()
     }
 #endif
 
-    vkDestroySurfaceKHR(g_Instance, g_Surface, nullptr);
-    g_Surface = VK_NULL_HANDLE;
-
     vkDestroyInstance(g_Instance, nullptr);
     g_Instance = VK_NULL_HANDLE;
 
-    g_Objects.clear();
+    m_Objects.clear();
 }
 
-void RenderCore::DrawFrame(GLFWwindow* const Window)
+EngineCore& RenderCore::EngineCore::Get()
 {
-    if (!IsEngineInitialized())
-    {
-        return;
-    }
-
-    if (Window == nullptr)
-    {
-        throw std::runtime_error("Window is invalid");
-    }
-
-    constexpr EngineCoreStateFlags
-            InvalidStatesToRender
-            = EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE
-              | EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION
-              | EngineCoreStateFlags::PENDING_RESOURCES_CREATION
-              | EngineCoreStateFlags::PENDING_PIPELINE_REFRESH;
-
-    if (HasAnyFlag(g_StateFlags, InvalidStatesToRender))
-    {
-        if (HasFlag(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION))
-        {
-            DestroyCommandsSynchronizationObjects();
-            DestroyBufferResources(false);
-            ReleaseDynamicPipelineResources();
-
-            RemoveFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-            AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
-        }
-
-        if (HasFlag(g_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
-        {
-            if (UpdateDeviceProperties(Window))
-            {
-                BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Device properties updated, starting to draw frames with new properties";
-                RemoveFlags(g_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
-            }
-        }
-
-        if (HasFlag(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION) && !HasFlag(g_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
-        {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
-            CreateSwapChain();
-            CreateDepthResources();
-            CreateCommandsSynchronizationObjects();
-
-            RemoveFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
-            AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
-        }
-
-        if (HasFlag(g_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH))
-        {
-            CreateDescriptorSetLayout();
-            CreateGraphicsPipeline();
-
-            CreateFrameBuffers();
-
-            CreateDescriptorPool();
-            CreateDescriptorSets();
-
-            RemoveFlags(g_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
-        }
-    }
-
-    if (!HasAnyFlag(g_StateFlags, InvalidStatesToRender))
-    {
-        if (std::optional<std::int32_t> const ImageIndice = TryRequestDrawImage();
-            ImageIndice.has_value())
-        {
-            RecordCommandBuffers(ImageIndice.value());
-            SubmitCommandBuffers();
-            PresentFrame(ImageIndice.value());
-        }
-    }
+    static EngineCore Instance;
+    return Instance;
 }
 
-bool RenderCore::IsEngineInitialized()
+bool RenderCore::EngineCore::IsEngineInitialized() const
 {
-    return HasFlag(g_StateFlags, EngineCoreStateFlags::INITIALIZED);
+    return HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::INITIALIZED);
 }
 
-std::list<std::uint32_t> RenderCore::LoadScene(std::string_view const ObjectPath, std::string_view const TexturePath)
+std::vector<std::uint32_t> RenderCore::EngineCore::LoadScene(std::string_view const ObjectPath, std::string_view const TexturePath)
 {
     if (!IsEngineInitialized())
     {
@@ -355,19 +352,19 @@ std::list<std::uint32_t> RenderCore::LoadScene(std::string_view const ObjectPath
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
 
-    std::list<std::uint32_t> const LoadedObjects = AllocateScene(ObjectPath, TexturePath);
+    std::vector<std::uint32_t> LoadedObjects = AllocateScene(ObjectPath, TexturePath).Get();
     for (std::uint32_t const ObjectIDIter: LoadedObjects)
     {
-        g_Objects.emplace_back(ObjectIDIter, ObjectPath);
+        m_Objects.emplace_back(ObjectIDIter, ObjectPath);
     }
 
-    AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-    AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+    AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
 
     return LoadedObjects;
 }
 
-void RenderCore::UnloadScene(std::list<std::uint32_t> const& ObjectIDs)
+void RenderCore::EngineCore::UnloadScene(std::vector<std::uint32_t> const& ObjectIDs)
 {
     if (!IsEngineInitialized())
     {
@@ -376,24 +373,34 @@ void RenderCore::UnloadScene(std::list<std::uint32_t> const& ObjectIDs)
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading scene...";
 
-    ReleaseScene(ObjectIDs);
+    ReleaseScene(ObjectIDs).Get();
 
     for (std::uint32_t const ObjectID: ObjectIDs)
     {
-        std::erase_if(g_Objects, [ObjectID](Object const& ObjectIter) {
+        std::erase_if(m_Objects, [ObjectID](Object const& ObjectIter) {
             return ObjectIter.GetID() == ObjectID;
         });
     }
 
-    AddFlags(g_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
 }
 
-std::vector<Object> const& RenderCore::GetObjects()
+std::vector<std::uint32_t> RenderCore::EngineCore::LoadScene(std::string_view const ObjectPath)
 {
-    return g_Objects;
+    return LoadScene(ObjectPath, "");
 }
 
-VkSurfaceKHR& RenderCore::GetSurface()
+void RenderCore::EngineCore::UnloadAllScenes()
 {
-    return g_Surface;
+    std::vector<std::uint32_t> LoadedIDs {};
+    for (Object const& ObjectIter: m_Objects)
+    {
+        LoadedIDs.push_back(ObjectIter.GetID());
+    }
+    UnloadScene(LoadedIDs);
+}
+
+std::vector<Object> const& RenderCore::EngineCore::GetObjects() const
+{
+    return m_Objects;
 }

@@ -11,7 +11,7 @@ export module Unit.RenderCore;
 import RenderCore.Tests.SharedUtils;
 
 import RenderCore.Window;
-import RenderCore.Utils.RenderUtils;
+import RenderCore.EngineCore;
 
 TEST_CASE("Window Status", "[RenderCore]")
 {
@@ -36,10 +36,7 @@ TEST_CASE("Scene Management", "[RenderCore]")
 {
     ScopedWindow Window;
 
-    auto const LoadedIDs = RenderCore::GetLoadedIDs();
-    REQUIRE_FALSE(std::empty(LoadedIDs));
-
-    auto const& LoadedObjects = RenderCore::GetLoadedObjects();
+    auto const& LoadedObjects = RenderCore::EngineCore::Get().GetObjects();
     REQUIRE_FALSE(std::empty(LoadedObjects));
 
     std::string const DefaultObjectPath(LoadedObjects[0].GetPath());
@@ -52,14 +49,13 @@ TEST_CASE("Scene Management", "[RenderCore]")
 
     SECTION("Unload Default Scene")
     {
-        RenderCore::UnloadObject(LoadedIDs);
-        REQUIRE(std::empty(RenderCore::GetLoadedIDs()));
+        RenderCore::EngineCore::Get().UnloadAllScenes();
         REQUIRE(std::empty(LoadedObjects));
     }
 
     SECTION("Load Default Scene")
     {
-        auto const NewLoadedIDs = RenderCore::LoadObject(DefaultObjectPath, "");
+        auto const NewLoadedIDs = RenderCore::EngineCore::Get().LoadScene(DefaultObjectPath);
         REQUIRE_FALSE(std::empty(NewLoadedIDs));
         REQUIRE_FALSE(std::empty(LoadedObjects));
 

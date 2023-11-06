@@ -22,6 +22,11 @@ module;
 #endif
 #include <stb_image.h>
 
+#ifdef GLFW_INCLUDE_VULKAN
+#undef GLFW_INCLUDE_VULKAN
+#endif
+#include <GLFW/glfw3.h>
+
 module RenderCore.Management.BufferManagement;
 
 import <filesystem>;
@@ -135,6 +140,7 @@ namespace Allocation
     };
 }// namespace Allocation
 
+VkSurfaceKHR g_Surface {VK_NULL_HANDLE};
 VmaAllocator g_Allocator {VK_NULL_HANDLE};
 VkSwapchainKHR g_SwapChain {VK_NULL_HANDLE};
 VkSwapchainKHR g_OldSwapChain {VK_NULL_HANDLE};
@@ -538,6 +544,13 @@ void LoadTexture(Allocation::ObjectAllocation& Object, std::string_view const Te
     Object.TextureImage = AllocateTexture(ImagePixels, static_cast<std::uint32_t>(Width), static_cast<std::uint32_t>(Height), AllocationSize);
 }
 
+void RenderCore::CreateVulkanSurface(GLFWwindow* const Window)
+{
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan surface";
+
+    CheckVulkanResult(glfwCreateWindowSurface(volkGetLoadedInstance(), Window, nullptr, &g_Surface));
+}
+
 void RenderCore::CreateMemoryAllocator()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan memory allocator";
@@ -686,7 +699,7 @@ void CreateUniformBuffers(Allocation::ObjectAllocation& Object)
     CreateUniformBuffer(Object, BufferSize);
 }
 
-std::list<std::uint32_t> RenderCore::AllocateScene(std::string_view const ModelPath, std::string_view const TexturePath)
+AsyncOperation<std::vector<std::uint32_t>> RenderCore::AllocateScene(std::string_view const ModelPath, std::string_view const TexturePath)
 {
     Assimp::Importer Importer;
     aiScene const* const Scene = Importer.ReadFile(ModelPath.data(), (aiProcessPreset_TargetRealtime_Fast | aiProcess_FlipUVs));
@@ -705,7 +718,7 @@ std::list<std::uint32_t> RenderCore::AllocateScene(std::string_view const ModelP
         std::vector<std::uint32_t> Indices {};
     };
 
-    std::list<InternalObjectData> LoadedMeshes(Scene->mNumMeshes);
+    std::vector<InternalObjectData> LoadedMeshes(Scene->mNumMeshes);
     auto LoadedMeshIterator = std::begin(LoadedMeshes);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading Meshes: '" << Scene->mNumMeshes << "'";
@@ -783,7 +796,7 @@ std::list<std::uint32_t> RenderCore::AllocateScene(std::string_view const ModelP
         WorkerThreadIter.join();
     }
 
-    std::list<std::uint32_t> Output(std::size(LoadedMeshes));
+    std::vector<std::uint32_t> Output(std::size(LoadedMeshes));
     auto OutputIterator = Output.begin();
     for (auto& [ID, Vertices, Indices]: LoadedMeshes)
     {
@@ -799,18 +812,19 @@ std::list<std::uint32_t> RenderCore::AllocateScene(std::string_view const ModelP
 
         *OutputIterator = ID;
         ++OutputIterator;
+        co_yield Output;
     }
 
-    return Output;
+    co_return Output;
 }
 
-void RenderCore::ReleaseScene(std::list<std::uint32_t> const& ObjectIDs)
+AsyncTask RenderCore::ReleaseScene(std::vector<std::uint32_t> const& ObjectIDs)
 {
     for (std::uint32_t const ObjectIDIter: ObjectIDs)
     {
         if (!g_Objects.contains(ObjectIDIter))
         {
-            return;
+            co_return;
         }
 
         g_Objects.at(ObjectIDIter).DestroyResources();
@@ -821,6 +835,8 @@ void RenderCore::ReleaseScene(std::list<std::uint32_t> const& ObjectIDs)
     {
         g_ObjectIDCounter = 0U;
     }
+
+    co_return;
 }
 
 void RenderCore::ReleaseBufferResources()
@@ -836,6 +852,9 @@ void RenderCore::ReleaseBufferResources()
     }
 
     DestroyBufferResources(true);
+
+    vkDestroySurfaceKHR(volkGetLoadedInstance(), g_Surface, nullptr);
+    g_Surface = VK_NULL_HANDLE;
 
     vmaDestroyAllocator(g_Allocator);
     g_Allocator = VK_NULL_HANDLE;
@@ -873,6 +892,11 @@ void RenderCore::DestroyBufferResources(bool const ClearScene)
         }
         g_Objects.clear();
     }
+}
+
+VkSurfaceKHR& RenderCore::GetSurface()
+{
+    return g_Surface;
 }
 
 VmaAllocator const& RenderCore::GetAllocator()
@@ -940,9 +964,9 @@ bool RenderCore::ContainsObject(std::uint32_t const ID)
     return g_Objects.contains(ID);
 }
 
-std::list<TextureData> RenderCore::GetAllocatedTextures()
+std::vector<TextureData> RenderCore::GetAllocatedTextures()
 {
-    std::list<TextureData> Output;
+    std::vector<TextureData> Output;
     for (auto const& [Key, Value]: g_Objects)
     {
         Output.push_back(
@@ -955,9 +979,9 @@ std::list<TextureData> RenderCore::GetAllocatedTextures()
     return Output;
 }
 
-std::list<ObjectData> RenderCore::GetAllocatedObjects()
+std::vector<ObjectData> RenderCore::GetAllocatedObjects()
 {
-    std::list<ObjectData> Output;
+    std::vector<ObjectData> Output;
     for (auto const& [Key, Value]: g_Objects)
     {
         if (!Value.UniformBuffer.Allocation)
@@ -981,7 +1005,7 @@ void RenderCore::UpdateUniformBuffers()
     glm::mat4 Projection        = glm::perspective(glm::radians(45.F), static_cast<float>(Width) / static_cast<float>(Height), 0.1F, 100.F);
     Projection[1][1] *= -1;
 
-    for (Object const& ObjectIter: GetObjects())
+    for (Object const& ObjectIter: EngineCore::Get().GetObjects())
     {
         if (!ContainsObject(ObjectIter.GetID()))
         {

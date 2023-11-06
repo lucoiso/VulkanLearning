@@ -12,7 +12,7 @@ module RenderCore.Management.DeviceManagement;
 
 import <optional>;
 
-import RenderCore.EngineCore;
+import RenderCore.Management.BufferManagement;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.EnumConverter;
@@ -25,7 +25,7 @@ DeviceProperties g_DeviceProperties {};
 std::pair<std::uint8_t, VkQueue> g_GraphicsQueue {};
 std::pair<std::uint8_t, VkQueue> g_PresentationQueue {};
 std::pair<std::uint8_t, VkQueue> g_TransferQueue {};
-std::list<std::uint8_t> g_UniqueQueueFamilyIndices {};
+std::vector<std::uint8_t> g_UniqueQueueFamilyIndices {};
 
 bool GetQueueFamilyIndices(std::optional<std::uint8_t>& GraphicsQueueFamilyIndex,
                            std::optional<std::uint8_t>& PresentationQueueFamilyIndex,
@@ -327,13 +327,13 @@ bool RenderCore::UpdateDeviceProperties(GLFWwindow* const Window)
 {
     g_DeviceProperties.Capabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
 
-    std::list<VkSurfaceFormatKHR> const SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats();
+    std::vector<VkSurfaceFormatKHR> const SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats();
     if (std::empty(SupportedFormats))
     {
         throw std::runtime_error("No supported surface formats found.");
     }
 
-    std::list<VkPresentModeKHR> const SupportedPresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes();
+    std::vector<VkPresentModeKHR> const SupportedPresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes();
     if (std::empty(SupportedFormats))
     {
         throw std::runtime_error("No supported presentation modes found.");
@@ -450,7 +450,7 @@ void RenderCore::ReleaseDeviceResources()
     g_TransferQueue.second     = VK_NULL_HANDLE;
 }
 
-std::list<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
+std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
 {
     VkInstance const& VulkanInstance = volkGetLoadedInstance();
 
@@ -460,10 +460,10 @@ std::list<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
     std::vector<VkPhysicalDevice> Output(DeviceCount, VK_NULL_HANDLE);
     CheckVulkanResult(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, Output.data()));
 
-    return {std::make_move_iterator(std::begin(Output)), std::make_move_iterator(std::end(Output))};
+    return Output;
 }
 
-std::list<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceExtensions()
+std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceExtensions()
 {
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -476,10 +476,10 @@ std::list<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceExtension
     std::vector<VkExtensionProperties> Output(ExtensionsCount);
     CheckVulkanResult(vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, nullptr, &ExtensionsCount, Output.data()));
 
-    return {std::make_move_iterator(std::begin(Output)), std::make_move_iterator(std::end(Output))};
+    return Output;
 }
 
-std::list<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers()
+std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers()
 {
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -492,17 +492,17 @@ std::list<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers()
     std::vector<VkLayerProperties> Output(LayersCount);
     CheckVulkanResult(vkEnumerateDeviceLayerProperties(g_PhysicalDevice, &LayersCount, Output.data()));
 
-    return {std::make_move_iterator(std::begin(Output)), std::make_move_iterator(std::end(Output))};
+    return Output;
 }
 
-std::list<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(std::string_view const LayerName)
+std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(std::string_view const LayerName)
 {
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    if (std::list<std::string> const AvailableLayers = GetAvailablePhysicalDeviceLayersNames();
+    if (std::vector<std::string> const AvailableLayers = GetAvailablePhysicalDeviceLayersNames();
         std::ranges::find(AvailableLayers, LayerName) == std::cend(AvailableLayers))
     {
         return {};
@@ -514,37 +514,37 @@ std::list<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExte
     std::vector<VkExtensionProperties> Output(ExtensionsCount);
     CheckVulkanResult(vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, LayerName.data(), &ExtensionsCount, Output.data()));
 
-    return {std::make_move_iterator(std::begin(Output)), std::make_move_iterator(std::end(Output))};
+    return Output;
 }
 
-std::list<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames()
+std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames()
 {
-    std::list<std::string> Output;
+    std::vector<std::string> Output;
     for (VkExtensionProperties const& ExtensionIter: GetAvailablePhysicalDeviceExtensions())
     {
-        Output.emplace_front(ExtensionIter.extensionName);
+        Output.emplace_back(ExtensionIter.extensionName);
     }
 
     return Output;
 }
 
-std::list<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view const LayerName)
+std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view const LayerName)
 {
-    std::list<std::string> Output;
+    std::vector<std::string> Output;
     for (VkExtensionProperties const& ExtensionIter: GetAvailablePhysicalDeviceLayerExtensions(LayerName))
     {
-        Output.emplace_front(ExtensionIter.extensionName);
+        Output.emplace_back(ExtensionIter.extensionName);
     }
 
     return Output;
 }
 
-std::list<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames()
+std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames()
 {
-    std::list<std::string> Output;
+    std::vector<std::string> Output;
     for (VkLayerProperties const& LayerIter: GetAvailablePhysicalDeviceLayers())
     {
-        Output.emplace_front(LayerIter.layerName);
+        Output.emplace_back(LayerIter.layerName);
     }
 
     return Output;
@@ -563,7 +563,7 @@ VkSurfaceCapabilitiesKHR RenderCore::GetAvailablePhysicalDeviceSurfaceCapabiliti
     return Output;
 }
 
-std::list<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFormats()
+std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFormats()
 {
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -578,10 +578,10 @@ std::list<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceForma
     std::vector Output(Count, VkSurfaceFormatKHR());
     CheckVulkanResult(vkGetPhysicalDeviceSurfaceFormatsKHR(g_PhysicalDevice, VulkanSurface, &Count, Output.data()));
 
-    return {std::make_move_iterator(std::begin(Output)), std::make_move_iterator(std::end(Output))};
+    return Output;
 }
 
-std::list<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePresentationModes()
+std::vector<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePresentationModes()
 {
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -596,7 +596,7 @@ std::list<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePresent
     std::vector Output(Count, VkPresentModeKHR());
     CheckVulkanResult(vkGetPhysicalDeviceSurfacePresentModesKHR(g_PhysicalDevice, VulkanSurface, &Count, Output.data()));
 
-    return {std::make_move_iterator(std::begin(Output)), std::make_move_iterator(std::end(Output))};
+    return Output;
 }
 
 VkDeviceSize RenderCore::GetMinUniformBufferOffsetAlignment()

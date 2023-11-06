@@ -22,7 +22,6 @@ import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.ImGuiManagement;
 import RenderCore.Types.Camera;
 import RenderCore.Utils.GLFWCallbacks;
-import RenderCore.Utils.RenderUtils;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 
@@ -57,18 +56,6 @@ bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::
     return g_Window != nullptr;
 }
 
-bool InitializeEngineCore()
-{
-    InitializeEngine(g_Window);
-
-    if (UpdateDeviceProperties(g_Window))
-    {
-        return IsEngineInitialized();
-    }
-
-    return false;
-}
-
 Window::Window()
     : m_RenderTimerManager(std::make_unique<Timer::Manager>())
 {
@@ -85,7 +72,7 @@ Window::~Window()
     }
 }
 
-GenericAsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, bool const bHeadless)
+AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, bool const bHeadless)
 {
     if (IsInitialized())
     {
@@ -94,14 +81,14 @@ GenericAsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::u
 
     try
     {
-        if (InitializeGLFW(Width, Height, Title, bHeadless) && InitializeEngineCore())
+        if (InitializeGLFW(Width, Height, Title, bHeadless) && EngineCore::Get().InitializeEngine(g_Window))
         {
             std::binary_semaphore Semaphore {0U};
             {
                 m_RenderTimerManager->SetTimer(
                         0U,
                         [this, &Semaphore]() {
-                            [[maybe_unused]] auto const _ = LoadObject(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+                            [[maybe_unused]] auto const _ = EngineCore::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
                             RequestRender();
                             Semaphore.release();
                         });
@@ -119,7 +106,7 @@ GenericAsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::u
     co_return false;
 }
 
-GenericAsyncTask Window::Shutdown()
+AsyncTask Window::Shutdown()
 {
     if (IsInitialized())
     {
@@ -128,7 +115,7 @@ GenericAsyncTask Window::Shutdown()
             m_RenderTimerManager->SetTimer(
                     0U,
                     [&Semaphore]() {
-                        ShutdownEngine();
+                        EngineCore::Get().ShutdownEngine();
                         Semaphore.release();
                     });
         }
@@ -148,7 +135,7 @@ GenericAsyncTask Window::Shutdown()
 
 bool Window::IsInitialized()
 {
-    return IsEngineInitialized();
+    return EngineCore::Get().IsEngineInitialized();
 }
 
 bool Window::IsOpen()
@@ -204,12 +191,12 @@ void Window::CreateOverlay()
             {
                 try
                 {
-                    UnloadObject(GetLoadedIDs());
+                    EngineCore::Get().UnloadAllScenes();
 
                     std::string const ModelPathInternal   = s_ModelPath.substr(0, s_ModelPath.find('\0'));
                     std::string const TexturePathInternal = s_TexturePath.substr(0, s_TexturePath.find('\0'));
 
-                    [[maybe_unused]] auto const _ = LoadObject(ModelPathInternal, TexturePathInternal);
+                    [[maybe_unused]] auto const _ = EngineCore::Get().LoadScene(ModelPathInternal, TexturePathInternal);
                 }
                 catch (std::exception const& Ex)
                 {
@@ -235,7 +222,7 @@ void Window::RequestRender()
             CreateOverlay();
         });
 
-        DrawFrame(g_Window);
+        EngineCore::Get().DrawFrame(g_Window);
 
         m_RenderTimerManager->SetTimer(
                 1000U / g_FrameRate,

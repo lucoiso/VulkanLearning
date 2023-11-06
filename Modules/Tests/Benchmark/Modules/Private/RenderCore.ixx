@@ -11,7 +11,7 @@ export module Benchmark.RenderCore;
 import RenderCore.Tests.SharedUtils;
 
 import RenderCore.Window;
-import RenderCore.Utils.RenderUtils;
+import RenderCore.EngineCore;
 
 static void InitializeWindow(benchmark::State& State)
 {
@@ -32,18 +32,16 @@ static void LoadAndUnloadScene(benchmark::State& State)
     ScopedWindow Window;
     benchmark::DoNotOptimize(Window);
 
-    auto const& LoadedObjects = RenderCore::GetLoadedObjects();
+    auto const& LoadedObjects = RenderCore::EngineCore::Get().GetObjects();
 
     std::string DefaultObjectPath(LoadedObjects[0].GetPath());
     benchmark::DoNotOptimize(DefaultObjectPath);
 
-    auto LoadedIDs = RenderCore::GetLoadedIDs();
-    benchmark::DoNotOptimize(LoadedIDs);
-
     for ([[maybe_unused]] auto const _: State)
     {
-        RenderCore::UnloadObject(LoadedIDs);
-        LoadedIDs = RenderCore::LoadObject(DefaultObjectPath, "");
+        RenderCore::EngineCore::Get().UnloadAllScenes();
+        [[maybe_unused]] auto LoadedIDs = RenderCore::EngineCore::Get().LoadScene(DefaultObjectPath);
+        benchmark::DoNotOptimize(LoadedIDs);
     }
 }
 

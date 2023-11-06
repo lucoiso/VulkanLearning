@@ -343,9 +343,9 @@ VkPipelineShaderStageCreateInfo RenderCore::GetStageInfo(VkShaderModule const& M
     return g_StageInfos.at(Module);
 }
 
-std::list<VkShaderModule> RenderCore::GetShaderModules()
+std::vector<VkShaderModule> RenderCore::GetShaderModules()
 {
-    std::list<VkShaderModule> Output;
+    std::vector<VkShaderModule> Output;
     for (auto const& ShaderModule: g_StageInfos | std::views::keys)
     {
         Output.push_back(ShaderModule);
