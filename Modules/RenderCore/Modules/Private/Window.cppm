@@ -234,25 +234,19 @@ void Window::CreateOverlay()
 
                 ImGui::Spacing();
 
-                ImGui::InputFloat("Pos. X", &Object->GetMutableTransform().Position.X, 0.1F, 1.0F, "%.2f");
-                ImGui::SameLine();
-                ImGui::InputFloat("Pos. Y", &Object->GetMutableTransform().Position.Y, 0.1F, 1.0F, "%.2f");
-                ImGui::SameLine();
-                ImGui::InputFloat("Pos. Z", &Object->GetMutableTransform().Position.Z, 0.1F, 1.0F, "%.2f");
+                float Position[3] = {Object->GetPosition().X, Object->GetPosition().Y, Object->GetPosition().Z};
+                ImGui::InputFloat3(std::format("{} Position", Object->GetName()).data(), &Position[0], "%.2f");
+                Object->SetPosition({Position[0], Position[1], Position[2]});
 
-                ImGui::InputFloat("Scl. X", &Object->GetMutableTransform().Scale.X, 0.1F, 1.0F, "%.2f");
-                ImGui::SameLine();
-                ImGui::InputFloat("Scl. Y", &Object->GetMutableTransform().Scale.Y, 0.1F, 1.0F, "%.2f");
-                ImGui::SameLine();
-                ImGui::InputFloat("Scl. Z", &Object->GetMutableTransform().Scale.Z, 0.1F, 1.0F, "%.2f");
+                float Scale[3] = {Object->GetScale().X, Object->GetScale().Y, Object->GetScale().Z};
+                ImGui::InputFloat3(std::format("{} Scale", Object->GetName()).data(), &Scale[0], "%.2f");
+                Object->SetScale({Scale[0], Scale[1], Scale[2]});
 
-                ImGui::InputFloat("Rot. Y", &Object->GetMutableTransform().Rotation.Yaw, 0.1F, 1.0F, "%.2f");
-                ImGui::SameLine();
-                ImGui::InputFloat("Rot. P", &Object->GetMutableTransform().Rotation.Pitch, 0.1F, 1.0F, "%.2f");
-                ImGui::SameLine();
-                ImGui::InputFloat("Rot. R", &Object->GetMutableTransform().Rotation.Roll, 0.1F, 1.0F, "%.2f");
+                float Rotation[3] = {Object->GetRotation().Pitch, Object->GetRotation().Yaw, Object->GetRotation().Roll};
+                ImGui::InputFloat3(std::format("{} Rotation", Object->GetName()).data(), &Rotation[0], "%.2f");
+                Object->SetRotation({Rotation[0], Rotation[1], Rotation[2]});
 
-                if (ImGui::Button("Destroy"))
+                if (ImGui::Button(std::format("Destroy {}", Object->GetName()).data()))
                 {
                     Object->Destroy();
                 }

@@ -13,9 +13,8 @@ export import <string_view>;
 export import <cstdint>;
 export import <vector>;
 
-export import RenderCore.Types.ObjectData;
-export import RenderCore.Types.TextureData;
-export import RenderCore.Types.UniformBufferObject;
+export import RenderCore.Types.Object;
+export import RenderCore.Types.ObjectBufferData;
 
 namespace RenderCore
 {
@@ -25,7 +24,7 @@ namespace RenderCore
     export void CreateFrameBuffers();
     export void CreateDepthResources();
 
-    export std::vector<std::uint32_t> AllocateScene(std::string_view const&);
+    export std::vector<Object> AllocateScene(std::string_view const&);
     export void ReleaseScene(std::vector<std::uint32_t> const&);
 
     export void DestroyBufferResources(bool);
@@ -41,8 +40,8 @@ namespace RenderCore
     export [[nodiscard]] std::uint32_t GetIndicesCount(std::uint32_t);
     export [[nodiscard]] void* GetUniformData(std::uint32_t);
     export [[nodiscard]] bool ContainsObject(std::uint32_t);
-    export [[nodiscard]] std::vector<TextureData> GetAllocatedTextures();
-    export [[nodiscard]] std::vector<ObjectData> GetAllocatedObjects();
+    export [[nodiscard]] std::vector<ObjectBufferData> GetAllocatedObjects();
+    export [[nodiscard]] std::uint32_t GetNumAllocations();
 
     export void UpdateUniformBuffers();
 }// namespace RenderCore

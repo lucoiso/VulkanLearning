@@ -42,6 +42,7 @@ import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.PipelineManagement;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
+import RenderCore.Types.UniformBufferObject;
 import RenderCore.Types.Vertex;
 import RenderCore.Types.Camera;
 import RenderCore.Types.Object;
@@ -56,6 +57,8 @@ namespace Allocation
         VkImageView View {VK_NULL_HANDLE};
         VkSampler Sampler {VK_NULL_HANDLE};
         VmaAllocation Allocation {VK_NULL_HANDLE};
+
+        TextureType Type {TextureType::BaseColor};
 
         [[nodiscard]] bool IsValid() const
         {
@@ -334,7 +337,7 @@ void CreateImageView(VkImage const& Image, VkFormat const& Format, VkImageAspect
 void CreateSwapChainImageViews(VkFormat const& ImageFormat)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan swap chain image views";
-    for (auto& [Image, View, Sampler, Allocation]: g_SwapChainImages)
+    for (auto& [Image, View, Sampler, Allocation, Type]: g_SwapChainImages)
     {
         CreateImageView(Image, ImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, View);
     }
@@ -702,11 +705,11 @@ void CreateUniformBuffers(Allocation::ObjectAllocation& Object)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan uniform buffers";
 
-    VkDeviceSize const BufferSize = sizeof(UniformBufferObject);
+    constexpr VkDeviceSize BufferSize = sizeof(UniformBufferObject);
     CreateUniformBuffer(Object, BufferSize);
 }
 
-std::vector<std::uint32_t> RenderCore::AllocateScene(std::string_view const& ModelPath)
+std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
 {
     tinygltf::Model Model {};
     tinygltf::TinyGLTF ModelLoader {};
@@ -737,6 +740,7 @@ std::vector<std::uint32_t> RenderCore::AllocateScene(std::string_view const& Mod
     struct InternalImageData
     {
         std::string Path {};
+        TextureType Type {TextureType::BaseColor};
         std::uint32_t Width {};
         std::uint32_t Height {};
         std::vector<unsigned char> Data {};
@@ -744,30 +748,39 @@ std::vector<std::uint32_t> RenderCore::AllocateScene(std::string_view const& Mod
 
     struct InternalObjectData
     {
-        std::uint32_t ID {};
         std::vector<Vertex> Vertices {};
         std::vector<std::uint32_t> Indices {};
+    };
+
+    struct ObjectPreprocessedData
+    {
+        std::uint32_t ID {};
+        std::string Name {};
+        Transform Transform {};
+
+        InternalObjectData ObjectData {};
         std::vector<InternalImageData> Textures {};
     };
 
-    std::vector<InternalObjectData> LoadedMeshes {};
+    std::vector<ObjectPreprocessedData> LoadedMeshes {};
     LoadedMeshes.reserve(std::size(Model.scenes));
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scenes: " << std::size(Model.scenes);
 
     for (std::int32_t SceneIndex = 0; SceneIndex < std::size(Model.scenes); ++SceneIndex)
     {
-        InternalObjectData ObjectData;
-        ObjectData.ID = g_ObjectIDCounter.fetch_add(1U);
-
         const tinygltf::Scene& Scene = Model.scenes.at(SceneIndex);
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading model scene idx: " << SceneIndex;
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Model scene nodes count: " << std::size(Scene.nodes);
 
-        auto const ProcessNode = [func_internal = __func__, &ObjectData, &Model](std::int32_t const NodeMesh, std::int32_t const NodeIndex) {
+        auto const ProcessNode = [func_internal = __func__, &LoadedMeshes, &Model](std::int32_t const NodeMesh, std::int32_t const NodeIndex) {
             BOOST_LOG_TRIVIAL(debug) << "[" << func_internal << "]: Loading mesh from node idx: " << NodeIndex;
             const tinygltf::Mesh& Mesh = Model.meshes.at(NodeMesh);
+
+            ObjectPreprocessedData LoadedMesh;
+            LoadedMesh.ID   = g_ObjectIDCounter.fetch_add(1U);
+            LoadedMesh.Name = Mesh.name;
 
             BOOST_LOG_TRIVIAL(debug) << "[" << func_internal << "]: Processing mesh Primitives count: " << std::size(Mesh.primitives);
             for (const auto& Primitive: Mesh.primitives)
@@ -796,7 +809,7 @@ std::vector<std::uint32_t> RenderCore::AllocateScene(std::string_view const& Mod
                             .Color             = glm::vec4(1.F),
                             .TextureCoordinate = glm::vec2(TexCoordData[Iterator * 2], TexCoordData[Iterator * 2 + 1])};
 
-                    ObjectData.Vertices.push_back(Vertex);
+                    LoadedMesh.ObjectData.Vertices.push_back(Vertex);
                 }
 
                 auto const& IndexAccessor   = Model.accessors[Primitive.indices];
@@ -804,12 +817,60 @@ std::vector<std::uint32_t> RenderCore::AllocateScene(std::string_view const& Mod
                 auto const& IndexBuffer     = Model.buffers[IndexBufferView.buffer];
 
                 const auto* IndexData             = reinterpret_cast<const uint32_t*>(IndexBuffer.data.data() + IndexBufferView.byteOffset + IndexAccessor.byteOffset);
-                std::uint32_t const IndicesOffset = std::size(ObjectData.Indices);
+                std::uint32_t const IndicesOffset = std::size(LoadedMesh.ObjectData.Indices);
 
                 for (std::size_t Iterator = 0; Iterator < IndexAccessor.count; ++Iterator)
                 {
-                    ObjectData.Indices.push_back(IndexData[Iterator] + static_cast<std::uint32_t>(IndicesOffset));
+                    LoadedMesh.ObjectData.Indices.push_back(IndexData[Iterator] + static_cast<std::uint32_t>(IndicesOffset));
                 }
+
+                if (Primitive.material >= 0)
+                {
+                    auto const PushTextureData = [&LoadedMesh, Model](std::int32_t const TextureIndex, TextureType const Type) {
+                        if (TextureIndex >= 0)
+                        {
+                            auto const& Texture = Model.images.at(TextureIndex);
+
+                            LoadedMesh.Textures.push_back({.Path   = Texture.uri,
+                                                           .Type   = Type,
+                                                           .Width  = static_cast<std::uint32_t>(Texture.width),
+                                                           .Height = static_cast<std::uint32_t>(Texture.height),
+                                                           .Data   = Texture.image});
+                        }
+                    };
+
+                    auto const& Material = Model.materials.at(Primitive.material);
+
+                    PushTextureData(Material.pbrMetallicRoughness.baseColorTexture.index, TextureType::BaseColor);
+                    PushTextureData(Material.normalTexture.index, TextureType::Normal);
+                    PushTextureData(Material.occlusionTexture.index, TextureType::Occlusion);
+                    PushTextureData(Material.emissiveTexture.index, TextureType::Emissive);
+                }
+            }
+
+            if (NodeIndex >= 0)
+            {
+                auto const& Node = Model.nodes.at(NodeIndex);
+
+                if (!std::empty(Node.translation))
+                {
+                    LoadedMesh.Transform.Position = glm::make_vec3(Node.translation.data());
+                }
+
+                if (!std::empty(Node.scale))
+                {
+                    LoadedMesh.Transform.Scale = glm::make_vec3(Node.scale.data());
+                }
+
+                if (!std::empty(Node.rotation))
+                {
+                    LoadedMesh.Transform.Rotation = glm::make_quat(Node.rotation.data());
+                }
+            }
+
+            if (!std::empty(LoadedMesh.ObjectData.Vertices))
+            {
+                LoadedMeshes.push_back(LoadedMesh);
             }
         };
 
@@ -830,54 +891,40 @@ std::vector<std::uint32_t> RenderCore::AllocateScene(std::string_view const& Mod
                 }
             }
         }
-
-        for (const auto& Texture: Model.textures)
-        {
-            auto const& Image = Model.images[Texture.source];
-
-            InternalImageData const ImageData {
-                    .Path   = Image.uri,
-                    .Width  = static_cast<std::uint32_t>(Image.width),
-                    .Height = static_cast<std::uint32_t>(Image.height),
-                    .Data   = Image.image};
-
-            ObjectData.Textures.push_back(ImageData);
-        }
-
-        if (!std::empty(ObjectData.Vertices))
-        {
-            LoadedMeshes.push_back(ObjectData);
-        }
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded models: " << std::size(LoadedMeshes);
 
-    std::vector<std::uint32_t> Output(std::size(LoadedMeshes));
-    auto OutputIterator = Output.begin();
-    for (auto& [ID, Vertices, Indices, Textures]: LoadedMeshes)
+    std::vector<Object> Output;
+    Output.reserve(std::size(LoadedMeshes));
+    for (auto& [ID, Name, Transform, ObjectData, Textures]: LoadedMeshes)
     {
         Allocation::ObjectAllocation NewObject {
-                .IndicesCount = static_cast<std::uint32_t>(std::size(Indices))};
+                .IndicesCount = static_cast<std::uint32_t>(std::size(ObjectData.Indices))};
 
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Allocating model with ID: '" << ID << "'; Vertices: '" << std::size(Vertices) << "'; Indices: '" << std::size(Indices);
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Allocating model with ID: '" << ID << "'; Vertices: '" << std::size(ObjectData.Vertices) << "'; Indices: '" << std::size(ObjectData.Indices);
 
-        CreateVertexBuffers(NewObject, Vertices);
-        CreateIndexBuffers(NewObject, Indices);
+        CreateVertexBuffers(NewObject, ObjectData.Vertices);
+        CreateIndexBuffers(NewObject, ObjectData.Indices);
         CreateUniformBuffers(NewObject);
 
-        for (InternalImageData const& TextureDataIter: Textures)
+        for (auto const& [Path, Type, Width, Height, Data]: Textures)
         {
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Allocating texture from path '" << Path << "' with width: '" << Width << "' and height: '" << Height << "'";
+
             NewObject.TextureImages.push_back(
-                    AllocateTexture(TextureDataIter.Data.data(),
-                                    TextureDataIter.Width,
-                                    TextureDataIter.Height,
-                                    std::size(TextureDataIter.Data)));
+                    AllocateTexture(Data.data(),
+                                    Width,
+                                    Height,
+                                    std::size(Data)));
+
+            NewObject.TextureImages.back().Type = Type;
         }
 
         g_Objects.emplace(ID, NewObject);
 
-        *OutputIterator = ID;
-        ++OutputIterator;
+        Output.emplace_back(ID, ModelPath, Name);
+        Output.back().SetTransform(Transform);
     }
 
     return Output;
@@ -1027,27 +1074,9 @@ bool RenderCore::ContainsObject(std::uint32_t const ID)
     return g_Objects.contains(ID);
 }
 
-std::vector<TextureData> RenderCore::GetAllocatedTextures()
+std::vector<ObjectBufferData> RenderCore::GetAllocatedObjects()
 {
-    std::vector<TextureData> Output;
-    for (auto const& [Key, Value]: g_Objects)
-    {
-        for (auto const& TextureImageIter: Value.TextureImages)
-        {
-            Output.push_back(
-                    TextureData {
-                            .ObjectID  = Key,
-                            .ImageView = TextureImageIter.View,
-                            .Sampler   = TextureImageIter.Sampler});
-        }
-    }
-
-    return Output;
-}
-
-std::vector<ObjectData> RenderCore::GetAllocatedObjects()
-{
-    std::vector<ObjectData> Output;
+    std::vector<ObjectBufferData> Output;
     for (auto const& [Key, Value]: g_Objects)
     {
         if (!Value.UniformBuffer.Allocation)
@@ -1056,13 +1085,27 @@ std::vector<ObjectData> RenderCore::GetAllocatedObjects()
         }
 
         Output.push_back(
-                ObjectData {
+                ObjectBufferData {
                         .ObjectID          = Key,
                         .UniformBuffer     = Value.UniformBuffer.Buffer,
                         .UniformBufferData = Value.UniformBuffer.Allocation->GetMappedData()});
+
+        for (auto const& ImageAllocation: Value.TextureImages)
+        {
+            Output.back().Textures.push_back(
+                    TextureBufferData {
+                            .Type      = ImageAllocation.Type,
+                            .ImageView = ImageAllocation.View,
+                            .Sampler   = ImageAllocation.Sampler});
+        }
     }
 
     return Output;
+}
+
+std::uint32_t RenderCore::GetNumAllocations()
+{
+    return static_cast<std::uint32_t>(std::size(g_Objects));
 }
 
 void RenderCore::UpdateUniformBuffers()

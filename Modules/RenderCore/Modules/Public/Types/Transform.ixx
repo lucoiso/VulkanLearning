@@ -276,6 +276,14 @@ namespace RenderCore
             return *this;
         }
 
+        Rotator& operator=(glm::quat const& Value)
+        {
+            Pitch = glm::degrees(glm::pitch(Value));
+            Yaw   = glm::degrees(glm::yaw(Value));
+            Roll  = glm::degrees(glm::roll(Value));
+            return *this;
+        }
+
         Rotator& operator+=(Rotator const& Value)
         {
             Pitch += Value.Pitch;
@@ -411,7 +419,7 @@ namespace RenderCore
             return GetFront().CrossInline(GetRight());
         }
 
-        [[nodiscard]] std::string ToString()
+        [[nodiscard]] std::string ToString() const
         {
             return std::to_string(Pitch) + ", " + std::to_string(Yaw) + ", " + std::to_string(Roll);
         }
@@ -425,7 +433,7 @@ namespace RenderCore
     export struct RENDERCOREMODULE_API Transform
     {
         Vector Position {0.F};
-        Vector Scale {0.01F};
+        Vector Scale {1.F};
         Rotator Rotation {0.F};
 
         Transform() = default;

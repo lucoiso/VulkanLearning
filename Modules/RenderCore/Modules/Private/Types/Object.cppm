@@ -20,11 +20,12 @@ RenderCore::Object::Object(std::uint32_t const ID, std::string_view const& Path)
 {
 }
 
-RenderCore::Object::~Object()
+RenderCore::Object::Object(std::uint32_t const ID, std::string_view const& Path, std::string_view const& Name)
+    : m_ID(ID),
+      m_Path(Path),
+      m_Name(Name)
 {
-    EngineCore::Get().UnloadScene({GetID()});
 }
-
 [[nodiscard]] std::uint32_t RenderCore::Object::GetID() const
 {
     return m_ID;

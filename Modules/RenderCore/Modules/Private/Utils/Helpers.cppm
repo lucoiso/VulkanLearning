@@ -156,12 +156,12 @@ std::array<VkVertexInputAttributeDescription, 4U> RenderCore::GetAttributeDescri
                     .format   = VK_FORMAT_R32G32B32_SFLOAT,
                     .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Normal))},
             VkVertexInputAttributeDescription {
-                    .location = 3U,
+                    .location = 2U,
                     .binding  = 0U,
                     .format   = VK_FORMAT_R32G32B32A32_SFLOAT,
                     .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Color))},
             VkVertexInputAttributeDescription {
-                    .location = 2U,
+                    .location = 3U,
                     .binding  = 0U,
                     .format   = VK_FORMAT_R32G32_SFLOAT,
                     .offset   = static_cast<std::uint32_t>(offsetof(Vertex, TextureCoordinate))}};

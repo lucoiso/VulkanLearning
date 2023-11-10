@@ -29,7 +29,8 @@ namespace RenderCore
         Object& operator=(Object const&) = default;
 
         Object(std::uint32_t, std::string_view const&);
-        virtual ~Object();
+        Object(std::uint32_t, std::string_view const&, std::string_view const&);
+        virtual ~Object() = default;
 
         [[nodiscard]] std::uint32_t GetID() const;
         [[nodiscard]] std::string_view GetPath() const;

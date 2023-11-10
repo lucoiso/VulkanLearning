@@ -14,6 +14,7 @@ import <array>;
 import RenderCore.Management.ShaderManagement;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.BufferManagement;
+import RenderCore.Types.UniformBufferObject;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 
@@ -24,7 +25,7 @@ VkPipeline g_Pipeline {VK_NULL_HANDLE};
 VkPipelineLayout g_PipelineLayout {VK_NULL_HANDLE};
 VkPipelineCache g_PipelineCache {VK_NULL_HANDLE};
 VkDescriptorPool g_DescriptorPool {VK_NULL_HANDLE};
-std::array<VkDescriptorSetLayout, 1U> g_DescriptorSetLayouts {};
+std::vector<VkDescriptorSetLayout> g_DescriptorSetLayouts {};
 std::vector<VkDescriptorSet> g_DescriptorSets {};
 
 void RenderCore::CreateRenderPass()
@@ -224,28 +225,47 @@ void RenderCore::CreateDescriptorSetLayout()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
 
-    // ObjectAllocation Bindings
+    constexpr std::array LayoutBindings {
+            VkDescriptorSetLayoutBinding {
+                    .binding            = 0U,
+                    .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount    = 1U,
+                    .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
+                    .pImmutableSamplers = nullptr},
+            VkDescriptorSetLayoutBinding {
+                    .binding            = 1U,
+                    .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount    = 1U,
+                    .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = nullptr},
+            VkDescriptorSetLayoutBinding {
+                    .binding            = 2U,
+                    .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount    = 1U,
+                    .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = nullptr},
+            VkDescriptorSetLayoutBinding {
+                    .binding            = 3U,
+                    .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount    = 1U,
+                    .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = nullptr},
+            VkDescriptorSetLayoutBinding {
+                    .binding            = 4U,
+                    .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount    = 1U,
+                    .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = nullptr}};
+
+    VkDescriptorSetLayoutCreateInfo const DescriptorSetLayoutInfo {
+            .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .bindingCount = static_cast<std::uint32_t>(std::size(LayoutBindings)),
+            .pBindings    = LayoutBindings.data()};
+
+    g_DescriptorSetLayouts.resize(GetNumAllocations(), VK_NULL_HANDLE);
+    for (auto& DescriptorSetLayoutIter: g_DescriptorSetLayouts)
     {
-        constexpr std::array LayoutBindings {
-                VkDescriptorSetLayoutBinding {
-                        .binding            = 0U,
-                        .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                        .descriptorCount    = 1U,
-                        .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
-                        .pImmutableSamplers = nullptr},
-                VkDescriptorSetLayoutBinding {
-                        .binding            = 1U,
-                        .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                        .descriptorCount    = 1U,
-                        .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-                        .pImmutableSamplers = nullptr}};
-
-        VkDescriptorSetLayoutCreateInfo const DescriptorSetLayoutInfo {
-                .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-                .bindingCount = static_cast<std::uint32_t>(std::size(LayoutBindings)),
-                .pBindings    = LayoutBindings.data()};
-
-        CheckVulkanResult(vkCreateDescriptorSetLayout(volkGetLoadedDevice(), &DescriptorSetLayoutInfo, nullptr, &g_DescriptorSetLayouts.at(0U)));
+        CheckVulkanResult(vkCreateDescriptorSetLayout(volkGetLoadedDevice(), &DescriptorSetLayoutInfo, nullptr, &DescriptorSetLayoutIter));
     }
 }
 
@@ -253,17 +273,19 @@ void RenderCore::CreateDescriptorPool()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor pool";
 
-    constexpr std::array DescriptorPoolSizes {
+    std::uint32_t const NumAllocations = GetNumAllocations();
+
+    std::array const DescriptorPoolSizes {
             VkDescriptorPoolSize {
                     .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = 1U},
+                    .descriptorCount = NumAllocations * 1U},
             VkDescriptorPoolSize {
                     .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = 2U}};
+                    .descriptorCount = NumAllocations * 4U}};
 
     VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .maxSets       = static_cast<std::uint32_t>(std::size(g_DescriptorSetLayouts)),
+            .maxSets       = NumAllocations,
             .poolSizeCount = static_cast<std::uint32_t>(std::size(DescriptorPoolSizes)),
             .pPoolSizes    = DescriptorPoolSizes.data()};
 
@@ -275,10 +297,9 @@ void RenderCore::CreateDescriptorSets()
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor sets";
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
-    auto const AllocatedTextures        = GetAllocatedTextures();
     auto const AllocatedObjects         = GetAllocatedObjects();
 
-    g_DescriptorSets.resize(std::size(g_DescriptorSetLayouts));
+    g_DescriptorSets.resize(std::size(AllocatedObjects));
 
     VkDescriptorSetAllocateInfo const DescriptorSetAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -288,55 +309,51 @@ void RenderCore::CreateDescriptorSets()
 
     CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, g_DescriptorSets.data()));
 
-    // ObjectAllocation Bindings
+    for (auto Iterator = std::begin(g_DescriptorSets); Iterator != std::end(g_DescriptorSets); ++Iterator)
     {
-        std::vector<VkDescriptorBufferInfo> UniformBuffers {};
-        for (auto ObjectIter = std::cbegin(AllocatedObjects); ObjectIter != std::cend(AllocatedObjects); ++ObjectIter)
-        {
-            UniformBuffers.push_back(
-                    VkDescriptorBufferInfo {
-                            .buffer = ObjectIter->UniformBuffer,
-                            .offset = 0U,
-                            .range  = sizeof(UniformBufferObject)});
-        }
+        std::uint32_t const Index               = static_cast<std::uint32_t>(std::distance(std::begin(g_DescriptorSets), Iterator));
+        constexpr std::size_t UniformBufferSize = sizeof(UniformBufferObject);
 
-        std::vector<VkDescriptorImageInfo> ImageInfos {};
-        for (auto TextureDataIter = std::cbegin(AllocatedTextures); TextureDataIter != std::cend(AllocatedTextures); ++TextureDataIter)
+        VkDescriptorBufferInfo const UniformBuffers {
+                .buffer = AllocatedObjects.at(Index).UniformBuffer,
+                .offset = Index * UniformBufferSize,
+                .range  = UniformBufferSize};
+
+        std::vector<std::pair<VkDescriptorImageInfo, TextureType>> ImageInfos {};
+        ImageInfos.reserve(std::size(AllocatedObjects.at(Index).Textures));
+        for (auto TextureDataIter = std::cbegin(AllocatedObjects.at(Index).Textures); TextureDataIter != std::cend(AllocatedObjects.at(Index).Textures); ++TextureDataIter)
         {
-            ImageInfos.push_back(
+            ImageInfos.emplace_back(
                     VkDescriptorImageInfo {
                             .sampler     = TextureDataIter->Sampler,
                             .imageView   = TextureDataIter->ImageView,
-                            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+                            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
+                    TextureDataIter->Type);
         }
 
-        std::vector<VkWriteDescriptorSet> WriteDescriptors {};
-        for (auto UniformBufferIterator = std::cbegin(UniformBuffers); UniformBufferIterator != std::cend(UniformBuffers); ++UniformBufferIterator)
-        {
-            WriteDescriptors.push_back(
-                    VkWriteDescriptorSet {
-                            .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                            .dstSet           = g_DescriptorSets.at(0U),
-                            .dstBinding       = 0U,
-                            .dstArrayElement  = 0U,
-                            .descriptorCount  = 1U,
-                            .descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                            .pImageInfo       = nullptr,
-                            .pBufferInfo      = &(*UniformBufferIterator),
-                            .pTexelBufferView = nullptr});
-        }
+        std::vector WriteDescriptors {
+                VkWriteDescriptorSet {
+                        .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                        .dstSet           = *Iterator,
+                        .dstBinding       = 0U,
+                        .dstArrayElement  = 0U,
+                        .descriptorCount  = 1U,
+                        .descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        .pImageInfo       = nullptr,
+                        .pBufferInfo      = &UniformBuffers,
+                        .pTexelBufferView = nullptr}};
 
         for (auto ImageInfoIterator = std::cbegin(ImageInfos); ImageInfoIterator != std::cend(ImageInfos); ++ImageInfoIterator)
         {
             WriteDescriptors.push_back(
                     VkWriteDescriptorSet {
                             .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                            .dstSet           = g_DescriptorSets.at(0U),
-                            .dstBinding       = 1U,
+                            .dstSet           = *Iterator,
+                            .dstBinding       = static_cast<std::uint32_t>(ImageInfoIterator->second) + 1U,
                             .dstArrayElement  = 0U,
                             .descriptorCount  = 1U,
                             .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .pImageInfo       = &(*ImageInfoIterator),
+                            .pImageInfo       = &ImageInfoIterator->first,
                             .pBufferInfo      = nullptr,
                             .pTexelBufferView = nullptr});
         }

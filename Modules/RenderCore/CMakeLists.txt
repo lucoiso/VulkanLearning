@@ -37,8 +37,8 @@ SET(PRIVATE_MODULES
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/EnumHelpers.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/GLFWCallbacks.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/DeviceProperties.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/TextureData.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/ObjectData.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/ObjectBufferData.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/TextureBufferData.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/Camera.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/Vertex.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/UniformBufferObject.ixx
@@ -114,7 +114,6 @@ TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE
 						   # Assets directory (relative to binaries)
 						   DEBUG_SHADER_VERT="Resources/Shaders/TRIANGLE_VERT_SHADER.vert"
 						   DEBUG_SHADER_FRAG="Resources/Shaders/TRIANGLE_FRAG_SHADER.frag"
-						   SPONZA_MODEL="Resources/Assets/Sponza/Sponza.gltf"
 						   TOYCAR_MODEL="Resources/Assets/ToyCar/ToyCar.gltf"
 						   EMPTY_TEX="Resources/Assets/EMPTY_TEX.png"
 )

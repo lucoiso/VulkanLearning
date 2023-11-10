@@ -254,7 +254,10 @@ void RenderCore::EngineCore::Tick(double const DeltaTime)
 
     for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
     {
-        ObjectIter->Tick(DeltaTime);
+        if (ObjectIter)
+        {
+            ObjectIter->Tick(DeltaTime);
+        }
     }
 }
 
@@ -352,16 +355,19 @@ std::vector<std::uint32_t> RenderCore::EngineCore::LoadScene(std::string_view co
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
 
-    std::vector<std::uint32_t> LoadedObjects = AllocateScene(ObjectPath);
-    for (std::uint32_t const ObjectIDIter: LoadedObjects)
+    std::vector<Object> const LoadedObjects = AllocateScene(ObjectPath);
+    std::vector<std::uint32_t> Output;
+    Output.reserve(std::size(LoadedObjects));
+    for (Object const& ObjectIter: LoadedObjects)
     {
-        m_Objects.emplace_back(std::make_shared<Object>(ObjectIDIter, ObjectPath));
+        m_Objects.emplace_back(std::make_shared<Object>(std::move(ObjectIter)));
+        Output.push_back(ObjectIter.GetID());
     }
 
     AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
     AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
 
-    return LoadedObjects;
+    return Output;
 }
 
 void RenderCore::EngineCore::UnloadScene(std::vector<std::uint32_t> const& ObjectIDs)

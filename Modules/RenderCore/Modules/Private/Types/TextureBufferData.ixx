@@ -6,15 +6,22 @@ module;
 
 #include <volk.h>
 
-export module RenderCore.Types.TextureData;
+export module RenderCore.Types.TextureBufferData;
 
 export import <cstdint>;
 
 namespace RenderCore
 {
-    export struct TextureData
+    export enum class TextureType : std::uint8_t {
+        BaseColor,
+        Normal,
+        Occlusion,
+        Emissive
+    };
+
+    export struct TextureBufferData
     {
-        std::uint32_t const ObjectID {0U};
+        TextureType const Type {TextureType::BaseColor};
         VkImageView ImageView {VK_NULL_HANDLE};
         VkSampler Sampler {VK_NULL_HANDLE};
     };
