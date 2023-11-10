@@ -371,7 +371,7 @@ void CreateTextureSampler(Allocation::ImageAllocation& Allocation)
             .minLod                  = 0.F,
             .maxLod                  = FLT_MAX,
             .borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-            .unnormalizedCoordinates = VK_FALSE};
+            .unNormalizedCoordinates = VK_FALSE};
 
     CheckVulkanResult(vkCreateSampler(volkGetLoadedDevice(), &SamplerCreateInfo, nullptr, &Allocation.Sampler));
 }
@@ -777,22 +777,22 @@ std::vector<std::uint32_t> RenderCore::AllocateScene(std::string_view const& Mod
                 auto const& TexCoordAccessor = Model.accessors[Primitive.attributes.at("TEXCOORD_0")];
 
                 auto const& PositionBufferView = Model.bufferViews[PositionAccessor.bufferView];
-                auto const& normalBufferView   = Model.bufferViews[NormalAccessor.bufferView];
+                auto const& NormalBufferView   = Model.bufferViews[NormalAccessor.bufferView];
                 auto const& TexCoordBufferView = Model.bufferViews[TexCoordAccessor.bufferView];
 
                 auto const& PositionBuffer = Model.buffers[PositionBufferView.buffer];
-                auto const& normalBuffer   = Model.buffers[normalBufferView.buffer];
+                auto const& NormalBuffer   = Model.buffers[NormalBufferView.buffer];
                 auto const& TexCoordBuffer = Model.buffers[TexCoordBufferView.buffer];
 
                 auto const* PositionData = reinterpret_cast<const float*>(PositionBuffer.data.data() + PositionBufferView.byteOffset + PositionAccessor.byteOffset);
-                auto const* normalData   = reinterpret_cast<const float*>(normalBuffer.data.data() + normalBufferView.byteOffset + NormalAccessor.byteOffset);
+                auto const* NormalData   = reinterpret_cast<const float*>(NormalBuffer.data.data() + NormalBufferView.byteOffset + NormalAccessor.byteOffset);
                 auto const* TexCoordData = reinterpret_cast<const float*>(TexCoordBuffer.data.data() + TexCoordBufferView.byteOffset + TexCoordAccessor.byteOffset);
 
                 for (std::size_t Iterator = 0; Iterator < PositionAccessor.count; ++Iterator)
                 {
                     Vertex const Vertex {
                             .Position          = glm::vec3(PositionData[Iterator * 3], PositionData[Iterator * 3 + 1], PositionData[Iterator * 3 + 2]),
-                            .Normal            = glm::vec3(normalData[Iterator * 3], normalData[Iterator * 3 + 1], normalData[Iterator * 3 + 2]),
+                            .Normal            = glm::vec3(NormalData[Iterator * 3], NormalData[Iterator * 3 + 1], NormalData[Iterator * 3 + 2]),
                             .Color             = glm::vec4(1.F),
                             .TextureCoordinate = glm::vec2(TexCoordData[Iterator * 2], TexCoordData[Iterator * 2 + 1])};
 
