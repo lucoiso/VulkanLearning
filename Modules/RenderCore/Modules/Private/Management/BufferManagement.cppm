@@ -371,7 +371,7 @@ void CreateTextureSampler(Allocation::ImageAllocation& Allocation)
             .minLod                  = 0.F,
             .maxLod                  = FLT_MAX,
             .borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-            .unNormalizedCoordinates = VK_FALSE};
+            .unnormalizedCoordinates = VK_FALSE};
 
     CheckVulkanResult(vkCreateSampler(volkGetLoadedDevice(), &SamplerCreateInfo, nullptr, &Allocation.Sampler));
 }
