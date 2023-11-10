@@ -27,7 +27,7 @@ import RenderCore.Utils.Helpers;
 
 GLFWwindow* g_Window {nullptr};
 
-bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, bool const bHeadless)
+bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, bool const bHeadless)
 {
     if (glfwInit() == 0)
     {
@@ -72,7 +72,7 @@ Window::~Window()
     }
 }
 
-AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, bool const bHeadless)
+AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, bool const bHeadless)
 {
     if (IsInitialized())
     {
@@ -88,7 +88,7 @@ AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t
                 m_RenderTimerManager->SetTimer(
                         0U,
                         [this, &Semaphore]() {
-                            [[maybe_unused]] auto const _ = EngineCore::Get().LoadScene(DEBUG_MODEL_OBJ, DEBUG_MODEL_TEX);
+                            [[maybe_unused]] auto const _ = EngineCore::Get().LoadScene(TOYCAR_MODEL);
                             RequestRender();
                             Semaphore.release();
                         });
@@ -195,19 +195,13 @@ void Window::CreateOverlay()
             static std::string s_ModelPath(MaxPathSize, '\0');
             ImGui::InputText("Model Path", s_ModelPath.data(), MaxPathSize);
 
-            static std::string s_TexturePath(MaxPathSize, '\0');
-            ImGui::InputText("Texture Path", s_TexturePath.data(), MaxPathSize);
-
             if (ImGui::Button("Load Model"))
             {
                 try
                 {
                     EngineCore::Get().UnloadAllScenes();
-
-                    std::string const ModelPathInternal   = s_ModelPath.substr(0, s_ModelPath.find('\0'));
-                    std::string const TexturePathInternal = s_TexturePath.substr(0, s_TexturePath.find('\0'));
-
-                    [[maybe_unused]] auto const _ = EngineCore::Get().LoadScene(ModelPathInternal, TexturePathInternal);
+                    std::string const ModelPathInternal = s_ModelPath.substr(0, s_ModelPath.find('\0'));
+                    [[maybe_unused]] auto const _       = EngineCore::Get().LoadScene(ModelPathInternal);
                 }
                 catch (std::exception const& Ex)
                 {

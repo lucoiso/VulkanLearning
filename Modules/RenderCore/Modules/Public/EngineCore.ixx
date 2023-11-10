@@ -52,10 +52,8 @@ namespace RenderCore
 
         [[nodiscard]] bool IsEngineInitialized() const;
 
-        [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view, std::string_view);
+        [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view const&);
         void UnloadScene(std::vector<std::uint32_t> const&);
-
-        [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view);
         void UnloadAllScenes();
 
         [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;

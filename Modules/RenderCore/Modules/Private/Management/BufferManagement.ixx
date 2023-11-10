@@ -13,7 +13,6 @@ export import <string_view>;
 export import <cstdint>;
 export import <vector>;
 
-export import RenderCore.Types.Coroutine;
 export import RenderCore.Types.ObjectData;
 export import RenderCore.Types.TextureData;
 export import RenderCore.Types.UniformBufferObject;
@@ -26,8 +25,8 @@ namespace RenderCore
     export void CreateFrameBuffers();
     export void CreateDepthResources();
 
-    export AsyncOperation<std::vector<std::uint32_t>> AllocateScene(std::string_view, std::string_view);
-    export AsyncTask ReleaseScene(std::vector<std::uint32_t> const&);
+    export std::vector<std::uint32_t> AllocateScene(std::string_view const&);
+    export void ReleaseScene(std::vector<std::uint32_t> const&);
 
     export void DestroyBufferResources(bool);
     export void ReleaseBufferResources();

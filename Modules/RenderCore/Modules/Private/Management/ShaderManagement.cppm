@@ -26,7 +26,7 @@ constexpr std::int32_t const g_GlslVersion = 450;
 
 std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> g_StageInfos {};
 
-bool Compile(std::string_view const Source, EShLanguage const Language, std::vector<std::uint32_t>& OutSPIRVCode)
+bool Compile(std::string_view const& Source, EShLanguage const Language, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     glslang::InitializeProcess();
 
@@ -65,15 +65,17 @@ bool Compile(std::string_view const Source, EShLanguage const Language, std::vec
         throw std::runtime_error(ErrMessage);
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n"
-                             << Source;
+    if constexpr (g_EnableCustomDebug)
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n"
+                                 << Source;
+    }
 
     spv::SpvBuildLogger Logger;
     GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
     glslang::FinalizeProcess();
 
-    if (std::string const GeneratedLogs = Logger.getAllMessages();
-        !std::empty(GeneratedLogs))
+    if (std::string const GeneratedLogs = Logger.getAllMessages(); !std::empty(GeneratedLogs))
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compilation result log:\n"
                                  << GeneratedLogs;
@@ -174,7 +176,7 @@ bool ValidateSPIRV(const std::vector<std::uint32_t>& SPIRVData)
     return SPIRVToolsInstance.Validate(SPIRVData);
 }
 
-bool RenderCore::Compile(std::string_view const Source, std::vector<std::uint32_t>& OutSPIRVCode)
+bool RenderCore::Compile(std::string_view const& Source, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     EShLanguage Language = EShLangVertex;
     std::filesystem::path const Path(Source);
@@ -263,7 +265,7 @@ bool RenderCore::Compile(std::string_view const Source, std::vector<std::uint32_
     return Result;
 }
 
-bool RenderCore::Load(std::string_view const Source, std::vector<std::uint32_t>& OutSPIRVCode)
+bool RenderCore::Load(std::string_view const& Source, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     std::filesystem::path const Path(Source);
     if (!exists(Path))
@@ -296,7 +298,7 @@ bool RenderCore::Load(std::string_view const Source, std::vector<std::uint32_t>&
     return !ReadResult.fail();
 }
 
-bool RenderCore::CompileOrLoadIfExists(std::string_view const Source, std::vector<uint32_t>& OutSPIRVCode)
+bool RenderCore::CompileOrLoadIfExists(std::string_view const& Source, std::vector<uint32_t>& OutSPIRVCode)
 {
     if (std::string const CompiledShaderPath = std::format("{}.spv", Source);
         std::filesystem::exists(CompiledShaderPath))

@@ -29,7 +29,7 @@ namespace RenderCore
 
         virtual ~Window();
 
-        AsyncOperation<bool> Initialize(std::uint16_t, std::uint16_t, std::string_view, bool const bHeadless = false);
+        AsyncOperation<bool> Initialize(std::uint16_t, std::uint16_t, std::string_view const&, bool const bHeadless = false);
         AsyncTask Shutdown();
 
         [[nodiscard]] bool IsInitialized();

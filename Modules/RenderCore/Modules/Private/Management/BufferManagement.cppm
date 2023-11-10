@@ -4,10 +4,6 @@
 
 module;
 
-#include <assimp/Importer.hpp>
-#include <assimp/mesh.h>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
 #include <boost/log/trivial.hpp>
 #include <glm/ext.hpp>
 #include <volk.h>
@@ -17,10 +13,16 @@ module;
 #endif
 #include <vk_mem_alloc.h>
 
+#ifndef TINYGLTF_IMPLEMENTATION
+#define TINYGLTF_IMPLEMENTATION
+#endif
 #ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #endif
-#include <stb_image.h>
+#ifndef STB_IMAGE_WRITE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#endif
+#include <tiny_gltf.h>
 
 #ifdef GLFW_INCLUDE_VULKAN
 #undef GLFW_INCLUDE_VULKAN
@@ -118,7 +120,7 @@ namespace Allocation
 
     struct ObjectAllocation
     {
-        ImageAllocation TextureImage {};
+        std::vector<ImageAllocation> TextureImages {};
         BufferAllocation VertexBuffer {};
         BufferAllocation IndexBuffer {};
         BufferAllocation UniformBuffer {};
@@ -126,14 +128,19 @@ namespace Allocation
 
         [[nodiscard]] bool IsValid() const
         {
-            return TextureImage.IsValid() && VertexBuffer.IsValid() && IndexBuffer.IsValid() && IndicesCount != 0U;
+            return VertexBuffer.IsValid() && IndexBuffer.IsValid() && IndicesCount != 0U;
         }
 
         void DestroyResources()
         {
             VertexBuffer.DestroyResources();
             IndexBuffer.DestroyResources();
-            TextureImage.DestroyResources();
+
+            for (ImageAllocation& TextureImage: TextureImages)
+            {
+                TextureImage.DestroyResources();
+            }
+
             UniformBuffer.DestroyResources();
             IndicesCount = 0U;
         }
@@ -512,7 +519,7 @@ Allocation::ImageAllocation AllocateTexture(unsigned char const* Data, std::uint
     return ImageAllocation;
 }
 
-void LoadTexture(Allocation::ObjectAllocation& Object, std::string_view const TexturePath)
+void LoadTexture(Allocation::ObjectAllocation& Object, std::string_view const& TexturePath)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan texture image";
 
@@ -541,7 +548,7 @@ void LoadTexture(Allocation::ObjectAllocation& Object, std::string_view const Te
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded image from path: '" << TexturePath << "'";
 
-    Object.TextureImage = AllocateTexture(ImagePixels, static_cast<std::uint32_t>(Width), static_cast<std::uint32_t>(Height), AllocationSize);
+    Object.TextureImages.push_back(AllocateTexture(ImagePixels, static_cast<std::uint32_t>(Width), static_cast<std::uint32_t>(Height), AllocationSize));
 }
 
 void RenderCore::CreateVulkanSurface(GLFWwindow* const Window)
@@ -699,132 +706,190 @@ void CreateUniformBuffers(Allocation::ObjectAllocation& Object)
     CreateUniformBuffer(Object, BufferSize);
 }
 
-AsyncOperation<std::vector<std::uint32_t>> RenderCore::AllocateScene(std::string_view const ModelPath, std::string_view const TexturePath)
+std::vector<std::uint32_t> RenderCore::AllocateScene(std::string_view const& ModelPath)
 {
-    Assimp::Importer Importer;
-    aiScene const* const Scene = Importer.ReadFile(ModelPath.data(), (aiProcessPreset_TargetRealtime_Fast | aiProcess_FlipUVs));
+    tinygltf::Model Model {};
+    tinygltf::TinyGLTF ModelLoader {};
+    std::string Error {};
+    std::string Warning {};
 
-    if (Scene == nullptr || (Scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) != 0U || Scene->mRootNode == nullptr)
+    std::filesystem::path const ModelFilepath(ModelPath);
+
+    bool const LoadResult = ModelFilepath.extension() == ".gltf" ? ModelLoader.LoadASCIIFromFile(&Model, &Error, &Warning, ModelPath.data()) : ModelLoader.LoadBinaryFromFile(&Model, &Error, &Warning, ModelPath.data());
+    if (!std::empty(Error))
     {
-        throw std::runtime_error("Assimp error: " + std::string(Importer.GetErrorString()));
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Error: '" << Error << "'";
+    }
+
+    if (!std::empty(Warning))
+    {
+        BOOST_LOG_TRIVIAL(warning) << "[" << __func__ << "]: Warning: '" << Warning << "'";
+    }
+
+    if (!LoadResult)
+    {
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Failed to load model from path: '" << ModelPath << "'";
+        return {};
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded model from path: '" << ModelPath << "'";
+
+    struct InternalImageData
+    {
+        std::string Path {};
+        std::uint32_t Width {};
+        std::uint32_t Height {};
+        std::vector<unsigned char> Data {};
+    };
 
     struct InternalObjectData
     {
         std::uint32_t ID {};
         std::vector<Vertex> Vertices {};
         std::vector<std::uint32_t> Indices {};
+        std::vector<InternalImageData> Textures {};
     };
 
-    std::vector<InternalObjectData> LoadedMeshes(Scene->mNumMeshes);
-    auto LoadedMeshIterator = std::begin(LoadedMeshes);
+    std::vector<InternalObjectData> LoadedMeshes {};
+    LoadedMeshes.reserve(std::size(Model.scenes));
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading Meshes: '" << Scene->mNumMeshes << "'";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scenes: " << std::size(Model.scenes);
 
-    std::vector<std::jthread> WorkerThreads;
-    WorkerThreads.reserve(Scene->mNumMeshes);
-
-    std::span const AiMeshesSpan(Scene->mMeshes, Scene->mNumMeshes);
-    for (std::vector const Meshes(std::cbegin(AiMeshesSpan), std::cend(AiMeshesSpan));
-         aiMesh const* MeshIter: Meshes)
+    for (std::int32_t SceneIndex = 0; SceneIndex < std::size(Model.scenes); ++SceneIndex)
     {
-        *LoadedMeshIterator = {.ID = g_ObjectIDCounter.fetch_add(1U)};
+        InternalObjectData ObjectData;
+        ObjectData.ID = g_ObjectIDCounter.fetch_add(1U);
 
-        auto WorkerThread = std::jthread([MeshIter, LoadedMeshIterator, __func_name_internal__ = __func__]() {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func_name_internal__ << "]: Loading Vertices: '" << MeshIter->mNumVertices << "'";
+        const tinygltf::Scene& Scene = Model.scenes.at(SceneIndex);
 
-            std::span const AiVerticesSpan(MeshIter->mVertices, MeshIter->mNumVertices);
-            std::vector const VerticesContainer(std::cbegin(AiVerticesSpan), std::cend(AiVerticesSpan));
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading model scene idx: " << SceneIndex;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Model scene nodes count: " << std::size(Scene.nodes);
 
-            for (auto VerticesIter = std::cbegin(VerticesContainer); VerticesIter != std::cend(VerticesContainer); ++VerticesIter)
+        auto const ProcessNode = [func_internal = __func__, &ObjectData, &Model](std::int32_t const NodeMesh, std::int32_t const NodeIndex) {
+            BOOST_LOG_TRIVIAL(debug) << "[" << func_internal << "]: Loading mesh from node idx: " << NodeIndex;
+            const tinygltf::Mesh& Mesh = Model.meshes.at(NodeMesh);
+
+            BOOST_LOG_TRIVIAL(debug) << "[" << func_internal << "]: Processing mesh Primitives count: " << std::size(Mesh.primitives);
+            for (const auto& Primitive: Mesh.primitives)
             {
-                aiVector3D const& Position   = *VerticesIter;
-                aiVector3D TextureCoordinate = {};
-                aiVector3D Normal            = {};
-                aiColor4D Color              = {1.F, 1.F, 1.F, 1.F};
+                auto const& PositionAccessor = Model.accessors[Primitive.attributes.at("POSITION")];
+                auto const& NormalAccessor   = Model.accessors[Primitive.attributes.at("NORMAL")];
+                auto const& TexCoordAccessor = Model.accessors[Primitive.attributes.at("TEXCOORD_0")];
 
-                if (MeshIter->HasTextureCoords(0))
+                auto const& PositionBufferView = Model.bufferViews[PositionAccessor.bufferView];
+                auto const& normalBufferView   = Model.bufferViews[NormalAccessor.bufferView];
+                auto const& TexCoordBufferView = Model.bufferViews[TexCoordAccessor.bufferView];
+
+                auto const& PositionBuffer = Model.buffers[PositionBufferView.buffer];
+                auto const& normalBuffer   = Model.buffers[normalBufferView.buffer];
+                auto const& TexCoordBuffer = Model.buffers[TexCoordBufferView.buffer];
+
+                auto const* PositionData = reinterpret_cast<const float*>(PositionBuffer.data.data() + PositionBufferView.byteOffset + PositionAccessor.byteOffset);
+                auto const* normalData   = reinterpret_cast<const float*>(normalBuffer.data.data() + normalBufferView.byteOffset + NormalAccessor.byteOffset);
+                auto const* TexCoordData = reinterpret_cast<const float*>(TexCoordBuffer.data.data() + TexCoordBufferView.byteOffset + TexCoordAccessor.byteOffset);
+
+                for (std::size_t Iterator = 0; Iterator < PositionAccessor.count; ++Iterator)
                 {
-                    TextureCoordinate = MeshIter->mTextureCoords[0][VerticesIter - std::cbegin(VerticesContainer)];
+                    Vertex const Vertex {
+                            .Position          = glm::vec3(PositionData[Iterator * 3], PositionData[Iterator * 3 + 1], PositionData[Iterator * 3 + 2]),
+                            .Normal            = glm::vec3(normalData[Iterator * 3], normalData[Iterator * 3 + 1], normalData[Iterator * 3 + 2]),
+                            .Color             = glm::vec4(1.F),
+                            .TextureCoordinate = glm::vec2(TexCoordData[Iterator * 2], TexCoordData[Iterator * 2 + 1])};
+
+                    ObjectData.Vertices.push_back(Vertex);
                 }
 
-                if (MeshIter->HasNormals())
+                auto const& IndexAccessor   = Model.accessors[Primitive.indices];
+                auto const& IndexBufferView = Model.bufferViews[IndexAccessor.bufferView];
+                auto const& IndexBuffer     = Model.buffers[IndexBufferView.buffer];
+
+                const auto* IndexData             = reinterpret_cast<const uint32_t*>(IndexBuffer.data.data() + IndexBufferView.byteOffset + IndexAccessor.byteOffset);
+                std::uint32_t const IndicesOffset = std::size(ObjectData.Indices);
+
+                for (std::size_t Iterator = 0; Iterator < IndexAccessor.count; ++Iterator)
                 {
-                    Normal = MeshIter->mNormals[VerticesIter - std::cbegin(VerticesContainer)];
-                }
-
-                if (MeshIter->HasVertexColors(0))
-                {
-                    Color = MeshIter->mColors[0][VerticesIter - std::cbegin(VerticesContainer)];
-                }
-
-                LoadedMeshIterator->Vertices.push_back(Vertex {
-                        .Position          = {Position.x, Position.y, Position.z},
-                        .Normal            = {Normal.x, Normal.y, Normal.z},
-                        .TextureCoordinate = {TextureCoordinate.x, TextureCoordinate.y, TextureCoordinate.z},
-                        .Color             = {Color.r, Color.g, Color.b, Color.a}});
-            }
-
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func_name_internal__ << "]: Loading Faces: '" << MeshIter->mNumFaces << "'";
-
-            std::span const AiFacesSpan(MeshIter->mFaces, MeshIter->mNumFaces);
-            for (std::vector const Faces(std::cbegin(AiFacesSpan), std::cend(AiFacesSpan));
-                 aiFace const& Face: Faces)
-            {
-                if (Face.mNumIndices != 3U)
-                {
-                    continue;
-                }
-
-                std::span const AiIndicesSpan(Face.mIndices, Face.mNumIndices);
-                for (std::vector const AiIndices(std::cbegin(AiIndicesSpan), std::cend(AiIndicesSpan));
-                     std::uint32_t const IndiceIter: AiIndices)
-                {
-                    LoadedMeshIterator->Indices.push_back(IndiceIter);
+                    ObjectData.Indices.push_back(IndexData[Iterator] + static_cast<std::uint32_t>(IndicesOffset));
                 }
             }
-        });
+        };
 
-        WorkerThreads.push_back(std::move(WorkerThread));
-        ++LoadedMeshIterator;
+        for (std::int32_t const NodeIndex: Scene.nodes)
+        {
+            tinygltf::Node const& Node = Model.nodes.at(NodeIndex);
+
+            if (Node.mesh >= 0)
+            {
+                ProcessNode(Node.mesh, NodeIndex);
+            }
+
+            for (std::int32_t const ChildNodeIndex: Node.children)
+            {
+                if (const tinygltf::Node& ChildNode = Model.nodes.at(ChildNodeIndex); ChildNode.mesh >= 0)
+                {
+                    ProcessNode(ChildNode.mesh, ChildNodeIndex);
+                }
+            }
+        }
+
+        for (const auto& Texture: Model.textures)
+        {
+            auto const& Image = Model.images[Texture.source];
+
+            InternalImageData const ImageData {
+                    .Path   = Image.uri,
+                    .Width  = static_cast<std::uint32_t>(Image.width),
+                    .Height = static_cast<std::uint32_t>(Image.height),
+                    .Data   = Image.image};
+
+            ObjectData.Textures.push_back(ImageData);
+        }
+
+        if (!std::empty(ObjectData.Vertices))
+        {
+            LoadedMeshes.push_back(ObjectData);
+        }
     }
 
-    for (auto& WorkerThreadIter: WorkerThreads)
-    {
-        WorkerThreadIter.join();
-    }
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded models: " << std::size(LoadedMeshes);
 
     std::vector<std::uint32_t> Output(std::size(LoadedMeshes));
     auto OutputIterator = Output.begin();
-    for (auto& [ID, Vertices, Indices]: LoadedMeshes)
+    for (auto& [ID, Vertices, Indices, Textures]: LoadedMeshes)
     {
         Allocation::ObjectAllocation NewObject {
                 .IndicesCount = static_cast<std::uint32_t>(std::size(Indices))};
 
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Allocating model with ID: '" << ID << "'; Vertices: '" << std::size(Vertices) << "'; Indices: '" << std::size(Indices);
+
         CreateVertexBuffers(NewObject, Vertices);
         CreateIndexBuffers(NewObject, Indices);
         CreateUniformBuffers(NewObject);
-        LoadTexture(NewObject, TexturePath);
+
+        for (InternalImageData const& TextureDataIter: Textures)
+        {
+            NewObject.TextureImages.push_back(
+                    AllocateTexture(TextureDataIter.Data.data(),
+                                    TextureDataIter.Width,
+                                    TextureDataIter.Height,
+                                    std::size(TextureDataIter.Data)));
+        }
 
         g_Objects.emplace(ID, NewObject);
 
         *OutputIterator = ID;
         ++OutputIterator;
-        co_yield Output;
     }
 
-    co_return Output;
+    return Output;
 }
 
-AsyncTask RenderCore::ReleaseScene(std::vector<std::uint32_t> const& ObjectIDs)
+void RenderCore::ReleaseScene(std::vector<std::uint32_t> const& ObjectIDs)
 {
     for (std::uint32_t const ObjectIDIter: ObjectIDs)
     {
         if (!g_Objects.contains(ObjectIDIter))
         {
-            co_return;
+            return;
         }
 
         g_Objects.at(ObjectIDIter).DestroyResources();
@@ -835,8 +900,6 @@ AsyncTask RenderCore::ReleaseScene(std::vector<std::uint32_t> const& ObjectIDs)
     {
         g_ObjectIDCounter = 0U;
     }
-
-    co_return;
 }
 
 void RenderCore::ReleaseBufferResources()
@@ -969,11 +1032,14 @@ std::vector<TextureData> RenderCore::GetAllocatedTextures()
     std::vector<TextureData> Output;
     for (auto const& [Key, Value]: g_Objects)
     {
-        Output.push_back(
-                TextureData {
-                        .ObjectID  = Key,
-                        .ImageView = Value.TextureImage.View,
-                        .Sampler   = Value.TextureImage.Sampler});
+        for (auto const& TextureImageIter: Value.TextureImages)
+        {
+            Output.push_back(
+                    TextureData {
+                            .ObjectID  = Key,
+                            .ImageView = TextureImageIter.View,
+                            .Sampler   = TextureImageIter.Sampler});
+        }
     }
 
     return Output;

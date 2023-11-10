@@ -29,7 +29,7 @@ namespace RenderCore
         Vector m_CameraPosition {0.F, 0.F, 3.F};
         Rotator m_CameraRotation {0.F, -90.F, 0.F};
 
-        float m_CameraSpeed {5.F};
+        float m_CameraSpeed {1.F};
         float m_CameraSensitivity {1.0F};
 
         CameraMovementStateFlags m_CameraMovementStateFlags {CameraMovementStateFlags::NONE};

@@ -156,18 +156,18 @@ std::array<VkVertexInputAttributeDescription, 4U> RenderCore::GetAttributeDescri
                     .format   = VK_FORMAT_R32G32B32_SFLOAT,
                     .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Normal))},
             VkVertexInputAttributeDescription {
-                    .location = 2U,
-                    .binding  = 0U,
-                    .format   = VK_FORMAT_R32G32B32_SFLOAT,
-                    .offset   = static_cast<std::uint32_t>(offsetof(Vertex, TextureCoordinate))},
-            VkVertexInputAttributeDescription {
                     .location = 3U,
                     .binding  = 0U,
                     .format   = VK_FORMAT_R32G32B32A32_SFLOAT,
-                    .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Color))}};
+                    .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Color))},
+            VkVertexInputAttributeDescription {
+                    .location = 2U,
+                    .binding  = 0U,
+                    .format   = VK_FORMAT_R32G32_SFLOAT,
+                    .offset   = static_cast<std::uint32_t>(offsetof(Vertex, TextureCoordinate))}};
 }
 
-std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::string_view const LayerName)
+std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::string_view const& LayerName)
 {
     if (std::vector<std::string> const AvailableLayers = GetAvailableInstanceLayersNames();
         std::ranges::find(AvailableLayers, LayerName) == std::cend(AvailableLayers))
@@ -184,7 +184,7 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailableLayerExtensionsNames(std::string_view const LayerName)
+std::vector<std::string> RenderCore::GetAvailableLayerExtensionsNames(std::string_view const& LayerName)
 {
     std::vector<std::string> Output;
     for (auto const& [ExtName, SpecVer]: GetAvailableLayerExtensions(LayerName))
@@ -197,7 +197,7 @@ std::vector<std::string> RenderCore::GetAvailableLayerExtensionsNames(std::strin
 
 #ifdef _DEBUG
 
-void RenderCore::ListAvailableInstanceLayerExtensions(std::string_view const LayerName)
+void RenderCore::ListAvailableInstanceLayerExtensions(std::string_view const& LayerName)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available layer '" << LayerName << "' extensions...";
 

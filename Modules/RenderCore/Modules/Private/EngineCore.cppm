@@ -338,7 +338,7 @@ bool RenderCore::EngineCore::IsEngineInitialized() const
     return HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::INITIALIZED);
 }
 
-std::vector<std::uint32_t> RenderCore::EngineCore::LoadScene(std::string_view const ObjectPath, std::string_view const TexturePath)
+std::vector<std::uint32_t> RenderCore::EngineCore::LoadScene(std::string_view const& ObjectPath)
 {
     if (!IsEngineInitialized())
     {
@@ -352,7 +352,7 @@ std::vector<std::uint32_t> RenderCore::EngineCore::LoadScene(std::string_view co
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
 
-    std::vector<std::uint32_t> LoadedObjects = AllocateScene(ObjectPath, TexturePath).Get();
+    std::vector<std::uint32_t> LoadedObjects = AllocateScene(ObjectPath);
     for (std::uint32_t const ObjectIDIter: LoadedObjects)
     {
         m_Objects.emplace_back(std::make_shared<Object>(ObjectIDIter, ObjectPath));
@@ -373,7 +373,7 @@ void RenderCore::EngineCore::UnloadScene(std::vector<std::uint32_t> const& Objec
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading scene...";
 
-    ReleaseScene(ObjectIDs).Get();
+    ReleaseScene(ObjectIDs);
 
     for (std::uint32_t const ObjectID: ObjectIDs)
     {
@@ -383,11 +383,6 @@ void RenderCore::EngineCore::UnloadScene(std::vector<std::uint32_t> const& Objec
     }
 
     AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-}
-
-std::vector<std::uint32_t> RenderCore::EngineCore::LoadScene(std::string_view const ObjectPath)
-{
-    return LoadScene(ObjectPath, "");
 }
 
 void RenderCore::EngineCore::UnloadAllScenes()

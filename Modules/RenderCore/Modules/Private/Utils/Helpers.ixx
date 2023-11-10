@@ -28,11 +28,11 @@ namespace RenderCore
     export void ListAvailableInstanceExtensions();
 #endif
 
-    export std::vector<VkExtensionProperties> GetAvailableLayerExtensions(std::string_view);
-    export std::vector<std::string> GetAvailableLayerExtensionsNames(std::string_view);
+    export std::vector<VkExtensionProperties> GetAvailableLayerExtensions(std::string_view const&);
+    export std::vector<std::string> GetAvailableLayerExtensionsNames(std::string_view const&);
 
 #ifdef _DEBUG
-    export void ListAvailableInstanceLayerExtensions(std::string_view);
+    export void ListAvailableInstanceLayerExtensions(std::string_view const&);
 #endif
 
     export std::array<VkVertexInputBindingDescription, 1U> GetBindingDescriptors();

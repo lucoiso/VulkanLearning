@@ -74,8 +74,7 @@ TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 
 FIND_PACKAGE(Boost REQUIRED COMPONENTS log)
 FIND_PACKAGE(glm REQUIRED)
-FIND_PACKAGE(Stb REQUIRED)
-FIND_PACKAGE(assimp CONFIG REQUIRED)
+FIND_PATH(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
 
 FIND_PACKAGE(volk CONFIG REQUIRED)
 FIND_PACKAGE(VulkanMemoryAllocator CONFIG REQUIRED)
@@ -89,9 +88,6 @@ FIND_PACKAGE(imgui CONFIG REQUIRED)
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
 					  Boost::log
 
-					  glm::glm
-					  assimp::assimp
-
 					  volk::volk_headers
 					  GPUOpen::VulkanMemoryAllocator
 					  SPIRV-Tools-static
@@ -101,6 +97,7 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
 					  glslang::SPIRV
 
 					  glfw
+					  glm::glm
 					  imgui::imgui
 
 					  Timer
@@ -110,15 +107,15 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
 )
 
 TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE
-						   ${Stb_INCLUDE_DIR}
+						   ${TINYGLTF_INCLUDE_DIRS}
 )
 
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE
 						   # Assets directory (relative to binaries)
 						   DEBUG_SHADER_VERT="Resources/Shaders/TRIANGLE_VERT_SHADER.vert"
 						   DEBUG_SHADER_FRAG="Resources/Shaders/TRIANGLE_FRAG_SHADER.frag"
-						   DEBUG_MODEL_OBJ="Resources/Assets/VIKING_ROOM_OBJ.obj"
-						   DEBUG_MODEL_TEX="Resources/Assets/VIKING_ROOM_TEX.png"
+						   SPONZA_MODEL="Resources/Assets/Sponza/Sponza.gltf"
+						   TOYCAR_MODEL="Resources/Assets/ToyCar/ToyCar.gltf"
 						   EMPTY_TEX="Resources/Assets/EMPTY_TEX.png"
 )
 

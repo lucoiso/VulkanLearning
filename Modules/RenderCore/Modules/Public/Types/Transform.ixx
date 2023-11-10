@@ -425,7 +425,7 @@ namespace RenderCore
     export struct RENDERCOREMODULE_API Transform
     {
         Vector Position {0.F};
-        Vector Scale {1.F};
+        Vector Scale {0.01F};
         Rotator Rotation {0.F};
 
         Transform() = default;

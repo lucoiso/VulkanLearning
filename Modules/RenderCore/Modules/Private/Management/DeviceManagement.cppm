@@ -108,7 +108,7 @@ void ListAvailablePhysicalDeviceLayers()
     }
 }
 
-void ListAvailablePhysicalDeviceLayerExtensions(std::string_view const LayerName)
+void ListAvailablePhysicalDeviceLayerExtensions(std::string_view const& LayerName)
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device layer '" << LayerName << "' extensions...";
 
@@ -495,7 +495,7 @@ std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers()
     return Output;
 }
 
-std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(std::string_view const LayerName)
+std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(std::string_view const& LayerName)
 {
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -528,7 +528,7 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames()
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view const LayerName)
+std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view const& LayerName)
 {
     std::vector<std::string> Output;
     for (VkExtensionProperties const& ExtensionIter: GetAvailablePhysicalDeviceLayerExtensions(LayerName))

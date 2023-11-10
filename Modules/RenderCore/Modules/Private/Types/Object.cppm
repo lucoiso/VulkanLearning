@@ -13,7 +13,7 @@ import RenderCore.EngineCore;
 
 using namespace RenderCore;
 
-RenderCore::Object::Object(std::uint32_t const ID, std::string_view const Path)
+RenderCore::Object::Object(std::uint32_t const ID, std::string_view const& Path)
     : m_ID(ID),
       m_Path(Path),
       m_Name(m_Path.substr(m_Path.find_last_of('/') + 1, m_Path.find_last_of('.') - m_Path.find_last_of('/') - 1))
