@@ -3,7 +3,7 @@ _Note: Github Actions Workflow Failing until CMake 3.28 official release._
 
 ---
 
-![image](https://github.com/lucoiso/VulkanRenderer/assets/77353979/23e7ebc9-11f0-459e-bda6-52f9697a0abc)
+![image](https://github.com/lucoiso/VulkanRenderer/assets/77353979/a19780de-c42f-4f24-a726-da82b5ace660)
 
 # Dependencies
 
