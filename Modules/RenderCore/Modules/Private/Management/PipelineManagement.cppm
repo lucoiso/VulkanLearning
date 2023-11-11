@@ -237,24 +237,6 @@ void RenderCore::CreateDescriptorSetLayout()
                     .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount    = 1U,
                     .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .pImmutableSamplers = nullptr},
-            VkDescriptorSetLayoutBinding {
-                    .binding            = 2U,
-                    .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount    = 1U,
-                    .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .pImmutableSamplers = nullptr},
-            VkDescriptorSetLayoutBinding {
-                    .binding            = 3U,
-                    .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount    = 1U,
-                    .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .pImmutableSamplers = nullptr},
-            VkDescriptorSetLayoutBinding {
-                    .binding            = 4U,
-                    .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount    = 1U,
-                    .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = nullptr}};
 
     VkDescriptorSetLayoutCreateInfo const DescriptorSetLayoutInfo {
@@ -262,7 +244,9 @@ void RenderCore::CreateDescriptorSetLayout()
             .bindingCount = static_cast<std::uint32_t>(std::size(LayoutBindings)),
             .pBindings    = LayoutBindings.data()};
 
-    g_DescriptorSetLayouts.resize(GetNumAllocations(), VK_NULL_HANDLE);
+    std::uint32_t const NumAllocations = std::clamp(GetNumAllocations(), 1U, UINT32_MAX);
+
+    g_DescriptorSetLayouts.resize(NumAllocations, VK_NULL_HANDLE);
     for (auto& DescriptorSetLayoutIter: g_DescriptorSetLayouts)
     {
         CheckVulkanResult(vkCreateDescriptorSetLayout(volkGetLoadedDevice(), &DescriptorSetLayoutInfo, nullptr, &DescriptorSetLayoutIter));
@@ -273,7 +257,7 @@ void RenderCore::CreateDescriptorPool()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor pool";
 
-    std::uint32_t const NumAllocations = GetNumAllocations();
+    std::uint32_t const NumAllocations = std::clamp(GetNumAllocations(), 1U, UINT32_MAX);
 
     std::array const DescriptorPoolSizes {
             VkDescriptorPoolSize {
@@ -281,7 +265,7 @@ void RenderCore::CreateDescriptorPool()
                     .descriptorCount = NumAllocations * 1U},
             VkDescriptorPoolSize {
                     .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = NumAllocations * 4U}};
+                    .descriptorCount = NumAllocations * 1U}};
 
     VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
@@ -294,6 +278,11 @@ void RenderCore::CreateDescriptorPool()
 
 void RenderCore::CreateDescriptorSets()
 {
+    if (GetNumAllocations() <= 0U)
+    {
+        return;
+    }
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor sets";
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
@@ -321,14 +310,15 @@ void RenderCore::CreateDescriptorSets()
 
         std::vector<std::pair<VkDescriptorImageInfo, TextureType>> ImageInfos {};
         ImageInfos.reserve(std::size(AllocatedObjects.at(Index).Textures));
-        for (auto TextureDataIter = std::cbegin(AllocatedObjects.at(Index).Textures); TextureDataIter != std::cend(AllocatedObjects.at(Index).Textures); ++TextureDataIter)
+
+        for (auto const& [Type, TextureData]: AllocatedObjects.at(Index).Textures)
         {
             ImageInfos.emplace_back(
                     VkDescriptorImageInfo {
-                            .sampler     = TextureDataIter->Sampler,
-                            .imageView   = TextureDataIter->ImageView,
+                            .sampler     = TextureData.Sampler,
+                            .imageView   = TextureData.ImageView,
                             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
-                    TextureDataIter->Type);
+                    Type);
         }
 
         std::vector WriteDescriptors {
@@ -358,7 +348,10 @@ void RenderCore::CreateDescriptorSets()
                             .pTexelBufferView = nullptr});
         }
 
-        vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(std::size(WriteDescriptors)), WriteDescriptors.data(), 0U, nullptr);
+        if (!std::empty(WriteDescriptors))
+        {
+            vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(std::size(WriteDescriptors)), WriteDescriptors.data(), 0U, nullptr);
+        }
     }
 }
 

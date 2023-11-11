@@ -6,21 +6,21 @@ module;
 
 #include <volk.h>
 
-export module RenderCore.Types.ObjectBufferData;
+export module RenderCore.Types.MeshBufferData;
 
 export import <cstdint>;
 export import <string>;
-export import <vector>;
+export import <unordered_map>;
 
 export import RenderCore.Types.TextureBufferData;
 
 namespace RenderCore
 {
-    export struct ObjectBufferData
+    export struct MeshBufferData
     {
-        std::uint32_t const ObjectID {0U};
+        std::uint32_t const ID {0U};
         VkBuffer UniformBuffer {VK_NULL_HANDLE};
         void* UniformBufferData {nullptr};
-        std::vector<TextureBufferData> Textures {};
+        std::unordered_map<TextureType, TextureBufferData> Textures {};
     };
 }// namespace RenderCore

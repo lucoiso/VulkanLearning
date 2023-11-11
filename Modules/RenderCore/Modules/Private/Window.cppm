@@ -88,7 +88,6 @@ AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t
                 m_RenderTimerManager->SetTimer(
                         0U,
                         [this, &Semaphore]() {
-                            [[maybe_unused]] auto const _ = EngineCore::Get().LoadScene(TOYCAR_MODEL);
                             RequestRender();
                             Semaphore.release();
                         });
@@ -190,22 +189,43 @@ void Window::CreateOverlay()
 
         ImGui::BeginGroup();
         {
-            constexpr size_t const MaxPathSize = 256;
-
-            static std::string s_ModelPath(MaxPathSize, '\0');
-            ImGui::InputText("Model Path", s_ModelPath.data(), MaxPathSize);
-
-            if (ImGui::Button("Load Model"))
+            constexpr const char* OptionNone = "None";
+            static std::string SelectedItem  = OptionNone;
+            if (RenderCore::EngineCore::Get().GetNumObjects() == 0U)
             {
-                try
+                SelectedItem = OptionNone;
+            }
+
+            if (ImGui::BeginCombo("Scene", SelectedItem.data()))
+            {
+                static std::unordered_map<std::string, std::string> const OptionsMap = GetAvailableglTFAssetsInDirectory("Resources/Assets", {".gltf", ".glb"});
+                static std::string s_ModelPath                                       = OptionsMap.at(SelectedItem);
+                bool SelectionChanged                                                = false;
+
+                for (auto const& [Name, Path]: OptionsMap)
+                {
+                    bool const bIsSelected = SelectedItem == Name;
+                    if (ImGui::Selectable(Name.data(), bIsSelected))
+                    {
+                        SelectedItem     = Name;
+                        s_ModelPath      = Path;
+                        SelectionChanged = true;
+                    }
+
+                    if (bIsSelected)
+                    {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+
+                if (SelectionChanged)
                 {
                     EngineCore::Get().UnloadAllScenes();
-                    std::string const ModelPathInternal = s_ModelPath.substr(0, s_ModelPath.find('\0'));
-                    [[maybe_unused]] auto const _       = EngineCore::Get().LoadScene(ModelPathInternal);
-                }
-                catch (std::exception const& Ex)
-                {
-                    BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
+                    if (!std::empty(s_ModelPath))
+                    {
+                        [[maybe_unused]] auto const _ = EngineCore::Get().LoadScene(s_ModelPath);
+                    }
                 }
             }
         }
@@ -250,8 +270,6 @@ void Window::CreateOverlay()
                 {
                     Object->Destroy();
                 }
-
-                ImGui::Separator();
             }
         }
         ImGui::EndGroup();
@@ -263,6 +281,7 @@ void Window::RequestRender()
 {
     if (IsOpen())
     {
+
         static double DeltaTime = glfwGetTime();
         DeltaTime               = glfwGetTime() - DeltaTime;
 

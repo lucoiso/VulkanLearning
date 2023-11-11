@@ -252,12 +252,36 @@ void RenderCore::EngineCore::Tick(double const DeltaTime)
         return;
     }
 
+    RemoveInvalidObjects();
+
     for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
     {
-        if (ObjectIter)
+        if (ObjectIter && !ObjectIter->IsPendingDestroy())
         {
             ObjectIter->Tick(DeltaTime);
         }
+    }
+}
+
+void RenderCore::EngineCore::RemoveInvalidObjects()
+{
+    if (std::empty(m_Objects))
+    {
+        return;
+    }
+
+    std::vector<std::uint32_t> LoadedIDs {};
+    for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
+    {
+        if (ObjectIter && ObjectIter->IsPendingDestroy())
+        {
+            LoadedIDs.push_back(ObjectIter->GetID());
+        }
+    }
+
+    if (!std::empty(LoadedIDs))
+    {
+        UnloadScene(LoadedIDs);
     }
 }
 
@@ -355,10 +379,11 @@ std::vector<std::uint32_t> RenderCore::EngineCore::LoadScene(std::string_view co
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
 
-    std::vector<Object> const LoadedObjects = AllocateScene(ObjectPath);
+    std::vector<Object> LoadedObjects = AllocateScene(ObjectPath);
     std::vector<std::uint32_t> Output;
     Output.reserve(std::size(LoadedObjects));
-    for (Object const& ObjectIter: LoadedObjects)
+
+    for (Object& ObjectIter: LoadedObjects)
     {
         m_Objects.emplace_back(std::make_shared<Object>(std::move(ObjectIter)));
         Output.push_back(ObjectIter.GetID());
@@ -408,4 +433,9 @@ void RenderCore::EngineCore::UnloadAllScenes()
 std::vector<std::shared_ptr<Object>> const& RenderCore::EngineCore::GetObjects() const
 {
     return m_Objects;
+}
+
+std::uint32_t RenderCore::EngineCore::GetNumObjects() const
+{
+    return std::size(m_Objects);
 }

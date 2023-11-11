@@ -14,7 +14,7 @@ export import <cstdint>;
 export import <vector>;
 
 export import RenderCore.Types.Object;
-export import RenderCore.Types.ObjectBufferData;
+export import RenderCore.Types.MeshBufferData;
 
 namespace RenderCore
 {
@@ -40,7 +40,7 @@ namespace RenderCore
     export [[nodiscard]] std::uint32_t GetIndicesCount(std::uint32_t);
     export [[nodiscard]] void* GetUniformData(std::uint32_t);
     export [[nodiscard]] bool ContainsObject(std::uint32_t);
-    export [[nodiscard]] std::vector<ObjectBufferData> GetAllocatedObjects();
+    export [[nodiscard]] std::vector<MeshBufferData> GetAllocatedObjects();
     export [[nodiscard]] std::uint32_t GetNumAllocations();
 
     export void UpdateUniformBuffers();

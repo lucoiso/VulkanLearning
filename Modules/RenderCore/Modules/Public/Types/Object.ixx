@@ -21,6 +21,7 @@ namespace RenderCore
         std::string m_Path {};
         std::string m_Name {};
         Transform m_Transform {};
+        bool m_IsPendingDestroy {false};
 
     public:
         Object() = delete;
@@ -52,6 +53,8 @@ namespace RenderCore
         [[nodiscard]] glm::mat4 GetMatrix() const;
 
         virtual void Tick(double) {};
+
+        [[nodiscard]] bool IsPendingDestroy() const;
         void Destroy();
     };
 }// namespace RenderCore

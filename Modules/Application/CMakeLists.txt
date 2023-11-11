@@ -19,5 +19,7 @@ INSTALL(TARGETS ${LIBRARY_NAME}
 )
 
 ADD_CUSTOM_COMMAND(TARGET ${LIBRARY_NAME} POST_BUILD
-				   COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different ${PROJECT_RESOURCES_DIRECTORY} $<TARGET_FILE_DIR:${LIBRARY_NAME}>/Resources
+				   COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different "${PROJECT_RESOURCES_DIRECTORY}/Shaders" "$<TARGET_FILE_DIR:${LIBRARY_NAME}>/Resources/Shaders"
+				   COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different "${PROJECT_RESOURCES_DIRECTORY}/Assets/glTF-Sample-Assets/Models"
+				   "$<TARGET_FILE_DIR:${LIBRARY_NAME}>/Resources/Assets"
 )

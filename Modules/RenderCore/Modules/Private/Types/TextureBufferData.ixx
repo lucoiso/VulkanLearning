@@ -13,15 +13,11 @@ export import <cstdint>;
 namespace RenderCore
 {
     export enum class TextureType : std::uint8_t {
-        BaseColor,
-        Normal,
-        Occlusion,
-        Emissive
+        BaseColor
     };
 
     export struct TextureBufferData
     {
-        TextureType const Type {TextureType::BaseColor};
         VkImageView ImageView {VK_NULL_HANDLE};
         VkSampler Sampler {VK_NULL_HANDLE};
     };

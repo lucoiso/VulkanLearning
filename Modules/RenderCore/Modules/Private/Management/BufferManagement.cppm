@@ -159,7 +159,7 @@ std::vector<Allocation::ImageAllocation> g_SwapChainImages {};
 Allocation::ImageAllocation g_DepthImage {};
 std::vector<VkFramebuffer> g_FrameBuffers {};
 std::unordered_map<std::uint32_t, Allocation::ObjectAllocation> g_Objects {};
-std::atomic<std::uint32_t> g_ObjectIDCounter {0U};
+std::atomic g_ObjectIDCounter {0U};
 
 VmaAllocationInfo CreateBuffer(VkDeviceSize const& Size, VkBufferUsageFlags const Usage, VkMemoryPropertyFlags const Flags, VkBuffer& Buffer, VmaAllocation& Allocation)
 {
@@ -535,13 +535,12 @@ void LoadTexture(Allocation::ObjectAllocation& Object, std::string_view const& T
     std::int32_t Height   = -1;
     std::int32_t Channels = -1;
 
-    std::string UsedTexturePath = TexturePath.data();
-    if (!std::filesystem::exists(UsedTexturePath))
+    if (!std::filesystem::exists(TexturePath))
     {
-        UsedTexturePath = EMPTY_TEX;
+        throw std::runtime_error("Texture path is invalid. Path: " + std::string(TexturePath));
     }
 
-    stbi_uc const* const ImagePixels = stbi_load(UsedTexturePath.c_str(), &Width, &Height, &Channels, STBI_rgb_alpha);
+    stbi_uc const* const ImagePixels = stbi_load(TexturePath.data(), &Width, &Height, &Channels, STBI_rgb_alpha);
     auto const AllocationSize        = static_cast<VkDeviceSize>(Width) * static_cast<VkDeviceSize>(Height) * 4U;
 
     if (ImagePixels == nullptr)
@@ -709,6 +708,31 @@ void CreateUniformBuffers(Allocation::ObjectAllocation& Object)
     CreateUniformBuffer(Object, BufferSize);
 }
 
+struct PreProcessedImageData
+{
+    std::string Name {"None"};
+    std::uint32_t Width {64U};
+    std::uint32_t Height {64U};
+    std::vector<unsigned char> Content {std::vector<unsigned char>(Width * Height, 0U)};
+};
+
+struct PreProcessedMeshData
+{
+    std::vector<Vertex> Vertices {};
+    std::vector<std::uint32_t> Indices {};
+};
+
+struct ObjectPreProcessedData
+{
+    std::uint32_t ID {};
+    std::string Name {};
+    Transform Transform {};
+
+    PreProcessedMeshData MeshData {};
+    std::unordered_map<TextureType, PreProcessedImageData> Textures {
+            {TextureType::BaseColor, PreProcessedImageData()}};
+};
+
 std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
 {
     tinygltf::Model Model {};
@@ -737,159 +761,107 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded model from path: '" << ModelPath << "'";
 
-    struct InternalImageData
-    {
-        std::string Path {};
-        TextureType Type {TextureType::BaseColor};
-        std::uint32_t Width {};
-        std::uint32_t Height {};
-        std::vector<unsigned char> Data {};
-    };
-
-    struct InternalObjectData
-    {
-        std::vector<Vertex> Vertices {};
-        std::vector<std::uint32_t> Indices {};
-    };
-
-    struct ObjectPreprocessedData
-    {
-        std::uint32_t ID {};
-        std::string Name {};
-        Transform Transform {};
-
-        InternalObjectData ObjectData {};
-        std::vector<InternalImageData> Textures {};
-    };
-
-    std::vector<ObjectPreprocessedData> LoadedMeshes {};
-    LoadedMeshes.reserve(std::size(Model.scenes));
+    std::vector<ObjectPreProcessedData> LoadedMeshes {};
+    LoadedMeshes.reserve(std::size(Model.meshes));
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scenes: " << std::size(Model.scenes);
 
-    for (std::int32_t SceneIndex = 0; SceneIndex < std::size(Model.scenes); ++SceneIndex)
+    for (tinygltf::Node const& Node: Model.nodes)
     {
-        const tinygltf::Scene& Scene = Model.scenes.at(SceneIndex);
-
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading model scene idx: " << SceneIndex;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Model scene nodes count: " << std::size(Scene.nodes);
-
-        auto const ProcessNode = [func_internal = __func__, &LoadedMeshes, &Model](std::int32_t const NodeMesh, std::int32_t const NodeIndex) {
-            BOOST_LOG_TRIVIAL(debug) << "[" << func_internal << "]: Loading mesh from node idx: " << NodeIndex;
-            const tinygltf::Mesh& Mesh = Model.meshes.at(NodeMesh);
-
-            ObjectPreprocessedData LoadedMesh;
-            LoadedMesh.ID   = g_ObjectIDCounter.fetch_add(1U);
-            LoadedMesh.Name = Mesh.name;
-
-            BOOST_LOG_TRIVIAL(debug) << "[" << func_internal << "]: Processing mesh Primitives count: " << std::size(Mesh.primitives);
-            for (const auto& Primitive: Mesh.primitives)
-            {
-                auto const& PositionAccessor = Model.accessors[Primitive.attributes.at("POSITION")];
-                auto const& NormalAccessor   = Model.accessors[Primitive.attributes.at("NORMAL")];
-                auto const& TexCoordAccessor = Model.accessors[Primitive.attributes.at("TEXCOORD_0")];
-
-                auto const& PositionBufferView = Model.bufferViews[PositionAccessor.bufferView];
-                auto const& NormalBufferView   = Model.bufferViews[NormalAccessor.bufferView];
-                auto const& TexCoordBufferView = Model.bufferViews[TexCoordAccessor.bufferView];
-
-                auto const& PositionBuffer = Model.buffers[PositionBufferView.buffer];
-                auto const& NormalBuffer   = Model.buffers[NormalBufferView.buffer];
-                auto const& TexCoordBuffer = Model.buffers[TexCoordBufferView.buffer];
-
-                auto const* PositionData = reinterpret_cast<const float*>(PositionBuffer.data.data() + PositionBufferView.byteOffset + PositionAccessor.byteOffset);
-                auto const* NormalData   = reinterpret_cast<const float*>(NormalBuffer.data.data() + NormalBufferView.byteOffset + NormalAccessor.byteOffset);
-                auto const* TexCoordData = reinterpret_cast<const float*>(TexCoordBuffer.data.data() + TexCoordBufferView.byteOffset + TexCoordAccessor.byteOffset);
-
-                for (std::size_t Iterator = 0; Iterator < PositionAccessor.count; ++Iterator)
-                {
-                    Vertex const Vertex {
-                            .Position          = glm::vec3(PositionData[Iterator * 3], PositionData[Iterator * 3 + 1], PositionData[Iterator * 3 + 2]),
-                            .Normal            = glm::vec3(NormalData[Iterator * 3], NormalData[Iterator * 3 + 1], NormalData[Iterator * 3 + 2]),
-                            .Color             = glm::vec4(1.F),
-                            .TextureCoordinate = glm::vec2(TexCoordData[Iterator * 2], TexCoordData[Iterator * 2 + 1])};
-
-                    LoadedMesh.ObjectData.Vertices.push_back(Vertex);
-                }
-
-                auto const& IndexAccessor   = Model.accessors[Primitive.indices];
-                auto const& IndexBufferView = Model.bufferViews[IndexAccessor.bufferView];
-                auto const& IndexBuffer     = Model.buffers[IndexBufferView.buffer];
-
-                const auto* IndexData             = reinterpret_cast<const uint32_t*>(IndexBuffer.data.data() + IndexBufferView.byteOffset + IndexAccessor.byteOffset);
-                std::uint32_t const IndicesOffset = std::size(LoadedMesh.ObjectData.Indices);
-
-                for (std::size_t Iterator = 0; Iterator < IndexAccessor.count; ++Iterator)
-                {
-                    LoadedMesh.ObjectData.Indices.push_back(IndexData[Iterator] + static_cast<std::uint32_t>(IndicesOffset));
-                }
-
-                if (Primitive.material >= 0)
-                {
-                    auto const PushTextureData = [&LoadedMesh, Model](std::int32_t const TextureIndex, TextureType const Type) {
-                        if (TextureIndex >= 0)
-                        {
-                            auto const& Texture = Model.images.at(TextureIndex);
-
-                            LoadedMesh.Textures.push_back({.Path   = Texture.uri,
-                                                           .Type   = Type,
-                                                           .Width  = static_cast<std::uint32_t>(Texture.width),
-                                                           .Height = static_cast<std::uint32_t>(Texture.height),
-                                                           .Data   = Texture.image});
-                        }
-                    };
-
-                    auto const& Material = Model.materials.at(Primitive.material);
-
-                    PushTextureData(Material.pbrMetallicRoughness.baseColorTexture.index, TextureType::BaseColor);
-                    PushTextureData(Material.normalTexture.index, TextureType::Normal);
-                    PushTextureData(Material.occlusionTexture.index, TextureType::Occlusion);
-                    PushTextureData(Material.emissiveTexture.index, TextureType::Emissive);
-                }
-            }
-
-            if (NodeIndex >= 0)
-            {
-                auto const& Node = Model.nodes.at(NodeIndex);
-
-                if (!std::empty(Node.translation))
-                {
-                    LoadedMesh.Transform.Position = glm::make_vec3(Node.translation.data());
-                }
-
-                if (!std::empty(Node.scale))
-                {
-                    LoadedMesh.Transform.Scale = glm::make_vec3(Node.scale.data());
-                }
-
-                if (!std::empty(Node.rotation))
-                {
-                    LoadedMesh.Transform.Rotation = glm::make_quat(Node.rotation.data());
-                }
-            }
-
-            if (!std::empty(LoadedMesh.ObjectData.Vertices))
-            {
-                LoadedMeshes.push_back(LoadedMesh);
-            }
-        };
-
-        for (std::int32_t const NodeIndex: Scene.nodes)
+        std::int32_t const MeshIndex = Node.mesh;
+        if (MeshIndex < 0)
         {
-            tinygltf::Node const& Node = Model.nodes.at(NodeIndex);
+            continue;
+        }
 
-            if (Node.mesh >= 0)
+        tinygltf::Mesh const& Mesh = Model.meshes.at(MeshIndex);
+
+        ObjectPreProcessedData NewData {
+                .ID   = g_ObjectIDCounter.fetch_add(1U),
+                .Name = Mesh.name};
+
+        for (tinygltf::Primitive const& Primitive: Mesh.primitives)
+        {
+            tinygltf::Accessor const& PositionAccessor = Model.accessors.at(Primitive.attributes.at("POSITION"));
+            tinygltf::Accessor const& NormalAccessor   = Model.accessors.at(Primitive.attributes.at("NORMAL"));
+            tinygltf::Accessor const& TexCoordAccessor = Model.accessors.at(Primitive.attributes.at("TEXCOORD_0"));
+
+            tinygltf::BufferView const& PositionBufferView = Model.bufferViews.at(PositionAccessor.bufferView);
+            tinygltf::BufferView const& NormalBufferView   = Model.bufferViews.at(NormalAccessor.bufferView);
+            tinygltf::BufferView const& TexCoordBufferView = Model.bufferViews.at(TexCoordAccessor.bufferView);
+
+            tinygltf::Buffer const& PositionBuffer = Model.buffers.at(PositionBufferView.buffer);
+            tinygltf::Buffer const& NormalBuffer   = Model.buffers.at(NormalBufferView.buffer);
+            tinygltf::Buffer const& TexCoordBuffer = Model.buffers.at(TexCoordBufferView.buffer);
+
+            auto const* PositionData = reinterpret_cast<const float*>(PositionBuffer.data.data() + PositionBufferView.byteOffset + PositionAccessor.byteOffset);
+            auto const* NormalData   = reinterpret_cast<const float*>(NormalBuffer.data.data() + NormalBufferView.byteOffset + NormalAccessor.byteOffset);
+            auto const* TexCoordData = reinterpret_cast<const float*>(TexCoordBuffer.data.data() + TexCoordBufferView.byteOffset + TexCoordAccessor.byteOffset);
+
+            for (std::uint32_t Iterator = 0U; Iterator < PositionAccessor.count; ++Iterator)
             {
-                ProcessNode(Node.mesh, NodeIndex);
+                Vertex Vertex {
+                        .Position          = glm::vec3(PositionData[Iterator * 3], PositionData[Iterator * 3 + 1], PositionData[Iterator * 3 + 2]),
+                        .Normal            = glm::vec3(NormalData[Iterator * 3], NormalData[Iterator * 3 + 1], NormalData[Iterator * 3 + 2]),
+                        .Color             = glm::vec4(1.F),
+                        .TextureCoordinate = glm::vec2(TexCoordData[Iterator * 2], TexCoordData[Iterator * 2 + 1])};
+
+                NewData.MeshData.Vertices.push_back(std::move(Vertex));
             }
 
-            for (std::int32_t const ChildNodeIndex: Node.children)
+            tinygltf::Accessor const& IndexAccessor     = Model.accessors.at(Primitive.indices);
+            tinygltf::BufferView const& IndexBufferView = Model.bufferViews.at(IndexAccessor.bufferView);
+            tinygltf::Buffer const& IndexBuffer         = Model.buffers.at(IndexBufferView.buffer);
+
+            auto const* IndexData             = reinterpret_cast<const uint32_t*>(IndexBuffer.data.data() + IndexBufferView.byteOffset + IndexAccessor.byteOffset);
+            std::uint32_t const IndicesOffset = std::size(NewData.MeshData.Indices);
+
+            for (std::uint32_t Iterator = 0U; Iterator < IndexAccessor.count; ++Iterator)
             {
-                if (const tinygltf::Node& ChildNode = Model.nodes.at(ChildNodeIndex); ChildNode.mesh >= 0)
-                {
-                    ProcessNode(ChildNode.mesh, ChildNodeIndex);
-                }
+                NewData.MeshData.Indices.push_back(IndexData[Iterator] + static_cast<std::uint32_t>(IndicesOffset));
             }
+
+            if (Primitive.material >= 0)
+            {
+                auto const PushTextureData = [&NewData, Model](std::int32_t const TextureIndex, TextureType const Type) {
+                    if (TextureIndex >= 0)
+                    {
+                        auto const& Texture = Model.images.at(TextureIndex);
+
+                        NewData.Textures.at(Type) = {.Name    = Texture.uri,
+                                                     .Width   = static_cast<std::uint32_t>(Texture.width),
+                                                     .Height  = static_cast<std::uint32_t>(Texture.height),
+                                                     .Content = Texture.image};
+                    }
+                };
+
+                tinygltf::Material const& Material = Model.materials.at(Primitive.material);
+                PushTextureData(Material.pbrMetallicRoughness.baseColorTexture.index, TextureType::BaseColor);
+            }
+        }
+
+        if (!std::empty(Node.translation))
+        {
+            NewData.Transform.Position = glm::make_vec3(Node.translation.data());
+        }
+
+        if (!std::empty(Node.scale))
+        {
+            NewData.Transform.Scale = glm::make_vec3(Node.scale.data());
+
+            NewData.Transform.Scale.X = std::clamp(NewData.Transform.Scale.X, 0.01F, 100.F);
+            NewData.Transform.Scale.Y = std::clamp(NewData.Transform.Scale.Y, 0.01F, 100.F);
+            NewData.Transform.Scale.Z = std::clamp(NewData.Transform.Scale.Z, 0.01F, 100.F);
+        }
+
+        if (!std::empty(Node.rotation))
+        {
+            NewData.Transform.Rotation = glm::make_quat(Node.rotation.data());
+        }
+
+        if (!std::empty(NewData.MeshData.Vertices) && !std::empty(NewData.MeshData.Indices))
+        {
+            LoadedMeshes.push_back(std::move(NewData));
         }
     }
 
@@ -908,15 +880,15 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
         CreateIndexBuffers(NewObject, ObjectData.Indices);
         CreateUniformBuffers(NewObject);
 
-        for (auto const& [Path, Type, Width, Height, Data]: Textures)
+        for (auto const& [Type, Data]: Textures)
         {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Allocating texture from path '" << Path << "' with width: '" << Width << "' and height: '" << Height << "'";
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Allocating texture '" << Data.Name << "' with width: '" << Data.Width << "' and height: '" << Data.Height << "'";
 
             NewObject.TextureImages.push_back(
-                    AllocateTexture(Data.data(),
-                                    Width,
-                                    Height,
-                                    std::size(Data)));
+                    AllocateTexture(Data.Content.data(),
+                                    Data.Width,
+                                    Data.Height,
+                                    std::size(Data.Content)));
 
             NewObject.TextureImages.back().Type = Type;
         }
@@ -1074,29 +1046,25 @@ bool RenderCore::ContainsObject(std::uint32_t const ID)
     return g_Objects.contains(ID);
 }
 
-std::vector<ObjectBufferData> RenderCore::GetAllocatedObjects()
+std::vector<MeshBufferData> RenderCore::GetAllocatedObjects()
 {
-    std::vector<ObjectBufferData> Output;
-    for (auto const& [Key, Value]: g_Objects)
+    std::vector<MeshBufferData> Output;
+    for (auto const& Value: g_Objects | std::views::values)
     {
         if (!Value.UniformBuffer.Allocation)
         {
             continue;
         }
 
-        Output.push_back(
-                ObjectBufferData {
-                        .ObjectID          = Key,
-                        .UniformBuffer     = Value.UniformBuffer.Buffer,
-                        .UniformBufferData = Value.UniformBuffer.Allocation->GetMappedData()});
+        Output.push_back({.UniformBuffer     = Value.UniformBuffer.Buffer,
+                          .UniformBufferData = Value.UniformBuffer.Allocation->GetMappedData()});
 
         for (auto const& ImageAllocation: Value.TextureImages)
         {
-            Output.back().Textures.push_back(
-                    TextureBufferData {
-                            .Type      = ImageAllocation.Type,
-                            .ImageView = ImageAllocation.View,
-                            .Sampler   = ImageAllocation.Sampler});
+            Output.back().Textures.emplace(ImageAllocation.Type,
+                                           TextureBufferData {
+                                                   .ImageView = ImageAllocation.View,
+                                                   .Sampler   = ImageAllocation.Sampler});
         }
     }
 

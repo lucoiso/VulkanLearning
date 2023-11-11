@@ -5,6 +5,7 @@
 module;
 
 #include <GLFW/glfw3.h>
+#include <unordered_map>
 #include <volk.h>
 
 export module RenderCore.Utils.Helpers;
@@ -16,27 +17,29 @@ export import <string_view>;
 
 namespace RenderCore
 {
-    export VkExtent2D GetWindowExtent(GLFWwindow*, VkSurfaceCapabilitiesKHR const&);
-    export std::vector<char const*> GetGLFWExtensions();
-    export std::vector<VkLayerProperties> GetAvailableInstanceLayers();
-    export std::vector<std::string> GetAvailableInstanceLayersNames();
-    export std::vector<VkExtensionProperties> GetAvailableInstanceExtensions();
-    export std::vector<std::string> GetAvailableInstanceExtensionsNames();
+    export [[nodiscard]] VkExtent2D GetWindowExtent(GLFWwindow*, VkSurfaceCapabilitiesKHR const&);
+    export [[nodiscard]] std::vector<char const*> GetGLFWExtensions();
+    export [[nodiscard]] std::vector<VkLayerProperties> GetAvailableInstanceLayers();
+    export [[nodiscard]] std::vector<std::string> GetAvailableInstanceLayersNames();
+    export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceExtensions();
+    export [[nodiscard]] std::vector<std::string> GetAvailableInstanceExtensionsNames();
+
+    export [[nodiscard]] std::unordered_map<std::string, std::string> GetAvailableglTFAssetsInDirectory(std::string const&, std::vector<std::string> const&);
 
 #ifdef _DEBUG
     export void ListAvailableInstanceLayers();
     export void ListAvailableInstanceExtensions();
 #endif
 
-    export std::vector<VkExtensionProperties> GetAvailableLayerExtensions(std::string_view const&);
-    export std::vector<std::string> GetAvailableLayerExtensionsNames(std::string_view const&);
+    export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableLayerExtensions(std::string_view const&);
+    export [[nodiscard]] std::vector<std::string> GetAvailableLayerExtensionsNames(std::string_view const&);
 
 #ifdef _DEBUG
     export void ListAvailableInstanceLayerExtensions(std::string_view const&);
 #endif
 
-    export std::array<VkVertexInputBindingDescription, 1U> GetBindingDescriptors();
-    export std::array<VkVertexInputAttributeDescription, 4U> GetAttributeDescriptions();
+    export [[nodiscard]] std::array<VkVertexInputBindingDescription, 1U> GetBindingDescriptors();
+    export [[nodiscard]] std::array<VkVertexInputAttributeDescription, 4U> GetAttributeDescriptions();
 
     export template<typename T>
         requires std::is_same_v<T, VkResult> || std::is_same_v<T, VkResult&>

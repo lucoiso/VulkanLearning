@@ -20,6 +20,7 @@ module RenderCore.Utils.Helpers;
 
 import <span>;
 import <array>;
+import <filesystem>;
 
 import RenderCore.Types.Vertex;
 
@@ -103,6 +104,26 @@ std::vector<std::string> RenderCore::GetAvailableInstanceExtensionsNames()
     }
 
     return Output;
+}
+
+std::unordered_map<std::string, std::string> RenderCore::GetAvailableglTFAssetsInDirectory(std::string const& Root, std::vector<std::string> const& Extensions)
+{
+    std::unordered_map<std::string, std::string> OptionsMap {{"None", ""}};
+    try
+    {
+        for (auto const& Entry: std::filesystem::recursive_directory_iterator(Root))
+        {
+            if (Entry.is_regular_file() && std::ranges::find(Extensions, Entry.path().extension()) != std::cend(Extensions))
+            {
+                OptionsMap.emplace(Entry.path().stem().string(), Entry.path().string());
+            }
+        }
+    }
+    catch (...)
+    {
+    }
+
+    return OptionsMap;
 }
 
 #ifdef _DEBUG

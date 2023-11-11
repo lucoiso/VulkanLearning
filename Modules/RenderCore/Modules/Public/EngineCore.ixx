@@ -40,6 +40,7 @@ namespace RenderCore
         std::optional<std::int32_t> TryRequestDrawImage();
 
         void Tick(double);
+        void RemoveInvalidObjects();
 
         bool InitializeEngine(GLFWwindow*);
         void ShutdownEngine();
@@ -57,5 +58,6 @@ namespace RenderCore
         void UnloadAllScenes();
 
         [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;
+        [[nodiscard]] std::uint32_t GetNumObjects() const;
     };
 }// namespace RenderCore
