@@ -148,7 +148,10 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
 
 void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow* const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)
 {
-    Camera& Camera   = GetViewportCamera();
-    float const Zoom = static_cast<float>(OffsetY) * 0.1f;
-    Camera.SetPosition(Camera.GetPosition() + Camera.GetRotation().GetFront() * Zoom);
+    if (!ImGui::GetIO().WantCaptureMouse)
+    {
+        Camera& Camera   = GetViewportCamera();
+        float const Zoom = static_cast<float>(OffsetY) * 0.1f;
+        Camera.SetPosition(Camera.GetPosition() + Camera.GetRotation().GetFront() * Zoom);
+    }
 }

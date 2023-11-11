@@ -196,7 +196,7 @@ void Window::CreateOverlay()
                 SelectedItem = OptionNone;
             }
 
-            if (ImGui::BeginCombo("Scene", SelectedItem.data()))
+            if (ImGui::BeginCombo("glTF Scene", SelectedItem.data()))
             {
                 static std::unordered_map<std::string, std::string> const OptionsMap = GetAvailableglTFAssetsInDirectory("Resources/Assets", {".gltf", ".glb"});
                 static std::string s_ModelPath                                       = OptionsMap.at(SelectedItem);

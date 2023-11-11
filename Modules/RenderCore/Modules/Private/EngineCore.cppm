@@ -254,12 +254,17 @@ void RenderCore::EngineCore::Tick(double const DeltaTime)
 
     RemoveInvalidObjects();
 
-    for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
+    if (m_ObjectsMutex.try_lock())
     {
-        if (ObjectIter && !ObjectIter->IsPendingDestroy())
+        for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
         {
-            ObjectIter->Tick(DeltaTime);
+            if (ObjectIter && !ObjectIter->IsPendingDestroy())
+            {
+                ObjectIter->Tick(DeltaTime);
+            }
         }
+
+        m_ObjectsMutex.unlock();
     }
 }
 
@@ -270,18 +275,23 @@ void RenderCore::EngineCore::RemoveInvalidObjects()
         return;
     }
 
-    std::vector<std::uint32_t> LoadedIDs {};
-    for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
+    if (m_ObjectsMutex.try_lock())
     {
-        if (ObjectIter && ObjectIter->IsPendingDestroy())
+        std::vector<std::uint32_t> LoadedIDs {};
+        for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
         {
-            LoadedIDs.push_back(ObjectIter->GetID());
+            if (ObjectIter && ObjectIter->IsPendingDestroy())
+            {
+                LoadedIDs.push_back(ObjectIter->GetID());
+            }
         }
-    }
 
-    if (!std::empty(LoadedIDs))
-    {
-        UnloadScene(LoadedIDs);
+        m_ObjectsMutex.unlock();
+
+        if (!std::empty(LoadedIDs))
+        {
+            UnloadScene(LoadedIDs);
+        }
     }
 }
 
@@ -377,6 +387,8 @@ std::vector<std::uint32_t> RenderCore::EngineCore::LoadScene(std::string_view co
         throw std::runtime_error("Object path is invalid");
     }
 
+    std::lock_guard Lock(m_ObjectsMutex);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
 
     std::vector<Object> LoadedObjects = AllocateScene(ObjectPath);
@@ -401,6 +413,8 @@ void RenderCore::EngineCore::UnloadScene(std::vector<std::uint32_t> const& Objec
     {
         return;
     }
+
+    std::lock_guard Lock(m_ObjectsMutex);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading scene...";
 

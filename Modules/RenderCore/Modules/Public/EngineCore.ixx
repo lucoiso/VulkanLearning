@@ -11,6 +11,7 @@ export module RenderCore.EngineCore;
 
 export import <cstdint>;
 export import <memory>;
+export import <mutex>;
 export import <vector>;
 export import <optional>;
 export import <string_view>;
@@ -33,6 +34,7 @@ namespace RenderCore
 
         EngineCoreStateFlags m_StateFlags {EngineCoreStateFlags::NONE};
         std::vector<std::shared_ptr<Object>> m_Objects {};
+        std::mutex m_ObjectsMutex {};
 
         friend class Window;
 

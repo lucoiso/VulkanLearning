@@ -25,7 +25,7 @@ VkPipeline g_Pipeline {VK_NULL_HANDLE};
 VkPipelineLayout g_PipelineLayout {VK_NULL_HANDLE};
 VkPipelineCache g_PipelineCache {VK_NULL_HANDLE};
 VkDescriptorPool g_DescriptorPool {VK_NULL_HANDLE};
-std::vector<VkDescriptorSetLayout> g_DescriptorSetLayouts {};
+VkDescriptorSetLayout g_DescriptorSetLayout {VK_NULL_HANDLE};
 std::vector<VkDescriptorSet> g_DescriptorSets {};
 
 void RenderCore::CreateRenderPass()
@@ -172,10 +172,13 @@ void RenderCore::CreateGraphicsPipeline()
             .dynamicStateCount = static_cast<uint32_t>(std::size(g_DynamicStates)),
             .pDynamicStates    = g_DynamicStates.data()};
 
+    std::uint32_t const ClampedNumAllocations = std::clamp(GetNumAllocations(), 1U, UINT32_MAX);
+    std::vector const DescriptorLayouts(ClampedNumAllocations, g_DescriptorSetLayout);
+
     VkPipelineLayoutCreateInfo const PipelineLayoutCreateInfo {
             .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = static_cast<std::uint32_t>(std::size(g_DescriptorSetLayouts)),
-            .pSetLayouts    = g_DescriptorSetLayouts.data()};
+            .setLayoutCount = static_cast<std::uint32_t>(std::size(DescriptorLayouts)),
+            .pSetLayouts    = DescriptorLayouts.data()};
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
@@ -244,32 +247,26 @@ void RenderCore::CreateDescriptorSetLayout()
             .bindingCount = static_cast<std::uint32_t>(std::size(LayoutBindings)),
             .pBindings    = LayoutBindings.data()};
 
-    std::uint32_t const NumAllocations = std::clamp(GetNumAllocations(), 1U, UINT32_MAX);
-
-    g_DescriptorSetLayouts.resize(NumAllocations, VK_NULL_HANDLE);
-    for (auto& DescriptorSetLayoutIter: g_DescriptorSetLayouts)
-    {
-        CheckVulkanResult(vkCreateDescriptorSetLayout(volkGetLoadedDevice(), &DescriptorSetLayoutInfo, nullptr, &DescriptorSetLayoutIter));
-    }
+    CheckVulkanResult(vkCreateDescriptorSetLayout(volkGetLoadedDevice(), &DescriptorSetLayoutInfo, nullptr, &g_DescriptorSetLayout));
 }
 
 void RenderCore::CreateDescriptorPool()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor pool";
 
-    std::uint32_t const NumAllocations = std::clamp(GetNumAllocations(), 1U, UINT32_MAX);
+    std::uint32_t const ClampedNumAllocations = std::clamp(GetNumAllocations(), 1U, UINT32_MAX);
 
     std::array const DescriptorPoolSizes {
             VkDescriptorPoolSize {
                     .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = NumAllocations * 1U},
+                    .descriptorCount = ClampedNumAllocations},
             VkDescriptorPoolSize {
                     .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = NumAllocations * 1U}};
+                    .descriptorCount = ClampedNumAllocations}};
 
     VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .maxSets       = NumAllocations,
+            .maxSets       = ClampedNumAllocations,
             .poolSizeCount = static_cast<std::uint32_t>(std::size(DescriptorPoolSizes)),
             .pPoolSizes    = DescriptorPoolSizes.data()};
 
@@ -287,20 +284,23 @@ void RenderCore::CreateDescriptorSets()
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
     auto const AllocatedObjects         = GetAllocatedObjects();
+    std::uint32_t const NumAllocations  = GetNumAllocations();
 
-    g_DescriptorSets.resize(std::size(AllocatedObjects));
+    g_DescriptorSets.resize(NumAllocations);
+    std::vector const DescriptorLayouts(NumAllocations, g_DescriptorSetLayout);
 
     VkDescriptorSetAllocateInfo const DescriptorSetAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .descriptorPool     = g_DescriptorPool,
-            .descriptorSetCount = static_cast<std::uint32_t>(std::size(g_DescriptorSets)),
-            .pSetLayouts        = g_DescriptorSetLayouts.data()};
+            .descriptorSetCount = NumAllocations,
+            .pSetLayouts        = DescriptorLayouts.data()};
 
     CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, g_DescriptorSets.data()));
 
-    for (auto Iterator = std::begin(g_DescriptorSets); Iterator != std::end(g_DescriptorSets); ++Iterator)
+    for (auto Iterator = std::begin(AllocatedObjects); Iterator != std::end(AllocatedObjects); ++Iterator)
     {
-        std::uint32_t const Index               = static_cast<std::uint32_t>(std::distance(std::begin(g_DescriptorSets), Iterator));
+        std::uint32_t const Index = static_cast<std::uint32_t>(std::distance(std::begin(AllocatedObjects), Iterator));
+
         constexpr std::size_t UniformBufferSize = sizeof(UniformBufferObject);
 
         VkDescriptorBufferInfo const UniformBuffers {
@@ -324,7 +324,7 @@ void RenderCore::CreateDescriptorSets()
         std::vector WriteDescriptors {
                 VkWriteDescriptorSet {
                         .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                        .dstSet           = *Iterator,
+                        .dstSet           = g_DescriptorSets.at(Index),
                         .dstBinding       = 0U,
                         .dstArrayElement  = 0U,
                         .descriptorCount  = 1U,
@@ -338,7 +338,7 @@ void RenderCore::CreateDescriptorSets()
             WriteDescriptors.push_back(
                     VkWriteDescriptorSet {
                             .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                            .dstSet           = *Iterator,
+                            .dstSet           = g_DescriptorSets.at(Index),
                             .dstBinding       = static_cast<std::uint32_t>(ImageInfoIterator->second) + 1U,
                             .dstArrayElement  = 0U,
                             .descriptorCount  = 1U,
@@ -394,13 +394,10 @@ void RenderCore::ReleaseDynamicPipelineResources()
         g_PipelineCache = VK_NULL_HANDLE;
     }
 
-    for (auto& DescriptorSetLayoutIter: g_DescriptorSetLayouts)
+    if (g_DescriptorSetLayout != VK_NULL_HANDLE)
     {
-        if (DescriptorSetLayoutIter != VK_NULL_HANDLE)
-        {
-            vkDestroyDescriptorSetLayout(VulkanLogicalDevice, DescriptorSetLayoutIter, nullptr);
-            DescriptorSetLayoutIter = VK_NULL_HANDLE;
-        }
+        vkDestroyDescriptorSetLayout(VulkanLogicalDevice, g_DescriptorSetLayout, nullptr);
+        g_DescriptorSetLayout = VK_NULL_HANDLE;
     }
 
     if (g_DescriptorPool != VK_NULL_HANDLE)
@@ -434,7 +431,7 @@ VkPipelineCache const& RenderCore::GetPipelineCache()
 
 VkDescriptorSetLayout const& RenderCore::GetDescriptorSetLayout()
 {
-    return g_DescriptorSetLayouts.at(0U);
+    return g_DescriptorSetLayout;
 }
 
 VkDescriptorPool const& RenderCore::GetDescriptorPool()
