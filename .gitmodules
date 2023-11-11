@@ -1,5 +1,5 @@
-[submodule "Modules/cpp-submodules"]
-	path = Modules/cpp-submodules
+[submodule "Source/cpp-submodules"]
+	path = Source/cpp-submodules
 	url = https://github.com/lucoiso/cpp-submodules.git
 [submodule "Resources/Assets/glTF-Sample-Assets"]
 	path = Resources/Assets/glTF-Sample-Assets

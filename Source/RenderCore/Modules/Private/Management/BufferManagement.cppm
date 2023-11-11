@@ -837,36 +837,39 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
                 }
             }
 
-            tinygltf::Accessor const& IndexAccessor     = Model.accessors.at(Primitive.indices);
-            tinygltf::BufferView const& IndexBufferView = Model.bufferViews.at(IndexAccessor.bufferView);
-            tinygltf::Buffer const& IndexBuffer         = Model.buffers.at(IndexBufferView.buffer);
-
-            std::uint32_t const IndicesOffset = std::size(NewPrimitive.MeshData.Indices);
-            NewPrimitive.MeshData.Indices.reserve(std::size(NewPrimitive.MeshData.Indices) + IndexAccessor.count);
-
-            auto const InsertIndice = [&NewPrimitive, IndicesOffset, IndexAccessor](auto const* Indices) {
-                for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(IndexAccessor.count); ++Iterator)
-                {
-                    NewPrimitive.MeshData.Indices.push_back(static_cast<std::uint32_t>(Indices[Iterator]) + IndicesOffset);
-                }
-            };
-
-            switch (IndexAccessor.componentType)
+            if (Primitive.indices >= 0)
             {
-                case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
-                    InsertIndice(reinterpret_cast<const uint32_t*>(IndexBuffer.data.data() + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
-                    break;
+                tinygltf::Accessor const& IndexAccessor     = Model.accessors.at(Primitive.indices);
+                tinygltf::BufferView const& IndexBufferView = Model.bufferViews.at(IndexAccessor.bufferView);
+                tinygltf::Buffer const& IndexBuffer         = Model.buffers.at(IndexBufferView.buffer);
+
+                std::uint32_t const IndicesOffset = std::size(NewPrimitive.MeshData.Indices);
+                NewPrimitive.MeshData.Indices.reserve(std::size(NewPrimitive.MeshData.Indices) + IndexAccessor.count);
+
+                auto const InsertIndice = [&NewPrimitive, IndicesOffset, IndexAccessor](auto const* Indices) {
+                    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(IndexAccessor.count); ++Iterator)
+                    {
+                        NewPrimitive.MeshData.Indices.push_back(static_cast<std::uint32_t>(Indices[Iterator]) + IndicesOffset);
+                    }
+                };
+
+                switch (IndexAccessor.componentType)
+                {
+                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
+                        InsertIndice(reinterpret_cast<const uint32_t*>(IndexBuffer.data.data() + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
+                        break;
+                    }
+                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+                        InsertIndice(reinterpret_cast<const uint16_t*>(IndexBuffer.data.data() + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
+                        break;
+                    }
+                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+                        InsertIndice(IndexBuffer.data.data() + IndexBufferView.byteOffset + IndexAccessor.byteOffset);
+                        break;
+                    }
+                    default:
+                        break;
                 }
-                case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
-                    InsertIndice(reinterpret_cast<const uint16_t*>(IndexBuffer.data.data() + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
-                    break;
-                }
-                case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
-                    InsertIndice(IndexBuffer.data.data() + IndexBufferView.byteOffset + IndexAccessor.byteOffset);
-                    break;
-                }
-                default:
-                    break;
             }
 
             if (Primitive.material >= 0)

@@ -55,7 +55,7 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window)
     VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-            .maxSets       = 1000,
+            .maxSets       = 1000U,
             .poolSizeCount = std::size(DescriptorPoolSizes),
             .pPoolSizes    = DescriptorPoolSizes.data()};
 

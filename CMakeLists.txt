@@ -37,7 +37,7 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin)
 SET(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/Install" CACHE PATH "Installation Directory")
 
 # --------- CMake Global Includes ----------
-INCLUDE(Modules/CMake/Utils.cmake)
+INCLUDE(Source/CMake/Utils.cmake)
 
 # -------------- Directories ---------------
-ADD_SUBDIRECTORY(Modules)
+ADD_SUBDIRECTORY(Source)
