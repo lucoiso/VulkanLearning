@@ -1122,17 +1122,18 @@ bool RenderCore::ContainsObject(std::uint32_t const ID)
 std::vector<MeshBufferData> RenderCore::GetAllocatedObjects()
 {
     std::vector<MeshBufferData> Output;
-    for (auto const& Value: g_Objects | std::views::values)
+    for (auto const& [ID, Data]: g_Objects)
     {
-        if (!Value.UniformBuffer.Allocation)
+        if (!Data.UniformBuffer.Allocation)
         {
             continue;
         }
 
-        Output.push_back({.UniformBuffer     = Value.UniformBuffer.Buffer,
-                          .UniformBufferData = Value.UniformBuffer.Allocation->GetMappedData()});
+        Output.push_back({.ID                = ID,
+                          .UniformBuffer     = Data.UniformBuffer.Buffer,
+                          .UniformBufferData = Data.UniformBuffer.Allocation->GetMappedData()});
 
-        for (auto const& ImageAllocation: Value.TextureImages)
+        for (auto const& ImageAllocation: Data.TextureImages)
         {
             Output.back().Textures.emplace(ImageAllocation.Type,
                                            TextureBufferData {

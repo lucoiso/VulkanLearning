@@ -10,6 +10,7 @@ module;
 module RenderCore.Management.PipelineManagement;
 
 import <array>;
+import <ranges>;
 
 import RenderCore.Management.ShaderManagement;
 import RenderCore.Management.DeviceManagement;
@@ -26,7 +27,7 @@ VkPipelineLayout g_PipelineLayout {VK_NULL_HANDLE};
 VkPipelineCache g_PipelineCache {VK_NULL_HANDLE};
 VkDescriptorPool g_DescriptorPool {VK_NULL_HANDLE};
 VkDescriptorSetLayout g_DescriptorSetLayout {VK_NULL_HANDLE};
-std::vector<VkDescriptorSet> g_DescriptorSets {};
+std::unordered_map<std::uint32_t, VkDescriptorSet> g_DescriptorSets {};
 
 void RenderCore::CreateRenderPass()
 {
@@ -225,17 +226,17 @@ void RenderCore::CreateDescriptorSetLayout()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
 
-    std::array const LayoutBindings {
+    constexpr std::array LayoutBindings {
             VkDescriptorSetLayoutBinding {
                     .binding            = 0U,
                     .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount    = GetClampedNumAllocations(),
+                    .descriptorCount    = 1U,
                     .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
                     .pImmutableSamplers = nullptr},
             VkDescriptorSetLayoutBinding {
                     .binding            = 1U,
                     .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount    = GetClampedNumAllocations(),
+                    .descriptorCount    = 1U,
                     .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = nullptr}};
 
@@ -261,7 +262,7 @@ void RenderCore::CreateDescriptorPool()
 
     VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .maxSets       = GetClampedNumAllocations() * static_cast<std::uint32_t>(std::size(DescriptorPoolSizes)),
+            .maxSets       = 2U * GetClampedNumAllocations(),
             .poolSizeCount = static_cast<std::uint32_t>(std::size(DescriptorPoolSizes)),
             .pPoolSizes    = std::data(DescriptorPoolSizes)};
 
@@ -280,7 +281,7 @@ void RenderCore::CreateDescriptorSets()
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
     auto const AllocatedObjects         = GetAllocatedObjects();
 
-    g_DescriptorSets.resize(1U);
+    g_DescriptorSets.reserve(GetNumAllocations());
 
     VkDescriptorSetAllocateInfo const DescriptorSetAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -288,19 +289,26 @@ void RenderCore::CreateDescriptorSets()
             .descriptorSetCount = 1U,
             .pSetLayouts        = &g_DescriptorSetLayout};
 
-    CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, std::data(g_DescriptorSets)));
+    for (MeshBufferData const& BufferdataIter: AllocatedObjects)
+    {
+        VkDescriptorSet AllocatedSet {VK_NULL_HANDLE};
+        CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, &AllocatedSet));
 
-    std::vector<VkDescriptorBufferInfo> BufferInfos {};
-    std::vector<VkDescriptorImageInfo> ImageInfos {};
+        g_DescriptorSets.emplace(BufferdataIter.ID, AllocatedSet);
+    }
 
     for (auto Iterator = std::begin(AllocatedObjects); Iterator != std::end(AllocatedObjects); ++Iterator)
     {
         constexpr std::size_t UniformBufferSize = sizeof(UniformBufferObject);
         auto const Index                        = static_cast<std::uint32_t>(std::distance(std::begin(AllocatedObjects), Iterator));
 
+        std::vector<VkWriteDescriptorSet> WriteDescriptors {};
+        std::vector<VkDescriptorBufferInfo> BufferInfos {};
+        std::vector<VkDescriptorImageInfo> ImageInfos {};
+
         BufferInfos.push_back(VkDescriptorBufferInfo {
                 .buffer = AllocatedObjects.at(Index).UniformBuffer,
-                .offset = Index * UniformBufferSize,
+                .offset = 0U,
                 .range  = UniformBufferSize});
 
         for (auto const& [Type, TextureData]: AllocatedObjects.at(Index).Textures)
@@ -310,42 +318,39 @@ void RenderCore::CreateDescriptorSets()
                     .imageView   = TextureData.ImageView,
                     .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
         }
-    }
 
-    std::vector<VkWriteDescriptorSet> WriteDescriptors {};
-    WriteDescriptors.reserve(2U);
+        if (!std::empty(BufferInfos))
+        {
+            WriteDescriptors.push_back(VkWriteDescriptorSet {
+                    .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet           = g_DescriptorSets.at(Iterator->ID),
+                    .dstBinding       = 0U,
+                    .dstArrayElement  = 0U,
+                    .descriptorCount  = static_cast<std::uint32_t>(std::size(BufferInfos)),
+                    .descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .pImageInfo       = nullptr,
+                    .pBufferInfo      = std::data(BufferInfos),
+                    .pTexelBufferView = nullptr});
+        }
 
-    if (!std::empty(BufferInfos))
-    {
-        WriteDescriptors.push_back(VkWriteDescriptorSet {
-                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet           = g_DescriptorSets.at(0U),
-                .dstBinding       = 0U,
-                .dstArrayElement  = 0U,
-                .descriptorCount  = static_cast<std::uint32_t>(std::size(BufferInfos)),
-                .descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .pImageInfo       = nullptr,
-                .pBufferInfo      = std::data(BufferInfos),
-                .pTexelBufferView = nullptr});
-    }
+        if (!std::empty(ImageInfos))
+        {
+            WriteDescriptors.push_back(VkWriteDescriptorSet {
+                    .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet           = g_DescriptorSets.at(Iterator->ID),
+                    .dstBinding       = 1U,
+                    .dstArrayElement  = 0U,
+                    .descriptorCount  = static_cast<std::uint32_t>(std::size(ImageInfos)),
+                    .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .pImageInfo       = std::data(ImageInfos),
+                    .pBufferInfo      = nullptr,
+                    .pTexelBufferView = nullptr});
+        }
 
-    if (!std::empty(ImageInfos))
-    {
-        WriteDescriptors.push_back(VkWriteDescriptorSet {
-                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet           = g_DescriptorSets.at(0U),
-                .dstBinding       = 1U,
-                .dstArrayElement  = 0U,
-                .descriptorCount  = static_cast<std::uint32_t>(std::size(ImageInfos)),
-                .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .pImageInfo       = std::data(ImageInfos),
-                .pBufferInfo      = nullptr,
-                .pTexelBufferView = nullptr});
-    }
-
-    if (!std::empty(WriteDescriptors))
-    {
-        vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(std::size(WriteDescriptors)), std::data(WriteDescriptors), 0U, nullptr);
+        if (!std::empty(WriteDescriptors))
+        {
+            vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(std::size(WriteDescriptors)), std::data(WriteDescriptors), 0U, nullptr);
+        }
     }
 }
 
@@ -433,7 +438,12 @@ VkDescriptorPool const& RenderCore::GetDescriptorPool()
     return g_DescriptorPool;
 }
 
-std::vector<VkDescriptorSet> const& RenderCore::GetDescriptorSets()
+VkDescriptorSet RenderCore::GetDescriptorSet(std::uint32_t const ObjectID)
 {
-    return g_DescriptorSets;
+    if (!g_DescriptorSets.contains(ObjectID))
+    {
+        return VK_NULL_HANDLE;
+    }
+
+    return g_DescriptorSets.at(ObjectID);
 }

@@ -231,7 +231,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
 {
     AllocateCommandBuffer();
 
-    VkCommandBuffer& MainCommandBuffer = g_CommandBuffers.at(0U);
+    VkCommandBuffer const& MainCommandBuffer = g_CommandBuffers.at(0U);
 
     constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -289,58 +289,52 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
         vkCmdBindPipeline(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
     }
 
-    if (std::vector<VkDescriptorSet> const& DescriptorSets = GetDescriptorSets();
-        ActiveRenderPass && !std::empty(DescriptorSets))
+    if (ActiveRenderPass)
     {
-        std::vector<VkDescriptorSet> ValidDescriptorSets {};
-        for (VkDescriptorSet const& DescriptorSetIter: DescriptorSets)
+        for (std::shared_ptr<Object> const& ObjectIter: EngineCore::Get().GetObjects())
         {
-            if (DescriptorSetIter != VK_NULL_HANDLE)
+            if (!ObjectIter || ObjectIter->IsPendingDestroy())
             {
-                ValidDescriptorSets.push_back(DescriptorSetIter);
+                continue;
+            }
+
+            std::uint32_t const ObjectID = ObjectIter->GetID();
+
+            if (VkDescriptorSet const& DescriptorSet = GetDescriptorSet(ObjectID); DescriptorSet != VK_NULL_HANDLE)
+            {
+                vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, 1U, &DescriptorSet, 0U, nullptr);
+            }
+            else
+            {
+                continue;
+            }
+
+            VkBuffer const& VertexBuffer   = GetVertexBuffer(ObjectID);
+            VkBuffer const& IndexBuffer    = GetIndexBuffer(ObjectID);
+            std::uint32_t const IndexCount = GetIndicesCount(ObjectID);
+
+            UpdateUniformBuffers(ObjectID);
+
+            bool ActiveVertexBinding {false};
+            if (VertexBuffer != VK_NULL_HANDLE)
+            {
+                vkCmdBindVertexBuffers(MainCommandBuffer, 0U, 1U, &VertexBuffer, std::data(Offsets));
+                ActiveVertexBinding = true;
+            }
+
+            bool ActiveIndexBinding {false};
+            if (IndexBuffer != VK_NULL_HANDLE)
+            {
+                vkCmdBindIndexBuffer(MainCommandBuffer, IndexBuffer, 0U, VK_INDEX_TYPE_UINT32);
+                ActiveIndexBinding = true;
+            }
+
+            if (ActiveRenderPass && ActiveVertexBinding && ActiveIndexBinding)
+            {
+                vkCmdDrawIndexed(MainCommandBuffer, IndexCount, 1U, 0U, 0U, 0U);
             }
         }
 
-        vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, static_cast<std::uint32_t>(std::size(ValidDescriptorSets)), std::data(ValidDescriptorSets), 0U, nullptr);
-    }
-
-    for (std::shared_ptr<Object> const& ObjectIter: EngineCore::Get().GetObjects())
-    {
-        if (!ObjectIter || ObjectIter->IsPendingDestroy())
-        {
-            continue;
-        }
-
-        std::uint32_t const ObjectID = ObjectIter->GetID();
-
-        VkBuffer const& VertexBuffer   = GetVertexBuffer(ObjectID);
-        VkBuffer const& IndexBuffer    = GetIndexBuffer(ObjectID);
-        std::uint32_t const IndexCount = GetIndicesCount(ObjectID);
-
-        UpdateUniformBuffers(ObjectID);
-
-        bool ActiveVertexBinding {false};
-        if (VertexBuffer != VK_NULL_HANDLE)
-        {
-            vkCmdBindVertexBuffers(MainCommandBuffer, 0U, 1U, &VertexBuffer, std::data(Offsets));
-            ActiveVertexBinding = true;
-        }
-
-        bool ActiveIndexBinding {false};
-        if (IndexBuffer != VK_NULL_HANDLE)
-        {
-            vkCmdBindIndexBuffer(MainCommandBuffer, IndexBuffer, 0U, VK_INDEX_TYPE_UINT32);
-            ActiveIndexBinding = true;
-        }
-
-        if (ActiveRenderPass && ActiveVertexBinding && ActiveIndexBinding)
-        {
-            vkCmdDrawIndexed(MainCommandBuffer, IndexCount, 1U, 0U, 0U, 0U);
-        }
-    }
-
-    if (ActiveRenderPass)
-    {
         if (ImDrawData* const ImGuiDrawData = ImGui::GetDrawData())
         {
             ImGui_ImplVulkan_RenderDrawData(ImGuiDrawData, MainCommandBuffer);
