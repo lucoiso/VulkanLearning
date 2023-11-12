@@ -774,167 +774,151 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
             continue;
         }
 
-        tinygltf::Mesh const& Mesh = Model.meshes.at(MeshIndex);
-        std::vector<ObjectPreProcessedData> Primitives {};
-        Primitives.reserve(std::size(Mesh.primitives));
-
-        std::vector<std::jthread> PrimitiveProccessThreads {};
-        PrimitiveProccessThreads.reserve(std::size(Mesh.primitives));
-
-        for (tinygltf::Primitive const& Primitive: Mesh.primitives)
+        for (tinygltf::Mesh const& Mesh = Model.meshes.at(MeshIndex);
+             tinygltf::Primitive const& Primitive: Mesh.primitives)
         {
-            PrimitiveProccessThreads.emplace_back([Primitive, Model, Mesh, &Primitives] {
-                std::uint32_t const ObjectID = g_ObjectIDCounter.fetch_add(1U);
+            std::uint32_t const ObjectID = g_ObjectIDCounter.fetch_add(1U);
 
-                ObjectPreProcessedData NewPrimitive {
-                        .ID   = ObjectID,
-                        .Name = std::format("{}_{:03d}", Mesh.name, ObjectID)};
+            ObjectPreProcessedData NewPrimitive {
+                    .ID   = ObjectID,
+                    .Name = std::format("{}_{:03d}", Mesh.name, ObjectID)};
 
-                auto const StartVertexNum  = static_cast<std::uint32_t>(std::size(NewPrimitive.MeshData.Vertices));
-                std::uint32_t NewVertexNum = StartVertexNum;
+            auto const StartVertexNum  = static_cast<std::uint32_t>(std::size(NewPrimitive.MeshData.Vertices));
+            std::uint32_t NewVertexNum = StartVertexNum;
 
-                auto const TryResizeVertexContainer = [&NewPrimitive, &NewVertexNum, StartVertexNum](std::uint32_t const IncreaseSize) {
-                    if (NewVertexNum == StartVertexNum)
+            auto const TryResizeVertexContainer = [&NewPrimitive, &NewVertexNum, StartVertexNum](std::uint32_t const IncreaseSize) {
+                if (NewVertexNum == StartVertexNum)
+                {
+                    NewVertexNum += IncreaseSize;
+                    NewPrimitive.MeshData.Vertices.resize(NewVertexNum);
+                }
+            };
+
+            const float* PositionData {nullptr};
+            const float* NormalData {nullptr};
+            const float* TexCoordData {nullptr};
+
+            if (Primitive.attributes.contains("POSITION"))
+            {
+                tinygltf::Accessor const& PositionAccessor     = Model.accessors.at(Primitive.attributes.at("POSITION"));
+                tinygltf::BufferView const& PositionBufferView = Model.bufferViews.at(PositionAccessor.bufferView);
+                tinygltf::Buffer const& PositionBuffer         = Model.buffers.at(PositionBufferView.buffer);
+                PositionData                                   = reinterpret_cast<const float*>(std::data(PositionBuffer.data) + PositionBufferView.byteOffset + PositionAccessor.byteOffset);
+                TryResizeVertexContainer(PositionAccessor.count);
+            }
+
+            if (Primitive.attributes.contains("NORMAL"))
+            {
+                tinygltf::Accessor const& NormalAccessor     = Model.accessors.at(Primitive.attributes.at("NORMAL"));
+                tinygltf::BufferView const& NormalBufferView = Model.bufferViews.at(NormalAccessor.bufferView);
+                tinygltf::Buffer const& NormalBuffer         = Model.buffers.at(NormalBufferView.buffer);
+                NormalData                                   = reinterpret_cast<const float*>(std::data(NormalBuffer.data) + NormalBufferView.byteOffset + NormalAccessor.byteOffset);
+                TryResizeVertexContainer(NormalAccessor.count);
+            }
+
+            if (Primitive.attributes.contains("TEXCOORD_0"))
+            {
+                tinygltf::Accessor const& TexCoordAccessor     = Model.accessors.at(Primitive.attributes.at("TEXCOORD_0"));
+                tinygltf::BufferView const& TexCoordBufferView = Model.bufferViews.at(TexCoordAccessor.bufferView);
+                tinygltf::Buffer const& TexCoordBuffer         = Model.buffers.at(TexCoordBufferView.buffer);
+                TexCoordData                                   = reinterpret_cast<const float*>(std::data(TexCoordBuffer.data) + TexCoordBufferView.byteOffset + TexCoordAccessor.byteOffset);
+                TryResizeVertexContainer(TexCoordAccessor.count);
+            }
+
+            for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(NewPrimitive.MeshData.Vertices)); ++Iterator)
+            {
+                if (PositionData)
+                {
+                    NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).Position = glm::vec3(PositionData[Iterator * 3], PositionData[Iterator * 3 + 1], PositionData[Iterator * 3 + 2]);
+                }
+
+                if (NormalData)
+                {
+                    NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).Normal = glm::vec3(NormalData[Iterator * 3], NormalData[Iterator * 3 + 1], NormalData[Iterator * 3 + 2]);
+                }
+
+                if (TexCoordData)
+                {
+                    NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).TextureCoordinate = glm::vec2(TexCoordData[Iterator * 2], TexCoordData[Iterator * 2 + 1]);
+                }
+            }
+
+            if (Primitive.indices >= 0)
+            {
+                tinygltf::Accessor const& IndexAccessor     = Model.accessors.at(Primitive.indices);
+                tinygltf::BufferView const& IndexBufferView = Model.bufferViews.at(IndexAccessor.bufferView);
+                tinygltf::Buffer const& IndexBuffer         = Model.buffers.at(IndexBufferView.buffer);
+
+                std::uint32_t const IndicesOffset = std::size(NewPrimitive.MeshData.Indices);
+                NewPrimitive.MeshData.Indices.reserve(std::size(NewPrimitive.MeshData.Indices) + IndexAccessor.count);
+
+                auto const InsertIndice = [&NewPrimitive, IndicesOffset, IndexAccessor](auto const* Indices) {
+                    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(IndexAccessor.count); ++Iterator)
                     {
-                        NewVertexNum += IncreaseSize;
-                        NewPrimitive.MeshData.Vertices.resize(NewVertexNum);
+                        NewPrimitive.MeshData.Indices.push_back(static_cast<std::uint32_t>(Indices[Iterator]) + IndicesOffset);
                     }
                 };
 
-                if (Primitive.attributes.contains("POSITION"))
+                switch (IndexAccessor.componentType)
                 {
-                    tinygltf::Accessor const& PositionAccessor     = Model.accessors.at(Primitive.attributes.at("POSITION"));
-                    tinygltf::BufferView const& PositionBufferView = Model.bufferViews.at(PositionAccessor.bufferView);
-                    tinygltf::Buffer const& PositionBuffer         = Model.buffers.at(PositionBufferView.buffer);
-                    auto const* PositionData                       = reinterpret_cast<const float*>(std::data(PositionBuffer.data) + PositionBufferView.byteOffset + PositionAccessor.byteOffset);
-                    TryResizeVertexContainer(PositionAccessor.count);
-
-                    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(PositionAccessor.count); ++Iterator)
-                    {
-                        NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).Position = glm::vec3(PositionData[Iterator * 3], PositionData[Iterator * 3 + 1], PositionData[Iterator * 3 + 2]);
+                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
+                        InsertIndice(reinterpret_cast<const uint32_t*>(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
+                        break;
                     }
-                }
-
-                if (Primitive.attributes.contains("NORMAL"))
-                {
-                    tinygltf::Accessor const& NormalAccessor     = Model.accessors.at(Primitive.attributes.at("NORMAL"));
-                    tinygltf::BufferView const& NormalBufferView = Model.bufferViews.at(NormalAccessor.bufferView);
-                    tinygltf::Buffer const& NormalBuffer         = Model.buffers.at(NormalBufferView.buffer);
-                    auto const* NormalData                       = reinterpret_cast<const float*>(std::data(NormalBuffer.data) + NormalBufferView.byteOffset + NormalAccessor.byteOffset);
-                    TryResizeVertexContainer(NormalAccessor.count);
-
-                    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(NormalAccessor.count); ++Iterator)
-                    {
-                        NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).Normal = glm::vec3(NormalData[Iterator * 3], NormalData[Iterator * 3 + 1], NormalData[Iterator * 3 + 2]);
+                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+                        InsertIndice(reinterpret_cast<const uint16_t*>(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
+                        break;
                     }
-                }
-
-                if (Primitive.attributes.contains("TEXCOORD_0"))
-                {
-                    tinygltf::Accessor const& TexCoordAccessor     = Model.accessors.at(Primitive.attributes.at("TEXCOORD_0"));
-                    tinygltf::BufferView const& TexCoordBufferView = Model.bufferViews.at(TexCoordAccessor.bufferView);
-                    tinygltf::Buffer const& TexCoordBuffer         = Model.buffers.at(TexCoordBufferView.buffer);
-                    auto const* TexCoordData                       = reinterpret_cast<const float*>(std::data(TexCoordBuffer.data) + TexCoordBufferView.byteOffset + TexCoordAccessor.byteOffset);
-                    TryResizeVertexContainer(TexCoordAccessor.count);
-
-                    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(TexCoordAccessor.count); ++Iterator)
-                    {
-                        NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).TextureCoordinate = glm::vec2(TexCoordData[Iterator * 2], TexCoordData[Iterator * 2 + 1]);
+                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+                        InsertIndice(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset);
+                        break;
                     }
+                    default:
+                        break;
                 }
+            }
 
-                if (Primitive.indices >= 0)
-                {
-                    tinygltf::Accessor const& IndexAccessor     = Model.accessors.at(Primitive.indices);
-                    tinygltf::BufferView const& IndexBufferView = Model.bufferViews.at(IndexAccessor.bufferView);
-                    tinygltf::Buffer const& IndexBuffer         = Model.buffers.at(IndexBufferView.buffer);
-
-                    std::uint32_t const IndicesOffset = std::size(NewPrimitive.MeshData.Indices);
-                    NewPrimitive.MeshData.Indices.reserve(std::size(NewPrimitive.MeshData.Indices) + IndexAccessor.count);
-
-                    auto const InsertIndice = [&NewPrimitive, IndicesOffset, IndexAccessor](auto const* Indices) {
-                        for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(IndexAccessor.count); ++Iterator)
-                        {
-                            NewPrimitive.MeshData.Indices.push_back(static_cast<std::uint32_t>(Indices[Iterator]) + IndicesOffset);
-                        }
-                    };
-
-                    switch (IndexAccessor.componentType)
-                    {
-                        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
-                            InsertIndice(reinterpret_cast<const uint32_t*>(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
-                            break;
-                        }
-                        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
-                            InsertIndice(reinterpret_cast<const uint16_t*>(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
-                            break;
-                        }
-                        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
-                            InsertIndice(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset);
-                            break;
-                        }
-                        default:
-                            break;
-                    }
-                }
-
-                if (Primitive.material >= 0)
-                {
-                    auto const PushTextureData = [&NewPrimitive, Model](std::int32_t const TextureIndex, TextureType const TexType) {
-                        if (TextureIndex >= 0)
-                        {
-                            if (auto const& Texture = Model.textures.at(TextureIndex); Texture.source >= 0)
-                            {
-                                auto const& Image = Model.images.at(Texture.source);
-
-                                NewPrimitive.Textures.at(TexType) = {.Name    = Image.uri,
-                                                                     .Width   = static_cast<std::uint32_t>(Image.width),
-                                                                     .Height  = static_cast<std::uint32_t>(Image.height),
-                                                                     .Content = Image.image};
-                            }
-                        }
-                    };
-
-                    tinygltf::Material const& Material = Model.materials.at(Primitive.material);
-                    PushTextureData(Material.pbrMetallicRoughness.baseColorTexture.index, TextureType::BaseColor);
-                }
-
-                Primitives.push_back(std::move(NewPrimitive));
-            });
-        }
-
-        for (std::jthread& ThreadIter: PrimitiveProccessThreads)
-        {
-            ThreadIter.join();
-        }
-
-        for (ObjectPreProcessedData& PrimitiveIter: Primitives)
-        {
-            if (std::empty(PrimitiveIter.MeshData.Vertices) || std::empty(PrimitiveIter.MeshData.Indices))
+            if (Primitive.material >= 0)
             {
-                continue;
+                auto const PushTextureData = [&NewPrimitive, Model](std::int32_t const TextureIndex, TextureType const TexType) {
+                    if (TextureIndex >= 0)
+                    {
+                        if (auto const& Texture = Model.textures.at(TextureIndex); Texture.source >= 0)
+                        {
+                            auto const& Image = Model.images.at(Texture.source);
+
+                            NewPrimitive.Textures.at(TexType) = {.Name    = Image.uri,
+                                                                 .Width   = static_cast<std::uint32_t>(Image.width),
+                                                                 .Height  = static_cast<std::uint32_t>(Image.height),
+                                                                 .Content = Image.image};
+                        }
+                    }
+                };
+
+                tinygltf::Material const& Material = Model.materials.at(Primitive.material);
+                PushTextureData(Material.pbrMetallicRoughness.baseColorTexture.index, TextureType::BaseColor);
             }
 
             if (!std::empty(Node.translation))
             {
-                PrimitiveIter.Transform.Position = glm::make_vec3(std::data(Node.translation));
+                NewPrimitive.Transform.Position = glm::make_vec3(std::data(Node.translation));
             }
 
             if (!std::empty(Node.scale))
             {
-                PrimitiveIter.Transform.Scale = glm::make_vec3(std::data(Node.scale));
+                NewPrimitive.Transform.Scale = glm::make_vec3(std::data(Node.scale));
 
-                PrimitiveIter.Transform.Scale.X = std::clamp(PrimitiveIter.Transform.Scale.X, 0.01F, 100.F);
-                PrimitiveIter.Transform.Scale.Y = std::clamp(PrimitiveIter.Transform.Scale.Y, 0.01F, 100.F);
-                PrimitiveIter.Transform.Scale.Z = std::clamp(PrimitiveIter.Transform.Scale.Z, 0.01F, 100.F);
+                NewPrimitive.Transform.Scale.X = std::clamp(NewPrimitive.Transform.Scale.X, 0.01F, 100.F);
+                NewPrimitive.Transform.Scale.Y = std::clamp(NewPrimitive.Transform.Scale.Y, 0.01F, 100.F);
+                NewPrimitive.Transform.Scale.Z = std::clamp(NewPrimitive.Transform.Scale.Z, 0.01F, 100.F);
             }
 
             if (!std::empty(Node.rotation))
             {
-                PrimitiveIter.Transform.Rotation = glm::make_quat(std::data(Node.rotation));
+                NewPrimitive.Transform.Rotation = glm::make_quat(std::data(Node.rotation));
             }
 
-            LoadedMeshes.push_back(PrimitiveIter);
+            LoadedMeshes.push_back(std::move(NewPrimitive));
         }
     }
 
