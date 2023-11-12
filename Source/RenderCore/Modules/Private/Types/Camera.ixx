@@ -9,8 +9,10 @@ module;
 export module RenderCore.Types.Camera;
 
 export import <cstdint>;
+export import <memory>;
 
 export import RenderCore.Types.Transform;
+export import RenderCore.Types.Object;
 
 namespace RenderCore
 {
@@ -32,6 +34,12 @@ namespace RenderCore
         float m_CameraSpeed {1.F};
         float m_CameraSensitivity {1.0F};
 
+        float m_FieldOfView {45.F};
+        float m_NearPlane {0.1F};
+        float m_FarPlane {100.F};
+        float m_CurrentAspectRatio {1.F};
+        float m_DrawDistance {250.F};
+
         CameraMovementStateFlags m_CameraMovementStateFlags {CameraMovementStateFlags::NONE};
 
     public:
@@ -47,11 +55,28 @@ namespace RenderCore
         [[nodiscard]] float GetSensitivity() const;
         void SetSensitivity(float);
 
-        [[nodiscard]] glm::mat4 GetMatrix() const;
+        [[nodiscard]] float GetFieldOfView() const;
+        void SetFieldOfView(float);
 
-        [[nodiscard]] CameraMovementStateFlags GetCameraMovementStateFlags();
+        [[nodiscard]] float GetNearPlane() const;
+        void SetNearPlane(float);
+
+        [[nodiscard]] float GetFarPlane() const;
+        void SetFarPlane(float);
+
+        [[nodiscard]] float GetDrawDistance() const;
+        void SetDrawDistance(float);
+
+        [[nodiscard]] glm::mat4 GetViewMatrix() const;
+        [[nodiscard]] glm::mat4 GetProjectionMatrix() const;
+
+        [[nodiscard]] CameraMovementStateFlags GetCameraMovementStateFlags() const;
         void SetCameraMovementStateFlags(CameraMovementStateFlags);
         void UpdateCameraMovement(float);
+
+        [[nodiscard]] bool IsInsideCameraFrustum(Vector const&) const;
+        [[nodiscard]] bool IsInAllowedDistance(Vector const&) const;
+        [[nodiscard]] bool CanDrawObject(std::shared_ptr<Object> const&) const;
     };
 
     export [[nodiscard]] Camera& GetViewportCamera();

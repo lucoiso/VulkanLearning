@@ -8,7 +8,9 @@ module;
 
 module RenderCore.Types.Camera;
 
+import RenderCore.Management.BufferManagement;
 import RenderCore.Utils.EnumHelpers;
+import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
@@ -52,12 +54,61 @@ void RenderCore::Camera::SetSensitivity(float const Sensitivity)
     m_CameraSensitivity = Sensitivity;
 }
 
-glm::mat4 RenderCore::Camera::GetMatrix() const
+float RenderCore::Camera::GetFieldOfView() const
+{
+    return m_FieldOfView;
+}
+
+void RenderCore::Camera::SetFieldOfView(float const FieldOfView)
+{
+    m_FieldOfView = FieldOfView;
+}
+
+float RenderCore::Camera::GetNearPlane() const
+{
+    return m_NearPlane;
+}
+
+void RenderCore::Camera::SetNearPlane(float const NearPlane)
+{
+    m_NearPlane = NearPlane;
+}
+
+float RenderCore::Camera::GetFarPlane() const
+{
+    return m_FarPlane;
+}
+
+void RenderCore::Camera::SetFarPlane(float const FarPlane)
+{
+    m_FarPlane = FarPlane;
+}
+
+float RenderCore::Camera::GetDrawDistance() const
+{
+    return m_DrawDistance;
+}
+
+void RenderCore::Camera::SetDrawDistance(float const DrawDistance)
+{
+    m_DrawDistance = DrawDistance;
+}
+
+glm::mat4 RenderCore::Camera::GetViewMatrix() const
 {
     return glm::lookAt(m_CameraPosition.ToGlmVec3(), (m_CameraPosition + m_CameraRotation.GetFront()).ToGlmVec3(), m_CameraRotation.GetUp().ToGlmVec3());
 }
 
-CameraMovementStateFlags RenderCore::Camera::GetCameraMovementStateFlags()
+glm::mat4 RenderCore::Camera::GetProjectionMatrix() const
+{
+    auto const& [Width, Height] = GetSwapChainExtent();
+    glm::mat4 Projection        = glm::perspective(glm::radians(m_FieldOfView), static_cast<float>(Width) / static_cast<float>(Height), m_NearPlane, m_FarPlane);
+    Projection[1][1] *= -1;
+
+    return Projection;
+}
+
+CameraMovementStateFlags RenderCore::Camera::GetCameraMovementStateFlags() const
 {
     return m_CameraMovementStateFlags;
 }
@@ -112,4 +163,37 @@ RenderCore::Camera& RenderCore::GetViewportCamera()
 {
     static Camera ViewportCamera;
     return ViewportCamera;
+}
+
+bool RenderCore::Camera::IsInsideCameraFrustum(Vector const& TestLocation) const
+{
+    glm::mat4 const ViewProjectionMatrix = GetProjectionMatrix() * GetViewMatrix();
+
+    glm::vec4 const HomogeneousTestLocation = glm::vec4(TestLocation.ToGlmVec3(), 1.0f);
+    glm::vec4 const ClipSpaceTestLocation   = ViewProjectionMatrix * HomogeneousTestLocation;
+
+    return std::abs(ClipSpaceTestLocation.x) <= std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.y) <= std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.z) <= std::abs(ClipSpaceTestLocation.w);
+}
+
+bool RenderCore::Camera::IsInAllowedDistance(Vector const& TestLocation) const
+{
+    Vector const CameraToTestLocation  = TestLocation - GetPosition();
+    float const DistanceToTestLocation = CameraToTestLocation.Length();
+
+    return DistanceToTestLocation <= GetDrawDistance();
+}
+
+bool RenderCore::Camera::CanDrawObject(std::shared_ptr<Object> const& Object) const
+{
+    if (!Object)
+    {
+        return false;
+    }
+
+    if constexpr (g_EnableExperimentalFrustumCulling)
+    {
+        return GetViewportCamera().IsInsideCameraFrustum(Object->GetPosition()) && GetViewportCamera().IsInAllowedDistance(Object->GetPosition());
+    }
+
+    return true;
 }

@@ -14,7 +14,8 @@ import <limits>;
 
 export namespace RenderCore
 {
-    constexpr bool g_EnableCustomDebug = false;
+    constexpr bool g_EnableCustomDebug                = false;
+    constexpr bool g_EnableExperimentalFrustumCulling = false;
 
 #ifdef _DEBUG
 #if defined(GPU_API_DUMP) && GPU_API_DUMP

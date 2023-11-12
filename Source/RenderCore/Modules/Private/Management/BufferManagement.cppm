@@ -1157,10 +1157,6 @@ std::uint32_t RenderCore::GetClampedNumAllocations()
 
 void RenderCore::UpdateUniformBuffers(std::uint32_t const ObjectID)
 {
-    auto const& [Width, Height] = GetSwapChainExtent();
-    glm::mat4 Projection        = glm::perspective(glm::radians(45.F), static_cast<float>(Width) / static_cast<float>(Height), 0.1F, 100.F);
-    Projection[1][1] *= -1;
-
     if (!ContainsObject(ObjectID))
     {
         return;
@@ -1176,8 +1172,8 @@ void RenderCore::UpdateUniformBuffers(std::uint32_t const ObjectID)
     {
         UniformBufferObject const UpdatedUBO {
                 .Model      = Object->GetMatrix(),
-                .View       = GetViewportCamera().GetMatrix(),
-                .Projection = Projection};
+                .View       = GetViewportCamera().GetViewMatrix(),
+                .Projection = GetViewportCamera().GetProjectionMatrix()};
 
         std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(UniformBufferObject));
     }

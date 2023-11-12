@@ -37,36 +37,26 @@ TEST_CASE("Scene Management", "[RenderCore]")
     ScopedWindow Window;
 
     auto const& LoadedObjects = RenderCore::EngineCore::Get().GetObjects();
-    REQUIRE_FALSE(std::empty(LoadedObjects));
+    REQUIRE(std::empty(LoadedObjects));
 
-    std::string const DefaultObjectPath(LoadedObjects[0].GetPath());
-    REQUIRE(DefaultObjectPath == "Resources/Assets/VIKING_ROOM_OBJ.obj");
-    REQUIRE_FALSE(std::empty(DefaultObjectPath));
+    std::string const ObjectPath {"Resources/Assets/Box/glTF/Box.gltf"};
+    std::string const ObjectName {"Mesh_000"};
 
-    std::string const DefaultObjectName(LoadedObjects[0].GetName());
-    REQUIRE(DefaultObjectName == "VIKING_ROOM_OBJ");
-    REQUIRE_FALSE(std::empty(DefaultObjectName));
+    REQUIRE_FALSE(std::empty(RenderCore::EngineCore::Get().LoadScene(ObjectPath)));
+    REQUIRE(LoadedObjects[0]->GetPath() == ObjectPath);
+    REQUIRE(LoadedObjects[0]->GetName() == ObjectName);
 
     SECTION("Unload Default Scene")
     {
         RenderCore::EngineCore::Get().UnloadAllScenes();
         REQUIRE(std::empty(LoadedObjects));
+        REQUIRE(std::empty(RenderCore::EngineCore::Get().GetObjects()));
     }
 
-    SECTION("Load Default Scene")
+    SECTION("Reload Scene")
     {
-        auto const NewLoadedIDs = RenderCore::EngineCore::Get().LoadScene(DefaultObjectPath);
-        REQUIRE_FALSE(std::empty(NewLoadedIDs));
-        REQUIRE_FALSE(std::empty(LoadedObjects));
-
-        std::string const NewObjectPath(LoadedObjects[0].GetPath());
-        REQUIRE_FALSE(std::empty(NewObjectPath));
-        REQUIRE(NewObjectPath == "Resources/Assets/VIKING_ROOM_OBJ.obj");
-        REQUIRE(NewObjectPath == DefaultObjectPath);
-
-        std::string const NewObjectName(LoadedObjects[0].GetName());
-        REQUIRE_FALSE(std::empty(NewObjectName));
-        REQUIRE(NewObjectName == "VIKING_ROOM_OBJ");
-        REQUIRE(NewObjectName == DefaultObjectName);
+        REQUIRE_FALSE(std::empty(RenderCore::EngineCore::Get().LoadScene(ObjectPath)));
+        REQUIRE(LoadedObjects[0]->GetPath() == ObjectPath);
+        REQUIRE(LoadedObjects[0]->GetName() == ObjectName);
     }
 }

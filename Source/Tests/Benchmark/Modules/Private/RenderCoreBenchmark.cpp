@@ -3,7 +3,6 @@
 // Repo : https://github.com/lucoiso/VulkanRenderer
 
 #include <benchmark/benchmark.h>
-#include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 
 import Benchmark.RenderCore;

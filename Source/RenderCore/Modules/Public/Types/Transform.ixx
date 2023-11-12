@@ -184,16 +184,16 @@ namespace RenderCore
 
         void Normalize()
         {
-            float const Length {sqrt(X * X + Y * Y + Z * Z)};
-            X /= Length;
-            Y /= Length;
-            Z /= Length;
+            float const Size = Length();
+            X /= Size;
+            Y /= Size;
+            Z /= Size;
         }
 
         [[nodiscard]] Vector NormalizeInline() const
         {
-            float const Length {sqrt(X * X + Y * Y + Z * Z)};
-            return {X / Length, Y / Length, Z / Length};
+            float const Size = Length();
+            return {X / Size, Y / Size, Z / Size};
         }
 
         void Cross(Vector const& Value)
@@ -211,7 +211,22 @@ namespace RenderCore
                     X * Value.Y - Y * Value.X};
         }
 
-        [[nodiscard]] std::string ToString()
+        [[nodiscard]] float Length() const
+        {
+            return std::sqrt(X * X + Y * Y + Z * Z);
+        }
+
+        [[nodiscard]] float LengthSquared() const
+        {
+            return X * X + Y * Y + Z * Z;
+        }
+
+        [[nodiscard]] float Dot(Vector const& Value) const
+        {
+            return X * Value.X + Y * Value.Y + Z * Value.Z;
+        }
+
+        [[nodiscard]] std::string ToString() const
         {
             return std::to_string(X) + ", " + std::to_string(Y) + ", " + std::to_string(Z);
         }

@@ -19,6 +19,7 @@ import RenderCore.EngineCore;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.BufferManagement;
 import RenderCore.Management.PipelineManagement;
+import RenderCore.Types.Camera;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.EnumConverter;
@@ -293,7 +294,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
     {
         for (std::shared_ptr<Object> const& ObjectIter: EngineCore::Get().GetObjects())
         {
-            if (!ObjectIter || ObjectIter->IsPendingDestroy())
+            if (!ObjectIter || ObjectIter->IsPendingDestroy() || !GetViewportCamera().CanDrawObject(ObjectIter))
             {
                 continue;
             }

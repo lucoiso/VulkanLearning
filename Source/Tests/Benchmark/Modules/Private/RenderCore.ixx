@@ -32,16 +32,15 @@ static void LoadAndUnloadScene(benchmark::State& State)
     ScopedWindow Window;
     benchmark::DoNotOptimize(Window);
 
-    auto const& LoadedObjects = RenderCore::EngineCore::Get().GetObjects();
-
-    std::string DefaultObjectPath(LoadedObjects[0].GetPath());
-    benchmark::DoNotOptimize(DefaultObjectPath);
+    std::string ObjectPath {"Resources/Assets/Box/glTF/Box.gltf"};
+    benchmark::DoNotOptimize(ObjectPath);
 
     for ([[maybe_unused]] auto const _: State)
     {
-        RenderCore::EngineCore::Get().UnloadAllScenes();
-        [[maybe_unused]] auto LoadedIDs = RenderCore::EngineCore::Get().LoadScene(DefaultObjectPath);
+        [[maybe_unused]] auto LoadedIDs = RenderCore::EngineCore::Get().LoadScene(ObjectPath);
         benchmark::DoNotOptimize(LoadedIDs);
+
+        RenderCore::EngineCore::Get().UnloadAllScenes();
     }
 }
 
