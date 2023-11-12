@@ -60,6 +60,7 @@ namespace RenderCore
         void UnloadAllScenes();
 
         [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;
+        [[nodiscard]] std::shared_ptr<Object> GetObjectByID(std::uint32_t) const;
         [[nodiscard]] std::uint32_t GetNumObjects() const;
     };
 }// namespace RenderCore

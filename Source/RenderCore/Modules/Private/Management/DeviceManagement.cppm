@@ -44,7 +44,7 @@ bool GetQueueFamilyIndices(std::optional<std::uint8_t>& GraphicsQueueFamilyIndex
     vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &QueueFamilyCount, nullptr);
 
     std::vector<VkQueueFamilyProperties> QueueFamilies(QueueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &QueueFamilyCount, QueueFamilies.data());
+    vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &QueueFamilyCount, std::data(QueueFamilies));
 
     for (std::uint32_t Iterator = 0U; Iterator < QueueFamilyCount; ++Iterator)
     {
@@ -279,7 +279,7 @@ void RenderCore::CreateLogicalDevice()
                         .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                         .queueFamilyIndex = Index,
                         .queueCount       = Count,
-                        .pQueuePriorities = QueuePriorities.at(Index).data()});
+                        .pQueuePriorities = std::data(QueuePriorities.at(Index))});
     }
 
     VkPhysicalDeviceRobustness2FeaturesEXT RobustnessFeatures {
@@ -295,11 +295,11 @@ void RenderCore::CreateLogicalDevice()
             .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
             .pNext                   = &DeviceFeatures,
             .queueCreateInfoCount    = static_cast<std::uint32_t>(std::size(QueueCreateInfo)),
-            .pQueueCreateInfos       = QueueCreateInfo.data(),
+            .pQueueCreateInfos       = std::data(QueueCreateInfo),
             .enabledLayerCount       = static_cast<std::uint32_t>(std::size(Layers)),
-            .ppEnabledLayerNames     = Layers.data(),
+            .ppEnabledLayerNames     = std::data(Layers),
             .enabledExtensionCount   = static_cast<std::uint32_t>(std::size(Extensions)),
-            .ppEnabledExtensionNames = Extensions.data(),
+            .ppEnabledExtensionNames = std::data(Extensions),
             .pEnabledFeatures        = nullptr};
 
     CheckVulkanResult(vkCreateDevice(g_PhysicalDevice, &DeviceCreateInfo, nullptr, &g_Device));
@@ -458,7 +458,7 @@ std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
     CheckVulkanResult(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, nullptr));
 
     std::vector<VkPhysicalDevice> Output(DeviceCount, VK_NULL_HANDLE);
-    CheckVulkanResult(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, Output.data()));
+    CheckVulkanResult(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, std::data(Output)));
 
     return Output;
 }
@@ -474,7 +474,7 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceExtensi
     CheckVulkanResult(vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, nullptr, &ExtensionsCount, nullptr));
 
     std::vector<VkExtensionProperties> Output(ExtensionsCount);
-    CheckVulkanResult(vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, nullptr, &ExtensionsCount, Output.data()));
+    CheckVulkanResult(vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, nullptr, &ExtensionsCount, std::data(Output)));
 
     return Output;
 }
@@ -490,7 +490,7 @@ std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers()
     CheckVulkanResult(vkEnumerateDeviceLayerProperties(g_PhysicalDevice, &LayersCount, nullptr));
 
     std::vector<VkLayerProperties> Output(LayersCount);
-    CheckVulkanResult(vkEnumerateDeviceLayerProperties(g_PhysicalDevice, &LayersCount, Output.data()));
+    CheckVulkanResult(vkEnumerateDeviceLayerProperties(g_PhysicalDevice, &LayersCount, std::data(Output)));
 
     return Output;
 }
@@ -509,10 +509,10 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerEx
     }
 
     std::uint32_t ExtensionsCount = 0;
-    CheckVulkanResult(vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, LayerName.data(), &ExtensionsCount, nullptr));
+    CheckVulkanResult(vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, std::data(LayerName), &ExtensionsCount, nullptr));
 
     std::vector<VkExtensionProperties> Output(ExtensionsCount);
-    CheckVulkanResult(vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, LayerName.data(), &ExtensionsCount, Output.data()));
+    CheckVulkanResult(vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, std::data(LayerName), &ExtensionsCount, std::data(Output)));
 
     return Output;
 }
@@ -576,7 +576,7 @@ std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFor
     CheckVulkanResult(vkGetPhysicalDeviceSurfaceFormatsKHR(g_PhysicalDevice, VulkanSurface, &Count, nullptr));
 
     std::vector Output(Count, VkSurfaceFormatKHR());
-    CheckVulkanResult(vkGetPhysicalDeviceSurfaceFormatsKHR(g_PhysicalDevice, VulkanSurface, &Count, Output.data()));
+    CheckVulkanResult(vkGetPhysicalDeviceSurfaceFormatsKHR(g_PhysicalDevice, VulkanSurface, &Count, std::data(Output)));
 
     return Output;
 }
@@ -594,7 +594,7 @@ std::vector<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePrese
     CheckVulkanResult(vkGetPhysicalDeviceSurfacePresentModesKHR(g_PhysicalDevice, VulkanSurface, &Count, nullptr));
 
     std::vector Output(Count, VkPresentModeKHR());
-    CheckVulkanResult(vkGetPhysicalDeviceSurfacePresentModesKHR(g_PhysicalDevice, VulkanSurface, &Count, Output.data()));
+    CheckVulkanResult(vkGetPhysicalDeviceSurfacePresentModesKHR(g_PhysicalDevice, VulkanSurface, &Count, std::data(Output)));
 
     return Output;
 }

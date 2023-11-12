@@ -57,7 +57,7 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window)
             .flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
             .maxSets       = 1000U,
             .poolSizeCount = std::size(DescriptorPoolSizes),
-            .pPoolSizes    = DescriptorPoolSizes.data()};
+            .pPoolSizes    = std::data(DescriptorPoolSizes)};
 
     CheckVulkanResult(vkCreateDescriptorPool(volkGetLoadedDevice(), &DescriptorPoolCreateInfo, nullptr, &g_ImGuiDescriptorPool));
 

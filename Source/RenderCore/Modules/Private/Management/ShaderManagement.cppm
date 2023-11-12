@@ -32,7 +32,7 @@ bool Compile(std::string_view const& Source, EShLanguage const Language, std::ve
 
     glslang::TShader Shader(Language);
 
-    char const* ShaderContent = Source.data();
+    char const* ShaderContent = std::data(Source);
     Shader.setStringsWithLengths(&ShaderContent, nullptr, 1);
 
     Shader.setEntryPoint(g_EntryPoint);
@@ -256,7 +256,7 @@ bool RenderCore::Compile(std::string_view const& Source, std::vector<std::uint32
             throw std::runtime_error("Failed to open SPIRV file: " + SPIRVPath);
         }
 
-        SPIRVFile << std::string(reinterpret_cast<char const*>(OutSPIRVCode.data()), std::size(OutSPIRVCode) * sizeof(std::uint32_t));
+        SPIRVFile << std::string(reinterpret_cast<char const*>(std::data(OutSPIRVCode)), std::size(OutSPIRVCode) * sizeof(std::uint32_t));
         SPIRVFile.close();
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compiled, generated SPIR-V shader file: " << SPIRVPath;
@@ -292,7 +292,7 @@ bool RenderCore::Load(std::string_view const& Source, std::vector<std::uint32_t>
     OutSPIRVCode.resize(FileSize / sizeof(std::uint32_t), std::uint32_t());
 
     File.seekg(0);
-    std::istream const& ReadResult = File.read(reinterpret_cast<char*>(OutSPIRVCode.data()), static_cast<std::streamsize>(FileSize)); /* Flawfinder: ignore */
+    std::istream const& ReadResult = File.read(reinterpret_cast<char*>(std::data(OutSPIRVCode)), static_cast<std::streamsize>(FileSize)); /* Flawfinder: ignore */
     File.close();
 
     return !ReadResult.fail();
@@ -330,7 +330,7 @@ VkShaderModule RenderCore::CreateModule(VkDevice const& Device, std::vector<std:
     VkShaderModuleCreateInfo const CreateInfo {
             .sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
             .codeSize = std::size(SPIRVCode) * sizeof(std::uint32_t),
-            .pCode    = SPIRVCode.data()};
+            .pCode    = std::data(SPIRVCode)};
 
     VkShaderModule Output = nullptr;
     CheckVulkanResult(vkCreateShaderModule(Device, &CreateInfo, nullptr, &Output));

@@ -109,10 +109,10 @@ void CreateVulkanInstance()
 #endif
 
     CreateInfo.enabledLayerCount   = static_cast<std::uint32_t>(std::size(Layers));
-    CreateInfo.ppEnabledLayerNames = Layers.data();
+    CreateInfo.ppEnabledLayerNames = std::data(Layers);
 
     CreateInfo.enabledExtensionCount   = static_cast<std::uint32_t>(std::size(Extensions));
-    CreateInfo.ppEnabledExtensionNames = Extensions.data();
+    CreateInfo.ppEnabledExtensionNames = std::data(Extensions);
 
     CheckVulkanResult(vkCreateInstance(&CreateInfo, nullptr, &g_Instance));
     volkLoadInstance(g_Instance);
@@ -150,6 +150,8 @@ void RenderCore::EngineCore::DrawFrame(GLFWwindow* const Window)
         throw std::runtime_error("Window is invalid");
     }
 
+    RemoveInvalidObjects();
+
     constexpr RenderCore::EngineCore::EngineCoreStateFlags
             InvalidStatesToRender
             = RenderCore::EngineCore::EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE
@@ -181,6 +183,7 @@ void RenderCore::EngineCore::DrawFrame(GLFWwindow* const Window)
         if (HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_CREATION) && !HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
+
             CreateSwapChain();
             CreateDepthResources();
             CreateCommandsSynchronizationObjects();
@@ -208,6 +211,8 @@ void RenderCore::EngineCore::DrawFrame(GLFWwindow* const Window)
         if (std::optional<std::int32_t> const ImageIndice = TryRequestDrawImage();
             ImageIndice.has_value())
         {
+            std::lock_guard Lock(m_ObjectsMutex);
+
             RecordCommandBuffers(ImageIndice.value());
             SubmitCommandBuffers();
             PresentFrame(ImageIndice.value());
@@ -251,8 +256,6 @@ void RenderCore::EngineCore::Tick(double const DeltaTime)
     {
         return;
     }
-
-    RemoveInvalidObjects();
 
     if (m_ObjectsMutex.try_lock())
     {
@@ -447,6 +450,13 @@ void RenderCore::EngineCore::UnloadAllScenes()
 std::vector<std::shared_ptr<Object>> const& RenderCore::EngineCore::GetObjects() const
 {
     return m_Objects;
+}
+
+std::shared_ptr<Object> RenderCore::EngineCore::GetObjectByID(std::uint32_t const ObjectID) const
+{
+    return *std::ranges::find_if(m_Objects, [ObjectID](std::shared_ptr<Object> const& ObjectIter) {
+        return ObjectIter && ObjectIter->GetID() == ObjectID;
+    });
 }
 
 std::uint32_t RenderCore::EngineCore::GetNumObjects() const

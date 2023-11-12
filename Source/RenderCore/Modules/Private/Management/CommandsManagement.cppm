@@ -15,6 +15,7 @@ module RenderCore.Management.CommandsManagement;
 
 import <array>;
 
+import RenderCore.EngineCore;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.BufferManagement;
 import RenderCore.Management.PipelineManagement;
@@ -63,7 +64,7 @@ void AllocateCommandBuffer()
             .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
             .commandBufferCount = static_cast<std::uint32_t>(std::size(g_CommandBuffers))};
 
-    CheckVulkanResult(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, g_CommandBuffers.data()));
+    CheckVulkanResult(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, std::data(g_CommandBuffers)));
 }
 
 void WaitAndResetFences()
@@ -81,7 +82,7 @@ void WaitAndResetFences()
 
 void FreeCommandBuffers()
 {
-    vkFreeCommandBuffers(volkGetLoadedDevice(), g_CommandPool, static_cast<std::uint32_t>(std::size(g_CommandBuffers)), g_CommandBuffers.data());
+    vkFreeCommandBuffers(volkGetLoadedDevice(), g_CommandPool, static_cast<std::uint32_t>(std::size(g_CommandBuffers)), std::data(g_CommandBuffers));
 
     for (VkCommandBuffer& CommandBufferIter: g_CommandBuffers)
     {
@@ -219,10 +220,8 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
 
             return std::nullopt;
         }
-        else
-        {
-            throw std::runtime_error("Failed to acquire Vulkan swap chain image.");
-        }
+
+        throw std::runtime_error("Failed to acquire Vulkan swap chain image.");
     }
 
     return static_cast<std::int32_t>(Output);
@@ -240,17 +239,10 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
 
     CheckVulkanResult(vkBeginCommandBuffer(MainCommandBuffer, &CommandBufferBeginInfo));
 
-    VkRenderPass const& RenderPass                     = GetRenderPass();
-    VkPipeline const& Pipeline                         = GetPipeline();
-    VkPipelineLayout const& PipelineLayout             = GetPipelineLayout();
-    std::vector<VkDescriptorSet> const& DescriptorSets = GetDescriptorSets();
-
+    VkRenderPass const& RenderPass                 = GetRenderPass();
+    VkPipeline const& Pipeline                     = GetPipeline();
+    VkPipelineLayout const& PipelineLayout         = GetPipelineLayout();
     std::vector<VkFramebuffer> const& FrameBuffers = GetFrameBuffers();
-    VkBuffer const& VertexBuffer                   = GetVertexBuffer(0U);
-    VkBuffer const& IndexBuffer                    = GetIndexBuffer(0U);
-    std::uint32_t const IndexCount                 = GetIndicesCount(0U);
-
-    UpdateUniformBuffers();
 
     constexpr std::array<VkDeviceSize, 1U> Offsets {0U};
 
@@ -270,6 +262,9 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
                     0},
             .extent = Extent};
 
+    vkCmdSetViewport(MainCommandBuffer, 0U, 1U, &Viewport);
+    vkCmdSetScissor(MainCommandBuffer, 0U, 1U, &Scissor);
+
     bool ActiveRenderPass = false;
     if (RenderPass != VK_NULL_HANDLE && !std::empty(FrameBuffers))
     {
@@ -283,7 +278,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
                                 0},
                          .extent = Extent},
                 .clearValueCount = static_cast<std::uint32_t>(std::size(g_ClearValues)),
-                .pClearValues    = g_ClearValues.data()};
+                .pClearValues    = std::data(g_ClearValues)};
 
         vkCmdBeginRenderPass(MainCommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         ActiveRenderPass = true;
@@ -294,9 +289,10 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
         vkCmdBindPipeline(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
     }
 
-    if (!std::empty(DescriptorSets))
+    if (std::vector<VkDescriptorSet> const& DescriptorSets = GetDescriptorSets();
+        ActiveRenderPass && !std::empty(DescriptorSets))
     {
-        std::vector<VkDescriptorSet> ValidDescriptorSets;
+        std::vector<VkDescriptorSet> ValidDescriptorSets {};
         for (VkDescriptorSet const& DescriptorSetIter: DescriptorSets)
         {
             if (DescriptorSetIter != VK_NULL_HANDLE)
@@ -305,29 +301,42 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
             }
         }
 
-        vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, static_cast<std::uint32_t>(std::size(ValidDescriptorSets)), ValidDescriptorSets.data(), 0U, nullptr);
+        vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, static_cast<std::uint32_t>(std::size(ValidDescriptorSets)), std::data(ValidDescriptorSets), 0U, nullptr);
     }
 
-    bool ActiveVertexBinding = false;
-    if (VertexBuffer != VK_NULL_HANDLE)
+    for (std::shared_ptr<Object> const& ObjectIter: EngineCore::Get().GetObjects())
     {
-        vkCmdBindVertexBuffers(MainCommandBuffer, 0U, 1U, &VertexBuffer, Offsets.data());
-        ActiveVertexBinding = true;
-    }
+        if (!ObjectIter || ObjectIter->IsPendingDestroy())
+        {
+            continue;
+        }
 
-    bool ActiveIndexBinding = false;
-    if (IndexBuffer != VK_NULL_HANDLE)
-    {
-        vkCmdBindIndexBuffer(MainCommandBuffer, IndexBuffer, 0U, VK_INDEX_TYPE_UINT32);
-        ActiveIndexBinding = true;
-    }
+        std::uint32_t const ObjectID = ObjectIter->GetID();
 
-    vkCmdSetViewport(MainCommandBuffer, 0U, 1U, &Viewport);
-    vkCmdSetScissor(MainCommandBuffer, 0U, 1U, &Scissor);
+        VkBuffer const& VertexBuffer   = GetVertexBuffer(ObjectID);
+        VkBuffer const& IndexBuffer    = GetIndexBuffer(ObjectID);
+        std::uint32_t const IndexCount = GetIndicesCount(ObjectID);
 
-    if (ActiveRenderPass && ActiveVertexBinding && ActiveIndexBinding)
-    {
-        vkCmdDrawIndexed(MainCommandBuffer, IndexCount, 1U, 0U, 0U, 0U);
+        UpdateUniformBuffers(ObjectID);
+
+        bool ActiveVertexBinding {false};
+        if (VertexBuffer != VK_NULL_HANDLE)
+        {
+            vkCmdBindVertexBuffers(MainCommandBuffer, 0U, 1U, &VertexBuffer, std::data(Offsets));
+            ActiveVertexBinding = true;
+        }
+
+        bool ActiveIndexBinding {false};
+        if (IndexBuffer != VK_NULL_HANDLE)
+        {
+            vkCmdBindIndexBuffer(MainCommandBuffer, IndexBuffer, 0U, VK_INDEX_TYPE_UINT32);
+            ActiveIndexBinding = true;
+        }
+
+        if (ActiveRenderPass && ActiveVertexBinding && ActiveIndexBinding)
+        {
+            vkCmdDrawIndexed(MainCommandBuffer, IndexCount, 1U, 0U, 0U, 0U);
+        }
     }
 
     if (ActiveRenderPass)
@@ -354,9 +363,9 @@ void RenderCore::SubmitCommandBuffers()
             .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
             .waitSemaphoreCount   = 1U,
             .pWaitSemaphores      = &g_ImageAvailableSemaphore,
-            .pWaitDstStageMask    = WaitStages.data(),
+            .pWaitDstStageMask    = std::data(WaitStages),
             .commandBufferCount   = static_cast<std::uint32_t>(std::size(g_CommandBuffers)),
-            .pCommandBuffers      = g_CommandBuffers.data(),
+            .pCommandBuffers      = std::data(g_CommandBuffers),
             .signalSemaphoreCount = 1U,
             .pSignalSemaphores    = &g_RenderFinishedSemaphore};
 

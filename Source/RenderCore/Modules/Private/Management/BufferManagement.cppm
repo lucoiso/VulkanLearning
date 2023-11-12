@@ -224,7 +224,7 @@ void CreateVertexBuffer(Allocation::ObjectAllocation& Object, VkDeviceSize const
                     StagingBuffer,
                     StagingBufferMemory);
 
-    std::memcpy(StagingInfo.pMappedData, Vertices.data(), AllocationSize);
+    std::memcpy(StagingInfo.pMappedData, std::data(Vertices), AllocationSize);
 
     CreateBuffer(AllocationSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.VertexBuffer.Buffer, Object.VertexBuffer.Allocation);
     CopyBuffer(StagingBuffer, Object.VertexBuffer.Buffer, AllocationSize, Queue, FamilyIndex);
@@ -258,7 +258,7 @@ void CreateIndexBuffer(Allocation::ObjectAllocation& Object, VkDeviceSize const&
                     StagingBuffer,
                     StagingBufferMemory);
 
-    std::memcpy(StagingInfo.pMappedData, Indices.data(), AllocationSize);
+    std::memcpy(StagingInfo.pMappedData, std::data(Indices), AllocationSize);
     CheckVulkanResult(vmaFlushAllocation(g_Allocator, StagingBufferMemory, 0U, AllocationSize));
 
     CreateBuffer(AllocationSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.IndexBuffer.Buffer, Object.IndexBuffer.Allocation);
@@ -540,7 +540,7 @@ void LoadTexture(Allocation::ObjectAllocation& Object, std::string_view const& T
         throw std::runtime_error("Texture path is invalid. Path: " + std::string(TexturePath));
     }
 
-    stbi_uc const* const ImagePixels = stbi_load(TexturePath.data(), &Width, &Height, &Channels, STBI_rgb_alpha);
+    stbi_uc const* const ImagePixels = stbi_load(std::data(TexturePath), &Width, &Height, &Channels, STBI_rgb_alpha);
     auto const AllocationSize        = static_cast<VkDeviceSize>(Width) * static_cast<VkDeviceSize>(Height) * 4U;
 
     if (ImagePixels == nullptr)
@@ -607,7 +607,7 @@ void RenderCore::CreateSwapChain()
             .imageUsage            = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             .imageSharingMode      = QueueFamilyIndicesCount > 1U ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
             .queueFamilyIndexCount = QueueFamilyIndicesCount,
-            .pQueueFamilyIndices   = QueueFamilyIndices.data(),
+            .pQueueFamilyIndices   = std::data(QueueFamilyIndices),
             .preTransform          = Properties.Capabilities.currentTransform,
             .compositeAlpha        = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             .presentMode           = Properties.Mode,
@@ -628,7 +628,7 @@ void RenderCore::CreateSwapChain()
     CheckVulkanResult(vkGetSwapchainImagesKHR(VulkanLogicalDevice, g_SwapChain, &Count, nullptr));
 
     std::vector<VkImage> SwapChainImages(Count, VK_NULL_HANDLE);
-    CheckVulkanResult(vkGetSwapchainImagesKHR(VulkanLogicalDevice, g_SwapChain, &Count, SwapChainImages.data()));
+    CheckVulkanResult(vkGetSwapchainImagesKHR(VulkanLogicalDevice, g_SwapChain, &Count, std::data(SwapChainImages)));
 
     g_SwapChainImages.resize(Count, Allocation::ImageAllocation());
     for (std::uint32_t Iterator = 0U; Iterator < Count; ++Iterator)
@@ -656,7 +656,7 @@ void RenderCore::CreateFrameBuffers()
                 .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .renderPass      = GetRenderPass(),
                 .attachmentCount = static_cast<std::uint32_t>(std::size(Attachments)),
-                .pAttachments    = Attachments.data(),
+                .pAttachments    = std::data(Attachments),
                 .width           = g_SwapChainExtent.width,
                 .height          = g_SwapChainExtent.height,
                 .layers          = 1U};
@@ -742,7 +742,7 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
 
     std::filesystem::path const ModelFilepath(ModelPath);
 
-    bool const LoadResult = ModelFilepath.extension() == ".gltf" ? ModelLoader.LoadASCIIFromFile(&Model, &Error, &Warning, ModelPath.data()) : ModelLoader.LoadBinaryFromFile(&Model, &Error, &Warning, ModelPath.data());
+    bool const LoadResult = ModelFilepath.extension() == ".gltf" ? ModelLoader.LoadASCIIFromFile(&Model, &Error, &Warning, std::data(ModelPath)) : ModelLoader.LoadBinaryFromFile(&Model, &Error, &Warning, std::data(ModelPath));
     if (!std::empty(Error))
     {
         BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Error: '" << Error << "'";
@@ -778,122 +778,134 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
         std::vector<ObjectPreProcessedData> Primitives {};
         Primitives.reserve(std::size(Mesh.primitives));
 
+        std::vector<std::jthread> PrimitiveProccessThreads {};
+        PrimitiveProccessThreads.reserve(std::size(Mesh.primitives));
+
         for (tinygltf::Primitive const& Primitive: Mesh.primitives)
         {
-            ObjectPreProcessedData NewPrimitive {
-                    .ID   = g_ObjectIDCounter.fetch_add(1U),
-                    .Name = std::format("{}_{:03d}", Mesh.name, std::size(Primitives))};
+            PrimitiveProccessThreads.emplace_back([Primitive, Model, Mesh, &Primitives] {
+                std::uint32_t const ObjectID = g_ObjectIDCounter.fetch_add(1U);
 
-            auto const StartVertexNum  = static_cast<std::uint32_t>(std::size(NewPrimitive.MeshData.Vertices));
-            std::uint32_t NewVertexNum = StartVertexNum;
+                ObjectPreProcessedData NewPrimitive {
+                        .ID   = ObjectID,
+                        .Name = std::format("{}_{:03d}", Mesh.name, ObjectID)};
 
-            auto const TryResizeVertexContainer = [&NewPrimitive, &NewVertexNum, StartVertexNum](std::uint32_t const IncreaseSize) {
-                if (NewVertexNum == StartVertexNum)
-                {
-                    NewVertexNum += IncreaseSize;
-                    NewPrimitive.MeshData.Vertices.resize(NewVertexNum);
-                }
-            };
+                auto const StartVertexNum  = static_cast<std::uint32_t>(std::size(NewPrimitive.MeshData.Vertices));
+                std::uint32_t NewVertexNum = StartVertexNum;
 
-            if (Primitive.attributes.contains("POSITION"))
-            {
-                tinygltf::Accessor const& PositionAccessor     = Model.accessors.at(Primitive.attributes.at("POSITION"));
-                tinygltf::BufferView const& PositionBufferView = Model.bufferViews.at(PositionAccessor.bufferView);
-                tinygltf::Buffer const& PositionBuffer         = Model.buffers.at(PositionBufferView.buffer);
-                auto const* PositionData                       = reinterpret_cast<const float*>(PositionBuffer.data.data() + PositionBufferView.byteOffset + PositionAccessor.byteOffset);
-                TryResizeVertexContainer(PositionAccessor.count);
-
-                for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(PositionAccessor.count); ++Iterator)
-                {
-                    NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).Position = glm::vec3(PositionData[Iterator * 3], PositionData[Iterator * 3 + 1], PositionData[Iterator * 3 + 2]);
-                }
-            }
-
-            if (Primitive.attributes.contains("NORMAL"))
-            {
-                tinygltf::Accessor const& NormalAccessor     = Model.accessors.at(Primitive.attributes.at("NORMAL"));
-                tinygltf::BufferView const& NormalBufferView = Model.bufferViews.at(NormalAccessor.bufferView);
-                tinygltf::Buffer const& NormalBuffer         = Model.buffers.at(NormalBufferView.buffer);
-                auto const* NormalData                       = reinterpret_cast<const float*>(NormalBuffer.data.data() + NormalBufferView.byteOffset + NormalAccessor.byteOffset);
-                TryResizeVertexContainer(NormalAccessor.count);
-
-                for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(NormalAccessor.count); ++Iterator)
-                {
-                    NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).Normal = glm::vec3(NormalData[Iterator * 3], NormalData[Iterator * 3 + 1], NormalData[Iterator * 3 + 2]);
-                }
-            }
-
-            if (Primitive.attributes.contains("TEXCOORD_0"))
-            {
-                tinygltf::Accessor const& TexCoordAccessor     = Model.accessors.at(Primitive.attributes.at("TEXCOORD_0"));
-                tinygltf::BufferView const& TexCoordBufferView = Model.bufferViews.at(TexCoordAccessor.bufferView);
-                tinygltf::Buffer const& TexCoordBuffer         = Model.buffers.at(TexCoordBufferView.buffer);
-                auto const* TexCoordData                       = reinterpret_cast<const float*>(TexCoordBuffer.data.data() + TexCoordBufferView.byteOffset + TexCoordAccessor.byteOffset);
-                TryResizeVertexContainer(TexCoordAccessor.count);
-
-                for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(TexCoordAccessor.count); ++Iterator)
-                {
-                    NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).TextureCoordinate = glm::vec2(TexCoordData[Iterator * 2], TexCoordData[Iterator * 2 + 1]);
-                }
-            }
-
-            if (Primitive.indices >= 0)
-            {
-                tinygltf::Accessor const& IndexAccessor     = Model.accessors.at(Primitive.indices);
-                tinygltf::BufferView const& IndexBufferView = Model.bufferViews.at(IndexAccessor.bufferView);
-                tinygltf::Buffer const& IndexBuffer         = Model.buffers.at(IndexBufferView.buffer);
-
-                std::uint32_t const IndicesOffset = std::size(NewPrimitive.MeshData.Indices);
-                NewPrimitive.MeshData.Indices.reserve(std::size(NewPrimitive.MeshData.Indices) + IndexAccessor.count);
-
-                auto const InsertIndice = [&NewPrimitive, IndicesOffset, IndexAccessor](auto const* Indices) {
-                    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(IndexAccessor.count); ++Iterator)
+                auto const TryResizeVertexContainer = [&NewPrimitive, &NewVertexNum, StartVertexNum](std::uint32_t const IncreaseSize) {
+                    if (NewVertexNum == StartVertexNum)
                     {
-                        NewPrimitive.MeshData.Indices.push_back(static_cast<std::uint32_t>(Indices[Iterator]) + IndicesOffset);
+                        NewVertexNum += IncreaseSize;
+                        NewPrimitive.MeshData.Vertices.resize(NewVertexNum);
                     }
                 };
 
-                switch (IndexAccessor.componentType)
+                if (Primitive.attributes.contains("POSITION"))
                 {
-                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
-                        InsertIndice(reinterpret_cast<const uint32_t*>(IndexBuffer.data.data() + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
-                        break;
-                    }
-                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
-                        InsertIndice(reinterpret_cast<const uint16_t*>(IndexBuffer.data.data() + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
-                        break;
-                    }
-                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
-                        InsertIndice(IndexBuffer.data.data() + IndexBufferView.byteOffset + IndexAccessor.byteOffset);
-                        break;
-                    }
-                    default:
-                        break;
-                }
-            }
+                    tinygltf::Accessor const& PositionAccessor     = Model.accessors.at(Primitive.attributes.at("POSITION"));
+                    tinygltf::BufferView const& PositionBufferView = Model.bufferViews.at(PositionAccessor.bufferView);
+                    tinygltf::Buffer const& PositionBuffer         = Model.buffers.at(PositionBufferView.buffer);
+                    auto const* PositionData                       = reinterpret_cast<const float*>(std::data(PositionBuffer.data) + PositionBufferView.byteOffset + PositionAccessor.byteOffset);
+                    TryResizeVertexContainer(PositionAccessor.count);
 
-            if (Primitive.material >= 0)
-            {
-                auto const PushTextureData = [&NewPrimitive, Model](std::int32_t const TextureIndex, TextureType const TexType) {
-                    if (TextureIndex >= 0)
+                    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(PositionAccessor.count); ++Iterator)
                     {
-                        if (auto const& Texture = Model.textures.at(TextureIndex); Texture.source >= 0)
+                        NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).Position = glm::vec3(PositionData[Iterator * 3], PositionData[Iterator * 3 + 1], PositionData[Iterator * 3 + 2]);
+                    }
+                }
+
+                if (Primitive.attributes.contains("NORMAL"))
+                {
+                    tinygltf::Accessor const& NormalAccessor     = Model.accessors.at(Primitive.attributes.at("NORMAL"));
+                    tinygltf::BufferView const& NormalBufferView = Model.bufferViews.at(NormalAccessor.bufferView);
+                    tinygltf::Buffer const& NormalBuffer         = Model.buffers.at(NormalBufferView.buffer);
+                    auto const* NormalData                       = reinterpret_cast<const float*>(std::data(NormalBuffer.data) + NormalBufferView.byteOffset + NormalAccessor.byteOffset);
+                    TryResizeVertexContainer(NormalAccessor.count);
+
+                    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(NormalAccessor.count); ++Iterator)
+                    {
+                        NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).Normal = glm::vec3(NormalData[Iterator * 3], NormalData[Iterator * 3 + 1], NormalData[Iterator * 3 + 2]);
+                    }
+                }
+
+                if (Primitive.attributes.contains("TEXCOORD_0"))
+                {
+                    tinygltf::Accessor const& TexCoordAccessor     = Model.accessors.at(Primitive.attributes.at("TEXCOORD_0"));
+                    tinygltf::BufferView const& TexCoordBufferView = Model.bufferViews.at(TexCoordAccessor.bufferView);
+                    tinygltf::Buffer const& TexCoordBuffer         = Model.buffers.at(TexCoordBufferView.buffer);
+                    auto const* TexCoordData                       = reinterpret_cast<const float*>(std::data(TexCoordBuffer.data) + TexCoordBufferView.byteOffset + TexCoordAccessor.byteOffset);
+                    TryResizeVertexContainer(TexCoordAccessor.count);
+
+                    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(TexCoordAccessor.count); ++Iterator)
+                    {
+                        NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).TextureCoordinate = glm::vec2(TexCoordData[Iterator * 2], TexCoordData[Iterator * 2 + 1]);
+                    }
+                }
+
+                if (Primitive.indices >= 0)
+                {
+                    tinygltf::Accessor const& IndexAccessor     = Model.accessors.at(Primitive.indices);
+                    tinygltf::BufferView const& IndexBufferView = Model.bufferViews.at(IndexAccessor.bufferView);
+                    tinygltf::Buffer const& IndexBuffer         = Model.buffers.at(IndexBufferView.buffer);
+
+                    std::uint32_t const IndicesOffset = std::size(NewPrimitive.MeshData.Indices);
+                    NewPrimitive.MeshData.Indices.reserve(std::size(NewPrimitive.MeshData.Indices) + IndexAccessor.count);
+
+                    auto const InsertIndice = [&NewPrimitive, IndicesOffset, IndexAccessor](auto const* Indices) {
+                        for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(IndexAccessor.count); ++Iterator)
                         {
-                            auto const& Image = Model.images.at(Texture.source);
-
-                            NewPrimitive.Textures.at(TexType) = {.Name    = Image.uri,
-                                                                 .Width   = static_cast<std::uint32_t>(Image.width),
-                                                                 .Height  = static_cast<std::uint32_t>(Image.height),
-                                                                 .Content = Image.image};
+                            NewPrimitive.MeshData.Indices.push_back(static_cast<std::uint32_t>(Indices[Iterator]) + IndicesOffset);
                         }
+                    };
+
+                    switch (IndexAccessor.componentType)
+                    {
+                        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
+                            InsertIndice(reinterpret_cast<const uint32_t*>(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
+                            break;
+                        }
+                        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+                            InsertIndice(reinterpret_cast<const uint16_t*>(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
+                            break;
+                        }
+                        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+                            InsertIndice(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset);
+                            break;
+                        }
+                        default:
+                            break;
                     }
-                };
+                }
 
-                tinygltf::Material const& Material = Model.materials.at(Primitive.material);
-                PushTextureData(Material.pbrMetallicRoughness.baseColorTexture.index, TextureType::BaseColor);
-            }
+                if (Primitive.material >= 0)
+                {
+                    auto const PushTextureData = [&NewPrimitive, Model](std::int32_t const TextureIndex, TextureType const TexType) {
+                        if (TextureIndex >= 0)
+                        {
+                            if (auto const& Texture = Model.textures.at(TextureIndex); Texture.source >= 0)
+                            {
+                                auto const& Image = Model.images.at(Texture.source);
 
-            Primitives.push_back(std::move(NewPrimitive));
+                                NewPrimitive.Textures.at(TexType) = {.Name    = Image.uri,
+                                                                     .Width   = static_cast<std::uint32_t>(Image.width),
+                                                                     .Height  = static_cast<std::uint32_t>(Image.height),
+                                                                     .Content = Image.image};
+                            }
+                        }
+                    };
+
+                    tinygltf::Material const& Material = Model.materials.at(Primitive.material);
+                    PushTextureData(Material.pbrMetallicRoughness.baseColorTexture.index, TextureType::BaseColor);
+                }
+
+                Primitives.push_back(std::move(NewPrimitive));
+            });
+        }
+
+        for (std::jthread& ThreadIter: PrimitiveProccessThreads)
+        {
+            ThreadIter.join();
         }
 
         for (ObjectPreProcessedData& PrimitiveIter: Primitives)
@@ -905,12 +917,12 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
 
             if (!std::empty(Node.translation))
             {
-                PrimitiveIter.Transform.Position = glm::make_vec3(Node.translation.data());
+                PrimitiveIter.Transform.Position = glm::make_vec3(std::data(Node.translation));
             }
 
             if (!std::empty(Node.scale))
             {
-                PrimitiveIter.Transform.Scale = glm::make_vec3(Node.scale.data());
+                PrimitiveIter.Transform.Scale = glm::make_vec3(std::data(Node.scale));
 
                 PrimitiveIter.Transform.Scale.X = std::clamp(PrimitiveIter.Transform.Scale.X, 0.01F, 100.F);
                 PrimitiveIter.Transform.Scale.Y = std::clamp(PrimitiveIter.Transform.Scale.Y, 0.01F, 100.F);
@@ -919,7 +931,7 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
 
             if (!std::empty(Node.rotation))
             {
-                PrimitiveIter.Transform.Rotation = glm::make_quat(Node.rotation.data());
+                PrimitiveIter.Transform.Rotation = glm::make_quat(std::data(Node.rotation));
             }
 
             LoadedMeshes.push_back(PrimitiveIter);
@@ -946,7 +958,7 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Allocating texture '" << Data.Name << "' with width: '" << Data.Width << "' and height: '" << Data.Height << "'";
 
             NewObject.TextureImages.push_back(
-                    AllocateTexture(Data.Content.data(),
+                    AllocateTexture(std::data(Data.Content),
                                     Data.Width,
                                     Data.Height,
                                     std::size(Data.Content)));
@@ -1137,27 +1149,35 @@ std::uint32_t RenderCore::GetNumAllocations()
     return static_cast<std::uint32_t>(std::size(g_Objects));
 }
 
-void RenderCore::UpdateUniformBuffers()
+std::uint32_t RenderCore::GetClampedNumAllocations()
+{
+    return std::clamp(static_cast<std::uint32_t>(std::size(g_Objects)), 1U, UINT32_MAX);
+}
+
+void RenderCore::UpdateUniformBuffers(std::uint32_t const ObjectID)
 {
     auto const& [Width, Height] = GetSwapChainExtent();
     glm::mat4 Projection        = glm::perspective(glm::radians(45.F), static_cast<float>(Width) / static_cast<float>(Height), 0.1F, 100.F);
     Projection[1][1] *= -1;
 
-    for (std::shared_ptr<Object> const& ObjectIter: EngineCore::Get().GetObjects())
+    if (!ContainsObject(ObjectID))
     {
-        if (!ObjectIter || !ContainsObject(ObjectIter->GetID()))
-        {
-            continue;
-        }
+        return;
+    }
 
-        if (void* UniformBufferData = GetUniformData(ObjectIter->GetID()))
-        {
-            UniformBufferObject const UpdatedUBO {
-                    .Model      = ObjectIter->GetMatrix(),
-                    .View       = GetViewportCamera().GetMatrix(),
-                    .Projection = Projection};
+    std::shared_ptr<Object> const Object = EngineCore::Get().GetObjectByID(ObjectID);
+    if (!Object)
+    {
+        return;
+    }
 
-            std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(UniformBufferObject));
-        }
+    if (void* UniformBufferData = GetUniformData(ObjectID); UniformBufferData != nullptr)
+    {
+        UniformBufferObject const UpdatedUBO {
+                .Model      = Object->GetMatrix(),
+                .View       = GetViewportCamera().GetMatrix(),
+                .Projection = Projection};
+
+        std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(UniformBufferObject));
     }
 }

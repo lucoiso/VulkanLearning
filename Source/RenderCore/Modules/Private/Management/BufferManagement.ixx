@@ -42,6 +42,7 @@ namespace RenderCore
     export [[nodiscard]] bool ContainsObject(std::uint32_t);
     export [[nodiscard]] std::vector<MeshBufferData> GetAllocatedObjects();
     export [[nodiscard]] std::uint32_t GetNumAllocations();
+    export [[nodiscard]] std::uint32_t GetClampedNumAllocations();
 
-    export void UpdateUniformBuffers();
+    export void UpdateUniformBuffers(std::uint32_t);
 }// namespace RenderCore

@@ -88,7 +88,7 @@ void RenderCore::CreateRenderPass()
     VkRenderPassCreateInfo const RenderPassCreateInfo {
             .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
             .attachmentCount = static_cast<std::uint32_t>(std::size(AttachmentDescriptions)),
-            .pAttachments    = AttachmentDescriptions.data(),
+            .pAttachments    = std::data(AttachmentDescriptions),
             .subpassCount    = 1U,
             .pSubpasses      = &SubpassDescription,
             .dependencyCount = 1U,
@@ -107,9 +107,9 @@ void RenderCore::CreateGraphicsPipeline()
     VkPipelineVertexInputStateCreateInfo const VertexInputState {
             .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             .vertexBindingDescriptionCount   = static_cast<std::uint32_t>(std::size(BindingDescription)),
-            .pVertexBindingDescriptions      = BindingDescription.data(),
+            .pVertexBindingDescriptions      = std::data(BindingDescription),
             .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(std::size(AttributeDescriptions)),
-            .pVertexAttributeDescriptions    = AttributeDescriptions.data()};
+            .pVertexAttributeDescriptions    = std::data(AttributeDescriptions)};
 
     constexpr VkPipelineInputAssemblyStateCreateInfo InputAssemblyState {
             .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -170,7 +170,7 @@ void RenderCore::CreateGraphicsPipeline()
     constexpr VkPipelineDynamicStateCreateInfo DynamicState {
             .sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
             .dynamicStateCount = static_cast<uint32_t>(std::size(g_DynamicStates)),
-            .pDynamicStates    = g_DynamicStates.data()};
+            .pDynamicStates    = std::data(g_DynamicStates)};
 
     VkPipelineLayoutCreateInfo const PipelineLayoutCreateInfo {
             .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -203,7 +203,7 @@ void RenderCore::CreateGraphicsPipeline()
     VkGraphicsPipelineCreateInfo const GraphicsPipelineCreateInfo {
             .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
             .stageCount          = static_cast<std::uint32_t>(std::size(ShaderStages)),
-            .pStages             = ShaderStages.data(),
+            .pStages             = std::data(ShaderStages),
             .pVertexInputState   = &VertexInputState,
             .pInputAssemblyState = &InputAssemblyState,
             .pViewportState      = &ViewportState,
@@ -225,24 +225,24 @@ void RenderCore::CreateDescriptorSetLayout()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
 
-    constexpr std::array LayoutBindings {
+    std::array const LayoutBindings {
             VkDescriptorSetLayoutBinding {
                     .binding            = 0U,
                     .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount    = 1U,
+                    .descriptorCount    = GetClampedNumAllocations(),
                     .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
                     .pImmutableSamplers = nullptr},
             VkDescriptorSetLayoutBinding {
                     .binding            = 1U,
                     .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount    = 1U,
+                    .descriptorCount    = GetClampedNumAllocations(),
                     .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = nullptr}};
 
     VkDescriptorSetLayoutCreateInfo const DescriptorSetLayoutInfo {
             .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
             .bindingCount = static_cast<std::uint32_t>(std::size(LayoutBindings)),
-            .pBindings    = LayoutBindings.data()};
+            .pBindings    = std::data(LayoutBindings)};
 
     CheckVulkanResult(vkCreateDescriptorSetLayout(volkGetLoadedDevice(), &DescriptorSetLayoutInfo, nullptr, &g_DescriptorSetLayout));
 }
@@ -251,19 +251,19 @@ void RenderCore::CreateDescriptorPool()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor pool";
 
-    constexpr std::array DescriptorPoolSizes {
+    std::array const DescriptorPoolSizes {
             VkDescriptorPoolSize {
                     .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = 1U},
+                    .descriptorCount = GetClampedNumAllocations()},
             VkDescriptorPoolSize {
                     .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = 1U}};
+                    .descriptorCount = GetClampedNumAllocations()}};
 
     VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .maxSets       = std::clamp(GetNumAllocations(), 1U, UINT32_MAX) * static_cast<std::uint32_t>(std::size(DescriptorPoolSizes)),
+            .maxSets       = GetClampedNumAllocations() * static_cast<std::uint32_t>(std::size(DescriptorPoolSizes)),
             .poolSizeCount = static_cast<std::uint32_t>(std::size(DescriptorPoolSizes)),
-            .pPoolSizes    = DescriptorPoolSizes.data()};
+            .pPoolSizes    = std::data(DescriptorPoolSizes)};
 
     CheckVulkanResult(vkCreateDescriptorPool(volkGetLoadedDevice(), &DescriptorPoolCreateInfo, nullptr, &g_DescriptorPool));
 }
@@ -279,9 +279,8 @@ void RenderCore::CreateDescriptorSets()
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
     auto const AllocatedObjects         = GetAllocatedObjects();
-    std::uint32_t const NumAllocations  = GetNumAllocations();
 
-    g_DescriptorSets.resize(NumAllocations);
+    g_DescriptorSets.resize(1U);
 
     VkDescriptorSetAllocateInfo const DescriptorSetAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -289,7 +288,7 @@ void RenderCore::CreateDescriptorSets()
             .descriptorSetCount = 1U,
             .pSetLayouts        = &g_DescriptorSetLayout};
 
-    CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, g_DescriptorSets.data()));
+    CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, std::data(g_DescriptorSets)));
 
     std::vector<VkDescriptorBufferInfo> BufferInfos {};
     std::vector<VkDescriptorImageInfo> ImageInfos {};
@@ -297,7 +296,7 @@ void RenderCore::CreateDescriptorSets()
     for (auto Iterator = std::begin(AllocatedObjects); Iterator != std::end(AllocatedObjects); ++Iterator)
     {
         constexpr std::size_t UniformBufferSize = sizeof(UniformBufferObject);
-        std::uint32_t const Index               = static_cast<std::uint32_t>(std::distance(std::begin(AllocatedObjects), Iterator));
+        auto const Index                        = static_cast<std::uint32_t>(std::distance(std::begin(AllocatedObjects), Iterator));
 
         BufferInfos.push_back(VkDescriptorBufferInfo {
                 .buffer = AllocatedObjects.at(Index).UniformBuffer,
@@ -313,31 +312,40 @@ void RenderCore::CreateDescriptorSets()
         }
     }
 
-    std::vector const WriteDescriptors {
-            VkWriteDescriptorSet {
-                    .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .dstSet           = g_DescriptorSets.at(0),
-                    .dstBinding       = 0U,
-                    .dstArrayElement  = 0U,
-                    .descriptorCount  = static_cast<std::uint32_t>(std::size(BufferInfos)),
-                    .descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .pImageInfo       = nullptr,
-                    .pBufferInfo      = BufferInfos.data(),
-                    .pTexelBufferView = nullptr},
-            VkWriteDescriptorSet {
-                    .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .dstSet           = g_DescriptorSets.at(0),
-                    .dstBinding       = 1U,
-                    .dstArrayElement  = 0U,
-                    .descriptorCount  = static_cast<std::uint32_t>(std::size(ImageInfos)),
-                    .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .pImageInfo       = ImageInfos.data(),
-                    .pBufferInfo      = nullptr,
-                    .pTexelBufferView = nullptr}};
+    std::vector<VkWriteDescriptorSet> WriteDescriptors {};
+    WriteDescriptors.reserve(2U);
+
+    if (!std::empty(BufferInfos))
+    {
+        WriteDescriptors.push_back(VkWriteDescriptorSet {
+                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet           = g_DescriptorSets.at(0U),
+                .dstBinding       = 0U,
+                .dstArrayElement  = 0U,
+                .descriptorCount  = static_cast<std::uint32_t>(std::size(BufferInfos)),
+                .descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .pImageInfo       = nullptr,
+                .pBufferInfo      = std::data(BufferInfos),
+                .pTexelBufferView = nullptr});
+    }
+
+    if (!std::empty(ImageInfos))
+    {
+        WriteDescriptors.push_back(VkWriteDescriptorSet {
+                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet           = g_DescriptorSets.at(0U),
+                .dstBinding       = 1U,
+                .dstArrayElement  = 0U,
+                .descriptorCount  = static_cast<std::uint32_t>(std::size(ImageInfos)),
+                .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .pImageInfo       = std::data(ImageInfos),
+                .pBufferInfo      = nullptr,
+                .pTexelBufferView = nullptr});
+    }
 
     if (!std::empty(WriteDescriptors))
     {
-        vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(std::size(WriteDescriptors)), WriteDescriptors.data(), 0U, nullptr);
+        vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(std::size(WriteDescriptors)), std::data(WriteDescriptors), 0U, nullptr);
     }
 }
 

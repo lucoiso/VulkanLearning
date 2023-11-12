@@ -18,9 +18,9 @@ namespace RenderCore
     constexpr char const* ToChars(auto const Argument)
     {
         std::array<char, 16U> Buffer {};
-        std::span const BufferSpan(Buffer.data(), std::size(Buffer));
+        std::span const BufferSpan(std::data(Buffer), std::size(Buffer));
 
-        if (auto Result = std::to_chars(BufferSpan.data(), BufferSpan.data() + std::size(BufferSpan), Argument);
+        if (auto Result = std::to_chars(std::data(BufferSpan), std::data(BufferSpan) + std::size(BufferSpan), Argument);
             Result.ec == std::errc())
         {
             *Result.ptr               = '\0';

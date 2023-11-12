@@ -39,7 +39,7 @@ bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::
     glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
     glfwWindowHint(GLFW_VISIBLE, bHeadless ? GLFW_FALSE : GLFW_TRUE);
 
-    g_Window = glfwCreateWindow(Width, Height, Title.data(), nullptr, nullptr);
+    g_Window = glfwCreateWindow(Width, Height, std::data(Title), nullptr, nullptr);
 
     if (g_Window == nullptr)
     {
@@ -196,7 +196,7 @@ void Window::CreateOverlay()
                 SelectedItem = OptionNone;
             }
 
-            if (ImGui::BeginCombo("glTF Scene", SelectedItem.data()))
+            if (ImGui::BeginCombo("glTF Scene", std::data(SelectedItem)))
             {
                 static std::unordered_map<std::string, std::string> const OptionsMap = GetAvailableglTFAssetsInDirectory("Resources/Assets", {".gltf", ".glb"});
                 static std::string s_ModelPath                                       = OptionsMap.at(SelectedItem);
@@ -205,7 +205,7 @@ void Window::CreateOverlay()
                 for (auto const& [Name, Path]: OptionsMap)
                 {
                     bool const bIsSelected = SelectedItem == Name;
-                    if (ImGui::Selectable(Name.data(), bIsSelected))
+                    if (ImGui::Selectable(std::data(Name), bIsSelected))
                     {
                         SelectedItem     = Name;
                         s_ModelPath      = Path;
@@ -248,25 +248,25 @@ void Window::CreateOverlay()
                     continue;
                 }
 
-                ImGui::Text("Name: %s", Object->GetName().data());
+                ImGui::Text("Name: %s", std::data(Object->GetName()));
                 ImGui::SameLine();
                 ImGui::Text("ID: %d", Object->GetID());
 
                 ImGui::Spacing();
 
                 float Position[3] = {Object->GetPosition().X, Object->GetPosition().Y, Object->GetPosition().Z};
-                ImGui::InputFloat3(std::format("{} Position", Object->GetName()).data(), &Position[0], "%.2f");
+                ImGui::InputFloat3(std::format("{} Position", Object->GetName()).c_str(), &Position[0], "%.2f");
                 Object->SetPosition({Position[0], Position[1], Position[2]});
 
                 float Scale[3] = {Object->GetScale().X, Object->GetScale().Y, Object->GetScale().Z};
-                ImGui::InputFloat3(std::format("{} Scale", Object->GetName()).data(), &Scale[0], "%.2f");
+                ImGui::InputFloat3(std::format("{} Scale", Object->GetName()).c_str(), &Scale[0], "%.2f");
                 Object->SetScale({Scale[0], Scale[1], Scale[2]});
 
                 float Rotation[3] = {Object->GetRotation().Pitch, Object->GetRotation().Yaw, Object->GetRotation().Roll};
-                ImGui::InputFloat3(std::format("{} Rotation", Object->GetName()).data(), &Rotation[0], "%.2f");
+                ImGui::InputFloat3(std::format("{} Rotation", Object->GetName()).c_str(), &Rotation[0], "%.2f");
                 Object->SetRotation({Rotation[0], Rotation[1], Rotation[2]});
 
-                if (ImGui::Button(std::format("Destroy {}", Object->GetName()).data()))
+                if (ImGui::Button(std::format("Destroy {}", Object->GetName()).c_str()))
                 {
                     Object->Destroy();
                 }
