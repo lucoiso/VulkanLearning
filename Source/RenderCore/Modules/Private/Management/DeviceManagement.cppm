@@ -16,6 +16,7 @@ import RenderCore.Management.BufferManagement;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.EnumConverter;
+import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
@@ -31,6 +32,8 @@ bool GetQueueFamilyIndices(std::optional<std::uint8_t>& GraphicsQueueFamilyIndex
                            std::optional<std::uint8_t>& PresentationQueueFamilyIndex,
                            std::optional<std::uint8_t>& TransferQueueFamilyIndex)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting queue family indices";
 
     if (g_PhysicalDevice == VK_NULL_HANDLE)
@@ -80,6 +83,8 @@ bool GetQueueFamilyIndices(std::optional<std::uint8_t>& GraphicsQueueFamilyIndex
 
 void ListAvailablePhysicalDevices()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical devices...";
 
     for (VkPhysicalDevice const& DeviceIter: GetAvailablePhysicalDevices())
@@ -97,6 +102,8 @@ void ListAvailablePhysicalDevices()
 
 void ListAvailablePhysicalDeviceLayers()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device layers...";
 
     for (auto const& [LayerName, SpecVer, ImplVer, Descr]: GetAvailablePhysicalDeviceLayers())
@@ -110,6 +117,8 @@ void ListAvailablePhysicalDeviceLayers()
 
 void ListAvailablePhysicalDeviceLayerExtensions(std::string_view const& LayerName)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device layer '" << LayerName << "' extensions...";
 
     for (auto const& [ExtName, SpecVer]: GetAvailablePhysicalDeviceLayerExtensions(LayerName))
@@ -121,6 +130,8 @@ void ListAvailablePhysicalDeviceLayerExtensions(std::string_view const& LayerNam
 
 void ListAvailablePhysicalDeviceSurfaceCapabilities()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device surface capabilities...";
 
     VkSurfaceCapabilitiesKHR const SurfaceCapabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
@@ -139,6 +150,8 @@ void ListAvailablePhysicalDeviceSurfaceCapabilities()
 
 void ListAvailablePhysicalDeviceSurfaceFormats()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device surface formats...";
 
     for (auto const& [Format, ColorSpace]: GetAvailablePhysicalDeviceSurfaceFormats())
@@ -150,6 +163,8 @@ void ListAvailablePhysicalDeviceSurfaceFormats()
 
 void ListAvailablePhysicalDeviceSurfacePresentationModes()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device presentation modes...";
 
     for (VkPresentModeKHR const& FormatIter: GetAvailablePhysicalDeviceSurfacePresentationModes())
@@ -161,6 +176,8 @@ void ListAvailablePhysicalDeviceSurfacePresentationModes()
 
 bool IsPhysicalDeviceSuitable(VkPhysicalDevice const& Device)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (Device == VK_NULL_HANDLE)
     {
         return false;
@@ -177,6 +194,8 @@ bool IsPhysicalDeviceSuitable(VkPhysicalDevice const& Device)
 
 void RenderCore::PickPhysicalDevice()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Picking a physical device";
 
     for (VkPhysicalDevice const& DeviceIter: GetAvailablePhysicalDevices())
@@ -215,6 +234,8 @@ void RenderCore::PickPhysicalDevice()
 
 void RenderCore::CreateLogicalDevice()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     std::optional<std::uint8_t> GraphicsQueueFamilyIndex     = std::nullopt;
     std::optional<std::uint8_t> PresentationQueueFamilyIndex = std::nullopt;
     std::optional<std::uint8_t> TransferQueueFamilyIndex     = std::nullopt;
@@ -325,6 +346,8 @@ void RenderCore::CreateLogicalDevice()
 
 bool RenderCore::UpdateDeviceProperties(GLFWwindow* const Window)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     g_DeviceProperties.Capabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
 
     std::vector<VkSurfaceFormatKHR> const SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats();
@@ -422,12 +445,14 @@ std::pair<std::uint8_t, VkQueue>& RenderCore::GetTransferQueue()
 std::vector<std::uint32_t> RenderCore::GetUniqueQueueFamilyIndicesU32()
 {
     std::vector<std::uint32_t> QueueFamilyIndicesU32(std::size(g_UniqueQueueFamilyIndices));
+
     std::ranges::transform(
             g_UniqueQueueFamilyIndices,
             std::begin(QueueFamilyIndicesU32),
             [](std::uint8_t const& Index) {
                 return static_cast<std::uint32_t>(Index);
             });
+
     return QueueFamilyIndicesU32;
 }
 
@@ -439,6 +464,8 @@ std::uint32_t RenderCore::GetMinImageCount()
 
 void RenderCore::ReleaseDeviceResources()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan device resources";
 
     vkDestroyDevice(g_Device, nullptr);
@@ -452,6 +479,8 @@ void RenderCore::ReleaseDeviceResources()
 
 std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     VkInstance const& VulkanInstance = volkGetLoadedInstance();
 
     std::uint32_t DeviceCount = 0U;
@@ -465,6 +494,8 @@ std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
 
 std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceExtensions()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
@@ -481,6 +512,8 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceExtensi
 
 std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
@@ -497,6 +530,8 @@ std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers()
 
 std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(std::string_view const& LayerName)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
@@ -519,6 +554,8 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerEx
 
 std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     std::vector<std::string> Output;
     for (VkExtensionProperties const& ExtensionIter: GetAvailablePhysicalDeviceExtensions())
     {
@@ -530,6 +567,8 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames()
 
 std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view const& LayerName)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     std::vector<std::string> Output;
     for (VkExtensionProperties const& ExtensionIter: GetAvailablePhysicalDeviceLayerExtensions(LayerName))
     {
@@ -541,6 +580,8 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNa
 
 std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     std::vector<std::string> Output;
     for (VkLayerProperties const& LayerIter: GetAvailablePhysicalDeviceLayers())
     {
@@ -552,6 +593,8 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames()
 
 VkSurfaceCapabilitiesKHR RenderCore::GetAvailablePhysicalDeviceSurfaceCapabilities()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
@@ -565,6 +608,8 @@ VkSurfaceCapabilitiesKHR RenderCore::GetAvailablePhysicalDeviceSurfaceCapabiliti
 
 std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFormats()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
@@ -583,6 +628,8 @@ std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFor
 
 std::vector<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePresentationModes()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
@@ -601,6 +648,8 @@ std::vector<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePrese
 
 VkDeviceSize RenderCore::GetMinUniformBufferOffsetAlignment()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan physical device is invalid.");

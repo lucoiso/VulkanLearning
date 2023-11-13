@@ -49,7 +49,6 @@ SET(PUBLIC_MODULES
 	${PUBLIC_MODULES_BASE_DIRECTORY}/EngineCore.ixx
 	${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Object.ixx
 	${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Transform.ixx
-	${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Coroutine.ixx
 )
 
 ADD_LIBRARY(${LIBRARY_NAME})
@@ -102,6 +101,7 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
 
 					  Timer
 					  Configuration
+					  Coroutine
 
 					  ImGui-Volk-Backend
 )

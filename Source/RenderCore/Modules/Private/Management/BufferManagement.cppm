@@ -46,6 +46,7 @@ import RenderCore.Types.UniformBufferObject;
 import RenderCore.Types.Vertex;
 import RenderCore.Types.Camera;
 import RenderCore.Types.Object;
+import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
@@ -67,6 +68,8 @@ namespace Allocation
 
         void DestroyResources()
         {
+            Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
             if (Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
             {
                 vmaDestroyImage(GetAllocator(), Image, Allocation);
@@ -106,6 +109,8 @@ namespace Allocation
 
         void DestroyResources()
         {
+            Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
             if (Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
             {
                 if (MappedData)
@@ -136,6 +141,8 @@ namespace Allocation
 
         void DestroyResources()
         {
+            Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
             VertexBuffer.DestroyResources();
             IndexBuffer.DestroyResources();
 
@@ -163,6 +170,8 @@ std::atomic g_ObjectIDCounter {0U};
 
 VmaAllocationInfo CreateBuffer(VkDeviceSize const& Size, VkBufferUsageFlags const Usage, VkMemoryPropertyFlags const Flags, VkBuffer& Buffer, VmaAllocation& Allocation)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
@@ -185,6 +194,8 @@ VmaAllocationInfo CreateBuffer(VkDeviceSize const& Size, VkBufferUsageFlags cons
 
 void CopyBuffer(VkBuffer const& Source, VkBuffer const& Destination, VkDeviceSize const& Size, VkQueue const& Queue, std::uint8_t const QueueFamilyIndex)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
     VkCommandPool CommandPool     = VK_NULL_HANDLE;
     InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
@@ -200,6 +211,8 @@ void CopyBuffer(VkBuffer const& Source, VkBuffer const& Destination, VkDeviceSiz
 
 void CreateVertexBuffer(Allocation::ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<Vertex> const& Vertices)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
@@ -234,6 +247,8 @@ void CreateVertexBuffer(Allocation::ObjectAllocation& Object, VkDeviceSize const
 
 void CreateIndexBuffer(Allocation::ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<std::uint32_t> const& Indices)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
@@ -269,6 +284,8 @@ void CreateIndexBuffer(Allocation::ObjectAllocation& Object, VkDeviceSize const&
 
 void CreateUniformBuffer(Allocation::ObjectAllocation& Object, VkDeviceSize const& AllocationSize)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
@@ -289,6 +306,8 @@ void CreateImage(VkFormat const& ImageFormat,
                  VkImage& Image,
                  VmaAllocation& Allocation)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
@@ -319,6 +338,8 @@ void CreateImage(VkFormat const& ImageFormat,
 
 void CreateImageView(VkImage const& Image, VkFormat const& Format, VkImageAspectFlags const& AspectFlags, VkImageView& ImageView)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     VkImageViewCreateInfo const ImageViewCreateInfo {
             .sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             .image      = Image,
@@ -336,6 +357,8 @@ void CreateImageView(VkImage const& Image, VkFormat const& Format, VkImageAspect
 
 void CreateSwapChainImageViews(VkFormat const& ImageFormat)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan swap chain image views";
     for (auto& [Image, View, Sampler, Allocation, Type]: g_SwapChainImages)
     {
@@ -345,11 +368,15 @@ void CreateSwapChainImageViews(VkFormat const& ImageFormat)
 
 void CreateTextureImageView(Allocation::ImageAllocation& Allocation)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     CreateImageView(Allocation.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, Allocation.View);
 }
 
 void CreateTextureSampler(Allocation::ImageAllocation& Allocation)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
@@ -381,6 +408,8 @@ void CreateTextureSampler(Allocation::ImageAllocation& Allocation)
 
 void CopyBufferToImage(VkBuffer const& Source, VkImage const& Destination, VkExtent2D const& Extent, VkQueue const& Queue, std::uint32_t const QueueFamilyIndex)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
     VkCommandPool CommandPool     = VK_NULL_HANDLE;
     InitializeSingleCommandQueue(CommandPool, CommandBuffer, static_cast<std::uint8_t>(QueueFamilyIndex));
@@ -409,6 +438,8 @@ void MoveImageLayout(VkImage const& Image,
                      VkQueue const& Queue,
                      std::uint8_t const QueueFamilyIndex)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
     VkCommandPool CommandPool     = VK_NULL_HANDLE;
     InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
@@ -476,6 +507,8 @@ void MoveImageLayout(VkImage const& Image,
 
 Allocation::ImageAllocation AllocateTexture(unsigned char const* Data, std::uint32_t const Width, std::uint32_t const Height, std::size_t const AllocationSize)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     Allocation::ImageAllocation ImageAllocation {};
 
     constexpr VkBufferUsageFlags SourceUsageFlags             = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -524,6 +557,8 @@ Allocation::ImageAllocation AllocateTexture(unsigned char const* Data, std::uint
 
 void LoadTexture(Allocation::ObjectAllocation& Object, std::string_view const& TexturePath)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan texture image";
 
     if (g_Allocator == VK_NULL_HANDLE)
@@ -555,6 +590,8 @@ void LoadTexture(Allocation::ObjectAllocation& Object, std::string_view const& T
 
 void RenderCore::CreateVulkanSurface(GLFWwindow* const Window)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan surface";
 
     CheckVulkanResult(glfwCreateWindowSurface(volkGetLoadedInstance(), Window, nullptr, &g_Surface));
@@ -562,6 +599,8 @@ void RenderCore::CreateVulkanSurface(GLFWwindow* const Window)
 
 void RenderCore::CreateMemoryAllocator()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan memory allocator";
 
     VmaVulkanFunctions const VulkanFunctions {
@@ -586,6 +625,8 @@ void RenderCore::CreateMemoryAllocator()
 
 void RenderCore::CreateSwapChain()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain";
 
     DeviceProperties const& Properties = GetDeviceProperties();
@@ -641,6 +682,8 @@ void RenderCore::CreateSwapChain()
 
 void RenderCore::CreateFrameBuffers()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan frame buffers";
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
@@ -667,6 +710,8 @@ void RenderCore::CreateFrameBuffers()
 
 void RenderCore::CreateDepthResources()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan depth resources";
 
     DeviceProperties const& Properties = GetDeviceProperties();
@@ -686,6 +731,8 @@ void RenderCore::CreateDepthResources()
 
 void CreateVertexBuffers(Allocation::ObjectAllocation& Object, std::vector<Vertex> const& Vertices)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan vertex buffers";
 
     VkDeviceSize const BufferSize = std::size(Vertices) * sizeof(Vertex);
@@ -694,6 +741,8 @@ void CreateVertexBuffers(Allocation::ObjectAllocation& Object, std::vector<Verte
 
 void CreateIndexBuffers(Allocation::ObjectAllocation& Object, std::vector<std::uint32_t> const& Indices)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
 
     VkDeviceSize const BufferSize = std::size(Indices) * sizeof(std::uint32_t);
@@ -702,68 +751,73 @@ void CreateIndexBuffers(Allocation::ObjectAllocation& Object, std::vector<std::u
 
 void CreateUniformBuffers(Allocation::ObjectAllocation& Object)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan uniform buffers";
 
     constexpr VkDeviceSize BufferSize = sizeof(UniformBufferObject);
     CreateUniformBuffer(Object, BufferSize);
 }
 
-struct PreProcessedImageData
-{
-    std::string Name {"None"};
-    std::uint32_t Width {64U};
-    std::uint32_t Height {64U};
-    std::vector<unsigned char> Content {std::vector<unsigned char>(Width * Height, 0U)};
-};
-
-struct PreProcessedMeshData
-{
-    std::vector<Vertex> Vertices {};
-    std::vector<std::uint32_t> Indices {};
-};
-
-struct ObjectPreProcessedData
-{
-    std::uint32_t ID {};
-    std::string Name {};
-    Transform Transform {};
-
-    PreProcessedMeshData MeshData {};
-    std::unordered_map<TextureType, PreProcessedImageData> Textures {
-            {TextureType::BaseColor, PreProcessedImageData()}};
-};
-
 std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
+    std::vector<Object> Output;
     tinygltf::Model Model {};
-    tinygltf::TinyGLTF ModelLoader {};
-    std::string Error {};
-    std::string Warning {};
 
-    std::filesystem::path const ModelFilepath(ModelPath);
-
-    bool const LoadResult = ModelFilepath.extension() == ".gltf" ? ModelLoader.LoadASCIIFromFile(&Model, &Error, &Warning, std::data(ModelPath)) : ModelLoader.LoadBinaryFromFile(&Model, &Error, &Warning, std::data(ModelPath));
-    if (!std::empty(Error))
     {
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Error: '" << Error << "'";
+        tinygltf::TinyGLTF ModelLoader {};
+        std::string Error {};
+        std::string Warning {};
+        std::filesystem::path const ModelFilepath(ModelPath);
+        bool const LoadResult = ModelFilepath.extension() == ".gltf" ? ModelLoader.LoadASCIIFromFile(&Model, &Error, &Warning, std::data(ModelPath)) : ModelLoader.LoadBinaryFromFile(&Model, &Error, &Warning, std::data(ModelPath));
+        if (!std::empty(Error))
+        {
+            BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Error: '" << Error << "'";
+        }
+
+        if (!std::empty(Warning))
+        {
+            BOOST_LOG_TRIVIAL(warning) << "[" << __func__ << "]: Warning: '" << Warning << "'";
+        }
+
+        if (!LoadResult)
+        {
+            BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Failed to load model from path: '" << ModelPath << "'";
+            return {};
+        }
     }
 
-    if (!std::empty(Warning))
-    {
-        BOOST_LOG_TRIVIAL(warning) << "[" << __func__ << "]: Warning: '" << Warning << "'";
-    }
+    auto const TryResizeVertexContainer = [](std::vector<Vertex>& Vertices, std::uint32_t const NewSize) {
+        if (std::size(Vertices) < NewSize && NewSize > 0U)
+        {
+            Vertices.resize(NewSize);
+        }
+    };
 
-    if (!LoadResult)
-    {
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Failed to load model from path: '" << ModelPath << "'";
-        return {};
-    }
+    auto const InsertIndiceInContainer = [](std::vector<std::uint32_t>& Indices, tinygltf::Accessor const& IndexAccessor, auto const* Data) {
+        for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(IndexAccessor.count); ++Iterator)
+        {
+            Indices.push_back(static_cast<std::uint32_t>(Data[Iterator]));
+        }
+    };
+
+    auto const AllocateModelTexture = [Model](Allocation::ObjectAllocation& Allocation, std::int32_t const TextureIndex, TextureType const TextureType) {
+        if (TextureIndex >= 0)
+        {
+            if (tinygltf::Texture const& Texture = Model.textures.at(TextureIndex);
+                Texture.source >= 0)
+            {
+                tinygltf::Image const& Image = Model.images.at(Texture.source);
+
+                Allocation.TextureImages.push_back(AllocateTexture(std::data(Image.image), Image.width, Image.height, std::size(Image.image)));
+                Allocation.TextureImages.back().Type = TextureType;
+            }
+        }
+    };
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded model from path: '" << ModelPath << "'";
-
-    std::vector<ObjectPreProcessedData> LoadedMeshes {};
-    LoadedMeshes.reserve(std::size(Model.meshes));
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scenes: " << std::size(Model.scenes);
 
     for (tinygltf::Node const& Node: Model.nodes)
@@ -774,72 +828,66 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
             continue;
         }
 
-        for (tinygltf::Mesh const& Mesh = Model.meshes.at(MeshIndex);
-             tinygltf::Primitive const& Primitive: Mesh.primitives)
+        tinygltf::Mesh const& Mesh = Model.meshes.at(MeshIndex);
+        Output.reserve(std::size(Output) + std::size(Mesh.primitives));
+
+        for (tinygltf::Primitive const& Primitive: Mesh.primitives)
         {
             std::uint32_t const ObjectID = g_ObjectIDCounter.fetch_add(1U);
 
-            ObjectPreProcessedData NewPrimitive {
-                    .ID   = ObjectID,
-                    .Name = std::format("{}_{:03d}", Mesh.name, ObjectID)};
+            Allocation::ObjectAllocation NewObjectAllocation {};
+            std::vector<Vertex> NewVertices {};
+            std::vector<std::uint32_t> NewIndices {};
+            Object NewObject(ObjectID, ModelPath, std::format("{}_{:03d}", Mesh.name, ObjectID));
 
-            auto const StartVertexNum  = static_cast<std::uint32_t>(std::size(NewPrimitive.MeshData.Vertices));
-            std::uint32_t NewVertexNum = StartVertexNum;
+            {
+                const float* PositionData {nullptr};
+                const float* NormalData {nullptr};
+                const float* TexCoordData {nullptr};
 
-            auto const TryResizeVertexContainer = [&NewPrimitive, &NewVertexNum, StartVertexNum](std::uint32_t const IncreaseSize) {
-                if (NewVertexNum == StartVertexNum)
+                if (Primitive.attributes.contains("POSITION"))
                 {
-                    NewVertexNum += IncreaseSize;
-                    NewPrimitive.MeshData.Vertices.resize(NewVertexNum);
-                }
-            };
-
-            const float* PositionData {nullptr};
-            const float* NormalData {nullptr};
-            const float* TexCoordData {nullptr};
-
-            if (Primitive.attributes.contains("POSITION"))
-            {
-                tinygltf::Accessor const& PositionAccessor     = Model.accessors.at(Primitive.attributes.at("POSITION"));
-                tinygltf::BufferView const& PositionBufferView = Model.bufferViews.at(PositionAccessor.bufferView);
-                tinygltf::Buffer const& PositionBuffer         = Model.buffers.at(PositionBufferView.buffer);
-                PositionData                                   = reinterpret_cast<const float*>(std::data(PositionBuffer.data) + PositionBufferView.byteOffset + PositionAccessor.byteOffset);
-                TryResizeVertexContainer(PositionAccessor.count);
-            }
-
-            if (Primitive.attributes.contains("NORMAL"))
-            {
-                tinygltf::Accessor const& NormalAccessor     = Model.accessors.at(Primitive.attributes.at("NORMAL"));
-                tinygltf::BufferView const& NormalBufferView = Model.bufferViews.at(NormalAccessor.bufferView);
-                tinygltf::Buffer const& NormalBuffer         = Model.buffers.at(NormalBufferView.buffer);
-                NormalData                                   = reinterpret_cast<const float*>(std::data(NormalBuffer.data) + NormalBufferView.byteOffset + NormalAccessor.byteOffset);
-                TryResizeVertexContainer(NormalAccessor.count);
-            }
-
-            if (Primitive.attributes.contains("TEXCOORD_0"))
-            {
-                tinygltf::Accessor const& TexCoordAccessor     = Model.accessors.at(Primitive.attributes.at("TEXCOORD_0"));
-                tinygltf::BufferView const& TexCoordBufferView = Model.bufferViews.at(TexCoordAccessor.bufferView);
-                tinygltf::Buffer const& TexCoordBuffer         = Model.buffers.at(TexCoordBufferView.buffer);
-                TexCoordData                                   = reinterpret_cast<const float*>(std::data(TexCoordBuffer.data) + TexCoordBufferView.byteOffset + TexCoordAccessor.byteOffset);
-                TryResizeVertexContainer(TexCoordAccessor.count);
-            }
-
-            for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(NewPrimitive.MeshData.Vertices)); ++Iterator)
-            {
-                if (PositionData)
-                {
-                    NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).Position = glm::vec3(PositionData[Iterator * 3], PositionData[Iterator * 3 + 1], PositionData[Iterator * 3 + 2]);
+                    tinygltf::Accessor const& PositionAccessor     = Model.accessors.at(Primitive.attributes.at("POSITION"));
+                    tinygltf::BufferView const& PositionBufferView = Model.bufferViews.at(PositionAccessor.bufferView);
+                    tinygltf::Buffer const& PositionBuffer         = Model.buffers.at(PositionBufferView.buffer);
+                    PositionData                                   = reinterpret_cast<const float*>(std::data(PositionBuffer.data) + PositionBufferView.byteOffset + PositionAccessor.byteOffset);
+                    TryResizeVertexContainer(NewVertices, PositionAccessor.count);
                 }
 
-                if (NormalData)
+                if (Primitive.attributes.contains("NORMAL"))
                 {
-                    NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).Normal = glm::vec3(NormalData[Iterator * 3], NormalData[Iterator * 3 + 1], NormalData[Iterator * 3 + 2]);
+                    tinygltf::Accessor const& NormalAccessor     = Model.accessors.at(Primitive.attributes.at("NORMAL"));
+                    tinygltf::BufferView const& NormalBufferView = Model.bufferViews.at(NormalAccessor.bufferView);
+                    tinygltf::Buffer const& NormalBuffer         = Model.buffers.at(NormalBufferView.buffer);
+                    NormalData                                   = reinterpret_cast<const float*>(std::data(NormalBuffer.data) + NormalBufferView.byteOffset + NormalAccessor.byteOffset);
+                    TryResizeVertexContainer(NewVertices, NormalAccessor.count);
                 }
 
-                if (TexCoordData)
+                if (Primitive.attributes.contains("TEXCOORD_0"))
                 {
-                    NewPrimitive.MeshData.Vertices.at(StartVertexNum + Iterator).TextureCoordinate = glm::vec2(TexCoordData[Iterator * 2], TexCoordData[Iterator * 2 + 1]);
+                    tinygltf::Accessor const& TexCoordAccessor     = Model.accessors.at(Primitive.attributes.at("TEXCOORD_0"));
+                    tinygltf::BufferView const& TexCoordBufferView = Model.bufferViews.at(TexCoordAccessor.bufferView);
+                    tinygltf::Buffer const& TexCoordBuffer         = Model.buffers.at(TexCoordBufferView.buffer);
+                    TexCoordData                                   = reinterpret_cast<const float*>(std::data(TexCoordBuffer.data) + TexCoordBufferView.byteOffset + TexCoordAccessor.byteOffset);
+                    TryResizeVertexContainer(NewVertices, TexCoordAccessor.count);
+                }
+
+                for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(NewVertices)); ++Iterator)
+                {
+                    if (PositionData)
+                    {
+                        NewVertices.at(Iterator).Position = glm::vec3(PositionData[Iterator * 3], PositionData[Iterator * 3 + 1], PositionData[Iterator * 3 + 2]);
+                    }
+
+                    if (NormalData)
+                    {
+                        NewVertices.at(Iterator).Normal = glm::vec3(NormalData[Iterator * 3], NormalData[Iterator * 3 + 1], NormalData[Iterator * 3 + 2]);
+                    }
+
+                    if (TexCoordData)
+                    {
+                        NewVertices.at(Iterator).TextureCoordinate = glm::vec2(TexCoordData[Iterator * 2], TexCoordData[Iterator * 2 + 1]);
+                    }
                 }
             }
 
@@ -849,28 +897,27 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
                 tinygltf::BufferView const& IndexBufferView = Model.bufferViews.at(IndexAccessor.bufferView);
                 tinygltf::Buffer const& IndexBuffer         = Model.buffers.at(IndexBufferView.buffer);
 
-                std::uint32_t const IndicesOffset = std::size(NewPrimitive.MeshData.Indices);
-                NewPrimitive.MeshData.Indices.reserve(std::size(NewPrimitive.MeshData.Indices) + IndexAccessor.count);
-
-                auto const InsertIndice = [&NewPrimitive, IndicesOffset, IndexAccessor](auto const* Indices) {
-                    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(IndexAccessor.count); ++Iterator)
-                    {
-                        NewPrimitive.MeshData.Indices.push_back(static_cast<std::uint32_t>(Indices[Iterator]) + IndicesOffset);
-                    }
-                };
+                NewIndices.reserve(IndexAccessor.count);
+                NewObjectAllocation.IndicesCount = IndexAccessor.count;
 
                 switch (IndexAccessor.componentType)
                 {
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
-                        InsertIndice(reinterpret_cast<const uint32_t*>(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
+                        InsertIndiceInContainer(NewIndices,
+                                                IndexAccessor,
+                                                reinterpret_cast<const uint32_t*>(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
                         break;
                     }
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
-                        InsertIndice(reinterpret_cast<const uint16_t*>(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
+                        InsertIndiceInContainer(NewIndices,
+                                                IndexAccessor,
+                                                reinterpret_cast<const uint16_t*>(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
                         break;
                     }
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
-                        InsertIndice(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset);
+                        InsertIndiceInContainer(NewIndices,
+                                                IndexAccessor,
+                                                std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset);
                         break;
                     }
                     default:
@@ -878,82 +925,44 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
                 }
             }
 
-            if (Primitive.material >= 0)
-            {
-                auto const PushTextureData = [&NewPrimitive, Model](std::int32_t const TextureIndex, TextureType const TexType) {
-                    if (TextureIndex >= 0)
-                    {
-                        if (auto const& Texture = Model.textures.at(TextureIndex); Texture.source >= 0)
-                        {
-                            auto const& Image = Model.images.at(Texture.source);
-
-                            NewPrimitive.Textures.at(TexType) = {.Name    = Image.uri,
-                                                                 .Width   = static_cast<std::uint32_t>(Image.width),
-                                                                 .Height  = static_cast<std::uint32_t>(Image.height),
-                                                                 .Content = Image.image};
-                        }
-                    }
-                };
-
-                tinygltf::Material const& Material = Model.materials.at(Primitive.material);
-                PushTextureData(Material.pbrMetallicRoughness.baseColorTexture.index, TextureType::BaseColor);
-            }
-
             if (!std::empty(Node.translation))
             {
-                NewPrimitive.Transform.Position = glm::make_vec3(std::data(Node.translation));
+                NewObject.SetPosition(Vector(glm::make_vec3(std::data(Node.translation))));
             }
 
             if (!std::empty(Node.scale))
             {
-                NewPrimitive.Transform.Scale = glm::make_vec3(std::data(Node.scale));
-
-                NewPrimitive.Transform.Scale.X = std::clamp(NewPrimitive.Transform.Scale.X, 0.01F, 100.F);
-                NewPrimitive.Transform.Scale.Y = std::clamp(NewPrimitive.Transform.Scale.Y, 0.01F, 100.F);
-                NewPrimitive.Transform.Scale.Z = std::clamp(NewPrimitive.Transform.Scale.Z, 0.01F, 100.F);
+                NewObject.SetScale(Vector(glm::make_vec3(std::data(Node.scale))));
             }
 
             if (!std::empty(Node.rotation))
             {
-                NewPrimitive.Transform.Rotation = glm::make_quat(std::data(Node.rotation));
+                NewObject.SetRotation(Rotator(glm::make_quat(std::data(Node.rotation))));
             }
 
-            LoadedMeshes.push_back(std::move(NewPrimitive));
+            if (Primitive.material >= 0)
+            {
+                tinygltf::Material const& Material = Model.materials.at(Primitive.material);
+                AllocateModelTexture(NewObjectAllocation, Material.pbrMetallicRoughness.baseColorTexture.index, TextureType::BaseColor);
+
+                if (std::empty(NewObjectAllocation.TextureImages))
+                {
+                    constexpr std::uint8_t DefaultTextureHalfSize {2U};
+                    constexpr std::uint8_t DefaultTextureSize {DefaultTextureHalfSize * 2U};
+                    constexpr std::array<std::uint8_t, DefaultTextureSize> DefaultTextureData {};
+
+                    NewObjectAllocation.TextureImages.push_back(AllocateTexture(std::data(DefaultTextureData), DefaultTextureHalfSize, DefaultTextureHalfSize, DefaultTextureSize));
+                    NewObjectAllocation.TextureImages.back().Type = TextureType::BaseColor;
+                }
+            }
+
+            CreateVertexBuffers(NewObjectAllocation, NewVertices);
+            CreateIndexBuffers(NewObjectAllocation, NewIndices);
+            CreateUniformBuffers(NewObjectAllocation);
+
+            g_Objects.emplace(NewObject.GetID(), std::move(NewObjectAllocation));
+            Output.push_back(std::move(NewObject));
         }
-    }
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded models: " << std::size(LoadedMeshes);
-
-    std::vector<Object> Output;
-    Output.reserve(std::size(LoadedMeshes));
-    for (auto& [ID, Name, Transform, ObjectData, Textures]: LoadedMeshes)
-    {
-        Allocation::ObjectAllocation NewObject {
-                .IndicesCount = static_cast<std::uint32_t>(std::size(ObjectData.Indices))};
-
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Allocating model with ID: '" << ID << "'; Vertices: '" << std::size(ObjectData.Vertices) << "'; Indices: '" << std::size(ObjectData.Indices);
-
-        CreateVertexBuffers(NewObject, ObjectData.Vertices);
-        CreateIndexBuffers(NewObject, ObjectData.Indices);
-        CreateUniformBuffers(NewObject);
-
-        for (auto const& [Type, Data]: Textures)
-        {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Allocating texture '" << Data.Name << "' with width: '" << Data.Width << "' and height: '" << Data.Height << "'";
-
-            NewObject.TextureImages.push_back(
-                    AllocateTexture(std::data(Data.Content),
-                                    Data.Width,
-                                    Data.Height,
-                                    std::size(Data.Content)));
-
-            NewObject.TextureImages.back().Type = Type;
-        }
-
-        g_Objects.emplace(ID, NewObject);
-
-        Output.emplace_back(ID, ModelPath, Name);
-        Output.back().SetTransform(Transform);
     }
 
     return Output;
@@ -961,6 +970,8 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
 
 void RenderCore::ReleaseScene(std::vector<std::uint32_t> const& ObjectIDs)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     for (std::uint32_t const ObjectIDIter: ObjectIDs)
     {
         if (!g_Objects.contains(ObjectIDIter))
@@ -980,6 +991,8 @@ void RenderCore::ReleaseScene(std::vector<std::uint32_t> const& ObjectIDs)
 
 void RenderCore::ReleaseBufferResources()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan buffer resources";
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
@@ -1001,6 +1014,8 @@ void RenderCore::ReleaseBufferResources()
 
 void RenderCore::DestroyBufferResources(bool const ClearScene)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan buffer resources";
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();

@@ -24,11 +24,14 @@ import RenderCore.Types.Camera;
 import RenderCore.Utils.GLFWCallbacks;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
+import Timer.ExecutionCounter;
 
 GLFWwindow* g_Window {nullptr};
 
 bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, bool const bHeadless)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (glfwInit() == 0)
     {
         throw std::runtime_error("Failed to initialize GLFW");
@@ -74,6 +77,8 @@ Window::~Window()
 
 AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, bool const bHeadless)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (IsInitialized())
     {
         co_return false;
@@ -107,6 +112,8 @@ AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t
 
 AsyncTask Window::Shutdown()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (IsInitialized())
     {
         std::binary_semaphore Semaphore {0U};

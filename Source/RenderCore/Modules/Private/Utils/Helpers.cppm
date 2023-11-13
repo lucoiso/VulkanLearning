@@ -23,11 +23,14 @@ import <array>;
 import <filesystem>;
 
 import RenderCore.Types.Vertex;
+import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
 VkExtent2D RenderCore::GetWindowExtent(GLFWwindow* const Window, VkSurfaceCapabilitiesKHR const& Capabilities)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     std::int32_t Width  = 0U;
     std::int32_t Height = 0U;
     glfwGetFramebufferSize(Window, &Width, &Height);
@@ -44,6 +47,8 @@ VkExtent2D RenderCore::GetWindowExtent(GLFWwindow* const Window, VkSurfaceCapabi
 
 std::vector<char const*> RenderCore::GetGLFWExtensions()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting GLFW extensions";
 
     std::uint32_t GLFWExtensionsCount = 0U;
@@ -64,6 +69,8 @@ std::vector<char const*> RenderCore::GetGLFWExtensions()
 
 std::vector<VkLayerProperties> RenderCore::GetAvailableInstanceLayers()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     std::uint32_t LayersCount = 0U;
     CheckVulkanResult(vkEnumerateInstanceLayerProperties(&LayersCount, nullptr));
 
@@ -75,6 +82,8 @@ std::vector<VkLayerProperties> RenderCore::GetAvailableInstanceLayers()
 
 std::vector<std::string> RenderCore::GetAvailableInstanceLayersNames()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     std::vector<std::string> Output;
     for (auto const& [LayerName, SpecVer, ImplVer, Descr]: GetAvailableInstanceLayers())
     {
@@ -86,6 +95,8 @@ std::vector<std::string> RenderCore::GetAvailableInstanceLayersNames()
 
 std::vector<VkExtensionProperties> RenderCore::GetAvailableInstanceExtensions()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     std::uint32_t ExtensionCount = 0U;
     CheckVulkanResult(vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionCount, nullptr));
 
@@ -97,6 +108,8 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailableInstanceExtensions()
 
 std::vector<std::string> RenderCore::GetAvailableInstanceExtensionsNames()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     std::vector<std::string> Output;
     for (auto const& [ExtName, SpecVer]: GetAvailableInstanceExtensions())
     {
@@ -108,6 +121,8 @@ std::vector<std::string> RenderCore::GetAvailableInstanceExtensionsNames()
 
 std::unordered_map<std::string, std::string> RenderCore::GetAvailableglTFAssetsInDirectory(std::string const& Root, std::vector<std::string> const& Extensions)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     std::unordered_map<std::string, std::string> OptionsMap {{"None", ""}};
     try
     {
@@ -130,6 +145,8 @@ std::unordered_map<std::string, std::string> RenderCore::GetAvailableglTFAssetsI
 
 void RenderCore::ListAvailableInstanceLayers()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available instance layers...";
 
     for (auto const& [LayerName, SpecVer, ImplVer, Descr]: GetAvailableInstanceLayers())
@@ -143,6 +160,8 @@ void RenderCore::ListAvailableInstanceLayers()
 
 void RenderCore::ListAvailableInstanceExtensions()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available instance extensions...";
 
     for (auto const& [ExtName, SpecVer]: GetAvailableInstanceExtensions())
@@ -190,6 +209,8 @@ std::array<VkVertexInputAttributeDescription, 4U> RenderCore::GetAttributeDescri
 
 std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::string_view const& LayerName)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (std::vector<std::string> const AvailableLayers = GetAvailableInstanceLayersNames();
         std::ranges::find(AvailableLayers, LayerName) == std::cend(AvailableLayers))
     {
@@ -207,6 +228,8 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::
 
 std::vector<std::string> RenderCore::GetAvailableLayerExtensionsNames(std::string_view const& LayerName)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     std::vector<std::string> Output;
     for (auto const& [ExtName, SpecVer]: GetAvailableLayerExtensions(LayerName))
     {
@@ -220,6 +243,8 @@ std::vector<std::string> RenderCore::GetAvailableLayerExtensionsNames(std::strin
 
 void RenderCore::ListAvailableInstanceLayerExtensions(std::string_view const& LayerName)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available layer '" << LayerName << "' extensions...";
 
     for (auto const& [ExtName, SpecVer]: GetAvailableLayerExtensions(LayerName))

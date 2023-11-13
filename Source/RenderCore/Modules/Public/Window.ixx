@@ -12,7 +12,7 @@ export import <cstdint>;
 export import <string_view>;
 export import <memory>;
 
-export import RenderCore.Types.Coroutine;
+export import Coroutine.Types;
 import Timer.Manager;
 
 namespace RenderCore

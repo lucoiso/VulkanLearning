@@ -18,16 +18,19 @@ import <ranges>;
 
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
+import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
-constexpr char const* g_EntryPoint         = "main";
-constexpr std::int32_t const g_GlslVersion = 450;
+constexpr char const* g_EntryPoint   = "main";
+constexpr std::int32_t g_GlslVersion = 450;
 
 std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> g_StageInfos {};
 
 bool Compile(std::string_view const& Source, EShLanguage const Language, std::vector<std::uint32_t>& OutSPIRVCode)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     glslang::InitializeProcess();
 
     glslang::TShader Shader(Language);
@@ -86,6 +89,8 @@ bool Compile(std::string_view const& Source, EShLanguage const Language, std::ve
 
 void StageInfo(VkShaderModule const& Module, EShLanguage const Language)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (Module == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Invalid shader module");
@@ -157,6 +162,8 @@ void StageInfo(VkShaderModule const& Module, EShLanguage const Language)
 
 bool ValidateSPIRV(const std::vector<std::uint32_t>& SPIRVData)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     static spvtools::SpirvTools SPIRVToolsInstance(SPV_ENV_VULKAN_1_3);
     if (!SPIRVToolsInstance.IsValid())
     {
@@ -178,6 +185,8 @@ bool ValidateSPIRV(const std::vector<std::uint32_t>& SPIRVData)
 
 bool RenderCore::Compile(std::string_view const& Source, std::vector<std::uint32_t>& OutSPIRVCode)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     EShLanguage Language = EShLangVertex;
     std::filesystem::path const Path(Source);
 
@@ -267,6 +276,8 @@ bool RenderCore::Compile(std::string_view const& Source, std::vector<std::uint32
 
 bool RenderCore::Load(std::string_view const& Source, std::vector<std::uint32_t>& OutSPIRVCode)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     std::filesystem::path const Path(Source);
     if (!exists(Path))
     {
@@ -300,6 +311,8 @@ bool RenderCore::Load(std::string_view const& Source, std::vector<std::uint32_t>
 
 bool RenderCore::CompileOrLoadIfExists(std::string_view const& Source, std::vector<uint32_t>& OutSPIRVCode)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (std::string const CompiledShaderPath = std::format("{}.spv", Source);
         std::filesystem::exists(CompiledShaderPath))
     {
@@ -310,6 +323,8 @@ bool RenderCore::CompileOrLoadIfExists(std::string_view const& Source, std::vect
 
 VkShaderModule RenderCore::CreateModule(VkDevice const& Device, std::vector<std::uint32_t> const& SPIRVCode, EShLanguage const Language)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (Device == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Invalid vulkan logical device");
@@ -369,6 +384,8 @@ std::vector<VkPipelineShaderStageCreateInfo> RenderCore::GetStageInfos()
 
 void RenderCore::ReleaseShaderResources()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan shader resources";
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
@@ -385,6 +402,8 @@ void RenderCore::ReleaseShaderResources()
 
 void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const& StagedModules)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();

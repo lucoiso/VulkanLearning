@@ -265,6 +265,11 @@ namespace RenderCore
         {
         }
 
+        explicit Rotator(glm::quat const& Value)
+            : Pitch(glm::degrees(roll(Value))), Yaw(glm::degrees(pitch(Value))), Roll(glm::degrees(yaw(Value)))
+        {
+        }
+
         Rotator& operator=(Rotator const& Value) = default;
 
         Rotator& operator=(glm::vec3 const& Value)
@@ -283,19 +288,19 @@ namespace RenderCore
             return *this;
         }
 
-        Rotator& operator=(float const Value)
-        {
-            Pitch = Value;
-            Yaw   = Value;
-            Roll  = Value;
-            return *this;
-        }
-
         Rotator& operator=(glm::quat const& Value)
         {
             Pitch = glm::degrees(roll(Value));
             Yaw   = glm::degrees(pitch(Value));
             Roll  = glm::degrees(yaw(Value));
+            return *this;
+        }
+
+        Rotator& operator=(float const Value)
+        {
+            Pitch = Value;
+            Yaw   = Value;
+            Roll  = Value;
             return *this;
         }
 

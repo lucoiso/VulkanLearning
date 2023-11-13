@@ -1,6 +1,6 @@
-//
-// Created by User on 30.10.2023.
-//
+// Author: Lucas Vilas-Boas
+// Year : 2023
+// Repo : https://github.com/lucoiso/VulkanRenderer
 
 module;
 

@@ -13,6 +13,7 @@ export import <cstdint>;
 namespace RenderCore
 {
     export enum class TextureType : std::uint8_t {
+        Undefined,
         BaseColor
     };
 

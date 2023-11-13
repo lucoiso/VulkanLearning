@@ -18,6 +18,7 @@ import RenderCore.Management.BufferManagement;
 import RenderCore.Types.UniformBufferObject;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
+import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
@@ -31,6 +32,8 @@ std::unordered_map<std::uint32_t, VkDescriptorSet> g_DescriptorSets {};
 
 void RenderCore::CreateRenderPass()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_RenderPass != VK_NULL_HANDLE)
     {
         vkDestroyRenderPass(volkGetLoadedDevice(), g_RenderPass, nullptr);
@@ -100,6 +103,8 @@ void RenderCore::CreateRenderPass()
 
 void RenderCore::CreateGraphicsPipeline()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan graphics pipeline";
 
     auto const BindingDescription    = GetBindingDescriptors();
@@ -224,6 +229,8 @@ void RenderCore::CreateGraphicsPipeline()
 
 void RenderCore::CreateDescriptorSetLayout()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
 
     constexpr std::array LayoutBindings {
@@ -250,6 +257,8 @@ void RenderCore::CreateDescriptorSetLayout()
 
 void RenderCore::CreateDescriptorPool()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor pool";
 
     std::array const DescriptorPoolSizes {
@@ -271,6 +280,8 @@ void RenderCore::CreateDescriptorPool()
 
 void RenderCore::CreateDescriptorSets()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (GetNumAllocations() == 0U)
     {
         return;
@@ -356,6 +367,8 @@ void RenderCore::CreateDescriptorSets()
 
 void RenderCore::ReleasePipelineResources()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan pipeline resources";
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
@@ -371,6 +384,8 @@ void RenderCore::ReleasePipelineResources()
 
 void RenderCore::ReleaseDynamicPipelineResources()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan pipeline resources";
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();

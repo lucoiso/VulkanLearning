@@ -19,6 +19,7 @@ import RenderCore.Management.PipelineManagement;
 import RenderCore.Management.CommandsManagement;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
+import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
@@ -26,6 +27,8 @@ VkDescriptorPool g_ImGuiDescriptorPool {VK_NULL_HANDLE};
 
 void RenderCore::InitializeImGui(GLFWwindow* const Window)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     IMGUI_CHECKVERSION();
 
     ImGui_ImplVulkan_LoadFunctions([](const char* FunctionName, void*) {
@@ -92,6 +95,8 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window)
 
 void RenderCore::ReleaseImGuiResources()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_ImGuiDescriptorPool != VK_NULL_HANDLE)
     {
         vkDestroyDescriptorPool(volkGetLoadedDevice(), g_ImGuiDescriptorPool, nullptr);

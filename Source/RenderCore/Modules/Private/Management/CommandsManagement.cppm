@@ -23,6 +23,7 @@ import RenderCore.Types.Camera;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.EnumConverter;
+import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
@@ -93,6 +94,8 @@ void FreeCommandBuffers()
 
 void RenderCore::ReleaseCommandsResources()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan commands resources";
 
     DestroyCommandsSynchronizationObjects();
@@ -113,6 +116,8 @@ VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex)
 
 void RenderCore::CreateCommandsSynchronizationObjects()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (g_SynchronizationObjectsCreated)
     {
         return;
@@ -138,6 +143,8 @@ void RenderCore::CreateCommandsSynchronizationObjects()
 
 void RenderCore::DestroyCommandsSynchronizationObjects()
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (!g_SynchronizationObjectsCreated)
     {
         return;
@@ -395,6 +402,8 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
 
 void RenderCore::InitializeSingleCommandQueue(VkCommandPool& CommandPool, VkCommandBuffer& CommandBuffer, std::uint8_t const QueueFamilyIndex)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
     VkCommandPoolCreateInfo const CommandPoolCreateInfo {
@@ -422,6 +431,8 @@ void RenderCore::InitializeSingleCommandQueue(VkCommandPool& CommandPool, VkComm
 
 void RenderCore::FinishSingleCommandQueue(VkQueue const& Queue, VkCommandPool const& CommandPool, VkCommandBuffer const& CommandBuffer)
 {
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
     if (CommandPool == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan command pool is invalid.");
