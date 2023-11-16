@@ -431,12 +431,11 @@ void CopyBufferToImage(VkBuffer const& Source, VkImage const& Destination, VkExt
     FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
 }
 
-void MoveImageLayout(VkImage const& Image,
-                     VkFormat const& Format,
-                     VkImageLayout const& OldLayout,
-                     VkImageLayout const& NewLayout,
-                     VkQueue const& Queue,
-                     std::uint8_t const QueueFamilyIndex)
+template<VkImageLayout OldLayout, VkImageLayout NewLayout>
+constexpr void MoveImageLayout(VkImage const& Image,
+                               VkFormat const& Format,
+                               VkQueue const& Queue,
+                               std::uint8_t const QueueFamilyIndex)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -544,9 +543,9 @@ Allocation::ImageAllocation AllocateTexture(unsigned char const* Data, std::uint
     auto const& [FamilyIndex, Queue] = GetGraphicsQueue();
 
     CreateImage(ImageFormat, Extent, Tiling, DestinationUsageFlags, DestinationMemoryPropertyFlags, ImageAllocation.Image, ImageAllocation.Allocation);
-    MoveImageLayout(ImageAllocation.Image, ImageFormat, InitialLayout, MiddleLayout, Queue, FamilyIndex);
+    MoveImageLayout<InitialLayout, MiddleLayout>(ImageAllocation.Image, ImageFormat, Queue, FamilyIndex);
     CopyBufferToImage(StagingBuffer, ImageAllocation.Image, Extent, Queue, FamilyIndex);
-    MoveImageLayout(ImageAllocation.Image, ImageFormat, MiddleLayout, DestinationLayout, Queue, FamilyIndex);
+    MoveImageLayout<MiddleLayout, DestinationLayout>(ImageAllocation.Image, ImageFormat, Queue, FamilyIndex);
 
     CreateTextureImageView(ImageAllocation);
     CreateTextureSampler(ImageAllocation);
@@ -726,7 +725,7 @@ void RenderCore::CreateDepthResources()
 
     CreateImage(Properties.DepthFormat, g_SwapChainExtent, Tiling, Usage, MemoryPropertyFlags, g_DepthImage.Image, g_DepthImage.Allocation);
     CreateImageView(g_DepthImage.Image, Properties.DepthFormat, Aspect, g_DepthImage.View);
-    MoveImageLayout(g_DepthImage.Image, Properties.DepthFormat, InitialLayout, DestinationLayout, Queue, FamilyIndex);
+    MoveImageLayout<InitialLayout, DestinationLayout>(g_DepthImage.Image, Properties.DepthFormat, Queue, FamilyIndex);
 }
 
 void CreateVertexBuffers(Allocation::ObjectAllocation& Object, std::vector<Vertex> const& Vertices)
@@ -876,17 +875,17 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
                 {
                     if (PositionData)
                     {
-                        NewVertices.at(Iterator).Position = glm::vec3(PositionData[Iterator * 3], PositionData[Iterator * 3 + 1], PositionData[Iterator * 3 + 2]);
+                        NewVertices.at(Iterator).Position = glm::make_vec3(&PositionData[Iterator * 3]);
                     }
 
                     if (NormalData)
                     {
-                        NewVertices.at(Iterator).Normal = glm::vec3(NormalData[Iterator * 3], NormalData[Iterator * 3 + 1], NormalData[Iterator * 3 + 2]);
+                        NewVertices.at(Iterator).Normal = glm::make_vec3(&NormalData[Iterator * 3]);
                     }
 
                     if (TexCoordData)
                     {
-                        NewVertices.at(Iterator).TextureCoordinate = glm::vec2(TexCoordData[Iterator * 2], TexCoordData[Iterator * 2 + 1]);
+                        NewVertices.at(Iterator).TextureCoordinate = glm::make_vec2(&TexCoordData[Iterator * 2]);
                     }
                 }
             }
@@ -896,6 +895,7 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
                 tinygltf::Accessor const& IndexAccessor     = Model.accessors.at(Primitive.indices);
                 tinygltf::BufferView const& IndexBufferView = Model.bufferViews.at(IndexAccessor.bufferView);
                 tinygltf::Buffer const& IndexBuffer         = Model.buffers.at(IndexBufferView.buffer);
+                unsigned char const* const IndicesData      = std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset;
 
                 NewIndices.reserve(IndexAccessor.count);
                 NewObjectAllocation.IndicesCount = IndexAccessor.count;
@@ -903,21 +903,15 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
                 switch (IndexAccessor.componentType)
                 {
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
-                        InsertIndiceInContainer(NewIndices,
-                                                IndexAccessor,
-                                                reinterpret_cast<const uint32_t*>(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
+                        InsertIndiceInContainer(NewIndices, IndexAccessor, reinterpret_cast<const uint32_t*>(IndicesData));
                         break;
                     }
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
-                        InsertIndiceInContainer(NewIndices,
-                                                IndexAccessor,
-                                                reinterpret_cast<const uint16_t*>(std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset));
+                        InsertIndiceInContainer(NewIndices, IndexAccessor, reinterpret_cast<const uint16_t*>(IndicesData));
                         break;
                     }
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
-                        InsertIndiceInContainer(NewIndices,
-                                                IndexAccessor,
-                                                std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset);
+                        InsertIndiceInContainer(NewIndices, IndexAccessor, IndicesData);
                         break;
                     }
                     default:
@@ -943,7 +937,9 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
             if (Primitive.material >= 0)
             {
                 tinygltf::Material const& Material = Model.materials.at(Primitive.material);
-                AllocateModelTexture(NewObjectAllocation, Material.pbrMetallicRoughness.baseColorTexture.index, TextureType::BaseColor);
+                AllocateModelTexture(NewObjectAllocation,
+                                     Material.pbrMetallicRoughness.baseColorTexture.index,
+                                     TextureType::BaseColor);
 
                 if (std::empty(NewObjectAllocation.TextureImages))
                 {
@@ -951,7 +947,11 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const& ModelPath)
                     constexpr std::uint8_t DefaultTextureSize {DefaultTextureHalfSize * 2U};
                     constexpr std::array<std::uint8_t, DefaultTextureSize> DefaultTextureData {};
 
-                    NewObjectAllocation.TextureImages.push_back(AllocateTexture(std::data(DefaultTextureData), DefaultTextureHalfSize, DefaultTextureHalfSize, DefaultTextureSize));
+                    NewObjectAllocation.TextureImages.push_back(AllocateTexture(std::data(DefaultTextureData),
+                                                                                DefaultTextureHalfSize,
+                                                                                DefaultTextureHalfSize,
+                                                                                DefaultTextureSize));
+
                     NewObjectAllocation.TextureImages.back().Type = TextureType::BaseColor;
                 }
             }

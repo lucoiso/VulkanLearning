@@ -236,9 +236,9 @@ void RenderCore::CreateLogicalDevice()
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
-    std::optional<std::uint8_t> GraphicsQueueFamilyIndex     = std::nullopt;
-    std::optional<std::uint8_t> PresentationQueueFamilyIndex = std::nullopt;
-    std::optional<std::uint8_t> TransferQueueFamilyIndex     = std::nullopt;
+    std::optional<std::uint8_t> GraphicsQueueFamilyIndex {std::nullopt};
+    std::optional<std::uint8_t> PresentationQueueFamilyIndex {std::nullopt};
+    std::optional<std::uint8_t> TransferQueueFamilyIndex {std::nullopt};
 
     if (!GetQueueFamilyIndices(GraphicsQueueFamilyIndex, PresentationQueueFamilyIndex, TransferQueueFamilyIndex))
     {
@@ -264,8 +264,7 @@ void RenderCore::CreateLogicalDevice()
     Extensions.insert(std::cend(Extensions), std::cbegin(g_DebugDeviceExtensions), std::cend(g_DebugDeviceExtensions));
 #endif
 
-    std::unordered_map<std::uint8_t, std::uint8_t> QueueFamilyIndices;
-    QueueFamilyIndices.emplace(g_GraphicsQueue.first, 1U);
+    std::unordered_map<std::uint8_t, std::uint8_t> QueueFamilyIndices {{g_GraphicsQueue.first, 1U}};
     if (!QueueFamilyIndices.contains(g_PresentationQueue.first))
     {
         QueueFamilyIndices.emplace(g_PresentationQueue.first, 1U);
@@ -285,22 +284,20 @@ void RenderCore::CreateLogicalDevice()
     }
 
     g_UniqueQueueFamilyIndices.clear();
-    std::unordered_map<std::uint32_t, std::vector<float>> QueuePriorities;
-    for (auto const& [Index, Quantity]: QueueFamilyIndices)
-    {
-        g_UniqueQueueFamilyIndices.push_back(Index);
-        QueuePriorities.emplace(Index, std::vector(Quantity, 1.0F));
-    }
+    g_UniqueQueueFamilyIndices.reserve(std::size(QueueFamilyIndices));
 
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo;
+    QueueCreateInfo.reserve(std::size(QueueFamilyIndices));
     for (auto const& [Index, Count]: QueueFamilyIndices)
     {
+        g_UniqueQueueFamilyIndices.push_back(Index);
+
         QueueCreateInfo.push_back(
                 VkDeviceQueueCreateInfo {
                         .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                         .queueFamilyIndex = Index,
                         .queueCount       = Count,
-                        .pQueuePriorities = std::data(QueuePriorities.at(Index))});
+                        .pQueuePriorities = std::data(std::vector(Count, 1.0F))});
     }
 
     VkPhysicalDeviceRobustness2FeaturesEXT RobustnessFeatures {

@@ -43,6 +43,8 @@ namespace RenderCore
         CameraMovementStateFlags m_CameraMovementStateFlags {CameraMovementStateFlags::NONE};
 
     public:
+        Camera() = default;
+
         [[nodiscard]] Vector GetPosition() const;
         void SetPosition(Vector const&);
 

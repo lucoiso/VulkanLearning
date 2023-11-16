@@ -337,7 +337,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
                 ActiveIndexBinding = true;
             }
 
-            if (ActiveRenderPass && ActiveVertexBinding && ActiveIndexBinding)
+            if (ActiveVertexBinding && ActiveIndexBinding)
             {
                 vkCmdDrawIndexed(MainCommandBuffer, IndexCount, 1U, 0U, 0U, 0U);
             }

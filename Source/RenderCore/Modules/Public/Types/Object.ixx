@@ -11,6 +11,7 @@ export module RenderCore.Types.Object;
 
 export import <string>;
 export import <string_view>;
+
 export import RenderCore.Types.Transform;
 
 namespace RenderCore
@@ -26,12 +27,8 @@ namespace RenderCore
     public:
         Object() = delete;
 
-        Object(Object const&)            = default;
-        Object& operator=(Object const&) = default;
-
         Object(std::uint32_t, std::string_view const&);
         Object(std::uint32_t, std::string_view const&, std::string_view const&);
-        virtual ~Object() = default;
 
         [[nodiscard]] std::uint32_t GetID() const;
         [[nodiscard]] std::string_view GetPath() const;

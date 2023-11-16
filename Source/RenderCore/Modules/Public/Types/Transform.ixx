@@ -32,19 +32,14 @@ namespace RenderCore
         {
         }
 
-        explicit Vector(glm::vec3 const& Value)
+        template<typename Other>
+        constexpr explicit Vector(Other const& Value)
             : X(Value.x), Y(Value.y), Z(Value.z)
         {
         }
 
-        explicit Vector(glm::vec4 const& Value)
-            : X(Value.x), Y(Value.y), Z(Value.z)
-        {
-        }
-
-        Vector& operator=(Vector const& Value) = default;
-
-        Vector& operator=(glm::vec3 const& Value)
+        template<typename Other>
+        Vector& operator=(Other const& Value)
         {
             X = Value.x;
             Y = Value.y;
@@ -52,7 +47,8 @@ namespace RenderCore
             return *this;
         }
 
-        Vector& operator=(glm::vec4 const& Value)
+        template<typename Other>
+        Vector& operator=(Other&& Value)
         {
             X = Value.x;
             Y = Value.y;
@@ -205,8 +201,7 @@ namespace RenderCore
 
         [[nodiscard]] Vector CrossInline(Vector const& Value) const
         {
-            return {
-                    Y * Value.Z - Z * Value.Y,
+            return {Y * Value.Z - Z * Value.Y,
                     Z * Value.X - X * Value.Z,
                     X * Value.Y - Y * Value.X};
         }
@@ -256,12 +251,7 @@ namespace RenderCore
         }
 
         explicit Rotator(glm::vec3 const& Value)
-            : Pitch(Value.y), Yaw(Value.z), Roll(Value.x)
-        {
-        }
-
-        explicit Rotator(glm::vec4 const& Value)
-            : Pitch(Value.y), Yaw(Value.z), Roll(Value.x)
+            : Pitch(Value.x), Yaw(Value.y), Roll(Value.z)
         {
         }
 
@@ -270,29 +260,35 @@ namespace RenderCore
         {
         }
 
-        Rotator& operator=(Rotator const& Value) = default;
-
         Rotator& operator=(glm::vec3 const& Value)
         {
-            Roll  = Value.x;
-            Pitch = Value.y;
-            Yaw   = Value.z;
+            Pitch = Value.x;
+            Yaw   = Value.y;
+            Roll  = Value.z;
             return *this;
         }
 
-        Rotator& operator=(glm::vec4 const& Value)
+        Rotator& operator=(glm::vec3&& Value)
         {
-            Roll  = Value.x;
-            Pitch = Value.y;
-            Yaw   = Value.z;
+            Pitch = Value.x;
+            Yaw   = Value.y;
+            Roll  = Value.z;
             return *this;
         }
 
         Rotator& operator=(glm::quat const& Value)
         {
-            Pitch = glm::degrees(roll(Value));
-            Yaw   = glm::degrees(pitch(Value));
-            Roll  = glm::degrees(yaw(Value));
+            Pitch = glm::degrees(pitch(Value));
+            Yaw   = glm::degrees(yaw(Value));
+            Roll  = glm::degrees(roll(Value));
+            return *this;
+        }
+
+        Rotator& operator=(glm::quat&& Value)
+        {
+            Pitch = glm::degrees(pitch(Value));
+            Yaw   = glm::degrees(yaw(Value));
+            Roll  = glm::degrees(roll(Value));
             return *this;
         }
 
@@ -420,16 +416,14 @@ namespace RenderCore
 
         [[nodiscard]] Vector GetFront() const
         {
-            return {
-                    cos(glm::radians(Yaw)) * cos(glm::radians(Pitch)),
+            return {cos(glm::radians(Yaw)) * cos(glm::radians(Pitch)),
                     sin(glm::radians(Pitch)),
                     sin(glm::radians(Yaw)) * cos(glm::radians(Pitch))};
         }
 
         [[nodiscard]] Vector GetRight() const
         {
-            return {
-                    cos(glm::radians(Yaw - 90.F)),
+            return {cos(glm::radians(Yaw - 90.F)),
                     0.F,
                     sin(glm::radians(Yaw - 90.F))};
         }
@@ -463,14 +457,17 @@ namespace RenderCore
         {
         }
 
+        Transform(Vector&& Position, Vector&& Scale, Rotator&& Rotation)
+            : Position(Position), Scale(Scale), Rotation(Rotation)
+        {
+        }
+
         explicit Transform(glm::mat4 const& TransformMatrix)
             : Position(Vector(TransformMatrix[3])),
               Scale(Vector(glm::vec3(TransformMatrix[0][0], TransformMatrix[1][1], TransformMatrix[2][2]))),
               Rotation(Rotator(glm::eulerAngles(glm::quat(TransformMatrix))))
         {
         }
-
-        Transform& operator=(Transform const& Value) = default;
 
         Transform& operator=(float const Value)
         {
@@ -595,7 +592,7 @@ namespace RenderCore
             return TransformMatrix;
         }
 
-        [[nodiscard]] std::string ToString()
+        [[nodiscard]] std::string ToString() const
         {
             return Position.ToString() + ", " + Scale.ToString() + ", " + Rotation.ToString();
         }

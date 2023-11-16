@@ -294,7 +294,7 @@ void Window::RequestRender()
 
         GetViewportCamera().UpdateCameraMovement(static_cast<float>(DeltaTime));
 
-        DrawImGuiFrame([this]() {
+        DrawImGuiFrame([this] {
             CreateOverlay();
         });
 
