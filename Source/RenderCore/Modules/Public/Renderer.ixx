@@ -21,6 +21,8 @@ export import Timer.Manager;
 
 import RenderCore.Management.BufferManagement;
 import RenderCore.Management.PipelineManagement;
+import RenderCore.Management.CommandsManagement;
+import RenderCore.Management.DeviceManagement;
 
 namespace RenderCore
 {
@@ -38,6 +40,8 @@ namespace RenderCore
 
         BufferManager m_BufferManager {};
         PipelineManager m_PipelineManager {};
+        CommandsManager m_CommandsManager {};
+        DeviceManager m_DeviceManager {};
 
         EngineCoreStateFlags m_StateFlags {EngineCoreStateFlags::NONE};
         std::vector<std::shared_ptr<Object>> m_Objects {};
@@ -47,7 +51,7 @@ namespace RenderCore
         friend class Window;
 
         void DrawFrame(GLFWwindow*);
-        std::optional<std::int32_t> RequestImageIndex();
+        std::optional<std::int32_t> RequestImageIndex(GLFWwindow*);
 
         void Tick();
         void RemoveInvalidObjects();

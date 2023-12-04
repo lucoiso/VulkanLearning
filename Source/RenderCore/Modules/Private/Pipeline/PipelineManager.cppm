@@ -22,21 +22,19 @@ import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
-void PipelineManager::CreateRenderPass()
+void PipelineManager::CreateRenderPass(VkDevice const& LogicalDevice, DeviceProperties const& DeviceProperties)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     if (m_RenderPass != VK_NULL_HANDLE)
     {
-        vkDestroyRenderPass(volkGetLoadedDevice(), m_RenderPass, nullptr);
+        vkDestroyRenderPass(LogicalDevice, m_RenderPass, nullptr);
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render pass";
 
-    auto const& [Format, DepthFormat, Mode, Extent, Capabilities] = GetDeviceProperties();
-
     VkAttachmentDescription const ColorAttachmentDescription {
-            .format         = Format.format,
+            .format         = DeviceProperties.Format.format,
             .samples        = g_MSAASamples,
             .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
@@ -50,7 +48,7 @@ void PipelineManager::CreateRenderPass()
             .layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
     VkAttachmentDescription const DepthAttachmentDescription {
-            .format         = DepthFormat,
+            .format         = DeviceProperties.DepthFormat,
             .samples        = g_MSAASamples,
             .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -90,10 +88,10 @@ void PipelineManager::CreateRenderPass()
             .dependencyCount = 1U,
             .pDependencies   = &SubpassDependency};
 
-    CheckVulkanResult(vkCreateRenderPass(volkGetLoadedDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass));
+    CheckVulkanResult(vkCreateRenderPass(LogicalDevice, &RenderPassCreateInfo, nullptr, &m_RenderPass));
 }
 
-void PipelineManager::CreateGraphicsPipeline()
+void PipelineManager::CreateGraphicsPipeline(VkDevice const& LogicalDevice)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -175,14 +173,12 @@ void PipelineManager::CreateGraphicsPipeline()
             .setLayoutCount = 1U,
             .pSetLayouts    = &m_DescriptorSetLayout};
 
-    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
-
-    CheckVulkanResult(vkCreatePipelineLayout(VulkanLogicalDevice, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
+    CheckVulkanResult(vkCreatePipelineLayout(LogicalDevice, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 
     constexpr VkPipelineCacheCreateInfo PipelineCacheCreateInfo {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
 
-    CheckVulkanResult(vkCreatePipelineCache(VulkanLogicalDevice, &PipelineCacheCreateInfo, nullptr, &m_PipelineCache));
+    CheckVulkanResult(vkCreatePipelineCache(LogicalDevice, &PipelineCacheCreateInfo, nullptr, &m_PipelineCache));
 
     constexpr VkPipelineDepthStencilStateCreateInfo DepthStencilState {
             .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
@@ -216,10 +212,10 @@ void PipelineManager::CreateGraphicsPipeline()
             .basePipelineHandle  = VK_NULL_HANDLE,
             .basePipelineIndex   = -1};
 
-    CheckVulkanResult(vkCreateGraphicsPipelines(VulkanLogicalDevice, VK_NULL_HANDLE, 1U, &GraphicsPipelineCreateInfo, nullptr, &m_Pipeline));
+    CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice, VK_NULL_HANDLE, 1U, &GraphicsPipelineCreateInfo, nullptr, &m_Pipeline));
 }
 
-void PipelineManager::CreateDescriptorSetLayout()
+void PipelineManager::CreateDescriptorSetLayout(VkDevice const& LogicalDevice)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -244,10 +240,10 @@ void PipelineManager::CreateDescriptorSetLayout()
             .bindingCount = static_cast<std::uint32_t>(std::size(LayoutBindings)),
             .pBindings    = std::data(LayoutBindings)};
 
-    CheckVulkanResult(vkCreateDescriptorSetLayout(volkGetLoadedDevice(), &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout));
+    CheckVulkanResult(vkCreateDescriptorSetLayout(LogicalDevice, &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout));
 }
 
-void PipelineManager::CreateDescriptorPool(std::uint32_t const NumAllocations)
+void PipelineManager::CreateDescriptorPool(VkDevice const& LogicalDevice, std::uint32_t const NumAllocations)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -267,10 +263,10 @@ void PipelineManager::CreateDescriptorPool(std::uint32_t const NumAllocations)
             .poolSizeCount = static_cast<std::uint32_t>(std::size(DescriptorPoolSizes)),
             .pPoolSizes    = std::data(DescriptorPoolSizes)};
 
-    CheckVulkanResult(vkCreateDescriptorPool(volkGetLoadedDevice(), &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool));
+    CheckVulkanResult(vkCreateDescriptorPool(LogicalDevice, &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool));
 }
 
-void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& AllocatedObjects)
+void PipelineManager::CreateDescriptorSets(VkDevice const& LogicalDevice, std::vector<MeshBufferData> const& AllocatedObjects)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -283,7 +279,6 @@ void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& Al
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor sets";
 
-    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
     m_DescriptorSets.reserve(NumAllocations);
 
     VkDescriptorSetAllocateInfo const DescriptorSetAllocateInfo {
@@ -295,7 +290,7 @@ void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& Al
     for (MeshBufferData const& BufferdataIter: AllocatedObjects)
     {
         VkDescriptorSet AllocatedSet {VK_NULL_HANDLE};
-        CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, &AllocatedSet));
+        CheckVulkanResult(vkAllocateDescriptorSets(LogicalDevice, &DescriptorSetAllocateInfo, &AllocatedSet));
 
         m_DescriptorSets.emplace(BufferdataIter.ID, AllocatedSet);
     }
@@ -352,67 +347,73 @@ void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& Al
 
         if (!std::empty(WriteDescriptors))
         {
-            vkUpdateDescriptorSets(VulkanLogicalDevice, static_cast<std::uint32_t>(std::size(WriteDescriptors)), std::data(WriteDescriptors), 0U, nullptr);
+            vkUpdateDescriptorSets(LogicalDevice, static_cast<std::uint32_t>(std::size(WriteDescriptors)), std::data(WriteDescriptors), 0U, nullptr);
         }
     }
 }
 
-void PipelineManager::ReleasePipelineResources()
+void PipelineManager::ReleasePipelineResources(VkDevice const& LogicalDevice)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan pipeline resources";
-
-    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
     if (m_RenderPass != VK_NULL_HANDLE)
     {
-        vkDestroyRenderPass(VulkanLogicalDevice, m_RenderPass, nullptr);
+        vkDestroyRenderPass(LogicalDevice, m_RenderPass, nullptr);
         m_RenderPass = VK_NULL_HANDLE;
     }
 
-    ReleaseDynamicPipelineResources();
+    ReleaseDynamicPipelineResources(LogicalDevice);
 }
 
-void PipelineManager::ReleaseDynamicPipelineResources()
+void PipelineManager::ReleaseDynamicPipelineResources(VkDevice const& LogicalDevice)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan pipeline resources";
 
-    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
-
     if (m_Pipeline != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(VulkanLogicalDevice, m_Pipeline, nullptr);
+        vkDestroyPipeline(LogicalDevice, m_Pipeline, nullptr);
         m_Pipeline = VK_NULL_HANDLE;
     }
 
     if (m_PipelineLayout != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineLayout(VulkanLogicalDevice, m_PipelineLayout, nullptr);
+        vkDestroyPipelineLayout(LogicalDevice, m_PipelineLayout, nullptr);
         m_PipelineLayout = VK_NULL_HANDLE;
     }
 
     if (m_PipelineCache != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineCache(VulkanLogicalDevice, m_PipelineCache, nullptr);
+        vkDestroyPipelineCache(LogicalDevice, m_PipelineCache, nullptr);
         m_PipelineCache = VK_NULL_HANDLE;
     }
 
     if (m_DescriptorSetLayout != VK_NULL_HANDLE)
     {
-        vkDestroyDescriptorSetLayout(VulkanLogicalDevice, m_DescriptorSetLayout, nullptr);
+        vkDestroyDescriptorSetLayout(LogicalDevice, m_DescriptorSetLayout, nullptr);
         m_DescriptorSetLayout = VK_NULL_HANDLE;
     }
 
     if (m_DescriptorPool != VK_NULL_HANDLE)
     {
-        vkDestroyDescriptorPool(VulkanLogicalDevice, m_DescriptorPool, nullptr);
+        vkDestroyDescriptorPool(LogicalDevice, m_DescriptorPool, nullptr);
         m_DescriptorPool = VK_NULL_HANDLE;
     }
 
     m_DescriptorSets.clear();
+}
+
+void PipelineManager::SetIsBoundToImGui(bool const Value)
+{
+    m_BoundToImGui = Value;
+}
+
+bool PipelineManager::GetIsBoundToImGui() const
+{
+    return m_BoundToImGui;
 }
 
 VkRenderPass const& PipelineManager::GetRenderPass()

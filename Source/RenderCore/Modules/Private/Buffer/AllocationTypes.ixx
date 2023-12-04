@@ -26,7 +26,7 @@ namespace RenderCore
         TextureType Type {TextureType::BaseColor};
 
         [[nodiscard]] bool IsValid() const;
-        void DestroyResources(VmaAllocator const&);
+        void DestroyResources(VkDevice const&, VmaAllocator const&);
     };
 
     export struct BufferAllocation
@@ -48,6 +48,6 @@ namespace RenderCore
         std::uint32_t IndicesCount {0U};
 
         [[nodiscard]] bool IsValid() const;
-        void DestroyResources(VmaAllocator const&);
+        void DestroyResources(VkDevice const&, VmaAllocator const&);
     };
 }// namespace RenderCore

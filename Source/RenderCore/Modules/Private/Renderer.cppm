@@ -35,6 +35,7 @@ import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
+std::atomic_uint8_t g_RenderersCount {0U};
 VkInstance g_Instance {VK_NULL_HANDLE};
 Timer::Manager g_RenderTimerManager {};
 
@@ -42,8 +43,18 @@ Timer::Manager g_RenderTimerManager {};
 VkDebugUtilsMessengerEXT g_DebugMessenger {VK_NULL_HANDLE};
 #endif
 
+bool IsEngineCoreInitialized()
+{
+    return g_RenderersCount >= 1U;
+}
+
 void CreateVulkanInstance()
 {
+    if (IsEngineCoreInitialized())
+    {
+        return;
+    }
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan instance";
 
     constexpr VkApplicationInfo AppInfo {
@@ -90,22 +101,14 @@ void CreateVulkanInstance()
 #endif
 }
 
-void InitializeRenderCore(GLFWwindow* const Window, VkSurfaceKHR const& VulkanSurface)
-{
-    PickPhysicalDevice(VulkanSurface);
-    CreateLogicalDevice(VulkanSurface);
-    volkLoadDevice(GetLogicalDevice());
-    UpdateDeviceProperties(Window, VulkanSurface);
-}
-
 void InitializeEngineCore()
 {
-    CreateVulkanInstance();
-}
+    if (IsEngineCoreInitialized())
+    {
+        return;
+    }
 
-bool IsEngineCoreInitialized()
-{
-    return g_Instance != VK_NULL_HANDLE;
+    CreateVulkanInstance();
 }
 
 void Renderer::DrawFrame(GLFWwindow* const Window)
@@ -131,10 +134,9 @@ void Renderer::DrawFrame(GLFWwindow* const Window)
     {
         if (HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
-            DestroyCommandsSynchronizationObjects();
-
-            m_BufferManager.DestroyBufferResources(false);
-            m_PipelineManager.ReleaseDynamicPipelineResources();
+            m_CommandsManager.DestroyCommandsSynchronizationObjects(m_DeviceManager.GetLogicalDevice());
+            m_BufferManager.DestroyBufferResources(m_DeviceManager.GetLogicalDevice(), false);
+            m_PipelineManager.ReleaseDynamicPipelineResources(m_DeviceManager.GetLogicalDevice());
 
             RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
             AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
@@ -142,7 +144,7 @@ void Renderer::DrawFrame(GLFWwindow* const Window)
 
         if (HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
         {
-            if (UpdateDeviceProperties(Window, m_BufferManager.GetSurface()))
+            if (m_DeviceManager.UpdateDeviceProperties(Window, m_BufferManager.GetSurface()))
             {
                 BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Device properties updated, starting to draw frames with new properties";
                 RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
@@ -153,9 +155,9 @@ void Renderer::DrawFrame(GLFWwindow* const Window)
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
 
-            m_BufferManager.CreateSwapChain();
-            m_BufferManager.CreateDepthResources();
-            CreateCommandsSynchronizationObjects();
+            m_BufferManager.CreateSwapChain(m_DeviceManager.GetLogicalDevice(), m_DeviceManager.GetDeviceProperties(), m_DeviceManager.GetUniqueQueueFamilyIndicesU32(), m_DeviceManager.GetMinImageCount());
+            m_BufferManager.CreateDepthResources(m_DeviceManager.GetLogicalDevice(), m_DeviceManager.GetDeviceProperties(), m_DeviceManager.GetGraphicsQueue());
+            m_CommandsManager.CreateCommandsSynchronizationObjects(m_DeviceManager.GetLogicalDevice());
 
             RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
             AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
@@ -163,15 +165,13 @@ void Renderer::DrawFrame(GLFWwindow* const Window)
 
         if (HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH))
         {
-            m_PipelineManager.CreateDescriptorSetLayout();
-            m_PipelineManager.CreateGraphicsPipeline();
+            m_PipelineManager.CreateDescriptorSetLayout(m_DeviceManager.GetLogicalDevice());
+            m_PipelineManager.CreateGraphicsPipeline(m_DeviceManager.GetLogicalDevice());
 
-            m_BufferManager.CreateFrameBuffers(m_PipelineManager.GetRenderPass());
+            m_BufferManager.CreateFrameBuffers(m_DeviceManager.GetLogicalDevice(), m_PipelineManager.GetRenderPass());
 
-            m_PipelineManager.CreateDescriptorPool(m_BufferManager.GetClampedNumAllocations());
-
-            auto MeshData = m_BufferManager.GetAllocatedObjects();
-            m_PipelineManager.CreateDescriptorSets(MeshData);
+            m_PipelineManager.CreateDescriptorPool(m_DeviceManager.GetLogicalDevice(), m_BufferManager.GetClampedNumAllocations());
+            m_PipelineManager.CreateDescriptorSets(m_DeviceManager.GetLogicalDevice(), m_BufferManager.GetAllocatedObjects());
 
             RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
         }
@@ -179,34 +179,35 @@ void Renderer::DrawFrame(GLFWwindow* const Window)
 
     if (!HasAnyFlag(m_StateFlags, InvalidStatesToRender))
     {
-        if (std::optional<std::int32_t> const ImageIndice = RequestImageIndex();
+        if (std::optional<std::int32_t> const ImageIndice = RequestImageIndex(Window);
             ImageIndice.has_value())
         {
             std::lock_guard Lock(m_ObjectsMutex);
 
-            RecordCommandBuffers(ImageIndice.value(), m_BufferManager, m_PipelineManager, GetObjects());
-            SubmitCommandBuffers();
-            PresentFrame(ImageIndice.value(), m_BufferManager.GetSwapChain());
+            m_CommandsManager.RecordCommandBuffers(m_DeviceManager.GetLogicalDevice(), m_DeviceManager.GetGraphicsQueue().first, ImageIndice.value(), m_BufferManager, m_PipelineManager, GetObjects());
+            m_CommandsManager.SubmitCommandBuffers(m_DeviceManager.GetLogicalDevice(), m_DeviceManager.GetGraphicsQueue().second);
+            m_CommandsManager.PresentFrame(m_DeviceManager.GetGraphicsQueue().second, ImageIndice.value(), m_BufferManager.GetSwapChain());
         }
     }
 }
 
-std::optional<std::int32_t> Renderer::RequestImageIndex()
+std::optional<std::int32_t> Renderer::RequestImageIndex(GLFWwindow* Window)
 {
-    if (!GetDeviceProperties().IsValid())
-    {
-        AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
-        AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-
-        return std::nullopt;
-    }
-    RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
-
-    std::optional<std::int32_t> const Output = RequestSwapChainImage(m_BufferManager.GetSwapChain());
+    std::optional<std::int32_t> const Output = m_CommandsManager.RequestSwapChainImage(m_DeviceManager.GetLogicalDevice(), m_BufferManager.GetSwapChain());
 
     if (!Output.has_value())
     {
         AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+
+        if (!HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE) && !m_DeviceManager.UpdateDeviceProperties(Window, m_BufferManager.GetSurface()))
+        {
+            AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+            AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        }
+        else
+        {
+            RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+        }
     }
     else
     {
@@ -306,17 +307,20 @@ bool Renderer::Initialize(GLFWwindow* const Window)
     }
 
     m_BufferManager.CreateVulkanSurface(Window);
-    InitializeRenderCore(Window, m_BufferManager.GetSurface());
+    m_DeviceManager.PickPhysicalDevice(m_BufferManager.GetSurface());
+    m_DeviceManager.CreateLogicalDevice(m_BufferManager.GetSurface());
+    volkLoadDevice(m_DeviceManager.GetLogicalDevice());
+    m_DeviceManager.UpdateDeviceProperties(Window, m_BufferManager.GetSurface());
 
-    m_BufferManager.CreateMemoryAllocator();
-    auto const _ = CompileDefaultShaders();
-    m_PipelineManager.CreateRenderPass();
-    InitializeImGui(Window, m_PipelineManager);
+    m_BufferManager.CreateMemoryAllocator(m_DeviceManager.GetLogicalDevice(), m_DeviceManager.GetPhysicalDevice());
+    auto const _ = CompileDefaultShaders(m_DeviceManager.GetLogicalDevice());
+    m_PipelineManager.CreateRenderPass(m_DeviceManager.GetLogicalDevice(), m_DeviceManager.GetDeviceProperties());
+    InitializeImGui(Window, m_PipelineManager, m_DeviceManager);
 
     AddFlags(m_StateFlags, EngineCoreStateFlags::INITIALIZED);
     AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
 
-    return UpdateDeviceProperties(Window, m_BufferManager.GetSurface()) && IsInitialized();
+    return m_DeviceManager.UpdateDeviceProperties(Window, m_BufferManager.GetSurface()) && IsInitialized();
 }
 
 void Renderer::Shutdown()
@@ -328,12 +332,12 @@ void Renderer::Shutdown()
 
     RemoveFlags(m_StateFlags, EngineCoreStateFlags::INITIALIZED);
 
-    ReleaseImGuiResources();
-    ReleaseShaderResources();
-    ReleaseCommandsResources();
-    m_BufferManager.ReleaseBufferResources();
-    m_PipelineManager.ReleasePipelineResources();
-    ReleaseDeviceResources();
+    ReleaseImGuiResources(m_DeviceManager.GetLogicalDevice());
+    ReleaseShaderResources(m_DeviceManager.GetLogicalDevice());
+    m_CommandsManager.ReleaseCommandsResources(m_DeviceManager.GetLogicalDevice());
+    m_BufferManager.ReleaseBufferResources(m_DeviceManager.GetLogicalDevice());
+    m_PipelineManager.ReleasePipelineResources(m_DeviceManager.GetLogicalDevice());
+    m_DeviceManager.ReleaseDeviceResources();
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan engine core";
 
@@ -374,7 +378,7 @@ std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const& ObjectPat
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
 
-    std::vector<Object> LoadedObjects = m_BufferManager.AllocateScene(ObjectPath);
+    std::vector<Object> LoadedObjects = m_BufferManager.AllocateScene(ObjectPath, m_DeviceManager.GetLogicalDevice(), m_DeviceManager.GetGraphicsQueue());
     std::vector<std::uint32_t> Output;
     Output.reserve(std::size(LoadedObjects));
 
@@ -401,7 +405,7 @@ void Renderer::UnloadScene(std::vector<std::uint32_t> const& ObjectIDs)
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading scene...";
 
-    m_BufferManager.ReleaseScene(ObjectIDs);
+    m_BufferManager.ReleaseScene(m_DeviceManager.GetLogicalDevice(), ObjectIDs);
 
     for (std::uint32_t const ObjectID: ObjectIDs)
     {

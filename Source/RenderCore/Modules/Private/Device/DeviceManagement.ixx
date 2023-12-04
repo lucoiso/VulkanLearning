@@ -12,38 +12,53 @@ export module RenderCore.Management.DeviceManagement;
 export import <vector>;
 export import <string>;
 export import <string_view>;
+export import <optional>;
 
 export import RenderCore.Types.DeviceProperties;
 
 namespace RenderCore
 {
-    export void PickPhysicalDevice(VkSurfaceKHR const&);
-    export void CreateLogicalDevice(VkSurfaceKHR const&);
-    export void ReleaseDeviceResources();
+    export class DeviceManager
+    {
+        VkPhysicalDevice m_PhysicalDevice {VK_NULL_HANDLE};
+        VkDevice m_Device {VK_NULL_HANDLE};
+        DeviceProperties m_DeviceProperties {};
+        std::pair<std::uint8_t, VkQueue> m_GraphicsQueue {};
+        std::pair<std::uint8_t, VkQueue> m_PresentationQueue {};
+        std::pair<std::uint8_t, VkQueue> m_TransferQueue {};
+        std::vector<std::uint8_t> m_UniqueQueueFamilyIndices {};
+
+        [[nodiscard]] bool GetQueueFamilyIndices(VkSurfaceKHR const& VulkanSurface,
+                                                 std::optional<std::uint8_t>& GraphicsQueueFamilyIndex,
+                                                 std::optional<std::uint8_t>& PresentationQueueFamilyIndex,
+                                                 std::optional<std::uint8_t>& TransferQueueFamilyIndex) const;
+
+    public:
+        void PickPhysicalDevice(VkSurfaceKHR const&);
+        void CreateLogicalDevice(VkSurfaceKHR const&);
+        void ReleaseDeviceResources();
+
+        bool UpdateDeviceProperties(GLFWwindow* Window, VkSurfaceKHR const& VulkanSurface);
+
+        [[nodiscard]] DeviceProperties& GetDeviceProperties();
+        [[nodiscard]] VkDevice& GetLogicalDevice();
+        [[nodiscard]] VkPhysicalDevice& GetPhysicalDevice();
+        [[nodiscard]] std::pair<std::uint8_t, VkQueue>& GetGraphicsQueue();
+        [[nodiscard]] std::pair<std::uint8_t, VkQueue>& GetPresentationQueue();
+        [[nodiscard]] std::pair<std::uint8_t, VkQueue>& GetTransferQueue();
+        [[nodiscard]] std::vector<std::uint32_t> GetUniqueQueueFamilyIndicesU32() const;
+        [[nodiscard]] std::uint32_t GetMinImageCount() const;
+        [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment() const;
+    };
 
     export [[nodiscard]] std::vector<VkPhysicalDevice> GetAvailablePhysicalDevices();
-    export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions();
-    export [[nodiscard]] std::vector<VkLayerProperties> GetAvailablePhysicalDeviceLayers();
-    export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(std::string_view const&);
-    export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceExtensionsNames();
-    export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view const&);
-    export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayersNames();
-    export [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities(VkSurfaceKHR const&);
-    export [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats(VkSurfaceKHR const&);
-    export [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes(VkSurfaceKHR const&);
-    export [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment();
-
-    export bool UpdateDeviceProperties(GLFWwindow* Window, VkSurfaceKHR const& VulkanSurface);
-    export [[nodiscard]] DeviceProperties& GetDeviceProperties();
-
-    export [[nodiscard]] VkDevice& GetLogicalDevice();
-    export [[nodiscard]] VkPhysicalDevice& GetPhysicalDevice();
-
-    export [[nodiscard]] std::pair<std::uint8_t, VkQueue>& GetGraphicsQueue();
-    export [[nodiscard]] std::pair<std::uint8_t, VkQueue>& GetPresentationQueue();
-    export [[nodiscard]] std::pair<std::uint8_t, VkQueue>& GetTransferQueue();
-
-    export [[nodiscard]] std::vector<std::uint32_t> GetUniqueQueueFamilyIndicesU32();
-
-    export [[nodiscard]] std::uint32_t GetMinImageCount();
+    export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions(VkPhysicalDevice const&);
+    export [[nodiscard]] std::vector<VkLayerProperties> GetAvailablePhysicalDeviceLayers(VkPhysicalDevice const&);
+    export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(VkPhysicalDevice const&, std::string_view const&);
+    export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceExtensionsNames(VkPhysicalDevice const&);
+    export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayerExtensionsNames(VkPhysicalDevice const&, std::string_view const&);
+    export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayersNames(VkPhysicalDevice const&);
+    export [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities(VkPhysicalDevice const&, VkSurfaceKHR const&);
+    export [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats(VkPhysicalDevice const&, VkSurfaceKHR const&);
+    export [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes(VkPhysicalDevice const&, VkSurfaceKHR const&);
 }// namespace RenderCore

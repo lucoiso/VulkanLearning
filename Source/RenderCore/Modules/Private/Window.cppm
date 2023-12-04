@@ -23,6 +23,7 @@ import RenderCore.Types.Camera;
 import RenderCore.Input.GLFWCallbacks;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
+import RenderCore.Utils.EnumHelpers;
 import Timer.ExecutionCounter;
 
 static bool g_HasWindow {false};
@@ -32,7 +33,7 @@ class Window::WindowImpl final
     GLFWwindow* m_Window {nullptr};
 
 public:
-    [[nodiscard]] bool Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, bool bMaximized, bool const bHeadless)
+    [[nodiscard]] bool Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, InitializationFlags const Flags)
     {
         Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -43,8 +44,8 @@ public:
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        glfwWindowHint(GLFW_MAXIMIZED, bMaximized ? GLFW_TRUE : GLFW_FALSE);
-        glfwWindowHint(GLFW_VISIBLE, bHeadless ? GLFW_FALSE : GLFW_TRUE);
+        glfwWindowHint(GLFW_MAXIMIZED, HasFlag(Flags, Window::InitializationFlags::MAXIMIZED) ? GLFW_TRUE : GLFW_FALSE);
+        glfwWindowHint(GLFW_VISIBLE, HasFlag(Flags, Window::InitializationFlags::HEADLESS) ? GLFW_FALSE : GLFW_TRUE);
 
         m_Window = glfwCreateWindow(Width, Height, std::data(Title), nullptr, nullptr);
 
@@ -97,7 +98,7 @@ Window::Window()
 Window::~Window()
 {
     g_HasWindow = false;
-    
+
     try
     {
         Shutdown().Get();
@@ -107,7 +108,7 @@ Window::~Window()
     }
 }
 
-AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, bool bMaximized, bool const bHeadless)
+AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, InitializationFlags const Flags)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -118,7 +119,7 @@ AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t
 
     try
     {
-        if (m_WindowImpl->Initialize(Width, Height, Title, bMaximized, bHeadless) && m_Renderer.Initialize(m_WindowImpl->GetWindow()))
+        if (m_WindowImpl->Initialize(Width, Height, Title, Flags) && m_Renderer.Initialize(m_WindowImpl->GetWindow()))
         {
             std::binary_semaphore Semaphore {0U};
             {

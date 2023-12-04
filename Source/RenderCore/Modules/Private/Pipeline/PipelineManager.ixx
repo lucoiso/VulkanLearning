@@ -12,6 +12,7 @@ export import <vector>;
 export import <unordered_map>;
 
 export import RenderCore.Types.MeshBufferData;
+export import RenderCore.Types.DeviceProperties;
 
 namespace RenderCore
 {
@@ -24,15 +25,19 @@ namespace RenderCore
         VkDescriptorPool m_DescriptorPool {VK_NULL_HANDLE};
         VkDescriptorSetLayout m_DescriptorSetLayout {VK_NULL_HANDLE};
         std::unordered_map<std::uint32_t, VkDescriptorSet> m_DescriptorSets {};
+        bool m_BoundToImGui {false};
 
     public:
-        void CreateRenderPass();
-        void CreateGraphicsPipeline();
-        void CreateDescriptorSetLayout();
-        void CreateDescriptorPool(std::uint32_t);
-        void CreateDescriptorSets(std::vector<MeshBufferData> const&);
-        void ReleasePipelineResources();
-        void ReleaseDynamicPipelineResources();
+        void CreateRenderPass(VkDevice const&, DeviceProperties const&);
+        void CreateGraphicsPipeline(VkDevice const&);
+        void CreateDescriptorSetLayout(VkDevice const&);
+        void CreateDescriptorPool(VkDevice const&, std::uint32_t);
+        void CreateDescriptorSets(VkDevice const&, std::vector<MeshBufferData> const&);
+        void ReleasePipelineResources(VkDevice const&);
+        void ReleaseDynamicPipelineResources(VkDevice const&);
+
+        void SetIsBoundToImGui(bool);
+        [[nodiscard]] bool GetIsBoundToImGui() const;
 
         [[nodiscard]] VkRenderPass const& GetRenderPass();
         [[nodiscard]] VkPipeline const& GetPipeline();

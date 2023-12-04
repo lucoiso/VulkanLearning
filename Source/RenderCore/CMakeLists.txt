@@ -16,8 +16,8 @@ SET(PRIVATE_MODULES
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.cppm
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.ixx
 
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManager.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManager.ixx
 
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.cppm
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.ixx

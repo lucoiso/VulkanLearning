@@ -32,7 +32,14 @@ namespace RenderCore
 
         virtual ~Window();
 
-        AsyncOperation<bool> Initialize(std::uint16_t, std::uint16_t, std::string_view const&, bool bMaximized = true, bool bHeadless = false);
+        enum class InitializationFlags : std::uint8_t
+        {
+            NONE        = 0,
+            MAXIMIZED   = 1 << 0,
+            HEADLESS    = 1 << 1,
+        };
+
+        AsyncOperation<bool> Initialize(std::uint16_t, std::uint16_t, std::string_view const&, InitializationFlags Flags = InitializationFlags::NONE);
         AsyncTask Shutdown();
 
         [[nodiscard]] bool IsInitialized() const;

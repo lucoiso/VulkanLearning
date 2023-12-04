@@ -28,92 +28,70 @@ import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
-VkCommandPool g_CommandPool {};
-std::vector<VkCommandBuffer> g_CommandBuffers {};
-VkSemaphore g_ImageAvailableSemaphore {};
-VkSemaphore g_RenderFinishedSemaphore {};
-VkFence g_Fence {};
-bool g_SynchronizationObjectsCreated {};
-
-void CreateGraphicsCommandPool()
+void CommandsManager::AllocateCommandBuffer(VkDevice const& LogicalDevice, std::uint32_t const QueueFamily)
 {
-    g_CommandPool = CreateCommandPool(GetGraphicsQueue().first);
-}
-
-void AllocateCommandBuffer()
-{
-    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
-
-    if (std::empty(g_CommandBuffers))
+    if (std::empty(m_CommandBuffers))
     {
-        g_CommandBuffers.emplace_back();
+        m_CommandBuffers.emplace_back();
     }
     else
     {
-        for (VkCommandBuffer& CommandBufferIter: g_CommandBuffers)
-        {
-            if (CommandBufferIter != VK_NULL_HANDLE)
-            {
-                vkFreeCommandBuffers(VulkanLogicalDevice, g_CommandPool, 1U, &CommandBufferIter);
-                CommandBufferIter = VK_NULL_HANDLE;
-            }
-        }
+        vkFreeCommandBuffers(LogicalDevice, m_CommandPool, static_cast<std::uint32_t>(std::size(m_CommandBuffers)), std::data(m_CommandBuffers));
+        m_CommandBuffers.clear();
     }
 
-    if (g_CommandPool != VK_NULL_HANDLE)
+    if (m_CommandPool != VK_NULL_HANDLE)
     {
-        vkDestroyCommandPool(VulkanLogicalDevice, g_CommandPool, nullptr);
-        g_CommandPool = VK_NULL_HANDLE;
+        vkDestroyCommandPool(LogicalDevice, m_CommandPool, nullptr);
+        m_CommandPool = VK_NULL_HANDLE;
     }
 
-    CreateGraphicsCommandPool();
+    m_CommandPool = CreateCommandPool(LogicalDevice, QueueFamily);
 
     VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .commandPool        = g_CommandPool,
+            .commandPool        = m_CommandPool,
             .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = static_cast<std::uint32_t>(std::size(g_CommandBuffers))};
+            .commandBufferCount = static_cast<std::uint32_t>(std::size(m_CommandBuffers))};
 
-    CheckVulkanResult(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, std::data(g_CommandBuffers)));
+    CheckVulkanResult(vkAllocateCommandBuffers(LogicalDevice, &CommandBufferAllocateInfo, std::data(m_CommandBuffers)));
 }
 
-void WaitAndResetFences()
+void CommandsManager::WaitAndResetFences(VkDevice const& LogicalDevice) const
 {
-    if (g_Fence == VK_NULL_HANDLE)
+    if (m_Fence == VK_NULL_HANDLE)
     {
         return;
     }
 
-    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
-
-    CheckVulkanResult(vkWaitForFences(VulkanLogicalDevice, 1U, &g_Fence, VK_TRUE, g_Timeout));
-    CheckVulkanResult(vkResetFences(VulkanLogicalDevice, 1U, &g_Fence));
+    CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &m_Fence, VK_TRUE, g_Timeout));
+    CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &m_Fence));
 }
 
-void FreeCommandBuffers()
+void CommandsManager::FreeCommandBuffers(VkDevice const& LogicalDevice)
 {
-    if (!std::empty(g_CommandBuffers))
+    if (!std::empty(m_CommandBuffers))
     {
-        vkFreeCommandBuffers(volkGetLoadedDevice(), g_CommandPool, static_cast<std::uint32_t>(std::size(g_CommandBuffers)), std::data(g_CommandBuffers));
+        vkFreeCommandBuffers(LogicalDevice, m_CommandPool, static_cast<std::uint32_t>(std::size(m_CommandBuffers)), std::data(m_CommandBuffers));
 
-        for (VkCommandBuffer& CommandBufferIter: g_CommandBuffers)
+        for (VkCommandBuffer& CommandBufferIter: m_CommandBuffers)
         {
             CommandBufferIter = VK_NULL_HANDLE;
         }
-        g_CommandBuffers.clear();
+        m_CommandBuffers.clear();
     }
 }
 
-void RenderCore::ReleaseCommandsResources()
+void CommandsManager::ReleaseCommandsResources(VkDevice const& LogicalDevice)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan commands resources";
 
-    DestroyCommandsSynchronizationObjects();
+    DestroyCommandsSynchronizationObjects(LogicalDevice);
 }
 
-VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex)
+VkCommandPool CommandsManager::CreateCommandPool(VkDevice const& LogicalDevice, std::uint8_t const FamilyQueueIndex)
 {
     VkCommandPoolCreateInfo const CommandPoolCreateInfo {
             .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -121,19 +99,14 @@ VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex)
             .queueFamilyIndex = static_cast<std::uint32_t>(FamilyQueueIndex)};
 
     VkCommandPool Output = VK_NULL_HANDLE;
-    CheckVulkanResult(vkCreateCommandPool(volkGetLoadedDevice(), &CommandPoolCreateInfo, nullptr, &Output));
+    CheckVulkanResult(vkCreateCommandPool(LogicalDevice, &CommandPoolCreateInfo, nullptr, &Output));
 
     return Output;
 }
 
-void RenderCore::CreateCommandsSynchronizationObjects()
+void CommandsManager::CreateCommandsSynchronizationObjects(VkDevice const& LogicalDevice)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    if (g_SynchronizationObjectsCreated)
-    {
-        return;
-    }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan synchronization objects";
 
@@ -144,85 +117,67 @@ void RenderCore::CreateCommandsSynchronizationObjects()
             .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
             .flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
-    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
-
-    CheckVulkanResult(vkCreateSemaphore(VulkanLogicalDevice, &SemaphoreCreateInfo, nullptr, &g_ImageAvailableSemaphore));
-    CheckVulkanResult(vkCreateSemaphore(VulkanLogicalDevice, &SemaphoreCreateInfo, nullptr, &g_RenderFinishedSemaphore));
-    CheckVulkanResult(vkCreateFence(VulkanLogicalDevice, &FenceCreateInfo, nullptr, &g_Fence));
-
-    g_SynchronizationObjectsCreated = true;
+    CheckVulkanResult(vkCreateSemaphore(LogicalDevice, &SemaphoreCreateInfo, nullptr, &m_ImageAvailableSemaphore));
+    CheckVulkanResult(vkCreateSemaphore(LogicalDevice, &SemaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphore));
+    CheckVulkanResult(vkCreateFence(LogicalDevice, &FenceCreateInfo, nullptr, &m_Fence));
 }
 
-void RenderCore::DestroyCommandsSynchronizationObjects()
+void CommandsManager::DestroyCommandsSynchronizationObjects(VkDevice const& LogicalDevice)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
-    if (!g_SynchronizationObjectsCreated)
-    {
-        return;
-    }
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan synchronization objects";
 
-    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
+    vkDeviceWaitIdle(LogicalDevice);
 
-    vkDeviceWaitIdle(VulkanLogicalDevice);
+    FreeCommandBuffers(LogicalDevice);
 
-    FreeCommandBuffers();
-
-    if (g_CommandPool != VK_NULL_HANDLE)
+    if (m_CommandPool != VK_NULL_HANDLE)
     {
-        vkDestroyCommandPool(VulkanLogicalDevice, g_CommandPool, nullptr);
-        g_CommandPool = VK_NULL_HANDLE;
+        vkDestroyCommandPool(LogicalDevice, m_CommandPool, nullptr);
+        m_CommandPool = VK_NULL_HANDLE;
     }
 
-    if (g_ImageAvailableSemaphore != VK_NULL_HANDLE)
+    if (m_ImageAvailableSemaphore != VK_NULL_HANDLE)
     {
-        vkDestroySemaphore(VulkanLogicalDevice, g_ImageAvailableSemaphore, nullptr);
-        g_ImageAvailableSemaphore = VK_NULL_HANDLE;
+        vkDestroySemaphore(LogicalDevice, m_ImageAvailableSemaphore, nullptr);
+        m_ImageAvailableSemaphore = VK_NULL_HANDLE;
     }
 
-    if (g_RenderFinishedSemaphore != VK_NULL_HANDLE)
+    if (m_RenderFinishedSemaphore != VK_NULL_HANDLE)
     {
-        vkDestroySemaphore(VulkanLogicalDevice, g_RenderFinishedSemaphore, nullptr);
-        g_RenderFinishedSemaphore = VK_NULL_HANDLE;
+        vkDestroySemaphore(LogicalDevice, m_RenderFinishedSemaphore, nullptr);
+        m_RenderFinishedSemaphore = VK_NULL_HANDLE;
     }
 
-    if (g_Fence != VK_NULL_HANDLE)
+    if (m_Fence != VK_NULL_HANDLE)
     {
-        vkDestroyFence(VulkanLogicalDevice, g_Fence, nullptr);
-        g_Fence = VK_NULL_HANDLE;
+        vkDestroyFence(LogicalDevice, m_Fence, nullptr);
+        m_Fence = VK_NULL_HANDLE;
     }
-
-    g_SynchronizationObjectsCreated = false;
 }
 
-std::optional<std::int32_t> RenderCore::RequestSwapChainImage(VkSwapchainKHR const& SwapChain)
+std::optional<std::int32_t> CommandsManager::RequestSwapChainImage(VkDevice const& LogicalDevice, VkSwapchainKHR const& SwapChain) const
 {
-    if (!g_SynchronizationObjectsCreated)
-    {
-        return std::nullopt;
-    }
+    WaitAndResetFences(LogicalDevice);
 
-    WaitAndResetFences();
-
-    if (g_ImageAvailableSemaphore == VK_NULL_HANDLE)
+    if (m_ImageAvailableSemaphore == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan semaphore: ImageAllocation Available is invalid.");
     }
 
-    if (g_Fence == VK_NULL_HANDLE)
+    if (m_Fence == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan fence is invalid.");
     }
 
     std::uint32_t Output = 0U;
     if (VkResult const OperationResult = vkAcquireNextImageKHR(
-                volkGetLoadedDevice(),
+                LogicalDevice,
                 SwapChain,
                 g_Timeout,
-                g_ImageAvailableSemaphore,
-                g_Fence,
+                m_ImageAvailableSemaphore,
+                m_Fence,
                 &Output);
         OperationResult != VK_SUCCESS)
     {
@@ -235,7 +190,7 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage(VkSwapchainKHR con
             else
             {
                 BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Failed to acquire next image: Vulkan swap chain is suboptimal";
-                WaitAndResetFences();
+                WaitAndResetFences(LogicalDevice);
             }
 
             return std::nullopt;
@@ -247,10 +202,10 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage(VkSwapchainKHR con
     return static_cast<std::int32_t>(Output);
 }
 
-void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex, BufferManager& BufferManager, PipelineManager& PipelineManager, std::vector<std::shared_ptr<Object>> const& Objects)
+void CommandsManager::RecordCommandBuffers(VkDevice const& LogicalDevice, std::uint32_t const QueueFamily, std::uint32_t const ImageIndex, BufferManager& BufferManager, PipelineManager& PipelineManager, std::vector<std::shared_ptr<Object>> const& Objects)
 {
-    AllocateCommandBuffer();
-    VkCommandBuffer const& MainCommandBuffer = g_CommandBuffers.back();
+    AllocateCommandBuffer(LogicalDevice, QueueFamily);
+    VkCommandBuffer const& MainCommandBuffer = m_CommandBuffers.back();
 
     constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -354,9 +309,12 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex, BufferMana
             }
         }
 
-        if (ImDrawData* const ImGuiDrawData = ImGui::GetDrawData())
+        if (PipelineManager.GetIsBoundToImGui())
         {
-            ImGui_ImplVulkan_RenderDrawData(ImGuiDrawData, MainCommandBuffer);
+            if (ImDrawData* const ImGuiDrawData = ImGui::GetDrawData())
+            {
+                ImGui_ImplVulkan_RenderDrawData(ImGuiDrawData, MainCommandBuffer);
+            }
         }
 
         vkCmdEndRenderPass(MainCommandBuffer);
@@ -365,9 +323,9 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex, BufferMana
     CheckVulkanResult(vkEndCommandBuffer(MainCommandBuffer));
 }
 
-void RenderCore::SubmitCommandBuffers()
+void CommandsManager::SubmitCommandBuffers(VkDevice const& LogicalDevice, VkQueue const& GraphicsQueue)
 {
-    WaitAndResetFences();
+    WaitAndResetFences(LogicalDevice);
 
     constexpr std::array<VkPipelineStageFlags, 1U> WaitStages {
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -375,33 +333,31 @@ void RenderCore::SubmitCommandBuffers()
     VkSubmitInfo const SubmitInfo {
             .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
             .waitSemaphoreCount   = 1U,
-            .pWaitSemaphores      = &g_ImageAvailableSemaphore,
+            .pWaitSemaphores      = &m_ImageAvailableSemaphore,
             .pWaitDstStageMask    = std::data(WaitStages),
-            .commandBufferCount   = static_cast<std::uint32_t>(std::size(g_CommandBuffers)),
-            .pCommandBuffers      = std::data(g_CommandBuffers),
+            .commandBufferCount   = static_cast<std::uint32_t>(std::size(m_CommandBuffers)),
+            .pCommandBuffers      = std::data(m_CommandBuffers),
             .signalSemaphoreCount = 1U,
-            .pSignalSemaphores    = &g_RenderFinishedSemaphore};
+            .pSignalSemaphores    = &m_RenderFinishedSemaphore};
 
-    VkQueue const& GraphicsQueue = GetGraphicsQueue().second;
-
-    CheckVulkanResult(vkQueueSubmit(GraphicsQueue, 1U, &SubmitInfo, g_Fence));
+    CheckVulkanResult(vkQueueSubmit(GraphicsQueue, 1U, &SubmitInfo, m_Fence));
     CheckVulkanResult(vkQueueWaitIdle(GraphicsQueue));
 
-    FreeCommandBuffers();
+    FreeCommandBuffers(LogicalDevice);
 }
 
-void RenderCore::PresentFrame(std::uint32_t const ImageIndice, VkSwapchainKHR const& SwapChain)
+void CommandsManager::PresentFrame(VkQueue const& Queue, std::uint32_t const ImageIndice, VkSwapchainKHR const& SwapChain)
 {
     VkPresentInfoKHR const PresentInfo {
             .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .waitSemaphoreCount = 1U,
-            .pWaitSemaphores    = &g_RenderFinishedSemaphore,
+            .pWaitSemaphores    = &m_RenderFinishedSemaphore,
             .swapchainCount     = 1U,
             .pSwapchains        = &SwapChain,
             .pImageIndices      = &ImageIndice,
             .pResults           = nullptr};
 
-    if (VkResult const OperationResult = vkQueuePresentKHR(GetGraphicsQueue().second, &PresentInfo);
+    if (VkResult const OperationResult = vkQueuePresentKHR(Queue, &PresentInfo);
         OperationResult != VK_SUCCESS)
     {
         if (OperationResult != VK_ERROR_OUT_OF_DATE_KHR && OperationResult != VK_SUBOPTIMAL_KHR)
@@ -411,18 +367,16 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice, VkSwapchainKHR co
     }
 }
 
-void RenderCore::InitializeSingleCommandQueue(VkCommandPool& CommandPool, VkCommandBuffer& CommandBuffer, std::uint8_t const QueueFamilyIndex)
+void RenderCore::InitializeSingleCommandQueue(VkDevice const& LogicalDevice, VkCommandPool& CommandPool, VkCommandBuffer& CommandBuffer, std::uint8_t const QueueFamilyIndex)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
     VkCommandPoolCreateInfo const CommandPoolCreateInfo {
             .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
             .queueFamilyIndex = static_cast<std::uint32_t>(QueueFamilyIndex)};
 
-    CheckVulkanResult(vkCreateCommandPool(VulkanLogicalDevice, &CommandPoolCreateInfo, nullptr, &CommandPool));
+    CheckVulkanResult(vkCreateCommandPool(LogicalDevice, &CommandPoolCreateInfo, nullptr, &CommandPool));
 
     constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -436,11 +390,11 @@ void RenderCore::InitializeSingleCommandQueue(VkCommandPool& CommandPool, VkComm
             .commandBufferCount = 1U,
     };
 
-    CheckVulkanResult(vkAllocateCommandBuffers(VulkanLogicalDevice, &CommandBufferAllocateInfo, &CommandBuffer));
+    CheckVulkanResult(vkAllocateCommandBuffers(LogicalDevice, &CommandBufferAllocateInfo, &CommandBuffer));
     CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
 }
 
-void RenderCore::FinishSingleCommandQueue(VkQueue const& Queue, VkCommandPool const& CommandPool, VkCommandBuffer const& CommandBuffer)
+void RenderCore::FinishSingleCommandQueue(VkDevice const& LogicalDevice, VkQueue const& Queue, VkCommandPool const& CommandPool, VkCommandBuffer const& CommandBuffer)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -465,8 +419,6 @@ void RenderCore::FinishSingleCommandQueue(VkQueue const& Queue, VkCommandPool co
     CheckVulkanResult(vkQueueSubmit(Queue, 1U, &SubmitInfo, VK_NULL_HANDLE));
     CheckVulkanResult(vkQueueWaitIdle(Queue));
 
-    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
-
-    vkFreeCommandBuffers(VulkanLogicalDevice, CommandPool, 1U, &CommandBuffer);
-    vkDestroyCommandPool(VulkanLogicalDevice, CommandPool, nullptr);
+    vkFreeCommandBuffers(LogicalDevice, CommandPool, 1U, &CommandBuffer);
+    vkDestroyCommandPool(LogicalDevice, CommandPool, nullptr);
 }

@@ -17,6 +17,7 @@ export import <memory>;
 
 export import RenderCore.Types.Object;
 export import RenderCore.Types.AllocationTypes;
+export import RenderCore.Types.DeviceProperties;
 
 namespace RenderCore
 {
@@ -35,16 +36,16 @@ namespace RenderCore
 
     public:
         void CreateVulkanSurface(GLFWwindow*);
-        void CreateMemoryAllocator();
-        void CreateSwapChain();
-        void CreateFrameBuffers(VkRenderPass const&);
-        void CreateDepthResources();
+        void CreateMemoryAllocator(VkDevice const&, VkPhysicalDevice const&);
+        void CreateSwapChain(VkDevice const&, DeviceProperties const&, std::vector<std::uint32_t> const&, std::uint32_t);
+        void CreateFrameBuffers(VkDevice const&, VkRenderPass const&);
+        void CreateDepthResources(VkDevice const&, DeviceProperties const&, std::pair<std::uint8_t, VkQueue> const&);
 
-        std::vector<Object> AllocateScene(std::string_view const&);
-        void ReleaseScene(std::vector<std::uint32_t> const&);
+        std::vector<Object> AllocateScene(std::string_view const&, VkDevice const&, std::pair<std::uint8_t, VkQueue> const&);
+        void ReleaseScene(VkDevice const&, std::vector<std::uint32_t> const&);
 
-        void DestroyBufferResources(bool);
-        void ReleaseBufferResources();
+        void DestroyBufferResources(VkDevice const&, bool);
+        void ReleaseBufferResources(VkDevice const&);
 
         [[nodiscard]] VkSurfaceKHR& GetSurface();
         [[nodiscard]] VkSwapchainKHR const& GetSwapChain();

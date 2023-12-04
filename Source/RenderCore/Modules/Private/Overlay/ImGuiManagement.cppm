@@ -27,7 +27,7 @@ using namespace RenderCore;
 
 VkDescriptorPool g_ImGuiDescriptorPool {VK_NULL_HANDLE};
 
-void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& PipelineManager)
+void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& PipelineManager, DeviceManager& DeviceManager)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -40,6 +40,12 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& Pipe
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
 
+    if (ImGui::GetIO().BackendPlatformUserData)
+    {
+        return;
+    }
+
+    PipelineManager.SetIsBoundToImGui(true);
     ImGui_ImplGlfw_InitForVulkan(Window, true);
 
     constexpr std::uint32_t DescriptorCount = 100U;
@@ -64,18 +70,18 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& Pipe
             .poolSizeCount = std::size(DescriptorPoolSizes),
             .pPoolSizes    = std::data(DescriptorPoolSizes)};
 
-    CheckVulkanResult(vkCreateDescriptorPool(volkGetLoadedDevice(), &DescriptorPoolCreateInfo, nullptr, &g_ImGuiDescriptorPool));
+    CheckVulkanResult(vkCreateDescriptorPool(DeviceManager.GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &g_ImGuiDescriptorPool));
 
     ImGui_ImplVulkan_InitInfo ImGuiVulkanInitInfo {
             .Instance        = volkGetLoadedInstance(),
-            .PhysicalDevice  = GetPhysicalDevice(),
-            .Device          = volkGetLoadedDevice(),
-            .QueueFamily     = GetGraphicsQueue().first,
-            .Queue           = GetGraphicsQueue().second,
+            .PhysicalDevice  = DeviceManager.GetPhysicalDevice(),
+            .Device          = DeviceManager.GetLogicalDevice(),
+            .QueueFamily     = DeviceManager.GetGraphicsQueue().first,
+            .Queue           = DeviceManager.GetGraphicsQueue().second,
             .PipelineCache   = PipelineManager.GetPipelineCache(),
             .DescriptorPool  = g_ImGuiDescriptorPool,
-            .MinImageCount   = GetMinImageCount(),
-            .ImageCount      = GetMinImageCount(),
+            .MinImageCount   = DeviceManager.GetMinImageCount(),
+            .ImageCount      = DeviceManager.GetMinImageCount(),
             .MSAASamples     = g_MSAASamples,
             .Allocator       = VK_NULL_HANDLE,
             .CheckVkResultFn = [](VkResult Result) {
@@ -86,22 +92,22 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& Pipe
 
     VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
     VkCommandPool CommandPool     = VK_NULL_HANDLE;
-    InitializeSingleCommandQueue(CommandPool, CommandBuffer, GetGraphicsQueue().first);
+    InitializeSingleCommandQueue(DeviceManager.GetLogicalDevice(), CommandPool, CommandBuffer, DeviceManager.GetGraphicsQueue().first);
     {
         ImGui_ImplVulkan_CreateFontsTexture(CommandBuffer);
     }
-    FinishSingleCommandQueue(GetGraphicsQueue().second, CommandPool, CommandBuffer);
+    FinishSingleCommandQueue(DeviceManager.GetLogicalDevice(), DeviceManager.GetGraphicsQueue().second, CommandPool, CommandBuffer);
 
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
-void RenderCore::ReleaseImGuiResources()
+void RenderCore::ReleaseImGuiResources(VkDevice const& LogicalDevice)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     if (g_ImGuiDescriptorPool != VK_NULL_HANDLE)
     {
-        vkDestroyDescriptorPool(volkGetLoadedDevice(), g_ImGuiDescriptorPool, nullptr);
+        vkDestroyDescriptorPool(LogicalDevice, g_ImGuiDescriptorPool, nullptr);
         g_ImGuiDescriptorPool = VK_NULL_HANDLE;
     }
 
