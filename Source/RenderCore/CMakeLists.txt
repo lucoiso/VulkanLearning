@@ -25,15 +25,15 @@ SET(PRIVATE_MODULES
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.cppm
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.ixx
 
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManager.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManager.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceProperties.ixx
+
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/MeshBufferData.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/TextureBufferData.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/UniformBufferObject.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.cppm
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.ixx
-
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceProperties.ixx
 
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.cppm
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.ixx
