@@ -71,7 +71,4 @@ namespace RenderCore
         [[nodiscard]] std::shared_ptr<Object> GetObjectByID(std::uint32_t) const;
         [[nodiscard]] std::uint32_t GetNumObjects() const;
     };
-
-    export void InitializeEngineCore();
-    export [[nodiscard]] bool IsEngineCoreInitialized();
 }// namespace RenderCore

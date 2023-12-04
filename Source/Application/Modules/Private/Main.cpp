@@ -14,7 +14,7 @@ int main([[maybe_unused]] int Argc, [[maybe_unused]] char* Argv[])
     boost::log::core::get()->set_filter(boost::log::trivial::severity != boost::log::trivial::debug);
 #endif
 
-    if (RenderCore::Window Window; Window.Initialize(600U, 600U, "Vulkan Renderer", false).Get())
+    if (RenderCore::Window Window; Window.Initialize(600U, 600U, "Vulkan Renderer 1", true, false).Get())
     {
         while (Window.IsOpen())
         {

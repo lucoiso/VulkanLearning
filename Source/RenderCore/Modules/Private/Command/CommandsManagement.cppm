@@ -92,13 +92,16 @@ void WaitAndResetFences()
 
 void FreeCommandBuffers()
 {
-    vkFreeCommandBuffers(volkGetLoadedDevice(), g_CommandPool, static_cast<std::uint32_t>(std::size(g_CommandBuffers)), std::data(g_CommandBuffers));
-
-    for (VkCommandBuffer& CommandBufferIter: g_CommandBuffers)
+    if (!std::empty(g_CommandBuffers))
     {
-        CommandBufferIter = VK_NULL_HANDLE;
+        vkFreeCommandBuffers(volkGetLoadedDevice(), g_CommandPool, static_cast<std::uint32_t>(std::size(g_CommandBuffers)), std::data(g_CommandBuffers));
+
+        for (VkCommandBuffer& CommandBufferIter: g_CommandBuffers)
+        {
+            CommandBufferIter = VK_NULL_HANDLE;
+        }
+        g_CommandBuffers.clear();
     }
-    g_CommandBuffers.clear();
 }
 
 void RenderCore::ReleaseCommandsResources()

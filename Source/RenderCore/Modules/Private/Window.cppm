@@ -25,12 +25,14 @@ import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import Timer.ExecutionCounter;
 
+static bool g_HasWindow {false};
+
 class Window::WindowImpl final
 {
     GLFWwindow* m_Window {nullptr};
 
 public:
-    [[nodiscard]] bool Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, bool const bHeadless)
+    [[nodiscard]] bool Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, bool bMaximized, bool const bHeadless)
     {
         Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -41,7 +43,7 @@ public:
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+        glfwWindowHint(GLFW_MAXIMIZED, bMaximized ? GLFW_TRUE : GLFW_FALSE);
         glfwWindowHint(GLFW_VISIBLE, bHeadless ? GLFW_FALSE : GLFW_TRUE);
 
         m_Window = glfwCreateWindow(Width, Height, std::data(Title), nullptr, nullptr);
@@ -84,10 +86,18 @@ public:
 Window::Window()
     : m_WindowImpl(std::make_unique<WindowImpl>())
 {
+    if (g_HasWindow)
+    {
+        throw std::runtime_error("Only one window can be created at a time");
+    }
+
+    g_HasWindow = true;
 }
 
 Window::~Window()
 {
+    g_HasWindow = false;
+    
     try
     {
         Shutdown().Get();
@@ -97,7 +107,7 @@ Window::~Window()
     }
 }
 
-AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, bool const bHeadless)
+AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, bool bMaximized, bool const bHeadless)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -108,7 +118,7 @@ AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t
 
     try
     {
-        if (m_WindowImpl->Initialize(Width, Height, Title, bHeadless) && m_Renderer.Initialize(m_WindowImpl->GetWindow()))
+        if (m_WindowImpl->Initialize(Width, Height, Title, bMaximized, bHeadless) && m_Renderer.Initialize(m_WindowImpl->GetWindow()))
         {
             std::binary_semaphore Semaphore {0U};
             {

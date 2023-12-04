@@ -98,6 +98,16 @@ void InitializeRenderCore(GLFWwindow* const Window, VkSurfaceKHR const& VulkanSu
     UpdateDeviceProperties(Window, VulkanSurface);
 }
 
+void InitializeEngineCore()
+{
+    CreateVulkanInstance();
+}
+
+bool IsEngineCoreInitialized()
+{
+    return g_Instance != VK_NULL_HANDLE;
+}
+
 void Renderer::DrawFrame(GLFWwindow* const Window)
 {
     if (!IsInitialized())
@@ -290,7 +300,11 @@ bool Renderer::Initialize(GLFWwindow* const Window)
     }
 #endif
 
-    CreateVulkanInstance();
+    if (!IsEngineCoreInitialized())
+    {
+        InitializeEngineCore();
+    }
+
     m_BufferManager.CreateVulkanSurface(Window);
     InitializeRenderCore(Window, m_BufferManager.GetSurface());
 
@@ -438,13 +452,4 @@ std::shared_ptr<Object> Renderer::GetObjectByID(std::uint32_t const ObjectID) co
 std::uint32_t Renderer::GetNumObjects() const
 {
     return std::size(m_Objects);
-}
-
-void InitializeEngineCore()
-{
-}
-
-bool IsEngineCoreInitialized()
-{
-    return true;
 }
