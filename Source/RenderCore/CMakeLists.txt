@@ -11,44 +11,59 @@ SET(PUBLIC_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public)
 
 SET(PRIVATE_MODULES
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Window.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/EngineCore.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/ShaderManagement.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/CommandsManagement.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/PipelineManagement.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/BufferManagement.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/DeviceManagement.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/ImGuiManagement.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Helpers.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/DebugHelpers.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/GLFWCallbacks.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/Camera.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/Object.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Renderer.cppm
 
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/ShaderManagement.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/CommandsManagement.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/PipelineManagement.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/BufferManagement.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/DeviceManagement.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Management/ImGuiManagement.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Helpers.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/DebugHelpers.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Constants.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/EnumConverter.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/EnumHelpers.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/GLFWCallbacks.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/DeviceProperties.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/MeshBufferData.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/TextureBufferData.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/Camera.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/Vertex.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Types/UniformBufferObject.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.ixx
+
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.ixx
+
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.ixx
+
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.ixx
+
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/MeshBufferData.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/TextureBufferData.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/UniformBufferObject.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.ixx
+
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceProperties.ixx
+
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.ixx
+
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Input/GLFWCallbacks.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Input/GLFWCallbacks.ixx
+
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Camera/Camera.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Camera/Camera.ixx
+
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Object.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Vertex.ixx
+
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Debug/DebugHelpers.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Debug/DebugHelpers.cppm
+
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Library/Constants.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Library/Helpers.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Library/Helpers.ixx
+
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Enum/EnumConverter.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Enum/EnumHelpers.ixx
 )
 
 SET(PUBLIC_MODULES
 	${PUBLIC_MODULES_BASE_DIRECTORY}/Window.ixx
-	${PUBLIC_MODULES_BASE_DIRECTORY}/EngineCore.ixx
-	${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Object.ixx
-	${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Transform.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Renderer.ixx
+
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Object.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Transform.ixx
 )
 
 ADD_LIBRARY(${LIBRARY_NAME})
@@ -112,8 +127,8 @@ TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE
 
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE
 						   # Assets directory (relative to binaries)
-						   DEBUG_SHADER_VERT="Resources/Shaders/TRIANGLE_VERT_SHADER.vert"
-						   DEBUG_SHADER_FRAG="Resources/Shaders/TRIANGLE_FRAG_SHADER.frag"
+						   DEFAULT_SHADER_VERT="Resources/Shaders/TRIANGLE_VERT_SHADER.vert"
+						   DEFAULT_SHADER_FRAG="Resources/Shaders/TRIANGLE_FRAG_SHADER.frag"
 )
 
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC

@@ -14,111 +14,113 @@ import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
-Vector RenderCore::Camera::GetPosition() const
+Vector Camera::GetPosition() const
 {
     return m_CameraPosition;
 }
 
-void RenderCore::Camera::SetPosition(Vector const& Position)
+void Camera::SetPosition(Vector const& Position)
 {
     m_CameraPosition = Position;
 }
 
-Rotator RenderCore::Camera::GetRotation() const
+Rotator Camera::GetRotation() const
 {
     return m_CameraRotation;
 }
 
-void RenderCore::Camera::SetRotation(Rotator const& Rotation)
+void Camera::SetRotation(Rotator const& Rotation)
 {
     m_CameraRotation = Rotation;
 }
 
-float RenderCore::Camera::GetSpeed() const
+float Camera::GetSpeed() const
 {
     return m_CameraSpeed;
 }
 
-void RenderCore::Camera::SetSpeed(float const Speed)
+void Camera::SetSpeed(float const Speed)
 {
     m_CameraSpeed = Speed;
 }
 
-float RenderCore::Camera::GetSensitivity() const
+float Camera::GetSensitivity() const
 {
     return m_CameraSensitivity;
 }
 
-void RenderCore::Camera::SetSensitivity(float const Sensitivity)
+void Camera::SetSensitivity(float const Sensitivity)
 {
     m_CameraSensitivity = Sensitivity;
 }
 
-float RenderCore::Camera::GetFieldOfView() const
+float Camera::GetFieldOfView() const
 {
     return m_FieldOfView;
 }
 
-void RenderCore::Camera::SetFieldOfView(float const FieldOfView)
+void Camera::SetFieldOfView(float const FieldOfView)
 {
     m_FieldOfView = FieldOfView;
 }
 
-float RenderCore::Camera::GetNearPlane() const
+float Camera::GetNearPlane() const
 {
     return m_NearPlane;
 }
 
-void RenderCore::Camera::SetNearPlane(float const NearPlane)
+void Camera::SetNearPlane(float const NearPlane)
 {
     m_NearPlane = NearPlane;
 }
 
-float RenderCore::Camera::GetFarPlane() const
+float Camera::GetFarPlane() const
 {
     return m_FarPlane;
 }
 
-void RenderCore::Camera::SetFarPlane(float const FarPlane)
+void Camera::SetFarPlane(float const FarPlane)
 {
     m_FarPlane = FarPlane;
 }
 
-float RenderCore::Camera::GetDrawDistance() const
+float Camera::GetDrawDistance() const
 {
     return m_DrawDistance;
 }
 
-void RenderCore::Camera::SetDrawDistance(float const DrawDistance)
+void Camera::SetDrawDistance(float const DrawDistance)
 {
     m_DrawDistance = DrawDistance;
 }
 
-glm::mat4 RenderCore::Camera::GetViewMatrix() const
+glm::mat4 Camera::GetViewMatrix() const
 {
-    return glm::lookAt(m_CameraPosition.ToGlmVec3(), (m_CameraPosition + m_CameraRotation.GetFront()).ToGlmVec3(), m_CameraRotation.GetUp().ToGlmVec3());
+    return lookAt(m_CameraPosition.ToGlmVec3(), (m_CameraPosition + m_CameraRotation.GetFront()).ToGlmVec3(), m_CameraRotation.GetUp().ToGlmVec3());
 }
 
-glm::mat4 RenderCore::Camera::GetProjectionMatrix() const
+glm::mat4 Camera::GetProjectionMatrix(VkExtent2D const& Extent) const
 {
-    auto const& [Width, Height] = GetSwapChainExtent();
-    glm::mat4 Projection        = glm::perspective(glm::radians(m_FieldOfView), static_cast<float>(Width) / static_cast<float>(Height), m_NearPlane, m_FarPlane);
+    glm::mat4 Projection = glm::perspective(glm::radians(m_FieldOfView),
+                                            static_cast<float>(Extent.width) / static_cast<float>(Extent.height),
+                                            m_NearPlane,
+                                            m_FarPlane);
     Projection[1][1] *= -1;
 
     return Projection;
 }
 
-CameraMovementStateFlags RenderCore::Camera::GetCameraMovementStateFlags() const
+CameraMovementStateFlags Camera::GetCameraMovementStateFlags() const
 {
     return m_CameraMovementStateFlags;
 }
 
-void RenderCore::Camera::SetCameraMovementStateFlags(CameraMovementStateFlags const State)
+void Camera::SetCameraMovementStateFlags(CameraMovementStateFlags const State)
 {
     m_CameraMovementStateFlags = State;
 }
 
-void RenderCore::Camera::UpdateCameraMovement(float const DeltaTime)
+void Camera::UpdateCameraMovement(float const DeltaTime)
 {
     float const CameraSpeed {GetSpeed() * 0.01F};
     Vector const CameraFront {m_CameraRotation.GetFront()};
@@ -159,15 +161,15 @@ void RenderCore::Camera::UpdateCameraMovement(float const DeltaTime)
     SetPosition(NewPosition);
 }
 
-RenderCore::Camera& RenderCore::GetViewportCamera()
+Camera& RenderCore::GetViewportCamera()
 {
     static Camera ViewportCamera;
     return ViewportCamera;
 }
 
-bool RenderCore::Camera::IsInsideCameraFrustum(Vector const& TestLocation) const
+bool Camera::IsInsideCameraFrustum(Vector const& TestLocation, VkExtent2D const& Extent) const
 {
-    glm::mat4 const ViewProjectionMatrix = GetProjectionMatrix() * GetViewMatrix();
+    glm::mat4 const ViewProjectionMatrix = GetProjectionMatrix(Extent) * GetViewMatrix();
 
     glm::vec4 const HomogeneousTestLocation = glm::vec4(TestLocation.ToGlmVec3(), 1.0f);
     glm::vec4 const ClipSpaceTestLocation   = ViewProjectionMatrix * HomogeneousTestLocation;
@@ -175,7 +177,7 @@ bool RenderCore::Camera::IsInsideCameraFrustum(Vector const& TestLocation) const
     return std::abs(ClipSpaceTestLocation.x) <= std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.y) <= std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.z) <= std::abs(ClipSpaceTestLocation.w);
 }
 
-bool RenderCore::Camera::IsInAllowedDistance(Vector const& TestLocation) const
+bool Camera::IsInAllowedDistance(Vector const& TestLocation) const
 {
     Vector const CameraToTestLocation  = TestLocation - GetPosition();
     float const DistanceToTestLocation = CameraToTestLocation.Length();
@@ -183,7 +185,7 @@ bool RenderCore::Camera::IsInAllowedDistance(Vector const& TestLocation) const
     return DistanceToTestLocation <= GetDrawDistance();
 }
 
-bool RenderCore::Camera::CanDrawObject(std::shared_ptr<Object> const& Object) const
+bool Camera::CanDrawObject(std::shared_ptr<Object> const& Object, VkExtent2D const& Extent) const
 {
     if (!Object)
     {
@@ -192,7 +194,7 @@ bool RenderCore::Camera::CanDrawObject(std::shared_ptr<Object> const& Object) co
 
     if constexpr (g_EnableExperimentalFrustumCulling)
     {
-        return GetViewportCamera().IsInsideCameraFrustum(Object->GetPosition()) && GetViewportCamera().IsInAllowedDistance(Object->GetPosition());
+        return GetViewportCamera().IsInsideCameraFrustum(Object->GetPosition(), Extent) && GetViewportCamera().IsInAllowedDistance(Object->GetPosition());
     }
 
     return true;

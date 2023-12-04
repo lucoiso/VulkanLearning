@@ -10,9 +10,12 @@ export module RenderCore.Management.ImGuiManagement;
 
 export import <functional>;
 
+import RenderCore.Management.BufferManagement;
+import RenderCore.Management.PipelineManagement;
+
 namespace RenderCore
 {
-    export void InitializeImGui(GLFWwindow*);
+    export void InitializeImGui(GLFWwindow*, PipelineManager&);
     export void ReleaseImGuiResources();
     export void DrawImGuiFrame(std::function<void()>&&);
 }// namespace RenderCore

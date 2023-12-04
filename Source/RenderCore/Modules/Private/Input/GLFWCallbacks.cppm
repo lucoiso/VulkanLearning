@@ -9,7 +9,7 @@ module;
 #include <glm/ext.hpp>
 #include <imgui.h>
 
-module RenderCore.Utils.GLFWCallbacks;
+module RenderCore.Input.GLFWCallbacks;
 
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Types.Camera;
@@ -27,7 +27,7 @@ void RenderCore::GLFWWindowCloseRequested(GLFWwindow* const Window)
 
 void RenderCore::GLFWWindowResized(GLFWwindow* const Window, [[maybe_unused]] std::int32_t const Width, [[maybe_unused]] std::int32_t const Height)
 {
-    UpdateDeviceProperties(Window);
+    // UpdateDeviceProperties(Window);
 }
 
 void RenderCore::GLFWErrorCallback(std::int32_t const Error, char const* const Description)

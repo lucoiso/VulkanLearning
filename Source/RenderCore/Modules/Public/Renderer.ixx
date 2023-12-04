@@ -7,7 +7,7 @@ module;
 #include <GLFW/glfw3.h>
 #include <RenderCoreModule.h>
 
-export module RenderCore.EngineCore;
+export module RenderCore.Renderer;
 
 export import <cstdint>;
 export import <memory>;
@@ -17,10 +17,14 @@ export import <optional>;
 export import <string_view>;
 
 export import RenderCore.Types.Object;
+export import Timer.Manager;
+
+import RenderCore.Management.BufferManagement;
+import RenderCore.Management.PipelineManagement;
 
 namespace RenderCore
 {
-    export class RENDERCOREMODULE_API EngineCore
+    export class RENDERCOREMODULE_API Renderer
     {
         enum class EngineCoreStateFlags : std::uint8_t
         {
@@ -32,35 +36,42 @@ namespace RenderCore
             PENDING_PIPELINE_REFRESH         = 1 << 4,
         };
 
+        BufferManager m_BufferManager {};
+        PipelineManager m_PipelineManager {};
+
         EngineCoreStateFlags m_StateFlags {EngineCoreStateFlags::NONE};
         std::vector<std::shared_ptr<Object>> m_Objects {};
+        double m_DeltaTime {};
         std::mutex m_ObjectsMutex {};
 
         friend class Window;
 
         void DrawFrame(GLFWwindow*);
-        std::optional<std::int32_t> TryRequestDrawImage();
+        std::optional<std::int32_t> RequestImageIndex();
 
-        void Tick(double);
+        void Tick();
         void RemoveInvalidObjects();
 
-        bool InitializeEngine(GLFWwindow*);
-        void ShutdownEngine();
+        bool Initialize(GLFWwindow*);
+        void Shutdown();
 
-        EngineCore()  = default;
-        ~EngineCore() = default;
+        Renderer()  = default;
+        ~Renderer() = default;
 
     public:
-        static EngineCore& Get();
-
-        [[nodiscard]] bool IsEngineInitialized() const;
+        [[nodiscard]] bool IsInitialized() const;
 
         [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view const&);
         void UnloadScene(std::vector<std::uint32_t> const&);
         void UnloadAllScenes();
 
+        static [[nodiscard]] Timer::Manager& GetRenderTimerManager();
+        [[nodiscard]] double GetDeltaTime() const;
         [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;
         [[nodiscard]] std::shared_ptr<Object> GetObjectByID(std::uint32_t) const;
         [[nodiscard]] std::uint32_t GetNumObjects() const;
     };
+
+    export void InitializeEngineCore();
+    export [[nodiscard]] bool IsEngineCoreInitialized();
 }// namespace RenderCore

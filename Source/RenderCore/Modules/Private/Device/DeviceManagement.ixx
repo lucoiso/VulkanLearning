@@ -17,8 +17,8 @@ export import RenderCore.Types.DeviceProperties;
 
 namespace RenderCore
 {
-    export void PickPhysicalDevice();
-    export void CreateLogicalDevice();
+    export void PickPhysicalDevice(VkSurfaceKHR const&);
+    export void CreateLogicalDevice(VkSurfaceKHR const&);
     export void ReleaseDeviceResources();
 
     export [[nodiscard]] std::vector<VkPhysicalDevice> GetAvailablePhysicalDevices();
@@ -28,12 +28,12 @@ namespace RenderCore
     export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceExtensionsNames();
     export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view const&);
     export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayersNames();
-    export [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities();
-    export [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats();
-    export [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes();
+    export [[nodiscard]] VkSurfaceCapabilitiesKHR GetAvailablePhysicalDeviceSurfaceCapabilities(VkSurfaceKHR const&);
+    export [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats(VkSurfaceKHR const&);
+    export [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes(VkSurfaceKHR const&);
     export [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment();
 
-    export bool UpdateDeviceProperties(GLFWwindow* Window);
+    export bool UpdateDeviceProperties(GLFWwindow* Window, VkSurfaceKHR const& VulkanSurface);
     export [[nodiscard]] DeviceProperties& GetDeviceProperties();
 
     export [[nodiscard]] VkDevice& GetLogicalDevice();

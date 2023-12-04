@@ -4,7 +4,7 @@
 
 module;
 
-#include <volk.h>
+#include <../../../../../../out/build/Debug/vcpkg_installed/x64-windows/include/volk.h>
 
 export module RenderCore.Utils.Constants;
 

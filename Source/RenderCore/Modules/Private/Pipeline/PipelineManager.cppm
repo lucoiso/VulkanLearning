@@ -22,21 +22,13 @@ import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
-VkRenderPass g_RenderPass {VK_NULL_HANDLE};
-VkPipeline g_Pipeline {VK_NULL_HANDLE};
-VkPipelineLayout g_PipelineLayout {VK_NULL_HANDLE};
-VkPipelineCache g_PipelineCache {VK_NULL_HANDLE};
-VkDescriptorPool g_DescriptorPool {VK_NULL_HANDLE};
-VkDescriptorSetLayout g_DescriptorSetLayout {VK_NULL_HANDLE};
-std::unordered_map<std::uint32_t, VkDescriptorSet> g_DescriptorSets {};
-
-void RenderCore::CreateRenderPass()
+void PipelineManager::CreateRenderPass()
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
-    if (g_RenderPass != VK_NULL_HANDLE)
+    if (m_RenderPass != VK_NULL_HANDLE)
     {
-        vkDestroyRenderPass(volkGetLoadedDevice(), g_RenderPass, nullptr);
+        vkDestroyRenderPass(volkGetLoadedDevice(), m_RenderPass, nullptr);
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render pass";
@@ -85,7 +77,7 @@ void RenderCore::CreateRenderPass()
             .srcAccessMask = 0U,
             .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
 
-    std::array const AttachmentDescriptions {
+    std::array<VkAttachmentDescription, 2U> const AttachmentDescriptions {
             ColorAttachmentDescription,
             DepthAttachmentDescription};
 
@@ -98,10 +90,10 @@ void RenderCore::CreateRenderPass()
             .dependencyCount = 1U,
             .pDependencies   = &SubpassDependency};
 
-    CheckVulkanResult(vkCreateRenderPass(volkGetLoadedDevice(), &RenderPassCreateInfo, nullptr, &g_RenderPass));
+    CheckVulkanResult(vkCreateRenderPass(volkGetLoadedDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass));
 }
 
-void RenderCore::CreateGraphicsPipeline()
+void PipelineManager::CreateGraphicsPipeline()
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -181,16 +173,16 @@ void RenderCore::CreateGraphicsPipeline()
     VkPipelineLayoutCreateInfo const PipelineLayoutCreateInfo {
             .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount = 1U,
-            .pSetLayouts    = &g_DescriptorSetLayout};
+            .pSetLayouts    = &m_DescriptorSetLayout};
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
-    CheckVulkanResult(vkCreatePipelineLayout(VulkanLogicalDevice, &PipelineLayoutCreateInfo, nullptr, &g_PipelineLayout));
+    CheckVulkanResult(vkCreatePipelineLayout(VulkanLogicalDevice, &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 
     constexpr VkPipelineCacheCreateInfo PipelineCacheCreateInfo {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
 
-    CheckVulkanResult(vkCreatePipelineCache(VulkanLogicalDevice, &PipelineCacheCreateInfo, nullptr, &g_PipelineCache));
+    CheckVulkanResult(vkCreatePipelineCache(VulkanLogicalDevice, &PipelineCacheCreateInfo, nullptr, &m_PipelineCache));
 
     constexpr VkPipelineDepthStencilStateCreateInfo DepthStencilState {
             .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
@@ -218,22 +210,22 @@ void RenderCore::CreateGraphicsPipeline()
             .pDepthStencilState  = &DepthStencilState,
             .pColorBlendState    = &ColorBlendState,
             .pDynamicState       = &DynamicState,
-            .layout              = g_PipelineLayout,
-            .renderPass          = g_RenderPass,
+            .layout              = m_PipelineLayout,
+            .renderPass          = m_RenderPass,
             .subpass             = 0U,
             .basePipelineHandle  = VK_NULL_HANDLE,
             .basePipelineIndex   = -1};
 
-    CheckVulkanResult(vkCreateGraphicsPipelines(VulkanLogicalDevice, VK_NULL_HANDLE, 1U, &GraphicsPipelineCreateInfo, nullptr, &g_Pipeline));
+    CheckVulkanResult(vkCreateGraphicsPipelines(VulkanLogicalDevice, VK_NULL_HANDLE, 1U, &GraphicsPipelineCreateInfo, nullptr, &m_Pipeline));
 }
 
-void RenderCore::CreateDescriptorSetLayout()
+void PipelineManager::CreateDescriptorSetLayout()
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
 
-    constexpr std::array LayoutBindings {
+    constexpr std::array<VkDescriptorSetLayoutBinding, 2U> LayoutBindings {
             VkDescriptorSetLayoutBinding {
                     .binding            = 0U,
                     .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -252,37 +244,39 @@ void RenderCore::CreateDescriptorSetLayout()
             .bindingCount = static_cast<std::uint32_t>(std::size(LayoutBindings)),
             .pBindings    = std::data(LayoutBindings)};
 
-    CheckVulkanResult(vkCreateDescriptorSetLayout(volkGetLoadedDevice(), &DescriptorSetLayoutInfo, nullptr, &g_DescriptorSetLayout));
+    CheckVulkanResult(vkCreateDescriptorSetLayout(volkGetLoadedDevice(), &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout));
 }
 
-void RenderCore::CreateDescriptorPool()
+void PipelineManager::CreateDescriptorPool(std::uint32_t const NumAllocations)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor pool";
 
-    std::array const DescriptorPoolSizes {
+    std::array<VkDescriptorPoolSize, 2U> const DescriptorPoolSizes {
             VkDescriptorPoolSize {
                     .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = GetClampedNumAllocations()},
+                    .descriptorCount = NumAllocations},
             VkDescriptorPoolSize {
                     .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = GetClampedNumAllocations()}};
+                    .descriptorCount = NumAllocations}};
 
     VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .maxSets       = 2U * GetClampedNumAllocations(),
+            .maxSets       = 2U * NumAllocations,
             .poolSizeCount = static_cast<std::uint32_t>(std::size(DescriptorPoolSizes)),
             .pPoolSizes    = std::data(DescriptorPoolSizes)};
 
-    CheckVulkanResult(vkCreateDescriptorPool(volkGetLoadedDevice(), &DescriptorPoolCreateInfo, nullptr, &g_DescriptorPool));
+    CheckVulkanResult(vkCreateDescriptorPool(volkGetLoadedDevice(), &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool));
 }
 
-void RenderCore::CreateDescriptorSets()
+void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& AllocatedObjects)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
-    if (GetNumAllocations() == 0U)
+    auto const NumAllocations = static_cast<std::uint32_t>(std::size(AllocatedObjects));
+
+    if (NumAllocations == 0U)
     {
         return;
     }
@@ -290,22 +284,20 @@ void RenderCore::CreateDescriptorSets()
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor sets";
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
-    auto const AllocatedObjects         = GetAllocatedObjects();
-
-    g_DescriptorSets.reserve(GetNumAllocations());
+    m_DescriptorSets.reserve(NumAllocations);
 
     VkDescriptorSetAllocateInfo const DescriptorSetAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .descriptorPool     = g_DescriptorPool,
+            .descriptorPool     = m_DescriptorPool,
             .descriptorSetCount = 1U,
-            .pSetLayouts        = &g_DescriptorSetLayout};
+            .pSetLayouts        = &m_DescriptorSetLayout};
 
     for (MeshBufferData const& BufferdataIter: AllocatedObjects)
     {
         VkDescriptorSet AllocatedSet {VK_NULL_HANDLE};
         CheckVulkanResult(vkAllocateDescriptorSets(VulkanLogicalDevice, &DescriptorSetAllocateInfo, &AllocatedSet));
 
-        g_DescriptorSets.emplace(BufferdataIter.ID, AllocatedSet);
+        m_DescriptorSets.emplace(BufferdataIter.ID, AllocatedSet);
     }
 
     for (auto Iterator = std::begin(AllocatedObjects); Iterator != std::end(AllocatedObjects); ++Iterator)
@@ -334,7 +326,7 @@ void RenderCore::CreateDescriptorSets()
         {
             WriteDescriptors.push_back(VkWriteDescriptorSet {
                     .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .dstSet           = g_DescriptorSets.at(Iterator->ID),
+                    .dstSet           = m_DescriptorSets.at(Iterator->ID),
                     .dstBinding       = 0U,
                     .dstArrayElement  = 0U,
                     .descriptorCount  = static_cast<std::uint32_t>(std::size(BufferInfos)),
@@ -348,7 +340,7 @@ void RenderCore::CreateDescriptorSets()
         {
             WriteDescriptors.push_back(VkWriteDescriptorSet {
                     .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .dstSet           = g_DescriptorSets.at(Iterator->ID),
+                    .dstSet           = m_DescriptorSets.at(Iterator->ID),
                     .dstBinding       = 1U,
                     .dstArrayElement  = 0U,
                     .descriptorCount  = static_cast<std::uint32_t>(std::size(ImageInfos)),
@@ -365,7 +357,7 @@ void RenderCore::CreateDescriptorSets()
     }
 }
 
-void RenderCore::ReleasePipelineResources()
+void PipelineManager::ReleasePipelineResources()
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -373,16 +365,16 @@ void RenderCore::ReleasePipelineResources()
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
-    if (g_RenderPass != VK_NULL_HANDLE)
+    if (m_RenderPass != VK_NULL_HANDLE)
     {
-        vkDestroyRenderPass(VulkanLogicalDevice, g_RenderPass, nullptr);
-        g_RenderPass = VK_NULL_HANDLE;
+        vkDestroyRenderPass(VulkanLogicalDevice, m_RenderPass, nullptr);
+        m_RenderPass = VK_NULL_HANDLE;
     }
 
     ReleaseDynamicPipelineResources();
 }
 
-void RenderCore::ReleaseDynamicPipelineResources()
+void PipelineManager::ReleaseDynamicPipelineResources()
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -390,75 +382,75 @@ void RenderCore::ReleaseDynamicPipelineResources()
 
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
-    if (g_Pipeline != VK_NULL_HANDLE)
+    if (m_Pipeline != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(VulkanLogicalDevice, g_Pipeline, nullptr);
-        g_Pipeline = VK_NULL_HANDLE;
+        vkDestroyPipeline(VulkanLogicalDevice, m_Pipeline, nullptr);
+        m_Pipeline = VK_NULL_HANDLE;
     }
 
-    if (g_PipelineLayout != VK_NULL_HANDLE)
+    if (m_PipelineLayout != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineLayout(VulkanLogicalDevice, g_PipelineLayout, nullptr);
-        g_PipelineLayout = VK_NULL_HANDLE;
+        vkDestroyPipelineLayout(VulkanLogicalDevice, m_PipelineLayout, nullptr);
+        m_PipelineLayout = VK_NULL_HANDLE;
     }
 
-    if (g_PipelineCache != VK_NULL_HANDLE)
+    if (m_PipelineCache != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineCache(VulkanLogicalDevice, g_PipelineCache, nullptr);
-        g_PipelineCache = VK_NULL_HANDLE;
+        vkDestroyPipelineCache(VulkanLogicalDevice, m_PipelineCache, nullptr);
+        m_PipelineCache = VK_NULL_HANDLE;
     }
 
-    if (g_DescriptorSetLayout != VK_NULL_HANDLE)
+    if (m_DescriptorSetLayout != VK_NULL_HANDLE)
     {
-        vkDestroyDescriptorSetLayout(VulkanLogicalDevice, g_DescriptorSetLayout, nullptr);
-        g_DescriptorSetLayout = VK_NULL_HANDLE;
+        vkDestroyDescriptorSetLayout(VulkanLogicalDevice, m_DescriptorSetLayout, nullptr);
+        m_DescriptorSetLayout = VK_NULL_HANDLE;
     }
 
-    if (g_DescriptorPool != VK_NULL_HANDLE)
+    if (m_DescriptorPool != VK_NULL_HANDLE)
     {
-        vkDestroyDescriptorPool(VulkanLogicalDevice, g_DescriptorPool, nullptr);
-        g_DescriptorPool = VK_NULL_HANDLE;
+        vkDestroyDescriptorPool(VulkanLogicalDevice, m_DescriptorPool, nullptr);
+        m_DescriptorPool = VK_NULL_HANDLE;
     }
 
-    g_DescriptorSets.clear();
+    m_DescriptorSets.clear();
 }
 
-VkRenderPass const& RenderCore::GetRenderPass()
+VkRenderPass const& PipelineManager::GetRenderPass()
 {
-    return g_RenderPass;
+    return m_RenderPass;
 }
 
-VkPipeline const& RenderCore::GetPipeline()
+VkPipeline const& PipelineManager::GetPipeline()
 {
-    return g_Pipeline;
+    return m_Pipeline;
 }
 
-VkPipelineLayout const& RenderCore::GetPipelineLayout()
+VkPipelineLayout const& PipelineManager::GetPipelineLayout()
 {
-    return g_PipelineLayout;
+    return m_PipelineLayout;
 }
 
-VkPipelineCache const& RenderCore::GetPipelineCache()
+VkPipelineCache const& PipelineManager::GetPipelineCache()
 {
-    return g_PipelineCache;
+    return m_PipelineCache;
 }
 
-VkDescriptorSetLayout const& RenderCore::GetDescriptorSetLayout()
+VkDescriptorSetLayout const& PipelineManager::GetDescriptorSetLayout()
 {
-    return g_DescriptorSetLayout;
+    return m_DescriptorSetLayout;
 }
 
-VkDescriptorPool const& RenderCore::GetDescriptorPool()
+VkDescriptorPool const& PipelineManager::GetDescriptorPool()
 {
-    return g_DescriptorPool;
+    return m_DescriptorPool;
 }
 
-VkDescriptorSet RenderCore::GetDescriptorSet(std::uint32_t const ObjectID)
+VkDescriptorSet PipelineManager::GetDescriptorSet(std::uint32_t const ObjectID)
 {
-    if (!g_DescriptorSets.contains(ObjectID))
+    if (!m_DescriptorSets.contains(ObjectID))
     {
         return VK_NULL_HANDLE;
     }
 
-    return g_DescriptorSets.at(ObjectID);
+    return m_DescriptorSets.at(ObjectID);
 }

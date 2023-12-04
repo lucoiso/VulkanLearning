@@ -11,7 +11,7 @@ export module Unit.RenderCore;
 import RenderCore.Tests.SharedUtils;
 
 import RenderCore.Window;
-import RenderCore.EngineCore;
+import RenderCore.Renderer;
 
 TEST_CASE("Window Status", "[RenderCore]")
 {

@@ -15,11 +15,12 @@ module RenderCore.Management.CommandsManagement;
 
 import <array>;
 
-import RenderCore.EngineCore;
+import RenderCore.Renderer;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.BufferManagement;
 import RenderCore.Management.PipelineManagement;
 import RenderCore.Types.Camera;
+import RenderCore.Types.Object;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.EnumConverter;
@@ -28,7 +29,7 @@ import Timer.ExecutionCounter;
 using namespace RenderCore;
 
 VkCommandPool g_CommandPool {};
-std::array<VkCommandBuffer, 1U> g_CommandBuffers {};
+std::vector<VkCommandBuffer> g_CommandBuffers {};
 VkSemaphore g_ImageAvailableSemaphore {};
 VkSemaphore g_RenderFinishedSemaphore {};
 VkFence g_Fence {};
@@ -36,19 +37,26 @@ bool g_SynchronizationObjectsCreated {};
 
 void CreateGraphicsCommandPool()
 {
-    g_CommandPool = RenderCore::CreateCommandPool(GetGraphicsQueue().first);
+    g_CommandPool = CreateCommandPool(GetGraphicsQueue().first);
 }
 
 void AllocateCommandBuffer()
 {
     VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
 
-    for (VkCommandBuffer& CommandBufferIter: g_CommandBuffers)
+    if (std::empty(g_CommandBuffers))
     {
-        if (CommandBufferIter != VK_NULL_HANDLE)
+        g_CommandBuffers.emplace_back();
+    }
+    else
+    {
+        for (VkCommandBuffer& CommandBufferIter: g_CommandBuffers)
         {
-            vkFreeCommandBuffers(VulkanLogicalDevice, g_CommandPool, 1U, &CommandBufferIter);
-            CommandBufferIter = VK_NULL_HANDLE;
+            if (CommandBufferIter != VK_NULL_HANDLE)
+            {
+                vkFreeCommandBuffers(VulkanLogicalDevice, g_CommandPool, 1U, &CommandBufferIter);
+                CommandBufferIter = VK_NULL_HANDLE;
+            }
         }
     }
 
@@ -90,6 +98,7 @@ void FreeCommandBuffers()
     {
         CommandBufferIter = VK_NULL_HANDLE;
     }
+    g_CommandBuffers.clear();
 }
 
 void RenderCore::ReleaseCommandsResources()
@@ -185,7 +194,7 @@ void RenderCore::DestroyCommandsSynchronizationObjects()
     g_SynchronizationObjectsCreated = false;
 }
 
-std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
+std::optional<std::int32_t> RenderCore::RequestSwapChainImage(VkSwapchainKHR const& SwapChain)
 {
     if (!g_SynchronizationObjectsCreated)
     {
@@ -207,7 +216,7 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
     std::uint32_t Output = 0U;
     if (VkResult const OperationResult = vkAcquireNextImageKHR(
                 volkGetLoadedDevice(),
-                GetSwapChain(),
+                SwapChain,
                 g_Timeout,
                 g_ImageAvailableSemaphore,
                 g_Fence,
@@ -235,11 +244,10 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
     return static_cast<std::int32_t>(Output);
 }
 
-void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
+void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex, BufferManager& BufferManager, PipelineManager& PipelineManager, std::vector<std::shared_ptr<Object>> const& Objects)
 {
     AllocateCommandBuffer();
-
-    VkCommandBuffer const& MainCommandBuffer = g_CommandBuffers.at(0U);
+    VkCommandBuffer const& MainCommandBuffer = g_CommandBuffers.back();
 
     constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -247,14 +255,14 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
 
     CheckVulkanResult(vkBeginCommandBuffer(MainCommandBuffer, &CommandBufferBeginInfo));
 
-    VkRenderPass const& RenderPass                 = GetRenderPass();
-    VkPipeline const& Pipeline                     = GetPipeline();
-    VkPipelineLayout const& PipelineLayout         = GetPipelineLayout();
-    std::vector<VkFramebuffer> const& FrameBuffers = GetFrameBuffers();
+    VkRenderPass const& RenderPass                 = PipelineManager.GetRenderPass();
+    VkPipeline const& Pipeline                     = PipelineManager.GetPipeline();
+    VkPipelineLayout const& PipelineLayout         = PipelineManager.GetPipelineLayout();
+    std::vector<VkFramebuffer> const& FrameBuffers = BufferManager.GetFrameBuffers();
 
     constexpr std::array<VkDeviceSize, 1U> Offsets {0U};
 
-    VkExtent2D const Extent = GetSwapChainExtent();
+    VkExtent2D const Extent = BufferManager.GetSwapChainExtent();
 
     VkViewport const Viewport {
             .x        = 0.F,
@@ -299,16 +307,16 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
 
     if (ActiveRenderPass)
     {
-        for (std::shared_ptr<Object> const& ObjectIter: EngineCore::Get().GetObjects())
+        for (std::shared_ptr<Object> const& ObjectIter: Objects)
         {
-            if (!ObjectIter || ObjectIter->IsPendingDestroy() || !GetViewportCamera().CanDrawObject(ObjectIter))
+            if (!ObjectIter || ObjectIter->IsPendingDestroy() || !GetViewportCamera().CanDrawObject(ObjectIter, BufferManager.GetSwapChainExtent()))
             {
                 continue;
             }
 
             std::uint32_t const ObjectID = ObjectIter->GetID();
 
-            if (VkDescriptorSet const& DescriptorSet = GetDescriptorSet(ObjectID); DescriptorSet != VK_NULL_HANDLE)
+            if (VkDescriptorSet const& DescriptorSet = PipelineManager.GetDescriptorSet(ObjectID); DescriptorSet != VK_NULL_HANDLE)
             {
                 vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, 1U, &DescriptorSet, 0U, nullptr);
             }
@@ -317,11 +325,11 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
                 continue;
             }
 
-            VkBuffer const& VertexBuffer   = GetVertexBuffer(ObjectID);
-            VkBuffer const& IndexBuffer    = GetIndexBuffer(ObjectID);
-            std::uint32_t const IndexCount = GetIndicesCount(ObjectID);
+            VkBuffer const& VertexBuffer   = BufferManager.GetVertexBuffer(ObjectID);
+            VkBuffer const& IndexBuffer    = BufferManager.GetIndexBuffer(ObjectID);
+            std::uint32_t const IndexCount = BufferManager.GetIndicesCount(ObjectID);
 
-            UpdateUniformBuffers(ObjectID);
+            BufferManager.UpdateUniformBuffers(ObjectIter, BufferManager.GetSwapChainExtent());
 
             bool ActiveVertexBinding {false};
             if (VertexBuffer != VK_NULL_HANDLE)
@@ -379,14 +387,14 @@ void RenderCore::SubmitCommandBuffers()
     FreeCommandBuffers();
 }
 
-void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
+void RenderCore::PresentFrame(std::uint32_t const ImageIndice, VkSwapchainKHR const& SwapChain)
 {
     VkPresentInfoKHR const PresentInfo {
             .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .waitSemaphoreCount = 1U,
             .pWaitSemaphores    = &g_RenderFinishedSemaphore,
             .swapchainCount     = 1U,
-            .pSwapchains        = &GetSwapChain(),
+            .pSwapchains        = &SwapChain,
             .pImageIndices      = &ImageIndice,
             .pResults           = nullptr};
 

@@ -3,8 +3,8 @@
 // Repo : https://github.com/lucoiso/VulkanRenderer
 
 #include <boost/log/core.hpp>
-#include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
+#include <boost/log/trivial.hpp>
 
 import RenderCore.Window;
 

@@ -421,3 +421,37 @@ void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> 
         }
     }
 }
+
+std::vector<VkPipelineShaderStageCreateInfo> RenderCore::CompileDefaultShaders()
+{
+    constexpr std::array FragmentShaders {
+            DEFAULT_SHADER_FRAG};
+    constexpr std::array VertexShaders {
+            DEFAULT_SHADER_VERT};
+
+    std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
+
+    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
+
+    for (char const* const& FragmentShaderIter: FragmentShaders)
+    {
+        if (std::vector<std::uint32_t> FragmentShaderCode;
+            CompileOrLoadIfExists(FragmentShaderIter, FragmentShaderCode))
+        {
+            auto const FragmentModule = CreateModule(VulkanLogicalDevice, FragmentShaderCode, EShLangFragment);
+            ShaderStages.push_back(GetStageInfo(FragmentModule));
+        }
+    }
+
+    for (char const* const& VertexShaderIter: VertexShaders)
+    {
+        if (std::vector<std::uint32_t> VertexShaderCode;
+            CompileOrLoadIfExists(VertexShaderIter, VertexShaderCode))
+        {
+            auto const VertexModule = CreateModule(VulkanLogicalDevice, VertexShaderCode, EShLangVertex);
+            ShaderStages.push_back(GetStageInfo(VertexModule));
+        }
+    }
+
+    return ShaderStages;
+}

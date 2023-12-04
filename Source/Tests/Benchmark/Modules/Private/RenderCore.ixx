@@ -11,7 +11,7 @@ export module Benchmark.RenderCore;
 import RenderCore.Tests.SharedUtils;
 
 import RenderCore.Window;
-import RenderCore.EngineCore;
+import RenderCore.Renderer;
 
 static void InitializeWindow(benchmark::State& State)
 {

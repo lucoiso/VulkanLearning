@@ -14,18 +14,20 @@ module RenderCore.Management.ImGuiManagement;
 
 import <array>;
 
+import RenderCore.Renderer;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.PipelineManagement;
 import RenderCore.Management.CommandsManagement;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
+import RenderCore.Types.Camera;
 import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
 VkDescriptorPool g_ImGuiDescriptorPool {VK_NULL_HANDLE};
 
-void RenderCore::InitializeImGui(GLFWwindow* const Window)
+void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& PipelineManager)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -70,7 +72,7 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window)
             .Device          = volkGetLoadedDevice(),
             .QueueFamily     = GetGraphicsQueue().first,
             .Queue           = GetGraphicsQueue().second,
-            .PipelineCache   = GetPipelineCache(),
+            .PipelineCache   = PipelineManager.GetPipelineCache(),
             .DescriptorPool  = g_ImGuiDescriptorPool,
             .MinImageCount   = GetMinImageCount(),
             .ImageCount      = GetMinImageCount(),
@@ -80,7 +82,7 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window)
                 CheckVulkanResult(Result);
             }};
 
-    ImGui_ImplVulkan_Init(&ImGuiVulkanInitInfo, GetRenderPass());
+    ImGui_ImplVulkan_Init(&ImGuiVulkanInitInfo, PipelineManager.GetRenderPass());
 
     VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
     VkCommandPool CommandPool     = VK_NULL_HANDLE;

@@ -28,7 +28,8 @@ std::pair<std::uint8_t, VkQueue> g_PresentationQueue {};
 std::pair<std::uint8_t, VkQueue> g_TransferQueue {};
 std::vector<std::uint8_t> g_UniqueQueueFamilyIndices {};
 
-bool GetQueueFamilyIndices(std::optional<std::uint8_t>& GraphicsQueueFamilyIndex,
+bool GetQueueFamilyIndices(VkSurfaceKHR const& VulkanSurface,
+                           std::optional<std::uint8_t>& GraphicsQueueFamilyIndex,
                            std::optional<std::uint8_t>& PresentationQueueFamilyIndex,
                            std::optional<std::uint8_t>& TransferQueueFamilyIndex)
 {
@@ -40,8 +41,6 @@ bool GetQueueFamilyIndices(std::optional<std::uint8_t>& GraphicsQueueFamilyIndex
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
-
-    VkSurfaceKHR const& VulkanSurface = GetSurface();
 
     std::uint32_t QueueFamilyCount = 0U;
     vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &QueueFamilyCount, nullptr);
@@ -128,13 +127,13 @@ void ListAvailablePhysicalDeviceLayerExtensions(std::string_view const& LayerNam
     }
 }
 
-void ListAvailablePhysicalDeviceSurfaceCapabilities()
+void ListAvailablePhysicalDeviceSurfaceCapabilities(VkSurfaceKHR const& VulkanSurface)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device surface capabilities...";
 
-    VkSurfaceCapabilitiesKHR const SurfaceCapabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
+    VkSurfaceCapabilitiesKHR const SurfaceCapabilities = GetAvailablePhysicalDeviceSurfaceCapabilities(VulkanSurface);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min ImageAllocation Count: " << SurfaceCapabilities.minImageCount;
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max ImageAllocation Count: " << SurfaceCapabilities.maxImageCount;
@@ -148,26 +147,26 @@ void ListAvailablePhysicalDeviceSurfaceCapabilities()
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Usage Flags: " << ImageUsageFlagToString(static_cast<VkImageUsageFlagBits>(SurfaceCapabilities.supportedUsageFlags));
 }
 
-void ListAvailablePhysicalDeviceSurfaceFormats()
+void ListAvailablePhysicalDeviceSurfaceFormats(VkSurfaceKHR const& VulkanSurface)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device surface formats...";
 
-    for (auto const& [Format, ColorSpace]: GetAvailablePhysicalDeviceSurfaceFormats())
+    for (auto const& [Format, ColorSpace]: GetAvailablePhysicalDeviceSurfaceFormats(VulkanSurface))
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Format: " << SurfaceFormatToString(Format);
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Color Space: " << ColorSpaceModeToString(ColorSpace) << std::endl;
     }
 }
 
-void ListAvailablePhysicalDeviceSurfacePresentationModes()
+void ListAvailablePhysicalDeviceSurfacePresentationModes(VkSurfaceKHR const& VulkanSurface)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device presentation modes...";
 
-    for (VkPresentModeKHR const& FormatIter: GetAvailablePhysicalDeviceSurfacePresentationModes())
+    for (VkPresentModeKHR const& FormatIter: GetAvailablePhysicalDeviceSurfacePresentationModes(VulkanSurface))
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Mode: " << PresentationModeToString(FormatIter);
     }
@@ -192,7 +191,7 @@ bool IsPhysicalDeviceSuitable(VkPhysicalDevice const& Device)
     return DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && SupportedFeatures.samplerAnisotropy != 0U;
 }
 
-void RenderCore::PickPhysicalDevice()
+void RenderCore::PickPhysicalDevice(VkSurfaceKHR const& VulkanSurface)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -226,13 +225,13 @@ void RenderCore::PickPhysicalDevice()
         ListAvailablePhysicalDeviceLayerExtensions(DebugLayerIter);
     }
 
-    ListAvailablePhysicalDeviceSurfaceCapabilities();
-    ListAvailablePhysicalDeviceSurfaceFormats();
-    ListAvailablePhysicalDeviceSurfacePresentationModes();
+    ListAvailablePhysicalDeviceSurfaceCapabilities(VulkanSurface);
+    ListAvailablePhysicalDeviceSurfaceFormats(VulkanSurface);
+    ListAvailablePhysicalDeviceSurfacePresentationModes(VulkanSurface);
 #endif
 }
 
-void RenderCore::CreateLogicalDevice()
+void RenderCore::CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -240,7 +239,7 @@ void RenderCore::CreateLogicalDevice()
     std::optional<std::uint8_t> PresentationQueueFamilyIndex {std::nullopt};
     std::optional<std::uint8_t> TransferQueueFamilyIndex {std::nullopt};
 
-    if (!GetQueueFamilyIndices(GraphicsQueueFamilyIndex, PresentationQueueFamilyIndex, TransferQueueFamilyIndex))
+    if (!GetQueueFamilyIndices(VulkanSurface, GraphicsQueueFamilyIndex, PresentationQueueFamilyIndex, TransferQueueFamilyIndex))
     {
         throw std::runtime_error("Failed to get queue family indices.");
     }
@@ -341,19 +340,19 @@ void RenderCore::CreateLogicalDevice()
     }
 }
 
-bool RenderCore::UpdateDeviceProperties(GLFWwindow* const Window)
+bool RenderCore::UpdateDeviceProperties(GLFWwindow* const Window, VkSurfaceKHR const& VulkanSurface)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
-    g_DeviceProperties.Capabilities = GetAvailablePhysicalDeviceSurfaceCapabilities();
+    g_DeviceProperties.Capabilities = GetAvailablePhysicalDeviceSurfaceCapabilities(VulkanSurface);
 
-    std::vector<VkSurfaceFormatKHR> const SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats();
+    std::vector<VkSurfaceFormatKHR> const SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats(VulkanSurface);
     if (std::empty(SupportedFormats))
     {
         throw std::runtime_error("No supported surface formats found.");
     }
 
-    std::vector<VkPresentModeKHR> const SupportedPresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes();
+    std::vector<VkPresentModeKHR> const SupportedPresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes(VulkanSurface);
     if (std::empty(SupportedFormats))
     {
         throw std::runtime_error("No supported presentation modes found.");
@@ -588,7 +587,7 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames()
     return Output;
 }
 
-VkSurfaceCapabilitiesKHR RenderCore::GetAvailablePhysicalDeviceSurfaceCapabilities()
+VkSurfaceCapabilitiesKHR RenderCore::GetAvailablePhysicalDeviceSurfaceCapabilities(VkSurfaceKHR const& VulkanSurface)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -598,12 +597,12 @@ VkSurfaceCapabilitiesKHR RenderCore::GetAvailablePhysicalDeviceSurfaceCapabiliti
     }
 
     VkSurfaceCapabilitiesKHR Output;
-    CheckVulkanResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g_PhysicalDevice, GetSurface(), &Output));
+    CheckVulkanResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g_PhysicalDevice, VulkanSurface, &Output));
 
     return Output;
 }
 
-std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFormats()
+std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFormats(VkSurfaceKHR const& VulkanSurface)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -611,8 +610,6 @@ std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFor
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
-
-    VkSurfaceKHR const& VulkanSurface = GetSurface();
 
     std::uint32_t Count = 0U;
     CheckVulkanResult(vkGetPhysicalDeviceSurfaceFormatsKHR(g_PhysicalDevice, VulkanSurface, &Count, nullptr));
@@ -623,7 +620,7 @@ std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFor
     return Output;
 }
 
-std::vector<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePresentationModes()
+std::vector<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePresentationModes(VkSurfaceKHR const& VulkanSurface)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -631,8 +628,6 @@ std::vector<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePrese
     {
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
-
-    VkSurfaceKHR const& VulkanSurface = GetSurface();
 
     std::uint32_t Count = 0U;
     CheckVulkanResult(vkGetPhysicalDeviceSurfacePresentModesKHR(g_PhysicalDevice, VulkanSurface, &Count, nullptr));

@@ -465,7 +465,7 @@ namespace RenderCore
         explicit Transform(glm::mat4 const& TransformMatrix)
             : Position(Vector(TransformMatrix[3])),
               Scale(Vector(glm::vec3(TransformMatrix[0][0], TransformMatrix[1][1], TransformMatrix[2][2]))),
-              Rotation(Rotator(glm::eulerAngles(glm::quat(TransformMatrix))))
+              Rotation(Rotator(eulerAngles(glm::quat(TransformMatrix))))
         {
         }
 
@@ -584,11 +584,11 @@ namespace RenderCore
         [[nodiscard]] glm::mat4 ToGlmMat4() const
         {
             glm::mat4 TransformMatrix(1.F);
-            TransformMatrix = glm::translate(TransformMatrix, Position.ToGlmVec3());
-            TransformMatrix = glm::scale(TransformMatrix, Scale.ToGlmVec3());
-            TransformMatrix = glm::rotate(TransformMatrix, glm::radians(Rotation.Pitch), glm::vec3(1.F, 0.F, 0.F));
-            TransformMatrix = glm::rotate(TransformMatrix, glm::radians(Rotation.Yaw), glm::vec3(0.F, 1.F, 0.F));
-            TransformMatrix = glm::rotate(TransformMatrix, glm::radians(Rotation.Roll), glm::vec3(0.F, 0.F, 1.F));
+            TransformMatrix = translate(TransformMatrix, Position.ToGlmVec3());
+            TransformMatrix = scale(TransformMatrix, Scale.ToGlmVec3());
+            TransformMatrix = rotate(TransformMatrix, glm::radians(Rotation.Pitch), glm::vec3(1.F, 0.F, 0.F));
+            TransformMatrix = rotate(TransformMatrix, glm::radians(Rotation.Yaw), glm::vec3(0.F, 1.F, 0.F));
+            TransformMatrix = rotate(TransformMatrix, glm::radians(Rotation.Roll), glm::vec3(0.F, 0.F, 1.F));
             return TransformMatrix;
         }
 

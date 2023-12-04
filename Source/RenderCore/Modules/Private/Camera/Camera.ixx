@@ -5,6 +5,7 @@
 module;
 
 #include <glm/ext.hpp>
+#include <volk.h>
 
 export module RenderCore.Types.Camera;
 
@@ -70,15 +71,15 @@ namespace RenderCore
         void SetDrawDistance(float);
 
         [[nodiscard]] glm::mat4 GetViewMatrix() const;
-        [[nodiscard]] glm::mat4 GetProjectionMatrix() const;
+        [[nodiscard]] glm::mat4 GetProjectionMatrix(VkExtent2D const&) const;
 
         [[nodiscard]] CameraMovementStateFlags GetCameraMovementStateFlags() const;
         void SetCameraMovementStateFlags(CameraMovementStateFlags);
         void UpdateCameraMovement(float);
 
-        [[nodiscard]] bool IsInsideCameraFrustum(Vector const&) const;
+        [[nodiscard]] bool IsInsideCameraFrustum(Vector const&, VkExtent2D const&) const;
         [[nodiscard]] bool IsInAllowedDistance(Vector const&) const;
-        [[nodiscard]] bool CanDrawObject(std::shared_ptr<Object> const&) const;
+        [[nodiscard]] bool CanDrawObject(std::shared_ptr<Object> const&, VkExtent2D const&) const;
     };
 
     export [[nodiscard]] Camera& GetViewportCamera();

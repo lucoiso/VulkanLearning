@@ -6,7 +6,7 @@ module;
 
 #include <GLFW/glfw3.h>
 
-export module RenderCore.Utils.GLFWCallbacks;
+export module RenderCore.Input.GLFWCallbacks;
 
 export import <cstdint>;
 

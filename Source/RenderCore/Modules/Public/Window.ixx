@@ -13,13 +13,16 @@ export import <string_view>;
 export import <memory>;
 
 export import Coroutine.Types;
-import Timer.Manager;
+export import RenderCore.Renderer;
 
 namespace RenderCore
 {
     export class RENDERCOREMODULE_API Window
     {
-        std::unique_ptr<Timer::Manager> m_RenderTimerManager {};
+        class WindowImpl;
+        std::unique_ptr<WindowImpl> m_WindowImpl {nullptr};
+
+        Renderer m_Renderer {};
 
     public:
         Window();
@@ -29,11 +32,13 @@ namespace RenderCore
 
         virtual ~Window();
 
-        AsyncOperation<bool> Initialize(std::uint16_t, std::uint16_t, std::string_view const&, bool const bHeadless = false);
+        AsyncOperation<bool> Initialize(std::uint16_t, std::uint16_t, std::string_view const&, bool bHeadless = false);
         AsyncTask Shutdown();
 
-        [[nodiscard]] bool IsInitialized();
-        [[nodiscard]] bool IsOpen();
+        [[nodiscard]] bool IsInitialized() const;
+        [[nodiscard]] bool IsOpen() const;
+
+        [[nodiscard]] Renderer& GetRenderer();
 
         virtual void PollEvents();
 

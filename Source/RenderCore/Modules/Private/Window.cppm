@@ -16,51 +16,73 @@ using namespace RenderCore;
 
 import <semaphore>;
 
-import Timer.Manager;
-import RenderCore.EngineCore;
+import RenderCore.Renderer;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.ImGuiManagement;
 import RenderCore.Types.Camera;
-import RenderCore.Utils.GLFWCallbacks;
+import RenderCore.Input.GLFWCallbacks;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import Timer.ExecutionCounter;
 
-GLFWwindow* g_Window {nullptr};
-
-bool InitializeGLFW(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, bool const bHeadless)
+class Window::WindowImpl final
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    GLFWwindow* m_Window {nullptr};
 
-    if (glfwInit() == 0)
+public:
+    [[nodiscard]] bool Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, bool const bHeadless)
     {
-        throw std::runtime_error("Failed to initialize GLFW");
+        Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
+        if (glfwInit() == 0)
+        {
+            throw std::runtime_error("Failed to initialize GLFW");
+        }
+
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+        glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+        glfwWindowHint(GLFW_VISIBLE, bHeadless ? GLFW_FALSE : GLFW_TRUE);
+
+        m_Window = glfwCreateWindow(Width, Height, std::data(Title), nullptr, nullptr);
+
+        if (m_Window == nullptr)
+        {
+            throw std::runtime_error("Failed to create GLFW Window");
+        }
+
+        glfwSetWindowCloseCallback(m_Window, &GLFWWindowCloseRequested);
+        glfwSetWindowSizeCallback(m_Window, &GLFWWindowResized);
+        glfwSetKeyCallback(m_Window, &GLFWKeyCallback);
+        glfwSetCursorPosCallback(m_Window, &GLFWCursorPositionCallback);
+        glfwSetScrollCallback(m_Window, &GLFWCursorScrollCallback);
+
+        return m_Window != nullptr;
     }
 
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
-    glfwWindowHint(GLFW_VISIBLE, bHeadless ? GLFW_FALSE : GLFW_TRUE);
-
-    g_Window = glfwCreateWindow(Width, Height, std::data(Title), nullptr, nullptr);
-
-    if (g_Window == nullptr)
+    void Shutdown()
     {
-        throw std::runtime_error("Failed to create GLFW Window");
+        Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+
+        glfwSetWindowShouldClose(m_Window, GLFW_TRUE);
+        glfwDestroyWindow(m_Window);
+        glfwTerminate();
+        m_Window = nullptr;
     }
 
-    glfwSetWindowCloseCallback(g_Window, &GLFWWindowCloseRequested);
-    glfwSetWindowSizeCallback(g_Window, &GLFWWindowResized);
-    glfwSetKeyCallback(g_Window, &GLFWKeyCallback);
-    glfwSetCursorPosCallback(g_Window, &GLFWCursorPositionCallback);
-    glfwSetScrollCallback(g_Window, &GLFWCursorScrollCallback);
-    glfwSetErrorCallback(&GLFWErrorCallback);
+    [[nodiscard]] GLFWwindow* GetWindow() const
+    {
+        return m_Window;
+    }
 
-    return g_Window != nullptr;
-}
+    [[nodiscard]] bool IsOpen() const
+    {
+        return m_Window && !glfwWindowShouldClose(m_Window);
+    }
+};
 
 Window::Window()
-    : m_RenderTimerManager(std::make_unique<Timer::Manager>())
+    : m_WindowImpl(std::make_unique<WindowImpl>())
 {
 }
 
@@ -86,13 +108,13 @@ AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t
 
     try
     {
-        if (InitializeGLFW(Width, Height, Title, bHeadless) && EngineCore::Get().InitializeEngine(g_Window))
+        if (m_WindowImpl->Initialize(Width, Height, Title, bHeadless) && m_Renderer.Initialize(m_WindowImpl->GetWindow()))
         {
             std::binary_semaphore Semaphore {0U};
             {
-                m_RenderTimerManager->SetTimer(
+                Renderer::GetRenderTimerManager().SetTimer(
                         0U,
-                        [this, &Semaphore]() {
+                        [this, &Semaphore] {
                             RequestRender();
                             Semaphore.release();
                         });
@@ -118,10 +140,10 @@ AsyncTask Window::Shutdown()
     {
         std::binary_semaphore Semaphore {0U};
         {
-            m_RenderTimerManager->SetTimer(
+            Renderer::GetRenderTimerManager().SetTimer(
                     0U,
-                    [&Semaphore]() {
-                        EngineCore::Get().ShutdownEngine();
+                    [&Semaphore, this] {
+                        m_Renderer.Shutdown();
                         Semaphore.release();
                     });
         }
@@ -130,23 +152,25 @@ AsyncTask Window::Shutdown()
 
     if (IsOpen())
     {
-        glfwSetWindowShouldClose(g_Window, GLFW_TRUE);
-        glfwDestroyWindow(g_Window);
-        glfwTerminate();
-        g_Window = nullptr;
+        m_WindowImpl->Shutdown();
     }
 
     co_return;
 }
 
-bool Window::IsInitialized()
+bool Window::IsInitialized() const
 {
-    return EngineCore::Get().IsEngineInitialized();
+    return m_WindowImpl && m_Renderer.IsInitialized();
 }
 
-bool Window::IsOpen()
+bool Window::IsOpen() const
 {
-    return g_Window != nullptr && glfwWindowShouldClose(g_Window) == 0;
+    return m_WindowImpl && m_WindowImpl->IsOpen();
+}
+
+Renderer& Window::GetRenderer()
+{
+    return m_Renderer;
 }
 
 void Window::PollEvents()
@@ -158,14 +182,8 @@ void Window::PollEvents()
 
     try
     {
-        static double LastFrameTime = glfwGetTime();
-
-        double const CurrentTime = glfwGetTime();
-        {
-            glfwPollEvents();
-            EngineCore::Get().Tick(CurrentTime - LastFrameTime);
-        }
-        LastFrameTime = CurrentTime;
+        glfwPollEvents();
+        m_Renderer.Tick();
     }
     catch (std::exception const& Ex)
     {
@@ -198,7 +216,7 @@ void Window::CreateOverlay()
         {
             constexpr const char* OptionNone = "None";
             static std::string SelectedItem  = OptionNone;
-            if (RenderCore::EngineCore::Get().GetNumObjects() == 0U)
+            if (m_Renderer.GetNumObjects() == 0U)
             {
                 SelectedItem = OptionNone;
             }
@@ -228,10 +246,10 @@ void Window::CreateOverlay()
 
                 if (SelectionChanged)
                 {
-                    EngineCore::Get().UnloadAllScenes();
+                    m_Renderer.UnloadAllScenes();
                     if (!std::empty(s_ModelPath))
                     {
-                        [[maybe_unused]] auto const _ = EngineCore::Get().LoadScene(s_ModelPath);
+                        [[maybe_unused]] auto const _ = m_Renderer.LoadScene(s_ModelPath);
                     }
                 }
             }
@@ -244,7 +262,7 @@ void Window::CreateOverlay()
 
         ImGui::BeginGroup();
         {
-            auto const& Objects = EngineCore::Get().GetObjects();
+            auto const& Objects = m_Renderer.GetObjects();
             ImGui::Text("Loaded Objects: %d", std::size(Objects));
             ImGui::Spacing();
 
@@ -288,19 +306,15 @@ void Window::RequestRender()
 {
     if (IsOpen())
     {
-
-        static double DeltaTime = glfwGetTime();
-        DeltaTime               = glfwGetTime() - DeltaTime;
-
-        GetViewportCamera().UpdateCameraMovement(static_cast<float>(DeltaTime));
+        GetViewportCamera().UpdateCameraMovement(static_cast<float>(m_Renderer.GetDeltaTime()));
 
         DrawImGuiFrame([this] {
             CreateOverlay();
         });
 
-        EngineCore::Get().DrawFrame(g_Window);
+        m_Renderer.DrawFrame(m_WindowImpl->GetWindow());
 
-        m_RenderTimerManager->SetTimer(
+        Renderer::GetRenderTimerManager().SetTimer(
                 1000U / g_FrameRate,
                 [this]() {
                     RequestRender();

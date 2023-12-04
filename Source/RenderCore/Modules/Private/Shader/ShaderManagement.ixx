@@ -26,4 +26,6 @@ namespace RenderCore
 
     export void ReleaseShaderResources();
     export void FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const&);
+
+    export [[nodiscard]] std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders();
 }// namespace RenderCore

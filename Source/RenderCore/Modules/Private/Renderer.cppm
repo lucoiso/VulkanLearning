@@ -17,7 +17,7 @@ module;
 #endif
 #include <GLFW/glfw3.h>
 
-module RenderCore.EngineCore;
+module RenderCore.Renderer;
 
 import <vector>;
 import <filesystem>;
@@ -36,44 +36,11 @@ import RenderCore.Utils.Constants;
 using namespace RenderCore;
 
 VkInstance g_Instance {VK_NULL_HANDLE};
+Timer::Manager g_RenderTimerManager {};
 
 #ifdef _DEBUG
 VkDebugUtilsMessengerEXT g_DebugMessenger {VK_NULL_HANDLE};
 #endif
-
-std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders()
-{
-    constexpr std::array FragmentShaders {
-            DEBUG_SHADER_FRAG};
-    constexpr std::array VertexShaders {
-            DEBUG_SHADER_VERT};
-
-    std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
-
-    VkDevice const& VulkanLogicalDevice = volkGetLoadedDevice();
-
-    for (char const* const& FragmentShaderIter: FragmentShaders)
-    {
-        if (std::vector<std::uint32_t> FragmentShaderCode;
-            CompileOrLoadIfExists(FragmentShaderIter, FragmentShaderCode))
-        {
-            auto const FragmentModule = CreateModule(VulkanLogicalDevice, FragmentShaderCode, EShLangFragment);
-            ShaderStages.push_back(GetStageInfo(FragmentModule));
-        }
-    }
-
-    for (char const* const& VertexShaderIter: VertexShaders)
-    {
-        if (std::vector<std::uint32_t> VertexShaderCode;
-            CompileOrLoadIfExists(VertexShaderIter, VertexShaderCode))
-        {
-            auto const VertexModule = CreateModule(VulkanLogicalDevice, VertexShaderCode, EShLangVertex);
-            ShaderStages.push_back(GetStageInfo(VertexModule));
-        }
-    }
-
-    return ShaderStages;
-}
 
 void CreateVulkanInstance()
 {
@@ -123,24 +90,17 @@ void CreateVulkanInstance()
 #endif
 }
 
-void InitializeRenderCore(GLFWwindow* const Window)
+void InitializeRenderCore(GLFWwindow* const Window, VkSurfaceKHR const& VulkanSurface)
 {
-    PickPhysicalDevice();
-    CreateLogicalDevice();
+    PickPhysicalDevice(VulkanSurface);
+    CreateLogicalDevice(VulkanSurface);
     volkLoadDevice(GetLogicalDevice());
-
-    CreateMemoryAllocator();
-    CompileDefaultShaders();
-
-    UpdateDeviceProperties(Window);
-    CreateRenderPass();
-
-    InitializeImGui(Window);
+    UpdateDeviceProperties(Window, VulkanSurface);
 }
 
-void RenderCore::EngineCore::DrawFrame(GLFWwindow* const Window)
+void Renderer::DrawFrame(GLFWwindow* const Window)
 {
-    if (!IsEngineInitialized())
+    if (!IsInitialized())
     {
         return;
     }
@@ -152,110 +112,117 @@ void RenderCore::EngineCore::DrawFrame(GLFWwindow* const Window)
 
     RemoveInvalidObjects();
 
-    constexpr RenderCore::EngineCore::EngineCoreStateFlags
-            InvalidStatesToRender
-            = RenderCore::EngineCore::EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE
-              | RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION
-              | RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_CREATION
-              | RenderCore::EngineCore::EngineCoreStateFlags::PENDING_PIPELINE_REFRESH;
+    constexpr EngineCoreStateFlags InvalidStatesToRender = EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE
+                                                           | EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION
+                                                           | EngineCoreStateFlags::PENDING_RESOURCES_CREATION
+                                                           | EngineCoreStateFlags::PENDING_PIPELINE_REFRESH;
 
     if (HasAnyFlag(m_StateFlags, InvalidStatesToRender))
     {
-        if (HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION))
+        if (HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
             DestroyCommandsSynchronizationObjects();
-            DestroyBufferResources(false);
-            ReleaseDynamicPipelineResources();
 
-            RemoveFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-            AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+            m_BufferManager.DestroyBufferResources(false);
+            m_PipelineManager.ReleaseDynamicPipelineResources();
+
+            RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+            AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
         }
 
-        if (HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
+        if (HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
         {
-            if (UpdateDeviceProperties(Window))
+            if (UpdateDeviceProperties(Window, m_BufferManager.GetSurface()))
             {
                 BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Device properties updated, starting to draw frames with new properties";
-                RemoveFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+                RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
             }
         }
 
-        if (HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_CREATION) && !HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
+        if (HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION) && !HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
 
-            CreateSwapChain();
-            CreateDepthResources();
+            m_BufferManager.CreateSwapChain();
+            m_BufferManager.CreateDepthResources();
             CreateCommandsSynchronizationObjects();
 
-            RemoveFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
-            AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
+            RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+            AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
         }
 
-        if (HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_PIPELINE_REFRESH))
+        if (HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH))
         {
-            CreateDescriptorSetLayout();
-            CreateGraphicsPipeline();
+            m_PipelineManager.CreateDescriptorSetLayout();
+            m_PipelineManager.CreateGraphicsPipeline();
 
-            CreateFrameBuffers();
+            m_BufferManager.CreateFrameBuffers(m_PipelineManager.GetRenderPass());
 
-            CreateDescriptorPool();
-            CreateDescriptorSets();
+            m_PipelineManager.CreateDescriptorPool(m_BufferManager.GetClampedNumAllocations());
 
-            RemoveFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
+            auto MeshData = m_BufferManager.GetAllocatedObjects();
+            m_PipelineManager.CreateDescriptorSets(MeshData);
+
+            RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
         }
     }
 
     if (!HasAnyFlag(m_StateFlags, InvalidStatesToRender))
     {
-        if (std::optional<std::int32_t> const ImageIndice = TryRequestDrawImage();
+        if (std::optional<std::int32_t> const ImageIndice = RequestImageIndex();
             ImageIndice.has_value())
         {
             std::lock_guard Lock(m_ObjectsMutex);
 
-            RecordCommandBuffers(ImageIndice.value());
+            RecordCommandBuffers(ImageIndice.value(), m_BufferManager, m_PipelineManager, GetObjects());
             SubmitCommandBuffers();
-            PresentFrame(ImageIndice.value());
+            PresentFrame(ImageIndice.value(), m_BufferManager.GetSwapChain());
         }
     }
 }
 
-std::optional<std::int32_t> RenderCore::EngineCore::TryRequestDrawImage()
+std::optional<std::int32_t> Renderer::RequestImageIndex()
 {
     if (!GetDeviceProperties().IsValid())
     {
-        AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
-        AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+        AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
 
         return std::nullopt;
     }
-    RemoveFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+    RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
 
-    std::optional<std::int32_t> const Output = RequestSwapChainImage();
+    std::optional<std::int32_t> const Output = RequestSwapChainImage(m_BufferManager.GetSwapChain());
 
     if (!Output.has_value())
     {
-        AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
     }
     else
     {
-        RemoveFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
     }
 
     return Output;
 }
 
-void RenderCore::EngineCore::Tick(double const DeltaTime)
+void Renderer::Tick()
 {
-    if (!IsEngineInitialized())
+    if (!IsInitialized())
     {
         return;
     }
+
+    static std::uint64_t LastTime   = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    std::uint64_t const CurrentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    double const DeltaTime          = static_cast<double>(CurrentTime - LastTime) / 1000.0;
 
     if (DeltaTime <= 0.0f)
     {
         return;
     }
+
+    m_DeltaTime = DeltaTime;
 
     if (m_ObjectsMutex.try_lock())
     {
@@ -271,7 +238,7 @@ void RenderCore::EngineCore::Tick(double const DeltaTime)
     }
 }
 
-void RenderCore::EngineCore::RemoveInvalidObjects()
+void Renderer::RemoveInvalidObjects()
 {
     if (std::empty(m_Objects))
     {
@@ -298,9 +265,9 @@ void RenderCore::EngineCore::RemoveInvalidObjects()
     }
 }
 
-bool RenderCore::EngineCore::InitializeEngine(GLFWwindow* const Window)
+bool Renderer::Initialize(GLFWwindow* const Window)
 {
-    if (IsEngineInitialized())
+    if (IsInitialized())
     {
         return false;
     }
@@ -324,29 +291,34 @@ bool RenderCore::EngineCore::InitializeEngine(GLFWwindow* const Window)
 #endif
 
     CreateVulkanInstance();
-    CreateVulkanSurface(Window);
-    InitializeRenderCore(Window);
+    m_BufferManager.CreateVulkanSurface(Window);
+    InitializeRenderCore(Window, m_BufferManager.GetSurface());
 
-    AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::INITIALIZED);
-    AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+    m_BufferManager.CreateMemoryAllocator();
+    auto const _ = CompileDefaultShaders();
+    m_PipelineManager.CreateRenderPass();
+    InitializeImGui(Window, m_PipelineManager);
 
-    return UpdateDeviceProperties(Window) && IsEngineInitialized();
+    AddFlags(m_StateFlags, EngineCoreStateFlags::INITIALIZED);
+    AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+
+    return UpdateDeviceProperties(Window, m_BufferManager.GetSurface()) && IsInitialized();
 }
 
-void RenderCore::EngineCore::ShutdownEngine()
+void Renderer::Shutdown()
 {
-    if (!IsEngineInitialized())
+    if (!IsInitialized())
     {
         return;
     }
 
-    RemoveFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::INITIALIZED);
+    RemoveFlags(m_StateFlags, EngineCoreStateFlags::INITIALIZED);
 
     ReleaseImGuiResources();
     ReleaseShaderResources();
     ReleaseCommandsResources();
-    ReleaseBufferResources();
-    ReleasePipelineResources();
+    m_BufferManager.ReleaseBufferResources();
+    m_PipelineManager.ReleasePipelineResources();
     ReleaseDeviceResources();
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan engine core";
@@ -367,20 +339,14 @@ void RenderCore::EngineCore::ShutdownEngine()
     m_Objects.clear();
 }
 
-EngineCore& RenderCore::EngineCore::Get()
+bool Renderer::IsInitialized() const
 {
-    static EngineCore Instance;
-    return Instance;
+    return HasFlag(m_StateFlags, EngineCoreStateFlags::INITIALIZED);
 }
 
-bool RenderCore::EngineCore::IsEngineInitialized() const
+std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const& ObjectPath)
 {
-    return HasFlag(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::INITIALIZED);
-}
-
-std::vector<std::uint32_t> RenderCore::EngineCore::LoadScene(std::string_view const& ObjectPath)
-{
-    if (!IsEngineInitialized())
+    if (!IsInitialized())
     {
         return {};
     }
@@ -394,7 +360,7 @@ std::vector<std::uint32_t> RenderCore::EngineCore::LoadScene(std::string_view co
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
 
-    std::vector<Object> LoadedObjects = AllocateScene(ObjectPath);
+    std::vector<Object> LoadedObjects = m_BufferManager.AllocateScene(ObjectPath);
     std::vector<std::uint32_t> Output;
     Output.reserve(std::size(LoadedObjects));
 
@@ -404,15 +370,15 @@ std::vector<std::uint32_t> RenderCore::EngineCore::LoadScene(std::string_view co
         Output.push_back(ObjectIter.GetID());
     }
 
-    AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-    AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+    AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
 
     return Output;
 }
 
-void RenderCore::EngineCore::UnloadScene(std::vector<std::uint32_t> const& ObjectIDs)
+void Renderer::UnloadScene(std::vector<std::uint32_t> const& ObjectIDs)
 {
-    if (!IsEngineInitialized())
+    if (!IsInitialized())
     {
         return;
     }
@@ -421,7 +387,7 @@ void RenderCore::EngineCore::UnloadScene(std::vector<std::uint32_t> const& Objec
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading scene...";
 
-    ReleaseScene(ObjectIDs);
+    m_BufferManager.ReleaseScene(ObjectIDs);
 
     for (std::uint32_t const ObjectID: ObjectIDs)
     {
@@ -430,10 +396,10 @@ void RenderCore::EngineCore::UnloadScene(std::vector<std::uint32_t> const& Objec
         });
     }
 
-    AddFlags(m_StateFlags, RenderCore::EngineCore::EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
 }
 
-void RenderCore::EngineCore::UnloadAllScenes()
+void Renderer::UnloadAllScenes()
 {
     std::vector<std::uint32_t> LoadedIDs {};
     for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
@@ -447,19 +413,38 @@ void RenderCore::EngineCore::UnloadAllScenes()
     m_Objects.clear();
 }
 
-std::vector<std::shared_ptr<Object>> const& RenderCore::EngineCore::GetObjects() const
+Timer::Manager& Renderer::GetRenderTimerManager()
+{
+    return g_RenderTimerManager;
+}
+
+double Renderer::GetDeltaTime() const
+{
+    return m_DeltaTime;
+}
+
+std::vector<std::shared_ptr<Object>> const& Renderer::GetObjects() const
 {
     return m_Objects;
 }
 
-std::shared_ptr<Object> RenderCore::EngineCore::GetObjectByID(std::uint32_t const ObjectID) const
+std::shared_ptr<Object> Renderer::GetObjectByID(std::uint32_t const ObjectID) const
 {
     return *std::ranges::find_if(m_Objects, [ObjectID](std::shared_ptr<Object> const& ObjectIter) {
         return ObjectIter && ObjectIter->GetID() == ObjectID;
     });
 }
 
-std::uint32_t RenderCore::EngineCore::GetNumObjects() const
+std::uint32_t Renderer::GetNumObjects() const
 {
     return std::size(m_Objects);
+}
+
+void InitializeEngineCore()
+{
+}
+
+bool IsEngineCoreInitialized()
+{
+    return true;
 }
