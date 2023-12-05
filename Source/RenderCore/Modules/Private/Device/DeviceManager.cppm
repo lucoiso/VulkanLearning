@@ -20,101 +20,6 @@ import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
-#ifdef _DEBUG
-
-void ListAvailablePhysicalDevices()
-{
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical devices...";
-
-    for (VkPhysicalDevice const& DeviceIter: GetAvailablePhysicalDevices())
-    {
-        VkPhysicalDeviceProperties DeviceProperties;
-        vkGetPhysicalDeviceProperties(DeviceIter, &DeviceProperties);
-
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << DeviceProperties.deviceName;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target ID: " << DeviceProperties.deviceID;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Vendor ID: " << DeviceProperties.vendorID;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Driver Version: " << DeviceProperties.driverVersion;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target API Version: " << DeviceProperties.apiVersion << std::endl;
-    }
-}
-
-void ListAvailablePhysicalDeviceLayers(VkPhysicalDevice const& PhysicalDevice)
-{
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device layers...";
-
-    for (auto const& [LayerName, SpecVer, ImplVer, Descr]: GetAvailablePhysicalDeviceLayers(PhysicalDevice))
-    {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << LayerName;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << SpecVer;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Implementation Version: " << ImplVer;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Description: " << Descr << std::endl;
-    }
-}
-
-void ListAvailablePhysicalDeviceLayerExtensions(VkPhysicalDevice const& PhysicalDevice, std::string_view const& LayerName)
-{
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device layer '" << LayerName << "' extensions...";
-
-    for (auto const& [ExtName, SpecVer]: GetAvailablePhysicalDeviceLayerExtensions(PhysicalDevice, LayerName))
-    {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Name: " << ExtName;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Target Spec Version: " << SpecVer << std::endl;
-    }
-}
-
-void ListAvailablePhysicalDeviceSurfaceCapabilities(VkPhysicalDevice const& PhysicalDevice, VkSurfaceKHR const& VulkanSurface)
-{
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device surface capabilities...";
-
-    VkSurfaceCapabilitiesKHR const SurfaceCapabilities = RenderCore::GetAvailablePhysicalDeviceSurfaceCapabilities(PhysicalDevice, VulkanSurface);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min ImageAllocation Count: " << SurfaceCapabilities.minImageCount;
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max ImageAllocation Count: " << SurfaceCapabilities.maxImageCount;
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Current Extent: (" << SurfaceCapabilities.currentExtent.width << ", " << SurfaceCapabilities.currentExtent.height << ")";
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Min ImageAllocation Extent: (" << SurfaceCapabilities.minImageExtent.width << ", " << SurfaceCapabilities.minImageExtent.height << ")";
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max ImageAllocation Extent: (" << SurfaceCapabilities.maxImageExtent.width << ", " << SurfaceCapabilities.maxImageExtent.height << ")";
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Max ImageAllocation Array Layers: " << SurfaceCapabilities.maxImageArrayLayers;
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Transforms: " << TransformFlagToString(static_cast<VkSurfaceTransformFlagBitsKHR>(SurfaceCapabilities.supportedTransforms));
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Current Transform: " << TransformFlagToString(SurfaceCapabilities.currentTransform);
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Composite Alpha: " << CompositeAlphaFlagToString(SurfaceCapabilities.supportedCompositeAlpha);
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Supported Usage Flags: " << ImageUsageFlagToString(static_cast<VkImageUsageFlagBits>(SurfaceCapabilities.supportedUsageFlags));
-}
-
-void ListAvailablePhysicalDeviceSurfaceFormats(VkPhysicalDevice const& PhysicalDevice, VkSurfaceKHR const& VulkanSurface)
-{
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device surface formats...";
-
-    for (auto const& [Format, ColorSpace]: RenderCore::GetAvailablePhysicalDeviceSurfaceFormats(PhysicalDevice, VulkanSurface))
-    {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Format: " << SurfaceFormatToString(Format);
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Color Space: " << ColorSpaceModeToString(ColorSpace) << std::endl;
-    }
-}
-
-void ListAvailablePhysicalDeviceSurfacePresentationModes(VkPhysicalDevice const& PhysicalDevice, VkSurfaceKHR const& VulkanSurface)
-{
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available vulkan physical device presentation modes...";
-
-    for (VkPresentModeKHR const& FormatIter: RenderCore::GetAvailablePhysicalDeviceSurfacePresentationModes(PhysicalDevice, VulkanSurface))
-    {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Mode: " << PresentationModeToString(FormatIter);
-    }
-}
-#endif
-
 bool IsPhysicalDeviceSuitable(VkPhysicalDevice const& Device)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
@@ -124,13 +29,13 @@ bool IsPhysicalDeviceSuitable(VkPhysicalDevice const& Device)
         return false;
     }
 
-    VkPhysicalDeviceProperties DeviceProperties;
-    vkGetPhysicalDeviceProperties(Device, &DeviceProperties);
+    VkPhysicalDeviceProperties SurfaceProperties;
+    vkGetPhysicalDeviceProperties(Device, &SurfaceProperties);
 
     VkPhysicalDeviceFeatures SupportedFeatures;
     vkGetPhysicalDeviceFeatures(Device, &SupportedFeatures);
 
-    return DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && SupportedFeatures.samplerAnisotropy != 0U;
+    return SurfaceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && SupportedFeatures.samplerAnisotropy != 0U;
 }
 
 bool DeviceManager::GetQueueFamilyIndices(VkSurfaceKHR const& VulkanSurface,
@@ -183,7 +88,7 @@ bool DeviceManager::GetQueueFamilyIndices(VkSurfaceKHR const& VulkanSurface,
     return GraphicsQueueFamilyIndex.has_value() && PresentationQueueFamilyIndex.has_value() && TransferQueueFamilyIndex.has_value();
 }
 
-void DeviceManager::PickPhysicalDevice(VkSurfaceKHR const& VulkanSurface)
+void DeviceManager::PickPhysicalDevice()
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -202,25 +107,6 @@ void DeviceManager::PickPhysicalDevice(VkSurfaceKHR const& VulkanSurface)
     {
         throw std::runtime_error("No suitable Vulkan physical device found.");
     }
-
-#ifdef _DEBUG
-    ListAvailablePhysicalDevices();
-    ListAvailablePhysicalDeviceLayers(m_PhysicalDevice);
-
-    for (char const* const& RequiredLayerIter: g_RequiredDeviceLayers)
-    {
-        ListAvailablePhysicalDeviceLayerExtensions(m_PhysicalDevice, RequiredLayerIter);
-    }
-
-    for (char const* const& DebugLayerIter: g_DebugDeviceLayers)
-    {
-        ListAvailablePhysicalDeviceLayerExtensions(m_PhysicalDevice, DebugLayerIter);
-    }
-
-    ListAvailablePhysicalDeviceSurfaceCapabilities(m_PhysicalDevice, VulkanSurface);
-    ListAvailablePhysicalDeviceSurfaceFormats(m_PhysicalDevice, VulkanSurface);
-    ListAvailablePhysicalDeviceSurfacePresentationModes(m_PhysicalDevice, VulkanSurface);
-#endif
 }
 
 void DeviceManager::CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
@@ -332,11 +218,24 @@ void DeviceManager::CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
     }
 }
 
-bool DeviceManager::UpdateDeviceProperties(GLFWwindow* const Window, VkSurfaceKHR const& VulkanSurface)
+VkSurfaceCapabilitiesKHR DeviceManager::GetSurfaceCapabilities(VkSurfaceKHR const& VulkanSurface) const
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
-    m_DeviceProperties.Capabilities = GetAvailablePhysicalDeviceSurfaceCapabilities(m_PhysicalDevice, VulkanSurface);
+    if (m_PhysicalDevice == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan physical device is invalid.");
+    }
+
+    VkSurfaceCapabilitiesKHR Output;
+    CheckVulkanResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, VulkanSurface, &Output));
+
+    return Output;
+}
+
+SurfaceProperties DeviceManager::GetSurfaceProperties(GLFWwindow* const Window, VkSurfaceKHR const& VulkanSurface) const
+{
+    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     std::vector<VkSurfaceFormatKHR> const SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats(m_PhysicalDevice, VulkanSurface);
     if (std::empty(SupportedFormats))
@@ -350,16 +249,10 @@ bool DeviceManager::UpdateDeviceProperties(GLFWwindow* const Window, VkSurfaceKH
         throw std::runtime_error("No supported presentation modes found.");
     }
 
-    if (m_DeviceProperties.Capabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
-    {
-        m_DeviceProperties.Extent = m_DeviceProperties.Capabilities.currentExtent;
-    }
-    else
-    {
-        m_DeviceProperties.Extent = GetWindowExtent(Window, m_DeviceProperties.Capabilities);
-    }
+    SurfaceProperties Output {};
+    Output.Extent = GetWindowExtent(Window, GetSurfaceCapabilities(VulkanSurface));
 
-    m_DeviceProperties.Format = SupportedFormats.front();
+    Output.Format = SupportedFormats.front();
     if (auto const MatchingFormat = std::ranges::find_if(
                 SupportedFormats,
                 [](VkSurfaceFormatKHR const& Iter) {
@@ -367,10 +260,10 @@ bool DeviceManager::UpdateDeviceProperties(GLFWwindow* const Window, VkSurfaceKH
                 });
         MatchingFormat != std::cend(SupportedFormats))
     {
-        m_DeviceProperties.Format = *MatchingFormat;
+        Output.Format = *MatchingFormat;
     }
 
-    m_DeviceProperties.Mode = VK_PRESENT_MODE_FIFO_KHR;
+    Output.Mode = VK_PRESENT_MODE_FIFO_KHR;
     if (auto const MatchingMode = std::ranges::find_if(
                 SupportedPresentationModes,
                 [](VkPresentModeKHR const& Iter) {
@@ -378,7 +271,7 @@ bool DeviceManager::UpdateDeviceProperties(GLFWwindow* const Window, VkSurfaceKH
                 });
         MatchingMode != std::cend(SupportedPresentationModes))
     {
-        m_DeviceProperties.Mode = *MatchingMode;
+        Output.Mode = *MatchingMode;
     }
 
     for (std::vector const PreferredDepthFormats = {
@@ -392,17 +285,12 @@ bool DeviceManager::UpdateDeviceProperties(GLFWwindow* const Window, VkSurfaceKH
 
         if ((FormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) != 0U)
         {
-            m_DeviceProperties.DepthFormat = FormatIter;
+            Output.DepthFormat = FormatIter;
             break;
         }
     }
 
-    return m_DeviceProperties.IsValid();
-}
-
-DeviceProperties& DeviceManager::GetDeviceProperties()
-{
-    return m_DeviceProperties;
+    return Output;
 }
 
 VkDevice& DeviceManager::GetLogicalDevice()
@@ -442,12 +330,6 @@ std::vector<std::uint32_t> DeviceManager::GetUniqueQueueFamilyIndicesU32() const
             });
 
     return QueueFamilyIndicesU32;
-}
-
-std::uint32_t DeviceManager::GetMinImageCount() const
-{
-    bool const SupportsTripleBuffering = m_DeviceProperties.Capabilities.minImageCount < 3U && m_DeviceProperties.Capabilities.maxImageCount >= 3U;
-    return SupportsTripleBuffering ? 3U : m_DeviceProperties.Capabilities.minImageCount;
 }
 
 void DeviceManager::ReleaseDeviceResources()
@@ -579,21 +461,6 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames(VkPhy
     return Output;
 }
 
-VkSurfaceCapabilitiesKHR RenderCore::GetAvailablePhysicalDeviceSurfaceCapabilities(VkPhysicalDevice const& PhysicalDevice, VkSurfaceKHR const& VulkanSurface)
-{
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    if (PhysicalDevice == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan physical device is invalid.");
-    }
-
-    VkSurfaceCapabilitiesKHR Output;
-    CheckVulkanResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(PhysicalDevice, VulkanSurface, &Output));
-
-    return Output;
-}
-
 std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFormats(VkPhysicalDevice const& PhysicalDevice, VkSurfaceKHR const& VulkanSurface)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
@@ -639,8 +506,8 @@ VkDeviceSize DeviceManager::GetMinUniformBufferOffsetAlignment() const
         throw std::runtime_error("Vulkan physical device is invalid.");
     }
 
-    VkPhysicalDeviceProperties DeviceProperties;
-    vkGetPhysicalDeviceProperties(m_PhysicalDevice, &DeviceProperties);
+    VkPhysicalDeviceProperties SurfaceProperties;
+    vkGetPhysicalDeviceProperties(m_PhysicalDevice, &SurfaceProperties);
 
-    return DeviceProperties.limits.minUniformBufferOffsetAlignment;
+    return SurfaceProperties.limits.minUniformBufferOffsetAlignment;
 }

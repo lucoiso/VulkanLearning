@@ -18,7 +18,7 @@ bool ImageAllocation::IsValid() const
     return Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE;
 }
 
-void ImageAllocation::DestroyResources(VkDevice const& LogicalDevice, VmaAllocator const& Allocator)
+void ImageAllocation::DestroyResources(VmaAllocator const& Allocator)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -31,7 +31,7 @@ void ImageAllocation::DestroyResources(VkDevice const& LogicalDevice, VmaAllocat
 
     if (View != VK_NULL_HANDLE)
     {
-        vkDestroyImageView(LogicalDevice, View, nullptr);
+        vkDestroyImageView(volkGetLoadedDevice(), View, nullptr);
         View = VK_NULL_HANDLE;
 
         if (Image != VK_NULL_HANDLE)
@@ -42,7 +42,7 @@ void ImageAllocation::DestroyResources(VkDevice const& LogicalDevice, VmaAllocat
 
     if (Sampler != VK_NULL_HANDLE)
     {
-        vkDestroySampler(LogicalDevice, Sampler, nullptr);
+        vkDestroySampler(volkGetLoadedDevice(), Sampler, nullptr);
         Sampler = VK_NULL_HANDLE;
     }
 }
@@ -75,7 +75,7 @@ bool ObjectAllocation::IsValid() const
     return VertexBuffer.IsValid() && IndexBuffer.IsValid() && IndicesCount != 0U;
 }
 
-void ObjectAllocation::DestroyResources(VkDevice const& LogicalDevice, VmaAllocator const& Allocator)
+void ObjectAllocation::DestroyResources(VmaAllocator const& Allocator)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -84,7 +84,7 @@ void ObjectAllocation::DestroyResources(VkDevice const& LogicalDevice, VmaAlloca
 
     for (ImageAllocation& TextureImage: TextureImages)
     {
-        TextureImage.DestroyResources(LogicalDevice, Allocator);
+        TextureImage.DestroyResources(Allocator);
     }
 
     UniformBuffer.DestroyResources(Allocator);

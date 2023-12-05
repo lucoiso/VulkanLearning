@@ -6,7 +6,6 @@ module;
 
 #include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
-#include <glm/ext.hpp>
 #include <imgui.h>
 #include <volk.h>
 
@@ -20,85 +19,13 @@ import RenderCore.Renderer;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.ImGuiManagement;
 import RenderCore.Types.Camera;
-import RenderCore.Input.GLFWCallbacks;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
 import Timer.ExecutionCounter;
 
-static bool g_HasWindow {false};
-
-class Window::WindowImpl final
-{
-    GLFWwindow* m_Window {nullptr};
-
-public:
-    [[nodiscard]] bool Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, InitializationFlags const Flags)
-    {
-        Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-        if (glfwInit() == 0)
-        {
-            throw std::runtime_error("Failed to initialize GLFW");
-        }
-
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        glfwWindowHint(GLFW_MAXIMIZED, HasFlag(Flags, Window::InitializationFlags::MAXIMIZED) ? GLFW_TRUE : GLFW_FALSE);
-        glfwWindowHint(GLFW_VISIBLE, HasFlag(Flags, Window::InitializationFlags::HEADLESS) ? GLFW_FALSE : GLFW_TRUE);
-
-        m_Window = glfwCreateWindow(Width, Height, std::data(Title), nullptr, nullptr);
-
-        if (m_Window == nullptr)
-        {
-            throw std::runtime_error("Failed to create GLFW Window");
-        }
-
-        glfwSetWindowCloseCallback(m_Window, &GLFWWindowCloseRequested);
-        glfwSetWindowSizeCallback(m_Window, &GLFWWindowResized);
-        glfwSetKeyCallback(m_Window, &GLFWKeyCallback);
-        glfwSetCursorPosCallback(m_Window, &GLFWCursorPositionCallback);
-        glfwSetScrollCallback(m_Window, &GLFWCursorScrollCallback);
-
-        return m_Window != nullptr;
-    }
-
-    void Shutdown()
-    {
-        Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-        glfwSetWindowShouldClose(m_Window, GLFW_TRUE);
-        glfwDestroyWindow(m_Window);
-        glfwTerminate();
-        m_Window = nullptr;
-    }
-
-    [[nodiscard]] GLFWwindow* GetWindow() const
-    {
-        return m_Window;
-    }
-
-    [[nodiscard]] bool IsOpen() const
-    {
-        return m_Window && !glfwWindowShouldClose(m_Window);
-    }
-};
-
-Window::Window()
-    : m_WindowImpl(std::make_unique<WindowImpl>())
-{
-    if (g_HasWindow)
-    {
-        throw std::runtime_error("Only one window can be created at a time");
-    }
-
-    g_HasWindow = true;
-}
-
 Window::~Window()
 {
-    g_HasWindow = false;
-
     try
     {
         Shutdown().Get();
@@ -119,7 +46,7 @@ AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t
 
     try
     {
-        if (m_WindowImpl->Initialize(Width, Height, Title, Flags) && m_Renderer.Initialize(m_WindowImpl->GetWindow()))
+        if (m_GLFWHandler.Initialize(Width, Height, Title, Flags) && m_Renderer.Initialize(m_GLFWHandler.GetWindow()))
         {
             std::binary_semaphore Semaphore {0U};
             {
@@ -163,7 +90,7 @@ AsyncTask Window::Shutdown()
 
     if (IsOpen())
     {
-        m_WindowImpl->Shutdown();
+        m_GLFWHandler.Shutdown();
     }
 
     co_return;
@@ -171,12 +98,12 @@ AsyncTask Window::Shutdown()
 
 bool Window::IsInitialized() const
 {
-    return m_WindowImpl && m_Renderer.IsInitialized();
+    return m_Renderer.IsInitialized();
 }
 
 bool Window::IsOpen() const
 {
-    return m_WindowImpl && m_WindowImpl->IsOpen();
+    return m_GLFWHandler.IsOpen();
 }
 
 Renderer& Window::GetRenderer()
@@ -323,7 +250,7 @@ void Window::RequestRender()
             CreateOverlay();
         });
 
-        m_Renderer.DrawFrame(m_WindowImpl->GetWindow());
+        m_Renderer.DrawFrame(m_GLFWHandler.GetWindow());
 
         Renderer::GetRenderTimerManager().SetTimer(
                 1000U / g_FrameRate,

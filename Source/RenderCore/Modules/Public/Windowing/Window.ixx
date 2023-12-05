@@ -14,30 +14,23 @@ export import <memory>;
 
 export import Coroutine.Types;
 export import RenderCore.Renderer;
+export import RenderCore.Window.Flags;
+import RenderCore.Window.GLFWHandler;
 
 namespace RenderCore
 {
     export class RENDERCOREMODULE_API Window
     {
-        class WindowImpl;
-        std::unique_ptr<WindowImpl> m_WindowImpl {nullptr};
-
+        GLFWHandler m_GLFWHandler {};
         Renderer m_Renderer {};
 
     public:
-        Window();
+        Window() = default;
 
         Window(Window const&)            = delete;
         Window& operator=(Window const&) = delete;
 
         virtual ~Window();
-
-        enum class InitializationFlags : std::uint8_t
-        {
-            NONE        = 0,
-            MAXIMIZED   = 1 << 0,
-            HEADLESS    = 1 << 1,
-        };
 
         AsyncOperation<bool> Initialize(std::uint16_t, std::uint16_t, std::string_view const&, InitializationFlags Flags = InitializationFlags::NONE);
         AsyncTask Shutdown();

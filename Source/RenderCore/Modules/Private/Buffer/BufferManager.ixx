@@ -17,7 +17,7 @@ export import <memory>;
 
 export import RenderCore.Types.Object;
 export import RenderCore.Types.AllocationTypes;
-export import RenderCore.Types.DeviceProperties;
+export import RenderCore.Types.SurfaceProperties;
 
 namespace RenderCore
 {
@@ -36,31 +36,31 @@ namespace RenderCore
 
     public:
         void CreateVulkanSurface(GLFWwindow*);
-        void CreateMemoryAllocator(VkDevice const&, VkPhysicalDevice const&);
-        void CreateSwapChain(VkDevice const&, DeviceProperties const&, std::vector<std::uint32_t> const&, std::uint32_t);
-        void CreateFrameBuffers(VkDevice const&, VkRenderPass const&);
-        void CreateDepthResources(VkDevice const&, DeviceProperties const&, std::pair<std::uint8_t, VkQueue> const&);
+        void CreateMemoryAllocator(VkPhysicalDevice const&);
+        void CreateSwapChain(SurfaceProperties const&, VkSurfaceCapabilitiesKHR const&, std::vector<std::uint32_t> const&);
+        void CreateFrameBuffers(VkRenderPass const&);
+        void CreateDepthResources(SurfaceProperties const&, std::pair<std::uint8_t, VkQueue> const&);
 
-        std::vector<Object> AllocateScene(std::string_view const&, VkDevice const&, std::pair<std::uint8_t, VkQueue> const&);
-        void ReleaseScene(VkDevice const&, std::vector<std::uint32_t> const&);
+        std::vector<Object> AllocateScene(std::string_view const&, std::pair<std::uint8_t, VkQueue> const&);
+        void ReleaseScene(std::vector<std::uint32_t> const&);
 
-        void DestroyBufferResources(VkDevice const&, bool);
-        void ReleaseBufferResources(VkDevice const&);
+        void DestroyBufferResources(bool);
+        void ReleaseBufferResources();
 
-        [[nodiscard]] VkSurfaceKHR& GetSurface();
-        [[nodiscard]] VkSwapchainKHR const& GetSwapChain();
-        [[nodiscard]] VkExtent2D const& GetSwapChainExtent();
-        [[nodiscard]] std::vector<VkFramebuffer> const& GetFrameBuffers();
-        [[nodiscard]] VkBuffer GetVertexBuffer(std::uint32_t);
-        [[nodiscard]] VkBuffer GetIndexBuffer(std::uint32_t);
-        [[nodiscard]] std::uint32_t GetIndicesCount(std::uint32_t);
-        [[nodiscard]] void* GetUniformData(std::uint32_t);
+        [[nodiscard]] VkSurfaceKHR const& GetSurface() const;
+        [[nodiscard]] VkSwapchainKHR const& GetSwapChain() const;
+        [[nodiscard]] VkExtent2D const& GetSwapChainExtent() const;
+        [[nodiscard]] std::vector<VkFramebuffer> const& GetFrameBuffers() const;
+        [[nodiscard]] VkBuffer GetVertexBuffer(std::uint32_t) const;
+        [[nodiscard]] VkBuffer GetIndexBuffer(std::uint32_t) const;
+        [[nodiscard]] std::uint32_t GetIndicesCount(std::uint32_t) const;
+        [[nodiscard]] void* GetUniformData(std::uint32_t) const;
         [[nodiscard]] bool ContainsObject(std::uint32_t) const;
-        [[nodiscard]] std::vector<RenderCore::MeshBufferData> GetAllocatedObjects();
+        [[nodiscard]] std::vector<MeshBufferData> GetAllocatedObjects() const;
         [[nodiscard]] std::uint32_t GetNumAllocations() const;
         [[nodiscard]] std::uint32_t GetClampedNumAllocations() const;
 
-        [[nodiscard]] VmaAllocator const& GetAllocator();
-        void UpdateUniformBuffers(std::shared_ptr<Object> const&, VkExtent2D const&);
+        [[nodiscard]] VmaAllocator const& GetAllocator() const;
+        void UpdateUniformBuffers(std::shared_ptr<Object> const&, VkExtent2D const&) const;
     };
 }// namespace RenderCore

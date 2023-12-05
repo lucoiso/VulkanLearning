@@ -28,7 +28,7 @@ import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
-void CommandsManager::AllocateCommandBuffer(VkDevice const& LogicalDevice, std::uint32_t const QueueFamily)
+void CommandsManager::AllocateCommandBuffer(std::uint32_t const QueueFamily)
 {
     if (std::empty(m_CommandBuffers))
     {
@@ -36,17 +36,17 @@ void CommandsManager::AllocateCommandBuffer(VkDevice const& LogicalDevice, std::
     }
     else
     {
-        vkFreeCommandBuffers(LogicalDevice, m_CommandPool, static_cast<std::uint32_t>(std::size(m_CommandBuffers)), std::data(m_CommandBuffers));
+        vkFreeCommandBuffers(volkGetLoadedDevice(), m_CommandPool, static_cast<std::uint32_t>(std::size(m_CommandBuffers)), std::data(m_CommandBuffers));
         m_CommandBuffers.clear();
     }
 
     if (m_CommandPool != VK_NULL_HANDLE)
     {
-        vkDestroyCommandPool(LogicalDevice, m_CommandPool, nullptr);
+        vkDestroyCommandPool(volkGetLoadedDevice(), m_CommandPool, nullptr);
         m_CommandPool = VK_NULL_HANDLE;
     }
 
-    m_CommandPool = CreateCommandPool(LogicalDevice, QueueFamily);
+    m_CommandPool = CreateCommandPool(QueueFamily);
 
     VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -54,25 +54,25 @@ void CommandsManager::AllocateCommandBuffer(VkDevice const& LogicalDevice, std::
             .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
             .commandBufferCount = static_cast<std::uint32_t>(std::size(m_CommandBuffers))};
 
-    CheckVulkanResult(vkAllocateCommandBuffers(LogicalDevice, &CommandBufferAllocateInfo, std::data(m_CommandBuffers)));
+    CheckVulkanResult(vkAllocateCommandBuffers(volkGetLoadedDevice(), &CommandBufferAllocateInfo, std::data(m_CommandBuffers)));
 }
 
-void CommandsManager::WaitAndResetFences(VkDevice const& LogicalDevice) const
+void CommandsManager::WaitAndResetFences() const
 {
     if (m_Fence == VK_NULL_HANDLE)
     {
         return;
     }
 
-    CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &m_Fence, VK_TRUE, g_Timeout));
-    CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &m_Fence));
+    CheckVulkanResult(vkWaitForFences(volkGetLoadedDevice(), 1U, &m_Fence, VK_TRUE, g_Timeout));
+    CheckVulkanResult(vkResetFences(volkGetLoadedDevice(), 1U, &m_Fence));
 }
 
-void CommandsManager::FreeCommandBuffers(VkDevice const& LogicalDevice)
+void CommandsManager::FreeCommandBuffers()
 {
     if (!std::empty(m_CommandBuffers))
     {
-        vkFreeCommandBuffers(LogicalDevice, m_CommandPool, static_cast<std::uint32_t>(std::size(m_CommandBuffers)), std::data(m_CommandBuffers));
+        vkFreeCommandBuffers(volkGetLoadedDevice(), m_CommandPool, static_cast<std::uint32_t>(std::size(m_CommandBuffers)), std::data(m_CommandBuffers));
 
         for (VkCommandBuffer& CommandBufferIter: m_CommandBuffers)
         {
@@ -82,16 +82,16 @@ void CommandsManager::FreeCommandBuffers(VkDevice const& LogicalDevice)
     }
 }
 
-void CommandsManager::ReleaseCommandsResources(VkDevice const& LogicalDevice)
+void CommandsManager::ReleaseCommandsResources()
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan commands resources";
 
-    DestroyCommandsSynchronizationObjects(LogicalDevice);
+    DestroyCommandsSynchronizationObjects();
 }
 
-VkCommandPool CommandsManager::CreateCommandPool(VkDevice const& LogicalDevice, std::uint8_t const FamilyQueueIndex)
+VkCommandPool CommandsManager::CreateCommandPool(std::uint8_t const FamilyQueueIndex)
 {
     VkCommandPoolCreateInfo const CommandPoolCreateInfo {
             .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -99,12 +99,12 @@ VkCommandPool CommandsManager::CreateCommandPool(VkDevice const& LogicalDevice, 
             .queueFamilyIndex = static_cast<std::uint32_t>(FamilyQueueIndex)};
 
     VkCommandPool Output = VK_NULL_HANDLE;
-    CheckVulkanResult(vkCreateCommandPool(LogicalDevice, &CommandPoolCreateInfo, nullptr, &Output));
+    CheckVulkanResult(vkCreateCommandPool(volkGetLoadedDevice(), &CommandPoolCreateInfo, nullptr, &Output));
 
     return Output;
 }
 
-void CommandsManager::CreateCommandsSynchronizationObjects(VkDevice const& LogicalDevice)
+void CommandsManager::CreateCommandsSynchronizationObjects()
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -117,49 +117,49 @@ void CommandsManager::CreateCommandsSynchronizationObjects(VkDevice const& Logic
             .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
             .flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
-    CheckVulkanResult(vkCreateSemaphore(LogicalDevice, &SemaphoreCreateInfo, nullptr, &m_ImageAvailableSemaphore));
-    CheckVulkanResult(vkCreateSemaphore(LogicalDevice, &SemaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphore));
-    CheckVulkanResult(vkCreateFence(LogicalDevice, &FenceCreateInfo, nullptr, &m_Fence));
+    CheckVulkanResult(vkCreateSemaphore(volkGetLoadedDevice(), &SemaphoreCreateInfo, nullptr, &m_ImageAvailableSemaphore));
+    CheckVulkanResult(vkCreateSemaphore(volkGetLoadedDevice(), &SemaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphore));
+    CheckVulkanResult(vkCreateFence(volkGetLoadedDevice(), &FenceCreateInfo, nullptr, &m_Fence));
 }
 
-void CommandsManager::DestroyCommandsSynchronizationObjects(VkDevice const& LogicalDevice)
+void CommandsManager::DestroyCommandsSynchronizationObjects()
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan synchronization objects";
 
-    vkDeviceWaitIdle(LogicalDevice);
+    vkDeviceWaitIdle(volkGetLoadedDevice());
 
-    FreeCommandBuffers(LogicalDevice);
+    FreeCommandBuffers();
 
     if (m_CommandPool != VK_NULL_HANDLE)
     {
-        vkDestroyCommandPool(LogicalDevice, m_CommandPool, nullptr);
+        vkDestroyCommandPool(volkGetLoadedDevice(), m_CommandPool, nullptr);
         m_CommandPool = VK_NULL_HANDLE;
     }
 
     if (m_ImageAvailableSemaphore != VK_NULL_HANDLE)
     {
-        vkDestroySemaphore(LogicalDevice, m_ImageAvailableSemaphore, nullptr);
+        vkDestroySemaphore(volkGetLoadedDevice(), m_ImageAvailableSemaphore, nullptr);
         m_ImageAvailableSemaphore = VK_NULL_HANDLE;
     }
 
     if (m_RenderFinishedSemaphore != VK_NULL_HANDLE)
     {
-        vkDestroySemaphore(LogicalDevice, m_RenderFinishedSemaphore, nullptr);
+        vkDestroySemaphore(volkGetLoadedDevice(), m_RenderFinishedSemaphore, nullptr);
         m_RenderFinishedSemaphore = VK_NULL_HANDLE;
     }
 
     if (m_Fence != VK_NULL_HANDLE)
     {
-        vkDestroyFence(LogicalDevice, m_Fence, nullptr);
+        vkDestroyFence(volkGetLoadedDevice(), m_Fence, nullptr);
         m_Fence = VK_NULL_HANDLE;
     }
 }
 
-std::optional<std::int32_t> CommandsManager::RequestSwapChainImage(VkDevice const& LogicalDevice, VkSwapchainKHR const& SwapChain) const
+std::optional<std::int32_t> CommandsManager::RequestSwapChainImage(VkSwapchainKHR const& SwapChain) const
 {
-    WaitAndResetFences(LogicalDevice);
+    WaitAndResetFences();
 
     if (m_ImageAvailableSemaphore == VK_NULL_HANDLE)
     {
@@ -173,7 +173,7 @@ std::optional<std::int32_t> CommandsManager::RequestSwapChainImage(VkDevice cons
 
     std::uint32_t Output = 0U;
     if (VkResult const OperationResult = vkAcquireNextImageKHR(
-                LogicalDevice,
+                volkGetLoadedDevice(),
                 SwapChain,
                 g_Timeout,
                 m_ImageAvailableSemaphore,
@@ -190,7 +190,7 @@ std::optional<std::int32_t> CommandsManager::RequestSwapChainImage(VkDevice cons
             else
             {
                 BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Failed to acquire next image: Vulkan swap chain is suboptimal";
-                WaitAndResetFences(LogicalDevice);
+                WaitAndResetFences();
             }
 
             return std::nullopt;
@@ -202,9 +202,9 @@ std::optional<std::int32_t> CommandsManager::RequestSwapChainImage(VkDevice cons
     return static_cast<std::int32_t>(Output);
 }
 
-void CommandsManager::RecordCommandBuffers(VkDevice const& LogicalDevice, std::uint32_t const QueueFamily, std::uint32_t const ImageIndex, BufferManager& BufferManager, PipelineManager& PipelineManager, std::vector<std::shared_ptr<Object>> const& Objects)
+void CommandsManager::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint32_t const ImageIndex, BufferManager& BufferManager, PipelineManager& PipelineManager, std::vector<std::shared_ptr<Object>> const& Objects)
 {
-    AllocateCommandBuffer(LogicalDevice, QueueFamily);
+    AllocateCommandBuffer(QueueFamily);
     VkCommandBuffer const& MainCommandBuffer = m_CommandBuffers.back();
 
     constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
@@ -323,9 +323,9 @@ void CommandsManager::RecordCommandBuffers(VkDevice const& LogicalDevice, std::u
     CheckVulkanResult(vkEndCommandBuffer(MainCommandBuffer));
 }
 
-void CommandsManager::SubmitCommandBuffers(VkDevice const& LogicalDevice, VkQueue const& GraphicsQueue)
+void CommandsManager::SubmitCommandBuffers(VkQueue const& GraphicsQueue)
 {
-    WaitAndResetFences(LogicalDevice);
+    WaitAndResetFences();
 
     constexpr std::array<VkPipelineStageFlags, 1U> WaitStages {
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -343,7 +343,7 @@ void CommandsManager::SubmitCommandBuffers(VkDevice const& LogicalDevice, VkQueu
     CheckVulkanResult(vkQueueSubmit(GraphicsQueue, 1U, &SubmitInfo, m_Fence));
     CheckVulkanResult(vkQueueWaitIdle(GraphicsQueue));
 
-    FreeCommandBuffers(LogicalDevice);
+    FreeCommandBuffers();
 }
 
 void CommandsManager::PresentFrame(VkQueue const& Queue, std::uint32_t const ImageIndice, VkSwapchainKHR const& SwapChain)
@@ -367,7 +367,7 @@ void CommandsManager::PresentFrame(VkQueue const& Queue, std::uint32_t const Ima
     }
 }
 
-void RenderCore::InitializeSingleCommandQueue(VkDevice const& LogicalDevice, VkCommandPool& CommandPool, VkCommandBuffer& CommandBuffer, std::uint8_t const QueueFamilyIndex)
+void RenderCore::InitializeSingleCommandQueue(VkCommandPool& CommandPool, VkCommandBuffer& CommandBuffer, std::uint8_t const QueueFamilyIndex)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -376,7 +376,7 @@ void RenderCore::InitializeSingleCommandQueue(VkDevice const& LogicalDevice, VkC
             .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
             .queueFamilyIndex = static_cast<std::uint32_t>(QueueFamilyIndex)};
 
-    CheckVulkanResult(vkCreateCommandPool(LogicalDevice, &CommandPoolCreateInfo, nullptr, &CommandPool));
+    CheckVulkanResult(vkCreateCommandPool(volkGetLoadedDevice(), &CommandPoolCreateInfo, nullptr, &CommandPool));
 
     constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -390,11 +390,11 @@ void RenderCore::InitializeSingleCommandQueue(VkDevice const& LogicalDevice, VkC
             .commandBufferCount = 1U,
     };
 
-    CheckVulkanResult(vkAllocateCommandBuffers(LogicalDevice, &CommandBufferAllocateInfo, &CommandBuffer));
+    CheckVulkanResult(vkAllocateCommandBuffers(volkGetLoadedDevice(), &CommandBufferAllocateInfo, &CommandBuffer));
     CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
 }
 
-void RenderCore::FinishSingleCommandQueue(VkDevice const& LogicalDevice, VkQueue const& Queue, VkCommandPool const& CommandPool, VkCommandBuffer const& CommandBuffer)
+void RenderCore::FinishSingleCommandQueue(VkQueue const& Queue, VkCommandPool const& CommandPool, VkCommandBuffer const& CommandBuffer)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -419,6 +419,6 @@ void RenderCore::FinishSingleCommandQueue(VkDevice const& LogicalDevice, VkQueue
     CheckVulkanResult(vkQueueSubmit(Queue, 1U, &SubmitInfo, VK_NULL_HANDLE));
     CheckVulkanResult(vkQueueWaitIdle(Queue));
 
-    vkFreeCommandBuffers(LogicalDevice, CommandPool, 1U, &CommandBuffer);
-    vkDestroyCommandPool(LogicalDevice, CommandPool, nullptr);
+    vkFreeCommandBuffers(volkGetLoadedDevice(), CommandPool, 1U, &CommandBuffer);
+    vkDestroyCommandPool(volkGetLoadedDevice(), CommandPool, nullptr);
 }

@@ -25,24 +25,24 @@ namespace RenderCore
         VkSemaphore m_RenderFinishedSemaphore {};
         VkFence m_Fence {};
 
-        void AllocateCommandBuffer(VkDevice const&, std::uint32_t);
-        void WaitAndResetFences(VkDevice const&) const;
-        void FreeCommandBuffers(VkDevice const&);
+        void AllocateCommandBuffer(std::uint32_t);
+        void WaitAndResetFences() const;
+        void FreeCommandBuffers();
 
     public:
-        void ReleaseCommandsResources(VkDevice const&);
-        [[nodiscard]] VkCommandPool CreateCommandPool(VkDevice const&, std::uint8_t);
+        void ReleaseCommandsResources();
+        static [[nodiscard]] VkCommandPool CreateCommandPool(std::uint8_t);
 
-        void CreateCommandsSynchronizationObjects(VkDevice const&);
-        void DestroyCommandsSynchronizationObjects(VkDevice const&);
+        void CreateCommandsSynchronizationObjects();
+        void DestroyCommandsSynchronizationObjects();
 
-        [[nodiscard]] std::optional<std::int32_t> RequestSwapChainImage(VkDevice const&, VkSwapchainKHR const&) const;
+        [[nodiscard]] std::optional<std::int32_t> RequestSwapChainImage(VkSwapchainKHR const&) const;
 
-        void RecordCommandBuffers(VkDevice const&, std::uint32_t, std::uint32_t, BufferManager&, PipelineManager&, std::vector<std::shared_ptr<Object>> const&);
-        void SubmitCommandBuffers(VkDevice const&, VkQueue const&);
+        void RecordCommandBuffers(std::uint32_t, std::uint32_t, BufferManager&, PipelineManager&, std::vector<std::shared_ptr<Object>> const&);
+        void SubmitCommandBuffers(VkQueue const&);
 
         void PresentFrame(VkQueue const&, std::uint32_t, VkSwapchainKHR const&);
     };
-    export void InitializeSingleCommandQueue(VkDevice const&, VkCommandPool&, VkCommandBuffer&, std::uint8_t);
-    export void FinishSingleCommandQueue(VkDevice const&, VkQueue const&, VkCommandPool const&, VkCommandBuffer const&);
+    export void InitializeSingleCommandQueue(VkCommandPool&, VkCommandBuffer&, std::uint8_t);
+    export void FinishSingleCommandQueue(VkQueue const&, VkCommandPool const&, VkCommandBuffer const&);
 }// namespace RenderCore

@@ -321,14 +321,9 @@ bool RenderCore::CompileOrLoadIfExists(std::string_view const& Source, std::vect
     return Compile(Source, OutSPIRVCode);
 }
 
-VkShaderModule RenderCore::CreateModule(VkDevice const& Device, std::vector<std::uint32_t> const& SPIRVCode, EShLanguage const Language)
+VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const& SPIRVCode, EShLanguage const Language)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    if (Device == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Invalid vulkan logical device");
-    }
 
     if (std::empty(SPIRVCode))
     {
@@ -348,7 +343,7 @@ VkShaderModule RenderCore::CreateModule(VkDevice const& Device, std::vector<std:
             .pCode    = std::data(SPIRVCode)};
 
     VkShaderModule Output = nullptr;
-    CheckVulkanResult(vkCreateShaderModule(Device, &CreateInfo, nullptr, &Output));
+    CheckVulkanResult(vkCreateShaderModule(volkGetLoadedDevice(), &CreateInfo, nullptr, &Output));
 
     StageInfo(Output, Language);
 
@@ -382,35 +377,33 @@ std::vector<VkPipelineShaderStageCreateInfo> RenderCore::GetStageInfos()
     return Output;
 }
 
-void RenderCore::ReleaseShaderResources(VkDevice const& LogicalDevice)
+void RenderCore::ReleaseShaderResources()
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan shader resources";
 
-
     for (auto const& ShaderModule: g_StageInfos | std::views::keys)
     {
         if (ShaderModule != VK_NULL_HANDLE)
         {
-            vkDestroyShaderModule(LogicalDevice, ShaderModule, nullptr);
+            vkDestroyShaderModule(volkGetLoadedDevice(), ShaderModule, nullptr);
         }
     }
     g_StageInfos.clear();
 }
 
-void RenderCore::FreeStagedModules(VkDevice const& LogicalDevice, std::vector<VkPipelineShaderStageCreateInfo> const& StagedModules)
+void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const& StagedModules)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
 
-
     for (VkPipelineShaderStageCreateInfo const& StageInfoIter: StagedModules)
     {
         if (StageInfoIter.module != VK_NULL_HANDLE)
         {
-            vkDestroyShaderModule(LogicalDevice, StageInfoIter.module, nullptr);
+            vkDestroyShaderModule(volkGetLoadedDevice(), StageInfoIter.module, nullptr);
         }
 
         if (g_StageInfos.contains(StageInfoIter.module))
@@ -420,7 +413,7 @@ void RenderCore::FreeStagedModules(VkDevice const& LogicalDevice, std::vector<Vk
     }
 }
 
-std::vector<VkPipelineShaderStageCreateInfo> RenderCore::CompileDefaultShaders(VkDevice const& LogicalDevice)
+std::vector<VkPipelineShaderStageCreateInfo> RenderCore::CompileDefaultShaders()
 {
     constexpr std::array FragmentShaders {
             DEFAULT_SHADER_FRAG};
@@ -434,7 +427,7 @@ std::vector<VkPipelineShaderStageCreateInfo> RenderCore::CompileDefaultShaders(V
         if (std::vector<std::uint32_t> FragmentShaderCode;
             CompileOrLoadIfExists(FragmentShaderIter, FragmentShaderCode))
         {
-            auto const FragmentModule = CreateModule(LogicalDevice, FragmentShaderCode, EShLangFragment);
+            auto const FragmentModule = CreateModule(FragmentShaderCode, EShLangFragment);
             ShaderStages.push_back(GetStageInfo(FragmentModule));
         }
     }
@@ -444,7 +437,7 @@ std::vector<VkPipelineShaderStageCreateInfo> RenderCore::CompileDefaultShaders(V
         if (std::vector<std::uint32_t> VertexShaderCode;
             CompileOrLoadIfExists(VertexShaderIter, VertexShaderCode))
         {
-            auto const VertexModule = CreateModule(LogicalDevice, VertexShaderCode, EShLangVertex);
+            auto const VertexModule = CreateModule(VertexShaderCode, EShLangVertex);
             ShaderStages.push_back(GetStageInfo(VertexModule));
         }
     }

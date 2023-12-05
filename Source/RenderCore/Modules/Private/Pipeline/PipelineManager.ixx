@@ -12,7 +12,7 @@ export import <vector>;
 export import <unordered_map>;
 
 export import RenderCore.Types.MeshBufferData;
-export import RenderCore.Types.DeviceProperties;
+export import RenderCore.Types.SurfaceProperties;
 
 namespace RenderCore
 {
@@ -28,13 +28,13 @@ namespace RenderCore
         bool m_BoundToImGui {false};
 
     public:
-        void CreateRenderPass(VkDevice const&, DeviceProperties const&);
-        void CreateGraphicsPipeline(VkDevice const&);
-        void CreateDescriptorSetLayout(VkDevice const&);
-        void CreateDescriptorPool(VkDevice const&, std::uint32_t);
-        void CreateDescriptorSets(VkDevice const&, std::vector<MeshBufferData> const&);
-        void ReleasePipelineResources(VkDevice const&);
-        void ReleaseDynamicPipelineResources(VkDevice const&);
+        void CreateRenderPass(SurfaceProperties const&);
+        void CreateGraphicsPipeline();
+        void CreateDescriptorSetLayout();
+        void CreateDescriptorPool(std::uint32_t);
+        void CreateDescriptorSets(std::vector<MeshBufferData> const&);
+        void ReleasePipelineResources();
+        void ReleaseDynamicPipelineResources();
 
         void SetIsBoundToImGui(bool);
         [[nodiscard]] bool GetIsBoundToImGui() const;

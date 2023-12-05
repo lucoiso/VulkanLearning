@@ -80,8 +80,8 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& Pipe
             .Queue           = DeviceManager.GetGraphicsQueue().second,
             .PipelineCache   = PipelineManager.GetPipelineCache(),
             .DescriptorPool  = g_ImGuiDescriptorPool,
-            .MinImageCount   = DeviceManager.GetMinImageCount(),
-            .ImageCount      = DeviceManager.GetMinImageCount(),
+            .MinImageCount   = g_MinImageCount,
+            .ImageCount      = g_MinImageCount,
             .MSAASamples     = g_MSAASamples,
             .Allocator       = VK_NULL_HANDLE,
             .CheckVkResultFn = [](VkResult Result) {
@@ -92,22 +92,22 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& Pipe
 
     VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
     VkCommandPool CommandPool     = VK_NULL_HANDLE;
-    InitializeSingleCommandQueue(DeviceManager.GetLogicalDevice(), CommandPool, CommandBuffer, DeviceManager.GetGraphicsQueue().first);
+    InitializeSingleCommandQueue(CommandPool, CommandBuffer, DeviceManager.GetGraphicsQueue().first);
     {
         ImGui_ImplVulkan_CreateFontsTexture(CommandBuffer);
     }
-    FinishSingleCommandQueue(DeviceManager.GetLogicalDevice(), DeviceManager.GetGraphicsQueue().second, CommandPool, CommandBuffer);
+    FinishSingleCommandQueue(DeviceManager.GetGraphicsQueue().second, CommandPool, CommandBuffer);
 
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
-void RenderCore::ReleaseImGuiResources(VkDevice const& LogicalDevice)
+void RenderCore::ReleaseImGuiResources()
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     if (g_ImGuiDescriptorPool != VK_NULL_HANDLE)
     {
-        vkDestroyDescriptorPool(LogicalDevice, g_ImGuiDescriptorPool, nullptr);
+        vkDestroyDescriptorPool(volkGetLoadedDevice(), g_ImGuiDescriptorPool, nullptr);
         g_ImGuiDescriptorPool = VK_NULL_HANDLE;
     }
 

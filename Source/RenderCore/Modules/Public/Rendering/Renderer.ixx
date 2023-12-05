@@ -19,6 +19,7 @@ export import <string_view>;
 export import RenderCore.Types.Object;
 export import Timer.Manager;
 
+import RenderCore.Utils.EngineStateFlags;
 import RenderCore.Management.BufferManagement;
 import RenderCore.Management.PipelineManagement;
 import RenderCore.Management.CommandsManagement;
@@ -28,16 +29,6 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Renderer
     {
-        enum class EngineCoreStateFlags : std::uint8_t
-        {
-            NONE                             = 0,
-            INITIALIZED                      = 1 << 0,
-            PENDING_DEVICE_PROPERTIES_UPDATE = 1 << 1,
-            PENDING_RESOURCES_DESTRUCTION    = 1 << 2,
-            PENDING_RESOURCES_CREATION       = 1 << 3,
-            PENDING_PIPELINE_REFRESH         = 1 << 4,
-        };
-
         BufferManager m_BufferManager {};
         PipelineManager m_PipelineManager {};
         CommandsManager m_CommandsManager {};
@@ -59,10 +50,10 @@ namespace RenderCore
         bool Initialize(GLFWwindow*);
         void Shutdown();
 
+    public:
         Renderer()  = default;
         ~Renderer() = default;
 
-    public:
         [[nodiscard]] bool IsInitialized() const;
 
         [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view const&);
