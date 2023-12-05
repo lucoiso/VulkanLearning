@@ -20,8 +20,8 @@ SET(PRIVATE_MODULES
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.cppm
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.ixx
 
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManager.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManager.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.ixx
 
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.cppm
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.ixx
@@ -29,8 +29,8 @@ SET(PRIVATE_MODULES
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.cppm
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.ixx
 
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManager.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManager.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.cppm
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/SurfaceProperties.ixx
 
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/MeshBufferData.ixx

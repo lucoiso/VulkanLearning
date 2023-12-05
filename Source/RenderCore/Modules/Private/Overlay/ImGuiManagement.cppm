@@ -27,7 +27,7 @@ using namespace RenderCore;
 
 VkDescriptorPool g_ImGuiDescriptorPool {VK_NULL_HANDLE};
 
-void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& PipelineManager, DeviceManager& DeviceManager)
+void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& PipelineManager)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -70,14 +70,14 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& Pipe
             .poolSizeCount = std::size(DescriptorPoolSizes),
             .pPoolSizes    = std::data(DescriptorPoolSizes)};
 
-    CheckVulkanResult(vkCreateDescriptorPool(DeviceManager.GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &g_ImGuiDescriptorPool));
+    CheckVulkanResult(vkCreateDescriptorPool(GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &g_ImGuiDescriptorPool));
 
     ImGui_ImplVulkan_InitInfo ImGuiVulkanInitInfo {
             .Instance        = volkGetLoadedInstance(),
-            .PhysicalDevice  = DeviceManager.GetPhysicalDevice(),
-            .Device          = DeviceManager.GetLogicalDevice(),
-            .QueueFamily     = DeviceManager.GetGraphicsQueue().first,
-            .Queue           = DeviceManager.GetGraphicsQueue().second,
+            .PhysicalDevice  = GetPhysicalDevice(),
+            .Device          = GetLogicalDevice(),
+            .QueueFamily     = GetGraphicsQueue().first,
+            .Queue           = GetGraphicsQueue().second,
             .PipelineCache   = PipelineManager.GetPipelineCache(),
             .DescriptorPool  = g_ImGuiDescriptorPool,
             .MinImageCount   = g_MinImageCount,
@@ -92,11 +92,11 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& Pipe
 
     VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
     VkCommandPool CommandPool     = VK_NULL_HANDLE;
-    InitializeSingleCommandQueue(CommandPool, CommandBuffer, DeviceManager.GetGraphicsQueue().first);
+    InitializeSingleCommandQueue(CommandPool, CommandBuffer, GetGraphicsQueue().first);
     {
         ImGui_ImplVulkan_CreateFontsTexture(CommandBuffer);
     }
-    FinishSingleCommandQueue(DeviceManager.GetGraphicsQueue().second, CommandPool, CommandBuffer);
+    FinishSingleCommandQueue(GetGraphicsQueue().second, CommandPool, CommandBuffer);
 
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 }

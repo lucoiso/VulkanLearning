@@ -29,8 +29,6 @@ using namespace RenderCore;
 
 VkExtent2D RenderCore::GetWindowExtent(GLFWwindow* const Window, VkSurfaceCapabilitiesKHR const& Capabilities)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     std::int32_t Width  = 0U;
     std::int32_t Height = 0U;
     glfwGetFramebufferSize(Window, &Width, &Height);

@@ -31,8 +31,6 @@ namespace RenderCore
     {
         BufferManager m_BufferManager {};
         PipelineManager m_PipelineManager {};
-        CommandsManager m_CommandsManager {};
-        DeviceManager m_DeviceManager {};
 
         EngineCoreStateFlags m_StateFlags {EngineCoreStateFlags::NONE};
         std::vector<std::shared_ptr<Object>> m_Objects {};

@@ -16,7 +16,7 @@ import RenderCore.Management.PipelineManagement;
 
 namespace RenderCore
 {
-    export void InitializeImGui(GLFWwindow*, PipelineManager&, DeviceManager&);
+    export void InitializeImGui(GLFWwindow*, PipelineManager&);
     export void ReleaseImGuiResources();
     export void DrawImGuiFrame(std::function<void()>&&);
 }// namespace RenderCore
