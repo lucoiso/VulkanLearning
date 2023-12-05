@@ -141,38 +141,6 @@ std::unordered_map<std::string, std::string> RenderCore::GetAvailableglTFAssetsI
     return OptionsMap;
 }
 
-#ifdef _DEBUG
-
-void RenderCore::ListAvailableInstanceLayers()
-{
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available instance layers...";
-
-    for (auto const& [LayerName, SpecVer, ImplVer, Descr]: GetAvailableInstanceLayers())
-    {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Name: " << LayerName;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Description: " << Descr;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Spec Version: " << SpecVer;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Layer Implementation Version: " << ImplVer << std::endl;
-    }
-}
-
-void RenderCore::ListAvailableInstanceExtensions()
-{
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available instance extensions...";
-
-    for (auto const& [ExtName, SpecVer]: GetAvailableInstanceExtensions())
-    {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Name: " << ExtName;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Spec Version: " << SpecVer << std::endl;
-    }
-}
-
-#endif
-
 std::array<VkVertexInputBindingDescription, 1U> RenderCore::GetBindingDescriptors()
 {
     return {
@@ -238,19 +206,3 @@ std::vector<std::string> RenderCore::GetAvailableLayerExtensionsNames(std::strin
 
     return Output;
 }
-
-#ifdef _DEBUG
-
-void RenderCore::ListAvailableInstanceLayerExtensions(std::string_view const& LayerName)
-{
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Listing available layer '" << LayerName << "' extensions...";
-
-    for (auto const& [ExtName, SpecVer]: GetAvailableLayerExtensions(LayerName))
-    {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Name: " << ExtName;
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Extension Spec Version: " << SpecVer << std::endl;
-    }
-}
-#endif

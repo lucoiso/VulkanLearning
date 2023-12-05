@@ -290,20 +290,6 @@ bool Renderer::Initialize(GLFWwindow* const Window)
 
     CheckVulkanResult(volkInitialize());
 
-#ifdef _DEBUG
-    ListAvailableInstanceLayers();
-
-    for (char const* const& RequiredLayerIter: g_RequiredInstanceLayers)
-    {
-        ListAvailableInstanceLayerExtensions(RequiredLayerIter);
-    }
-
-    for (char const* const& DebugLayerIter: g_DebugInstanceLayers)
-    {
-        ListAvailableInstanceLayerExtensions(DebugLayerIter);
-    }
-#endif
-
     if (!IsEngineCoreInitialized())
     {
         InitializeEngineCore();

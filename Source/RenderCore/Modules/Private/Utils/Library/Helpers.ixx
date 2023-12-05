@@ -26,17 +26,8 @@ namespace RenderCore
 
     export [[nodiscard]] std::unordered_map<std::string, std::string> GetAvailableglTFAssetsInDirectory(std::string const&, std::vector<std::string> const&);
 
-#ifdef _DEBUG
-    export void ListAvailableInstanceLayers();
-    export void ListAvailableInstanceExtensions();
-#endif
-
     export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableLayerExtensions(std::string_view const&);
     export [[nodiscard]] std::vector<std::string> GetAvailableLayerExtensionsNames(std::string_view const&);
-
-#ifdef _DEBUG
-    export void ListAvailableInstanceLayerExtensions(std::string_view const&);
-#endif
 
     export [[nodiscard]] std::array<VkVertexInputBindingDescription, 1U> GetBindingDescriptors();
     export [[nodiscard]] std::array<VkVertexInputAttributeDescription, 4U> GetAttributeDescriptions();
