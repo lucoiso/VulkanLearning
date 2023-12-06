@@ -90,11 +90,11 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& Pipe
 
     ImGui_ImplVulkan_Init(&ImGuiVulkanInitInfo, PipelineManager.GetRenderPass());
 
-    VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
-    VkCommandPool CommandPool     = VK_NULL_HANDLE;
+    std::vector<VkCommandBuffer> CommandBuffer {VK_NULL_HANDLE};
+    VkCommandPool CommandPool = VK_NULL_HANDLE;
     InitializeSingleCommandQueue(CommandPool, CommandBuffer, GetGraphicsQueue().first);
     {
-        ImGui_ImplVulkan_CreateFontsTexture(CommandBuffer);
+        ImGui_ImplVulkan_CreateFontsTexture(CommandBuffer.back());
     }
     FinishSingleCommandQueue(GetGraphicsQueue().second, CommandPool, CommandBuffer);
 

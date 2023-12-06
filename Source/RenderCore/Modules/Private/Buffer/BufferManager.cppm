@@ -74,24 +74,18 @@ VmaAllocationInfo CreateBuffer(VmaAllocator const& Allocator, VkDeviceSize const
     return MemoryAllocationInfo;
 }
 
-void CopyBuffer(VkBuffer const& Source, VkBuffer const& Destination, VkDeviceSize const& Size, VkQueue const& Queue, std::uint8_t const QueueFamilyIndex)
+void CopyBuffer(VkCommandBuffer const& CommandBuffer, VkBuffer const& Source, VkBuffer const& Destination, VkDeviceSize const& Size)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
-    VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
-    VkCommandPool CommandPool     = VK_NULL_HANDLE;
-    InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
-    {
-        VkBufferCopy const BufferCopy {
-                .size = Size,
-        };
+    VkBufferCopy const BufferCopy {
+            .size = Size,
+    };
 
-        vkCmdCopyBuffer(CommandBuffer, Source, Destination, 1U, &BufferCopy);
-    }
-    FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
+    vkCmdCopyBuffer(CommandBuffer, Source, Destination, 1U, &BufferCopy);
 }
 
-void CreateVertexBuffer(VmaAllocator const& Allocator, std::pair<std::uint8_t, VkQueue> const& QueuePair, ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<Vertex> const& Vertices)
+CommandBufferSet CreateVertexBuffer(VmaAllocator const& Allocator, ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<Vertex> const& Vertices)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -99,8 +93,6 @@ void CreateVertexBuffer(VmaAllocator const& Allocator, std::pair<std::uint8_t, V
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
-
-    auto const& [FamilyIndex, Queue] = QueuePair;
 
     constexpr VkBufferUsageFlags SourceUsageFlags             = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -108,26 +100,27 @@ void CreateVertexBuffer(VmaAllocator const& Allocator, std::pair<std::uint8_t, V
     constexpr VkBufferUsageFlags DestinationUsageFlags             = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = 0U;
 
-    VkBuffer StagingBuffer            = VK_NULL_HANDLE;
-    VmaAllocation StagingBufferMemory = VK_NULL_HANDLE;
+    CommandBufferSet Output {
+            .bVertexBuffer  = true,
+            .AllocationSize = AllocationSize};
+
     VmaAllocationInfo const
             StagingInfo
             = CreateBuffer(Allocator,
                            AllocationSize,
                            SourceUsageFlags,
                            SourceMemoryPropertyFlags,
-                           StagingBuffer,
-                           StagingBufferMemory);
+                           Output.StagingBuffer.first,
+                           Output.StagingBuffer.second);
 
     std::memcpy(StagingInfo.pMappedData, std::data(Vertices), AllocationSize);
 
     CreateBuffer(Allocator, AllocationSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.VertexBuffer.Buffer, Object.VertexBuffer.Allocation);
-    CopyBuffer(StagingBuffer, Object.VertexBuffer.Buffer, AllocationSize, Queue, FamilyIndex);
 
-    vmaDestroyBuffer(Allocator, StagingBuffer, StagingBufferMemory);
+    return Output;
 }
 
-void CreateIndexBuffer(VmaAllocator const& Allocator, std::pair<std::uint8_t, VkQueue> const& QueuePair, ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<std::uint32_t> const& Indices)
+CommandBufferSet CreateIndexBuffer(VmaAllocator const& Allocator, ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<std::uint32_t> const& Indices)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -136,32 +129,31 @@ void CreateIndexBuffer(VmaAllocator const& Allocator, std::pair<std::uint8_t, Vk
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
 
-    auto const& [FamilyIndex, Queue] = QueuePair;
-
     constexpr VkBufferUsageFlags SourceUsageFlags             = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
     constexpr VkBufferUsageFlags DestinationUsageFlags             = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = 0U;
 
-    VkBuffer StagingBuffer            = VK_NULL_HANDLE;
-    VmaAllocation StagingBufferMemory = VK_NULL_HANDLE;
+    CommandBufferSet Output {
+            .bVertexBuffer  = false,
+            .AllocationSize = AllocationSize};
+
     VmaAllocationInfo const
             StagingInfo
             = CreateBuffer(Allocator,
                            AllocationSize,
                            SourceUsageFlags,
                            SourceMemoryPropertyFlags,
-                           StagingBuffer,
-                           StagingBufferMemory);
+                           Output.StagingBuffer.first,
+                           Output.StagingBuffer.second);
 
     std::memcpy(StagingInfo.pMappedData, std::data(Indices), AllocationSize);
-    CheckVulkanResult(vmaFlushAllocation(Allocator, StagingBufferMemory, 0U, AllocationSize));
+    CheckVulkanResult(vmaFlushAllocation(Allocator, Output.StagingBuffer.second, 0U, AllocationSize));
 
     CreateBuffer(Allocator, AllocationSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.IndexBuffer.Buffer, Object.IndexBuffer.Allocation);
-    CopyBuffer(StagingBuffer, Object.IndexBuffer.Buffer, AllocationSize, Queue, FamilyIndex);
 
-    vmaDestroyBuffer(Allocator, StagingBuffer, StagingBufferMemory);
+    return Output;
 }
 
 void CreateUniformBuffer(VmaAllocator const& Allocator, ObjectAllocation& Object, VkDeviceSize const& AllocationSize)
@@ -180,24 +172,24 @@ void CreateUniformBuffer(VmaAllocator const& Allocator, ObjectAllocation& Object
     vmaMapMemory(Allocator, Object.UniformBuffer.Allocation, &Object.UniformBuffer.MappedData);
 }
 
-void CreateVertexBuffers(VmaAllocator const& Allocator, std::pair<std::uint8_t, VkQueue> const& QueuePair, ObjectAllocation& Object, std::vector<Vertex> const& Vertices)
+CommandBufferSet CreateVertexBuffers(VmaAllocator const& Allocator, ObjectAllocation& Object, std::vector<Vertex> const& Vertices)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan vertex buffers";
 
     VkDeviceSize const BufferSize = std::size(Vertices) * sizeof(Vertex);
-    CreateVertexBuffer(Allocator, QueuePair, Object, BufferSize, Vertices);
+    return CreateVertexBuffer(Allocator, Object, BufferSize, Vertices);
 }
 
-void CreateIndexBuffers(VmaAllocator const& Allocator, std::pair<std::uint8_t, VkQueue> const& QueuePair, ObjectAllocation& Object, std::vector<std::uint32_t> const& Indices)
+CommandBufferSet CreateIndexBuffers(VmaAllocator const& Allocator, ObjectAllocation& Object, std::vector<std::uint32_t> const& Indices)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
 
     VkDeviceSize const BufferSize = std::size(Indices) * sizeof(std::uint32_t);
-    CreateIndexBuffer(Allocator, QueuePair, Object, BufferSize, Indices);
+    return CreateIndexBuffer(Allocator, Object, BufferSize, Indices);
 }
 
 void CreateUniformBuffers(VmaAllocator const& Allocator, ObjectAllocation& Object)
@@ -319,105 +311,90 @@ void CreateTextureSampler(VmaAllocator const& Allocator, ImageAllocation& Alloca
     CheckVulkanResult(vkCreateSampler(volkGetLoadedDevice(), &SamplerCreateInfo, nullptr, &Allocation.Sampler));
 }
 
-void CopyBufferToImage(VkBuffer const& Source, VkImage const& Destination, VkExtent2D const& Extent, VkQueue const& Queue, std::uint32_t const QueueFamilyIndex)
+void CopyBufferToImage(VkCommandBuffer const& CommandBuffer, VkBuffer const& Source, VkImage const& Destination, VkExtent2D const& Extent)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
-    VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
-    VkCommandPool CommandPool     = VK_NULL_HANDLE;
-    InitializeSingleCommandQueue(CommandPool, CommandBuffer, static_cast<std::uint8_t>(QueueFamilyIndex));
-    {
-        VkBufferImageCopy const BufferImageCopy {
-                .bufferOffset      = 0U,
-                .bufferRowLength   = 0U,
-                .bufferImageHeight = 0U,
-                .imageSubresource  = {
-                         .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                         .mipLevel       = 0U,
-                         .baseArrayLayer = 0U,
-                         .layerCount     = 1U},
-                .imageOffset = {.x = 0U, .y = 0U, .z = 0U},
-                .imageExtent = {.width = Extent.width, .height = Extent.height, .depth = 1U}};
+    VkBufferImageCopy const BufferImageCopy {
+            .bufferOffset      = 0U,
+            .bufferRowLength   = 0U,
+            .bufferImageHeight = 0U,
+            .imageSubresource  = {
+                     .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                     .mipLevel       = 0U,
+                     .baseArrayLayer = 0U,
+                     .layerCount     = 1U},
+            .imageOffset = {.x = 0U, .y = 0U, .z = 0U},
+            .imageExtent = {.width = Extent.width, .height = Extent.height, .depth = 1U}};
 
-        vkCmdCopyBufferToImage(CommandBuffer, Source, Destination, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1U, &BufferImageCopy);
-    }
-    FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
+    vkCmdCopyBufferToImage(CommandBuffer, Source, Destination, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1U, &BufferImageCopy);
 }
 
 template<VkImageLayout OldLayout, VkImageLayout NewLayout>
-constexpr void MoveImageLayout(VkImage const& Image,
-                               VkFormat const& Format,
-                               VkQueue const& Queue,
-                               std::uint8_t const QueueFamilyIndex)
+constexpr void MoveImageLayout(VkCommandBuffer& CommandBuffer, VkImage const& Image, VkFormat const& Format)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
-    VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
-    VkCommandPool CommandPool     = VK_NULL_HANDLE;
-    InitializeSingleCommandQueue(CommandPool, CommandBuffer, QueueFamilyIndex);
+    VkPipelineStageFlags SourceStage;
+    VkPipelineStageFlags DestinationStage;
+
+    VkImageMemoryBarrier Barrier = {
+            .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .oldLayout           = OldLayout,
+            .newLayout           = NewLayout,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image               = Image,
+            .subresourceRange    = {
+                       .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                       .baseMipLevel   = 0U,
+                       .levelCount     = 1U,
+                       .baseArrayLayer = 0U,
+                       .layerCount     = 1U}};
+
+    if constexpr (NewLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
     {
-        VkPipelineStageFlags SourceStage;
-        VkPipelineStageFlags DestinationStage;
+        Barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-        VkImageMemoryBarrier Barrier = {
-                .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                .oldLayout           = OldLayout,
-                .newLayout           = NewLayout,
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .image               = Image,
-                .subresourceRange    = {
-                           .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                           .baseMipLevel   = 0U,
-                           .levelCount     = 1U,
-                           .baseArrayLayer = 0U,
-                           .layerCount     = 1U}};
-
-        if constexpr (NewLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+        if (Format == VK_FORMAT_D32_SFLOAT_S8_UINT || Format == VK_FORMAT_D24_UNORM_S8_UINT)
         {
-            Barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-            if (Format == VK_FORMAT_D32_SFLOAT_S8_UINT || Format == VK_FORMAT_D24_UNORM_S8_UINT)
-            {
-                Barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-            }
+            Barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
         }
-
-        if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-        {
-            Barrier.srcAccessMask = 0;
-            Barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-            SourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            DestinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        }
-        else if constexpr (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-        {
-            Barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            Barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-            SourceStage      = VK_PIPELINE_STAGE_TRANSFER_BIT;
-            DestinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        }
-        else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-        {
-            Barrier.srcAccessMask = 0;
-            Barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-            SourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            DestinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        }
-        else
-        {
-            throw std::invalid_argument("Vulkan image layout transition is invalid");
-        }
-
-        vkCmdPipelineBarrier(CommandBuffer, SourceStage, DestinationStage, 0U, 0U, nullptr, 0U, nullptr, 1U, &Barrier);
     }
-    FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
+
+    if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+    {
+        Barrier.srcAccessMask = 0;
+        Barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+        SourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        DestinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    }
+    else if constexpr (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        Barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        Barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        SourceStage      = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        DestinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+    {
+        Barrier.srcAccessMask = 0;
+        Barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        SourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        DestinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    }
+    else
+    {
+        throw std::invalid_argument("Vulkan image layout transition is invalid");
+    }
+
+    vkCmdPipelineBarrier(CommandBuffer, SourceStage, DestinationStage, 0U, 0U, nullptr, 0U, nullptr, 1U, &Barrier);
 }
 
-ImageAllocation AllocateTexture(VmaAllocator const& Allocator, std::pair<std::uint8_t, VkQueue> const& QueuePair, unsigned char const* Data, std::uint32_t const Width, std::uint32_t const Height, std::size_t const AllocationSize)
+ImageCreationData AllocateTexture(VmaAllocator const& Allocator, unsigned char const* Data, std::uint32_t const Width, std::uint32_t const Height, std::size_t const AllocationSize)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -431,73 +408,32 @@ ImageAllocation AllocateTexture(VmaAllocator const& Allocator, std::pair<std::ui
 
     constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
 
-    VkBuffer StagingBuffer            = nullptr;
-    VmaAllocation StagingBufferMemory = nullptr;
+    ImageCreationData Output {};
+
     VmaAllocationInfo const
             StagingInfo
             = CreateBuffer(Allocator,
                            std::clamp(AllocationSize, g_ImageBufferMemoryAllocationSize, UINT64_MAX),
                            SourceUsageFlags,
                            SourceMemoryPropertyFlags,
-                           StagingBuffer,
-                           StagingBufferMemory);
+                           Output.StagingBuffer.first,
+                           Output.StagingBuffer.second);
 
     std::memcpy(StagingInfo.pMappedData, Data, AllocationSize);
 
-    constexpr VkFormat ImageFormat            = VK_FORMAT_R8G8B8A8_SRGB;
-    constexpr VkImageLayout InitialLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
-    constexpr VkImageLayout MiddleLayout      = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    constexpr VkImageLayout DestinationLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    constexpr VkFormat ImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
 
     VkExtent2D const Extent {
             .width  = Width,
             .height = Height};
 
-    auto const& [FamilyIndex, Queue] = QueuePair;
-
     CreateImage(Allocator, ImageFormat, Extent, Tiling, DestinationUsageFlags, DestinationMemoryPropertyFlags, ImageAllocation.Image, ImageAllocation.Allocation);
-    MoveImageLayout<InitialLayout, MiddleLayout>(ImageAllocation.Image, ImageFormat, Queue, FamilyIndex);
-    CopyBufferToImage(StagingBuffer, ImageAllocation.Image, Extent, Queue, FamilyIndex);
-    MoveImageLayout<MiddleLayout, DestinationLayout>(ImageAllocation.Image, ImageFormat, Queue, FamilyIndex);
 
-    CreateTextureImageView(ImageAllocation);
-    CreateTextureSampler(Allocator, ImageAllocation);
-    vmaDestroyBuffer(Allocator, StagingBuffer, StagingBufferMemory);
+    Output.Allocation = ImageAllocation;
+    Output.Format     = ImageFormat;
+    Output.Extent     = Extent;
 
-    return ImageAllocation;
-}
-
-void LoadTexture(VmaAllocator const& Allocator, std::pair<std::uint8_t, VkQueue> const& QueuePair, ObjectAllocation& Object, std::string_view const& TexturePath)
-{
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan texture image";
-
-    if (Allocator == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan memory allocator is invalid.");
-    }
-
-    std::int32_t Width    = -1;
-    std::int32_t Height   = -1;
-    std::int32_t Channels = -1;
-
-    if (!std::filesystem::exists(TexturePath))
-    {
-        throw std::runtime_error("Texture path is invalid. Path: " + std::string(TexturePath));
-    }
-
-    stbi_uc const* const ImagePixels = stbi_load(std::data(TexturePath), &Width, &Height, &Channels, STBI_rgb_alpha);
-    auto const AllocationSize        = static_cast<VkDeviceSize>(Width) * static_cast<VkDeviceSize>(Height) * 4U;
-
-    if (ImagePixels == nullptr)
-    {
-        throw std::runtime_error("STB ImageAllocation is invalid. Path: " + std::string(TexturePath));
-    }
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loaded image from path: '" << TexturePath << "'";
-
-    Object.TextureImages.push_back(AllocateTexture(Allocator, QueuePair, ImagePixels, static_cast<std::uint32_t>(Width), static_cast<std::uint32_t>(Height), AllocationSize));
+    return Output;
 }
 
 void BufferManager::CreateVulkanSurface(GLFWwindow* const Window)
@@ -630,14 +566,31 @@ void BufferManager::CreateDepthResources(SurfaceProperties const& SurfacePropert
 
     CreateImage(m_Allocator, SurfaceProperties.DepthFormat, m_SwapChainExtent, Tiling, Usage, MemoryPropertyFlags, m_DepthImage.Image, m_DepthImage.Allocation);
     CreateImageView(m_DepthImage.Image, SurfaceProperties.DepthFormat, Aspect, m_DepthImage.View);
-    MoveImageLayout<InitialLayout, DestinationLayout>(m_DepthImage.Image, SurfaceProperties.DepthFormat, Queue, FamilyIndex);
+
+    VkCommandPool CommandPool {VK_NULL_HANDLE};
+    std::vector<VkCommandBuffer> CommandBuffer {VK_NULL_HANDLE};
+    InitializeSingleCommandQueue(CommandPool, CommandBuffer, FamilyIndex);
+    {
+        MoveImageLayout<InitialLayout, DestinationLayout>(CommandBuffer.back(), m_DepthImage.Image, SurfaceProperties.DepthFormat);
+    }
+    FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
 }
 
 std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPath, std::pair<std::uint8_t, VkQueue> const& QueuePair)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
-    std::vector<Object> Output;
+    struct ObjectAllocationData
+    {
+        Object Object {0U, ""};
+        ObjectAllocation Allocation {};
+        std::vector<Vertex> Vertices {};
+        std::vector<std::uint32_t> Indices {};
+        std::vector<ImageCreationData> ImageCreationDatas {};
+        std::vector<CommandBufferSet> CommandBufferSets {};
+    };
+
+    std::vector<ObjectAllocationData> AllocationData {};
     tinygltf::Model Model {};
 
     {
@@ -677,7 +630,7 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
         }
     };
 
-    auto const AllocateModelTexture = [this, Model, QueuePair](ObjectAllocation& Allocation, std::int32_t const TextureIndex, TextureType const TextureType) {
+    auto const AllocateModelTexture = [this, Model](ObjectAllocationData& ObjectCreationData, std::int32_t const TextureIndex, TextureType const TextureType) {
         if (TextureIndex >= 0)
         {
             if (tinygltf::Texture const& Texture = Model.textures.at(TextureIndex);
@@ -685,8 +638,8 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
             {
                 tinygltf::Image const& Image = Model.images.at(Texture.source);
 
-                Allocation.TextureImages.push_back(AllocateTexture(m_Allocator, QueuePair, std::data(Image.image), Image.width, Image.height, std::size(Image.image)));
-                Allocation.TextureImages.back().Type = TextureType;
+                ObjectCreationData.ImageCreationDatas.push_back(AllocateTexture(m_Allocator, std::data(Image.image), Image.width, Image.height, std::size(Image.image)));
+                ObjectCreationData.ImageCreationDatas.back().Type = TextureType;
             }
         }
     };
@@ -703,16 +656,14 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
         }
 
         tinygltf::Mesh const& Mesh = Model.meshes.at(MeshIndex);
-        Output.reserve(std::size(Output) + std::size(Mesh.primitives));
+        AllocationData.reserve(std::size(AllocationData) + std::size(Mesh.primitives));
 
         for (tinygltf::Primitive const& Primitive: Mesh.primitives)
         {
             std::uint32_t const ObjectID = m_ObjectIDCounter.fetch_add(1U);
 
-            ObjectAllocation NewObjectAllocation {};
-            std::vector<Vertex> NewVertices {};
-            std::vector<std::uint32_t> NewIndices {};
-            Object NewObject(ObjectID, ModelPath, std::format("{}_{:03d}", Mesh.name, ObjectID));
+            ObjectAllocationData NewObjectAllocation {
+                    .Object = {ObjectID, ModelPath, std::format("{}_{:03d}", Mesh.name, ObjectID)}};
 
             {
                 const float* PositionData {nullptr};
@@ -725,7 +676,7 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
                     tinygltf::BufferView const& PositionBufferView = Model.bufferViews.at(PositionAccessor.bufferView);
                     tinygltf::Buffer const& PositionBuffer         = Model.buffers.at(PositionBufferView.buffer);
                     PositionData                                   = reinterpret_cast<const float*>(std::data(PositionBuffer.data) + PositionBufferView.byteOffset + PositionAccessor.byteOffset);
-                    TryResizeVertexContainer(NewVertices, PositionAccessor.count);
+                    TryResizeVertexContainer(NewObjectAllocation.Vertices, PositionAccessor.count);
                 }
 
                 if (Primitive.attributes.contains("NORMAL"))
@@ -734,7 +685,7 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
                     tinygltf::BufferView const& NormalBufferView = Model.bufferViews.at(NormalAccessor.bufferView);
                     tinygltf::Buffer const& NormalBuffer         = Model.buffers.at(NormalBufferView.buffer);
                     NormalData                                   = reinterpret_cast<const float*>(std::data(NormalBuffer.data) + NormalBufferView.byteOffset + NormalAccessor.byteOffset);
-                    TryResizeVertexContainer(NewVertices, NormalAccessor.count);
+                    TryResizeVertexContainer(NewObjectAllocation.Vertices, NormalAccessor.count);
                 }
 
                 if (Primitive.attributes.contains("TEXCOORD_0"))
@@ -743,24 +694,24 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
                     tinygltf::BufferView const& TexCoordBufferView = Model.bufferViews.at(TexCoordAccessor.bufferView);
                     tinygltf::Buffer const& TexCoordBuffer         = Model.buffers.at(TexCoordBufferView.buffer);
                     TexCoordData                                   = reinterpret_cast<const float*>(std::data(TexCoordBuffer.data) + TexCoordBufferView.byteOffset + TexCoordAccessor.byteOffset);
-                    TryResizeVertexContainer(NewVertices, TexCoordAccessor.count);
+                    TryResizeVertexContainer(NewObjectAllocation.Vertices, TexCoordAccessor.count);
                 }
 
-                for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(NewVertices)); ++Iterator)
+                for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(NewObjectAllocation.Vertices)); ++Iterator)
                 {
                     if (PositionData)
                     {
-                        NewVertices.at(Iterator).Position = glm::make_vec3(&PositionData[Iterator * 3]);
+                        NewObjectAllocation.Vertices.at(Iterator).Position = glm::make_vec3(&PositionData[Iterator * 3]);
                     }
 
                     if (NormalData)
                     {
-                        NewVertices.at(Iterator).Normal = glm::make_vec3(&NormalData[Iterator * 3]);
+                        NewObjectAllocation.Vertices.at(Iterator).Normal = glm::make_vec3(&NormalData[Iterator * 3]);
                     }
 
                     if (TexCoordData)
                     {
-                        NewVertices.at(Iterator).TextureCoordinate = glm::make_vec2(&TexCoordData[Iterator * 2]);
+                        NewObjectAllocation.Vertices.at(Iterator).TextureCoordinate = glm::make_vec2(&TexCoordData[Iterator * 2]);
                     }
                 }
             }
@@ -772,21 +723,20 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
                 tinygltf::Buffer const& IndexBuffer         = Model.buffers.at(IndexBufferView.buffer);
                 unsigned char const* const IndicesData      = std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset;
 
-                NewIndices.reserve(IndexAccessor.count);
-                NewObjectAllocation.IndicesCount = IndexAccessor.count;
+                NewObjectAllocation.Indices.reserve(IndexAccessor.count);
 
                 switch (IndexAccessor.componentType)
                 {
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
-                        InsertIndiceInContainer(NewIndices, IndexAccessor, reinterpret_cast<const uint32_t*>(IndicesData));
+                        InsertIndiceInContainer(NewObjectAllocation.Indices, IndexAccessor, reinterpret_cast<const uint32_t*>(IndicesData));
                         break;
                     }
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
-                        InsertIndiceInContainer(NewIndices, IndexAccessor, reinterpret_cast<const uint16_t*>(IndicesData));
+                        InsertIndiceInContainer(NewObjectAllocation.Indices, IndexAccessor, reinterpret_cast<const uint16_t*>(IndicesData));
                         break;
                     }
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
-                        InsertIndiceInContainer(NewIndices, IndexAccessor, IndicesData);
+                        InsertIndiceInContainer(NewObjectAllocation.Indices, IndexAccessor, IndicesData);
                         break;
                     }
                     default:
@@ -796,49 +746,250 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
 
             if (!std::empty(Node.translation))
             {
-                NewObject.SetPosition(Vector(glm::make_vec3(std::data(Node.translation))));
+                NewObjectAllocation.Object.SetPosition(Vector(glm::make_vec3(std::data(Node.translation))));
             }
 
             if (!std::empty(Node.scale))
             {
-                NewObject.SetScale(Vector(glm::make_vec3(std::data(Node.scale))));
+                NewObjectAllocation.Object.SetScale(Vector(glm::make_vec3(std::data(Node.scale))));
             }
 
             if (!std::empty(Node.rotation))
             {
-                NewObject.SetRotation(Rotator(glm::make_quat(std::data(Node.rotation))));
+                NewObjectAllocation.Object.SetRotation(Rotator(glm::make_quat(std::data(Node.rotation))));
             }
 
             if (Primitive.material >= 0)
             {
                 tinygltf::Material const& Material = Model.materials.at(Primitive.material);
-                AllocateModelTexture(NewObjectAllocation,
-                                     Material.pbrMetallicRoughness.baseColorTexture.index,
-                                     TextureType::BaseColor);
+                AllocateModelTexture(NewObjectAllocation, Material.pbrMetallicRoughness.baseColorTexture.index, TextureType::BaseColor);
 
-                if (std::empty(NewObjectAllocation.TextureImages))
+                if (std::empty(NewObjectAllocation.ImageCreationDatas))
                 {
                     constexpr std::uint8_t DefaultTextureHalfSize {2U};
                     constexpr std::uint8_t DefaultTextureSize {DefaultTextureHalfSize * 2U};
                     constexpr std::array<std::uint8_t, DefaultTextureSize> DefaultTextureData {};
 
-                    NewObjectAllocation.TextureImages.push_back(AllocateTexture(m_Allocator,
-                                                                                QueuePair,
-                                                                                std::data(DefaultTextureData),
-                                                                                DefaultTextureHalfSize,
-                                                                                DefaultTextureHalfSize,
-                                                                                DefaultTextureSize));
+                    NewObjectAllocation.ImageCreationDatas.push_back(AllocateTexture(m_Allocator,
+                                                                                     std::data(DefaultTextureData),
+                                                                                     DefaultTextureHalfSize,
+                                                                                     DefaultTextureHalfSize,
+                                                                                     DefaultTextureSize));
 
-                    NewObjectAllocation.TextureImages.back().Type = TextureType::BaseColor;
+                    NewObjectAllocation.ImageCreationDatas.back().Type = TextureType::BaseColor;
                 }
             }
 
-            CreateVertexBuffers(m_Allocator, QueuePair, NewObjectAllocation, NewVertices);
-            CreateIndexBuffers(m_Allocator, QueuePair, NewObjectAllocation, NewIndices);
-            CreateUniformBuffers(m_Allocator, NewObjectAllocation);
+            NewObjectAllocation.CommandBufferSets.push_back(CreateVertexBuffers(m_Allocator, NewObjectAllocation.Allocation, NewObjectAllocation.Vertices));
+            NewObjectAllocation.CommandBufferSets.push_back(CreateIndexBuffers(m_Allocator, NewObjectAllocation.Allocation, NewObjectAllocation.Indices));
+            CreateUniformBuffers(m_Allocator, NewObjectAllocation.Allocation);
 
-            m_Objects.emplace(NewObject.GetID(), std::move(NewObjectAllocation));
-            Output.push_back(std::move(NewObject));
+            AllocationData.push_back(NewObjectAllocation);
+        }
+    }
+
+    std::vector<Object> Output;
+    Output.reserve(std::size(AllocationData));
+
+    m_Objects.reserve(std::size(m_Objects) + std::size(AllocationData));
+
+    // Copy buffers and destroy staging buffers
+    {
+        // Copy buffers
+        {
+            struct BufferCopyTemporaryData
+            {
+                VkBuffer SourceBuffer {VK_NULL_HANDLE};
+                VmaAllocation SourceAllocation {VK_NULL_HANDLE};
+
+                VkBuffer DestinationBuffer {VK_NULL_HANDLE};
+                VmaAllocation DestinationAllocation {VK_NULL_HANDLE};
+
+                VkDeviceSize AllocationSize {0U};
+            };
+
+            struct BufferCopyOperationData
+            {
+                BufferCopyTemporaryData VertexData {};
+                BufferCopyTemporaryData IndexData {};
+            };
+
+            std::vector<BufferCopyOperationData> CopyOperationData {};
+            CopyOperationData.reserve(std::size(AllocationData));
+
+            for (ObjectAllocationData const& AllocationDataIter: AllocationData)
+            {
+                CopyOperationData.emplace_back();
+                BufferCopyOperationData& NewCopyOperationData = CopyOperationData.back();
+
+                NewCopyOperationData.VertexData.SourceBuffer          = AllocationDataIter.CommandBufferSets.at(0U).StagingBuffer.first;
+                NewCopyOperationData.VertexData.SourceAllocation      = AllocationDataIter.CommandBufferSets.at(0U).StagingBuffer.second;
+                NewCopyOperationData.VertexData.DestinationBuffer     = AllocationDataIter.Allocation.VertexBuffer.Buffer;
+                NewCopyOperationData.VertexData.DestinationAllocation = AllocationDataIter.Allocation.VertexBuffer.Allocation;
+                NewCopyOperationData.VertexData.AllocationSize        = AllocationDataIter.CommandBufferSets.at(0U).AllocationSize;
+
+                NewCopyOperationData.IndexData.SourceBuffer          = AllocationDataIter.CommandBufferSets.at(1U).StagingBuffer.first;
+                NewCopyOperationData.IndexData.SourceAllocation      = AllocationDataIter.CommandBufferSets.at(1U).StagingBuffer.second;
+                NewCopyOperationData.IndexData.DestinationBuffer     = AllocationDataIter.Allocation.IndexBuffer.Buffer;
+                NewCopyOperationData.IndexData.DestinationAllocation = AllocationDataIter.Allocation.IndexBuffer.Allocation;
+                NewCopyOperationData.IndexData.AllocationSize        = AllocationDataIter.CommandBufferSets.at(1U).AllocationSize;
+
+                Output.push_back(AllocationDataIter.Object);
+
+                m_Objects.emplace(AllocationDataIter.Object.GetID(), ObjectAllocation {
+                                                                             .VertexBuffer  = AllocationDataIter.Allocation.VertexBuffer,
+                                                                             .IndexBuffer   = AllocationDataIter.Allocation.IndexBuffer,
+                                                                             .UniformBuffer = AllocationDataIter.Allocation.UniformBuffer,
+                                                                             .IndicesCount  = static_cast<std::uint32_t>(std::size(AllocationDataIter.Indices))});
+            }
+
+            VkCommandPool CopyCommandPool {VK_NULL_HANDLE};
+            std::vector<VkCommandBuffer> CopyCommandBuffers {};
+            CopyCommandBuffers.resize(std::size(AllocationData));
+
+            InitializeSingleCommandQueue(CopyCommandPool, CopyCommandBuffers, QueuePair.first);
+            {
+                std::uint32_t Count = 0U;
+                for (BufferCopyOperationData const& CopyOperationDataIter: CopyOperationData)
+                {
+                    VkCommandBuffer const CommandBuffer = CopyCommandBuffers.at(Count);
+
+                    VkBufferCopy const VertexBufferCopy {
+                            .size = CopyOperationDataIter.VertexData.AllocationSize};
+
+                    VkBufferCopy const IndexBufferCopy {
+                            .size = CopyOperationDataIter.IndexData.AllocationSize};
+
+                    vkCmdCopyBuffer(CommandBuffer, CopyOperationDataIter.VertexData.SourceBuffer, CopyOperationDataIter.VertexData.DestinationBuffer, 1U, &VertexBufferCopy);
+                    vkCmdCopyBuffer(CommandBuffer, CopyOperationDataIter.IndexData.SourceBuffer, CopyOperationDataIter.IndexData.DestinationBuffer, 1U, &IndexBufferCopy);
+
+                    ++Count;
+                }
+            }
+            FinishSingleCommandQueue(QueuePair.second, CopyCommandPool, CopyCommandBuffers);
+        }
+    }
+
+    // Proccess textures
+    {
+        struct MoveOperationData
+        {
+            VkImage Image {VK_NULL_HANDLE};
+            VkFormat Format {VK_FORMAT_UNDEFINED};
+        };
+
+        struct CopyOperationData
+        {
+            VkBuffer SourceBuffer {VK_NULL_HANDLE};
+            VmaAllocation SourceAllocation {VK_NULL_HANDLE};
+
+            VkImage DestinationImage {VK_NULL_HANDLE};
+            VkFormat Format {VK_FORMAT_UNDEFINED};
+            VkExtent2D Extent {0U, 0U};
+        };
+
+        std::vector<MoveOperationData> MoveOperation {};
+        std::vector<CopyOperationData> CopyOperation {};
+
+        // Move image layout
+        {
+            for (ObjectAllocationData const& AllocationDataIter: AllocationData)
+            {
+                MoveOperation.reserve(std::size(MoveOperation) + std::size(AllocationDataIter.ImageCreationDatas));
+                for (ImageCreationData const& ImageDataIter: AllocationDataIter.ImageCreationDatas)
+                {
+                    MoveOperation.push_back({.Image  = ImageDataIter.Allocation.Image,
+                                             .Format = ImageDataIter.Format});
+
+                    CopyOperation.push_back({.SourceBuffer     = ImageDataIter.StagingBuffer.first,
+                                             .SourceAllocation = ImageDataIter.StagingBuffer.second,
+                                             .DestinationImage = ImageDataIter.Allocation.Image,
+                                             .Format           = ImageDataIter.Format,
+                                             .Extent           = ImageDataIter.Extent});
+                }
+            }
+
+            VkCommandPool TextureCommandPool {VK_NULL_HANDLE};
+            std::vector<VkCommandBuffer> TextureCommandBuffers {};
+            TextureCommandBuffers.resize(std::size(MoveOperation));
+            InitializeSingleCommandQueue(TextureCommandPool, TextureCommandBuffers, QueuePair.first);
+            {
+                std::uint32_t Count = 0U;
+                for (MoveOperationData const& MoveOperationIter: MoveOperation)
+                {
+                    MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL>(TextureCommandBuffers.at(Count),
+                                                                                                     MoveOperationIter.Image,
+                                                                                                     MoveOperationIter.Format);
+
+                    ++Count;
+                }
+            }
+            FinishSingleCommandQueue(QueuePair.second, TextureCommandPool, TextureCommandBuffers);
+        }
+
+        // Copy image data
+        {
+            VkCommandPool TextureCommandPool {VK_NULL_HANDLE};
+            std::vector<VkCommandBuffer> TextureCommandBuffers {};
+            TextureCommandBuffers.resize(std::size(CopyOperation));
+            InitializeSingleCommandQueue(TextureCommandPool, TextureCommandBuffers, QueuePair.first);
+            {
+                std::uint32_t Count = 0U;
+                for (CopyOperationData const& CopyOperationIter: CopyOperation)
+                {
+                    CopyBufferToImage(TextureCommandBuffers.at(Count),
+                                      CopyOperationIter.SourceBuffer,
+                                      CopyOperationIter.DestinationImage,
+                                      CopyOperationIter.Extent);
+
+                    ++Count;
+                }
+            }
+            FinishSingleCommandQueue(QueuePair.second, TextureCommandPool, TextureCommandBuffers);
+        }
+
+        // Move image layout
+        {
+            VkCommandPool TextureCommandPool {VK_NULL_HANDLE};
+            std::vector<VkCommandBuffer> TextureCommandBuffers {};
+            TextureCommandBuffers.resize(std::size(MoveOperation));
+            InitializeSingleCommandQueue(TextureCommandPool, TextureCommandBuffers, QueuePair.first);
+            {
+                std::uint32_t Count = 0U;
+                for (MoveOperationData const& MoveOperationIter: MoveOperation)
+                {
+                    MoveImageLayout<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>(TextureCommandBuffers.at(Count),
+                                                                              MoveOperationIter.Image,
+                                                                              MoveOperationIter.Format);
+
+                    ++Count;
+                }
+            }
+            FinishSingleCommandQueue(QueuePair.second, TextureCommandPool, TextureCommandBuffers);
+        }
+
+        // Create view, sampler and destroy staging buffers
+        {
+            for (ObjectAllocationData& AllocationDataIter: AllocationData)
+            {
+                for (ImageCreationData& ImageDataIter: AllocationDataIter.ImageCreationDatas)
+                {
+                    if (m_Objects.contains(AllocationDataIter.Object.GetID()))
+                    {
+                        CreateTextureImageView(ImageDataIter.Allocation);
+                        CreateTextureSampler(m_Allocator, ImageDataIter.Allocation);
+                        m_Objects.at(AllocationDataIter.Object.GetID()).TextureImages.push_back(ImageDataIter.Allocation);
+                    }
+
+                    vmaDestroyBuffer(m_Allocator, ImageDataIter.StagingBuffer.first, ImageDataIter.StagingBuffer.second);
+                }
+
+                for (CommandBufferSet& CommandBufferSetIter: AllocationDataIter.CommandBufferSets)
+                {
+                    vmaDestroyBuffer(m_Allocator, CommandBufferSetIter.StagingBuffer.first, CommandBufferSetIter.StagingBuffer.second);
+                }
+            }
         }
     }
 

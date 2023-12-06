@@ -10,6 +10,7 @@ export module RenderCore.Types.AllocationTypes;
 
 export import <vector>;
 
+export import RenderCore.Utils.Constants;
 export import RenderCore.Types.MeshBufferData;
 export import RenderCore.Types.TextureBufferData;
 export import RenderCore.Types.UniformBufferObject;
@@ -37,6 +38,23 @@ namespace RenderCore
 
         [[nodiscard]] bool IsValid() const;
         void DestroyResources(VmaAllocator const&);
+    };
+
+    export struct ImageCreationData
+    {
+        ImageAllocation Allocation {};
+        std::pair<VkBuffer, VmaAllocation> StagingBuffer {VK_NULL_HANDLE, VK_NULL_HANDLE};
+        VkFormat Format {};
+        VkExtent2D Extent {};
+        TextureType Type {TextureType::BaseColor};
+    };
+
+    export struct CommandBufferSet
+    {
+        bool bVertexBuffer {false};
+        VkCommandBuffer CommandBuffer {VK_NULL_HANDLE};
+        VkDeviceSize AllocationSize {g_BufferMemoryAllocationSize};
+        std::pair<VkBuffer, VmaAllocation> StagingBuffer {VK_NULL_HANDLE, VK_NULL_HANDLE};
     };
 
     export struct ObjectAllocation

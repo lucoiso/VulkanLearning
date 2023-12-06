@@ -30,6 +30,6 @@ namespace RenderCore
 
     export void PresentFrame(VkQueue const&, std::uint32_t, VkSwapchainKHR const&);
 
-    export void InitializeSingleCommandQueue(VkCommandPool&, VkCommandBuffer&, std::uint8_t);
-    export void FinishSingleCommandQueue(VkQueue const&, VkCommandPool const&, VkCommandBuffer const&);
+    export void InitializeSingleCommandQueue(VkCommandPool&, std::vector<VkCommandBuffer>&, std::uint8_t);
+    export void FinishSingleCommandQueue(VkQueue const&, VkCommandPool const&, std::vector<VkCommandBuffer>&);
 }// namespace RenderCore

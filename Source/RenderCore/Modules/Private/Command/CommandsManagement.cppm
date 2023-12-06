@@ -373,7 +373,7 @@ void RenderCore::PresentFrame(VkQueue const& Queue, std::uint32_t const ImageInd
     }
 }
 
-void RenderCore::InitializeSingleCommandQueue(VkCommandPool& CommandPool, VkCommandBuffer& CommandBuffer, std::uint8_t const QueueFamilyIndex)
+void RenderCore::InitializeSingleCommandQueue(VkCommandPool& CommandPool, std::vector<VkCommandBuffer>& CommandBuffers, std::uint8_t const QueueFamilyIndex)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -393,14 +393,17 @@ void RenderCore::InitializeSingleCommandQueue(VkCommandPool& CommandPool, VkComm
             .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .commandPool        = CommandPool,
             .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = 1U,
+            .commandBufferCount = static_cast<std::uint32_t>(std::size(CommandBuffers)),
     };
 
-    CheckVulkanResult(vkAllocateCommandBuffers(volkGetLoadedDevice(), &CommandBufferAllocateInfo, &CommandBuffer));
-    CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
+    CheckVulkanResult(vkAllocateCommandBuffers(volkGetLoadedDevice(), &CommandBufferAllocateInfo, std::data(CommandBuffers)));
+    for (VkCommandBuffer const& CommandBufferIter: CommandBuffers)
+    {
+        CheckVulkanResult(vkBeginCommandBuffer(CommandBufferIter, &CommandBufferBeginInfo));
+    }
 }
 
-void RenderCore::FinishSingleCommandQueue(VkQueue const& Queue, VkCommandPool const& CommandPool, VkCommandBuffer const& CommandBuffer)
+void RenderCore::FinishSingleCommandQueue(VkQueue const& Queue, VkCommandPool const& CommandPool, std::vector<VkCommandBuffer>& CommandBuffers)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 
@@ -409,22 +412,29 @@ void RenderCore::FinishSingleCommandQueue(VkQueue const& Queue, VkCommandPool co
         throw std::runtime_error("Vulkan command pool is invalid.");
     }
 
-    if (CommandBuffer == VK_NULL_HANDLE)
+    std::erase_if(CommandBuffers, [](VkCommandBuffer const& CommandBufferIter) {
+        return CommandBufferIter == VK_NULL_HANDLE;
+    });
+
+    if (std::empty(CommandBuffers))
     {
         throw std::runtime_error("Vulkan command buffer is invalid.");
     }
 
-    CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
+    for (VkCommandBuffer const& CommandBufferIter: CommandBuffers)
+    {
+        CheckVulkanResult(vkEndCommandBuffer(CommandBufferIter));
+    }
 
     VkSubmitInfo const SubmitInfo {
             .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .commandBufferCount = 1U,
-            .pCommandBuffers    = &CommandBuffer,
+            .commandBufferCount = static_cast<std::uint32_t>(std::size(CommandBuffers)),
+            .pCommandBuffers    = std::data(CommandBuffers),
     };
 
     CheckVulkanResult(vkQueueSubmit(Queue, 1U, &SubmitInfo, VK_NULL_HANDLE));
     CheckVulkanResult(vkQueueWaitIdle(Queue));
 
-    vkFreeCommandBuffers(volkGetLoadedDevice(), CommandPool, 1U, &CommandBuffer);
+    vkFreeCommandBuffers(volkGetLoadedDevice(), CommandPool, static_cast<std::uint32_t>(std::size(CommandBuffers)), std::data(CommandBuffers));
     vkDestroyCommandPool(volkGetLoadedDevice(), CommandPool, nullptr);
 }

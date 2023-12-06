@@ -69,7 +69,7 @@ export namespace RenderCore
 
     constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-    constexpr std::uint8_t g_FrameRate = 120U;
+    constexpr std::uint8_t g_FrameRate     = 120U;
     constexpr std::uint8_t g_MinImageCount = 3U;
 
     constexpr std::uint32_t g_Timeout = std::numeric_limits<std::uint32_t>::max();
