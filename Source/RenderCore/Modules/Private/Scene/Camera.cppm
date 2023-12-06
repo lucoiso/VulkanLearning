@@ -161,12 +161,6 @@ void Camera::UpdateCameraMovement(float const DeltaTime)
     SetPosition(NewPosition);
 }
 
-Camera& RenderCore::GetViewportCamera()
-{
-    static Camera ViewportCamera;
-    return ViewportCamera;
-}
-
 bool Camera::IsInsideCameraFrustum(Vector const& TestLocation, VkExtent2D const& Extent) const
 {
     glm::mat4 const ViewProjectionMatrix = GetProjectionMatrix(Extent) * GetViewMatrix();
@@ -194,7 +188,7 @@ bool Camera::CanDrawObject(std::shared_ptr<Object> const& Object, VkExtent2D con
 
     if constexpr (g_EnableExperimentalFrustumCulling)
     {
-        return GetViewportCamera().IsInsideCameraFrustum(Object->GetPosition(), Extent) && GetViewportCamera().IsInAllowedDistance(Object->GetPosition());
+        return IsInsideCameraFrustum(Object->GetPosition(), Extent) && IsInAllowedDistance(Object->GetPosition());
     }
 
     return true;

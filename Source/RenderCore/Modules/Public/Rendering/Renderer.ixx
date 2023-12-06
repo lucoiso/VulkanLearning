@@ -16,6 +16,7 @@ export import <vector>;
 export import <optional>;
 export import <string_view>;
 
+export import RenderCore.Types.Camera;
 export import RenderCore.Types.Object;
 export import Timer.Manager;
 
@@ -31,22 +32,23 @@ namespace RenderCore
     {
         BufferManager m_BufferManager {};
         PipelineManager m_PipelineManager {};
+        Camera m_Camera {};
 
-        EngineCoreStateFlags m_StateFlags {EngineCoreStateFlags::NONE};
+        RendererStateFlags m_StateFlags {RendererStateFlags::NONE};
         std::vector<std::shared_ptr<Object>> m_Objects {};
         double m_DeltaTime {};
         std::mutex m_ObjectsMutex {};
 
         friend class Window;
 
-        void DrawFrame(GLFWwindow*);
+        void DrawFrame(GLFWwindow*, Camera const&);
         std::optional<std::int32_t> RequestImageIndex(GLFWwindow*);
 
         void Tick();
         void RemoveInvalidObjects();
 
         bool Initialize(GLFWwindow*);
-        void Shutdown();
+        void Shutdown(GLFWwindow*);
 
     public:
         Renderer()  = default;
@@ -54,12 +56,18 @@ namespace RenderCore
 
         [[nodiscard]] bool IsInitialized() const;
 
+        void AddStateFlag(RendererStateFlags);
+        void RemoveStateFlag(RendererStateFlags);
+        [[nodiscard]] bool HasStateFlag(RendererStateFlags);
+
         [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view const&);
         void UnloadScene(std::vector<std::uint32_t> const&);
         void UnloadAllScenes();
 
         static [[nodiscard]] Timer::Manager& GetRenderTimerManager();
         [[nodiscard]] double GetDeltaTime() const;
+        [[nodiscard]] Camera const& GetCamera() const;
+        [[nodiscard]] Camera& GetMutableCamera();
         [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;
         [[nodiscard]] std::shared_ptr<Object> GetObjectByID(std::uint32_t) const;
         [[nodiscard]] std::uint32_t GetNumObjects() const;

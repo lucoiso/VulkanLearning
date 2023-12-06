@@ -4,6 +4,8 @@
 
 module;
 
+#include "RenderCoreModule.h"
+
 #include <glm/ext.hpp>
 #include <volk.h>
 
@@ -27,19 +29,19 @@ namespace RenderCore
         DOWN     = 1 << 6
     };
 
-    export class Camera
+    export class RENDERCOREMODULE_API Camera
     {
         Vector m_CameraPosition {0.F, 0.F, 3.F};
         Rotator m_CameraRotation {0.F, -90.F, 0.F};
 
-        float m_CameraSpeed {1.F};
-        float m_CameraSensitivity {1.0F};
+        float m_CameraSpeed {0.25F};
+        float m_CameraSensitivity {1.F};
 
         float m_FieldOfView {45.F};
-        float m_NearPlane {0.1F};
-        float m_FarPlane {100.F};
+        float m_NearPlane {0.001F};
+        float m_FarPlane {1000.F};
         float m_CurrentAspectRatio {1.F};
-        float m_DrawDistance {250.F};
+        float m_DrawDistance {500.F};
 
         CameraMovementStateFlags m_CameraMovementStateFlags {CameraMovementStateFlags::NONE};
 
@@ -81,6 +83,4 @@ namespace RenderCore
         [[nodiscard]] bool IsInAllowedDistance(Vector const&) const;
         [[nodiscard]] bool CanDrawObject(std::shared_ptr<Object> const&, VkExtent2D const&) const;
     };
-
-    export [[nodiscard]] Camera& GetViewportCamera();
 }// namespace RenderCore

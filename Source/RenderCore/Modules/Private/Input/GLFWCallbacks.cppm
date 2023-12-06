@@ -11,6 +11,8 @@ module;
 
 module RenderCore.Input.GLFWCallbacks;
 
+import RenderCore.Renderer;
+import RenderCore.Subsystem.Rendering;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Types.Camera;
 import RenderCore.Utils.Helpers;
@@ -27,7 +29,20 @@ void RenderCore::GLFWWindowCloseRequested(GLFWwindow* const Window)
 
 void RenderCore::GLFWWindowResized(GLFWwindow* const Window, [[maybe_unused]] std::int32_t const Width, [[maybe_unused]] std::int32_t const Height)
 {
-    // UpdateDeviceProperties(Window);
+    Renderer* const Target = RenderingSubsystem::Get().GetRenderer(Window);
+    if (!Target)
+    {
+        return;
+    }
+
+    if (Width <= 0 || Height <= 0)
+    {
+        Target->AddStateFlag(RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+    }
+    else
+    {
+        Target->RemoveStateFlag(RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+    }
 }
 
 void RenderCore::GLFWErrorCallback(std::int32_t const Error, char const* const Description)
@@ -37,7 +52,13 @@ void RenderCore::GLFWErrorCallback(std::int32_t const Error, char const* const D
 
 void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow* const Window, std::int32_t const Key, [[maybe_unused]] std::int32_t const Scancode, std::int32_t const Action, [[maybe_unused]] std::int32_t const Mods)
 {
-    Camera& Camera                                = GetViewportCamera();
+    Renderer* const Target = RenderingSubsystem::Get().GetRenderer(Window);
+    if (!Target)
+    {
+        return;
+    }
+
+    Camera& Camera                                = Target->GetMutableCamera();
     CameraMovementStateFlags CurrentMovementState = Camera.GetCameraMovementStateFlags();
 
     if (!g_CanMovementCamera)
@@ -106,6 +127,12 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow* const Window, std:
 
 void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double const NewCursorPosX, double const NewCursorPosY)
 {
+    Renderer* const Target = RenderingSubsystem::Get().GetRenderer(Window);
+    if (!Target)
+    {
+        return;
+    }
+
     static double LastCursorPosX = NewCursorPosX;
     static double LastCursorPosY = NewCursorPosY;
 
@@ -115,7 +142,7 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
     {
         glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-        Camera& Camera {GetViewportCamera()};
+        Camera& Camera {Target->GetMutableCamera()};
 
         float const Sensitivity {Camera.GetSensitivity() * 0.1F};
 
@@ -148,9 +175,15 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
 
 void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow* const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)
 {
+    Renderer* const Target = RenderingSubsystem::Get().GetRenderer(Window);
+    if (!Target)
+    {
+        return;
+    }
+
     if (!ImGui::GetIO().WantCaptureMouse)
     {
-        Camera& Camera   = GetViewportCamera();
+        Camera& Camera   = Target->GetMutableCamera();
         float const Zoom = static_cast<float>(OffsetY) * 0.1f;
         Camera.SetPosition(Camera.GetPosition() + Camera.GetRotation().GetFront() * Zoom);
     }

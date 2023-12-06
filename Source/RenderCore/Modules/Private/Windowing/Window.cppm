@@ -81,7 +81,7 @@ AsyncTask Window::Shutdown()
             Renderer::GetRenderTimerManager().SetTimer(
                     0U,
                     [&Semaphore, this] {
-                        m_Renderer.Shutdown();
+                        m_Renderer.Shutdown(m_GLFWHandler.GetWindow());
                         Semaphore.release();
                     });
         }
@@ -131,27 +131,21 @@ void Window::PollEvents()
 
 void Window::CreateOverlay()
 {
-    ImGui::Begin("Vulkan Renderer Options", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::Begin("Options", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     {
-        ImGui::BeginGroup();
+        if (ImGui::CollapsingHeader("Status "))
         {
             ImGui::Text("Frame Rate: %.2f", ImGui::GetIO().Framerate);
             ImGui::Text("Frame Time: %.2f ms", 1000.0f / ImGui::GetIO().Framerate);
-            ImGui::Text("Camera Position: %.2f, %.2f, %.2f", GetViewportCamera().GetPosition().X, GetViewportCamera().GetPosition().X, GetViewportCamera().GetPosition().Z);
-            ImGui::Text("Camera Yaw: %.2f", GetViewportCamera().GetRotation().Yaw);
-            ImGui::Text("Camera Pitch: %.2f", GetViewportCamera().GetRotation().Pitch);
-            ImGui::Text("Camera Movement State: %d", static_cast<std::underlying_type_t<CameraMovementStateFlags>>(GetViewportCamera().GetCameraMovementStateFlags()));
+            ImGui::Text("Camera Position: %.2f, %.2f, %.2f", m_Renderer.GetCamera().GetPosition().X, m_Renderer.GetCamera().GetPosition().X, m_Renderer.GetCamera().GetPosition().Z);
+            ImGui::Text("Camera Yaw: %.2f", m_Renderer.GetCamera().GetRotation().Yaw);
+            ImGui::Text("Camera Pitch: %.2f", m_Renderer.GetCamera().GetRotation().Pitch);
+            ImGui::Text("Camera Movement State: %d", static_cast<std::underlying_type_t<CameraMovementStateFlags>>(m_Renderer.GetCamera().GetCameraMovementStateFlags()));
 
-            float CameraSpeed = GetViewportCamera().GetSpeed();
+            float CameraSpeed = m_Renderer.GetCamera().GetSpeed();
             ImGui::InputFloat("Camera Speed", &CameraSpeed, 0.1F, 1.0F, "%.2f");
-            GetViewportCamera().SetSpeed(CameraSpeed);
-        }
-        ImGui::EndGroup();
+            m_Renderer.GetMutableCamera().SetSpeed(CameraSpeed);
 
-        ImGui::SameLine();
-
-        ImGui::BeginGroup();
-        {
             constexpr const char* OptionNone = "None";
             static std::string SelectedItem  = OptionNone;
             if (m_Renderer.GetNumObjects() == 0U)
@@ -192,18 +186,10 @@ void Window::CreateOverlay()
                 }
             }
         }
-        ImGui::EndGroup();
 
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
-
-        ImGui::BeginGroup();
+        if (auto const& Objects = m_Renderer.GetObjects();
+            ImGui::CollapsingHeader(std::format("Loaded Objects: {} ", m_Renderer.GetNumObjects()).c_str()))
         {
-            auto const& Objects = m_Renderer.GetObjects();
-            ImGui::Text("Loaded Objects: %d", std::size(Objects));
-            ImGui::Spacing();
-
             for (auto const& Object: Objects)
             {
                 if (!Object)
@@ -211,31 +197,27 @@ void Window::CreateOverlay()
                     continue;
                 }
 
-                ImGui::Text("Name: %s", std::data(Object->GetName()));
-                ImGui::SameLine();
-                ImGui::Text("ID: %d", Object->GetID());
-
-                ImGui::Spacing();
-
-                float Position[3] = {Object->GetPosition().X, Object->GetPosition().Y, Object->GetPosition().Z};
-                ImGui::InputFloat3(std::format("{} Position", Object->GetName()).c_str(), &Position[0], "%.2f");
-                Object->SetPosition({Position[0], Position[1], Position[2]});
-
-                float Scale[3] = {Object->GetScale().X, Object->GetScale().Y, Object->GetScale().Z};
-                ImGui::InputFloat3(std::format("{} Scale", Object->GetName()).c_str(), &Scale[0], "%.2f");
-                Object->SetScale({Scale[0], Scale[1], Scale[2]});
-
-                float Rotation[3] = {Object->GetRotation().Pitch, Object->GetRotation().Yaw, Object->GetRotation().Roll};
-                ImGui::InputFloat3(std::format("{} Rotation", Object->GetName()).c_str(), &Rotation[0], "%.2f");
-                Object->SetRotation({Rotation[0], Rotation[1], Rotation[2]});
-
-                if (ImGui::Button(std::format("Destroy {}", Object->GetName()).c_str()))
+                if (ImGui::CollapsingHeader(std::format("[{}] {} ", Object->GetID(), std::data(Object->GetName())).c_str()))
                 {
-                    Object->Destroy();
+                    float Position[3] = {Object->GetPosition().X, Object->GetPosition().Y, Object->GetPosition().Z};
+                    ImGui::InputFloat3(std::format("{} Position", Object->GetName()).c_str(), &Position[0], "%.2f");
+                    Object->SetPosition({Position[0], Position[1], Position[2]});
+
+                    float Scale[3] = {Object->GetScale().X, Object->GetScale().Y, Object->GetScale().Z};
+                    ImGui::InputFloat3(std::format("{} Scale", Object->GetName()).c_str(), &Scale[0], "%.2f");
+                    Object->SetScale({Scale[0], Scale[1], Scale[2]});
+
+                    float Rotation[3] = {Object->GetRotation().Pitch, Object->GetRotation().Yaw, Object->GetRotation().Roll};
+                    ImGui::InputFloat3(std::format("{} Rotation", Object->GetName()).c_str(), &Rotation[0], "%.2f");
+                    Object->SetRotation({Rotation[0], Rotation[1], Rotation[2]});
+
+                    if (ImGui::Button(std::format("Destroy {}", Object->GetName()).c_str()))
+                    {
+                        Object->Destroy();
+                    }
                 }
             }
         }
-        ImGui::EndGroup();
     }
     ImGui::End();
 }
@@ -244,17 +226,17 @@ void Window::RequestRender()
 {
     if (IsOpen())
     {
-        GetViewportCamera().UpdateCameraMovement(static_cast<float>(m_Renderer.GetDeltaTime()));
+        m_Renderer.GetMutableCamera().UpdateCameraMovement(static_cast<float>(m_Renderer.GetDeltaTime()));
 
         DrawImGuiFrame([this] {
             CreateOverlay();
         });
 
-        m_Renderer.DrawFrame(m_GLFWHandler.GetWindow());
+        m_Renderer.DrawFrame(m_GLFWHandler.GetWindow(), m_Renderer.GetCamera());
 
         Renderer::GetRenderTimerManager().SetTimer(
                 1000U / g_FrameRate,
-                [this]() {
+                [this] {
                     RequestRender();
                 });
     }

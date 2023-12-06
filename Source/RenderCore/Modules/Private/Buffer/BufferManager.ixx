@@ -16,6 +16,7 @@ export import <atomic>;
 export import <memory>;
 
 export import RenderCore.Types.Object;
+export import RenderCore.Types.Camera;
 export import RenderCore.Types.AllocationTypes;
 export import RenderCore.Types.SurfaceProperties;
 
@@ -61,6 +62,6 @@ namespace RenderCore
         [[nodiscard]] std::uint32_t GetClampedNumAllocations() const;
 
         [[nodiscard]] VmaAllocator const& GetAllocator() const;
-        void UpdateUniformBuffers(std::shared_ptr<Object> const&, VkExtent2D const&) const;
+        void UpdateUniformBuffers(std::shared_ptr<Object> const&, Camera const&, VkExtent2D const&) const;
     };
 }// namespace RenderCore

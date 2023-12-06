@@ -208,7 +208,7 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage(VkSwapchainKHR con
     return static_cast<std::int32_t>(Output);
 }
 
-void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint32_t const ImageIndex, BufferManager& BufferManager, PipelineManager& PipelineManager, std::vector<std::shared_ptr<Object>> const& Objects)
+void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint32_t const ImageIndex, Camera const& Camera, BufferManager& BufferManager, PipelineManager& PipelineManager, std::vector<std::shared_ptr<Object>> const& Objects)
 {
     AllocateCommandBuffer(QueueFamily);
     VkCommandBuffer const& MainCommandBuffer = g_CommandBuffers.back();
@@ -273,7 +273,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint
     {
         for (std::shared_ptr<Object> const& ObjectIter: Objects)
         {
-            if (!ObjectIter || ObjectIter->IsPendingDestroy() || !GetViewportCamera().CanDrawObject(ObjectIter, BufferManager.GetSwapChainExtent()))
+            if (!ObjectIter || ObjectIter->IsPendingDestroy() || !Camera.CanDrawObject(ObjectIter, BufferManager.GetSwapChainExtent()))
             {
                 continue;
             }
@@ -293,7 +293,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint
             VkBuffer const& IndexBuffer    = BufferManager.GetIndexBuffer(ObjectID);
             std::uint32_t const IndexCount = BufferManager.GetIndicesCount(ObjectID);
 
-            BufferManager.UpdateUniformBuffers(ObjectIter, BufferManager.GetSwapChainExtent());
+            BufferManager.UpdateUniformBuffers(ObjectIter, Camera, BufferManager.GetSwapChainExtent());
 
             bool ActiveVertexBinding {false};
             if (VertexBuffer != VK_NULL_HANDLE)

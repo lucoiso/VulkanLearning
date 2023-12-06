@@ -117,7 +117,7 @@ std::vector<std::string> RenderCore::GetAvailableInstanceExtensionsNames()
     return Output;
 }
 
-std::unordered_map<std::string, std::string> RenderCore::GetAvailableglTFAssetsInDirectory(std::string const& Root, std::vector<std::string> const& Extensions)
+std::unordered_map<std::string, std::string> RenderCore::GetAvailableglTFAssetsInDirectory(std::string_view const& Root, std::vector<std::string_view> const& Extensions)
 {
     Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
 

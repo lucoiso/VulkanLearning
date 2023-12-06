@@ -4,7 +4,7 @@
 
 module;
 
-#include <../../../../../out/build/Release/vcpkg_installed/x64-windows-release/include/glm/ext.hpp>
+#include <glm/ext.hpp>
 
 export module RenderCore.Types.UniformBufferObject;
 

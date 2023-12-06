@@ -32,6 +32,7 @@ import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
 import RenderCore.Utils.DebugHelpers;
 import RenderCore.Utils.Constants;
+import RenderCore.Subsystem.Rendering;
 
 using namespace RenderCore;
 
@@ -91,7 +92,7 @@ void CreateVulkanInstance()
 #endif
 }
 
-void Renderer::DrawFrame(GLFWwindow* const Window)
+void Renderer::DrawFrame(GLFWwindow* const Window, Camera const& Camera)
 {
     if (!IsInitialized())
     {
@@ -105,33 +106,24 @@ void Renderer::DrawFrame(GLFWwindow* const Window)
 
     RemoveInvalidObjects();
 
-    constexpr EngineCoreStateFlags InvalidStatesToRender = EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE
-                                                           | EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION
-                                                           | EngineCoreStateFlags::PENDING_RESOURCES_CREATION
-                                                           | EngineCoreStateFlags::PENDING_PIPELINE_REFRESH;
+    constexpr RendererStateFlags InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE
+                                                         | RendererStateFlags::PENDING_RESOURCES_DESTRUCTION
+                                                         | RendererStateFlags::PENDING_RESOURCES_CREATION
+                                                         | RendererStateFlags::PENDING_PIPELINE_REFRESH;
 
     if (HasAnyFlag(m_StateFlags, InvalidStatesToRender))
     {
-        if (HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION))
+        if (HasFlag(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
             DestroyCommandsSynchronizationObjects();
             m_BufferManager.DestroyBufferResources(false);
             m_PipelineManager.ReleaseDynamicPipelineResources();
 
-            RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-            AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+            RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+            AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
         }
 
-        if (HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
-        {
-            if (GetSurfaceProperties(Window, m_BufferManager.GetSurface()).IsValid())
-            {
-                BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Device properties updated, starting to draw frames with new properties";
-                RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
-            }
-        }
-
-        if (HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION) && !HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
+        if (HasFlag(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION) && !HasFlag(m_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
 
@@ -142,11 +134,11 @@ void Renderer::DrawFrame(GLFWwindow* const Window)
             m_BufferManager.CreateDepthResources(SurfaceProperties, GetGraphicsQueue());
             CreateCommandsSynchronizationObjects();
 
-            RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
-            AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
+            RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
+            AddFlags(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
         }
 
-        if (HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH))
+        if (HasFlag(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH))
         {
             m_PipelineManager.CreateDescriptorSetLayout();
             m_PipelineManager.CreateGraphicsPipeline();
@@ -156,7 +148,7 @@ void Renderer::DrawFrame(GLFWwindow* const Window)
             m_PipelineManager.CreateDescriptorPool(m_BufferManager.GetClampedNumAllocations());
             m_PipelineManager.CreateDescriptorSets(m_BufferManager.GetAllocatedObjects());
 
-            RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_PIPELINE_REFRESH);
+            RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
         }
     }
 
@@ -167,34 +159,34 @@ void Renderer::DrawFrame(GLFWwindow* const Window)
         {
             std::lock_guard Lock(m_ObjectsMutex);
 
-            RecordCommandBuffers(GetGraphicsQueue().first, ImageIndice.value(), m_BufferManager, m_PipelineManager, GetObjects());
+            RecordCommandBuffers(GetGraphicsQueue().first, ImageIndice.value(), Camera, m_BufferManager, m_PipelineManager, GetObjects());
             SubmitCommandBuffers(GetGraphicsQueue().second);
             PresentFrame(GetGraphicsQueue().second, ImageIndice.value(), m_BufferManager.GetSwapChain());
         }
     }
 }
 
-std::optional<std::int32_t> Renderer::RequestImageIndex(GLFWwindow* Window)
+std::optional<std::int32_t> Renderer::RequestImageIndex(GLFWwindow* const Window)
 {
     std::optional<std::int32_t> const Output = RequestSwapChainImage(m_BufferManager.GetSwapChain());
 
     if (!Output.has_value())
     {
-        AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
 
-        if (!HasFlag(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE) && !GetSurfaceProperties(Window, m_BufferManager.GetSurface()).IsValid())
+        if (!HasFlag(m_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE) && !GetSurfaceProperties(Window, m_BufferManager.GetSurface()).IsValid())
         {
-            AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
-            AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+            AddFlags(m_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+            AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
         }
         else
         {
-            RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+            RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
         }
     }
     else
     {
-        RemoveFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
     }
 
     return Output;
@@ -266,6 +258,8 @@ bool Renderer::Initialize(GLFWwindow* const Window)
         return false;
     }
 
+    RenderingSubsystem::Get().RegisterRenderer(Window, *this);
+
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulkan renderer";
 
     CheckVulkanResult(volkInitialize());
@@ -285,20 +279,22 @@ bool Renderer::Initialize(GLFWwindow* const Window)
     m_PipelineManager.CreateRenderPass(SurfaceProperties);
     InitializeImGui(Window, m_PipelineManager);
 
-    AddFlags(m_StateFlags, EngineCoreStateFlags::INITIALIZED);
-    AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+    AddFlags(m_StateFlags, RendererStateFlags::INITIALIZED);
+    AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
 
     return SurfaceProperties.IsValid() && IsInitialized();
 }
 
-void Renderer::Shutdown()
+void Renderer::Shutdown(GLFWwindow* const Window)
 {
     if (!IsInitialized())
     {
         return;
     }
 
-    RemoveFlags(m_StateFlags, EngineCoreStateFlags::INITIALIZED);
+    RenderingSubsystem::Get().RegisterRenderer(Window, *this);
+
+    RemoveFlags(m_StateFlags, RendererStateFlags::INITIALIZED);
 
     bool const DestroyInstance = --g_RenderersCount == 0U;
 
@@ -337,7 +333,22 @@ void Renderer::Shutdown()
 
 bool Renderer::IsInitialized() const
 {
-    return HasFlag(m_StateFlags, EngineCoreStateFlags::INITIALIZED);
+    return HasFlag(m_StateFlags, RendererStateFlags::INITIALIZED);
+}
+
+void Renderer::AddStateFlag(RendererStateFlags const Flag)
+{
+    AddFlags(m_StateFlags, Flag);
+}
+
+void Renderer::RemoveStateFlag(RendererStateFlags const Flag)
+{
+    RemoveFlags(m_StateFlags, Flag);
+}
+
+bool Renderer::HasStateFlag(RendererStateFlags const Flag)
+{
+    return HasFlag(m_StateFlags, Flag);
 }
 
 std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const& ObjectPath)
@@ -366,8 +377,8 @@ std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const& ObjectPat
         Output.push_back(ObjectIter.GetID());
     }
 
-    AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
-    AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_CREATION);
+    AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
 
     return Output;
 }
@@ -392,7 +403,7 @@ void Renderer::UnloadScene(std::vector<std::uint32_t> const& ObjectIDs)
         });
     }
 
-    AddFlags(m_StateFlags, EngineCoreStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
 }
 
 void Renderer::UnloadAllScenes()
@@ -417,6 +428,16 @@ Timer::Manager& Renderer::GetRenderTimerManager()
 double Renderer::GetDeltaTime() const
 {
     return m_DeltaTime;
+}
+
+Camera const& Renderer::GetCamera() const
+{
+    return m_Camera;
+}
+
+Camera& Renderer::GetMutableCamera()
+{
+    return m_Camera;
 }
 
 std::vector<std::shared_ptr<Object>> const& Renderer::GetObjects() const

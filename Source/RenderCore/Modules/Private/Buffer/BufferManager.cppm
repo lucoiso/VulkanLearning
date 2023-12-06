@@ -1022,7 +1022,7 @@ std::uint32_t BufferManager::GetClampedNumAllocations() const
     return std::clamp(static_cast<std::uint32_t>(std::size(m_Objects)), 1U, UINT32_MAX);
 }
 
-void BufferManager::UpdateUniformBuffers(std::shared_ptr<Object> const& Object, VkExtent2D const& Extent) const
+void BufferManager::UpdateUniformBuffers(std::shared_ptr<Object> const& Object, Camera const& Camera, VkExtent2D const& Extent) const
 {
     if (!Object)
     {
@@ -1033,8 +1033,8 @@ void BufferManager::UpdateUniformBuffers(std::shared_ptr<Object> const& Object, 
     {
         UniformBufferObject const UpdatedUBO {
                 .Model      = Object->GetMatrix(),
-                .View       = GetViewportCamera().GetViewMatrix(),
-                .Projection = GetViewportCamera().GetProjectionMatrix(Extent)};
+                .View       = Camera.GetViewMatrix(),
+                .Projection = Camera.GetProjectionMatrix(Extent)};
 
         std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(UniformBufferObject));
     }
