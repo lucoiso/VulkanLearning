@@ -2,13 +2,11 @@
   "version": 3,
   "configurePresets": [
     {
-        "name": "Default",
-        "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "displayName": "VCPKG Default",
-        "hidden": true,
-        "binaryDir": "${sourceDir}/out/build/${presetName}",
-        "cmakeExecutable": "C:\\Program Files\\CMake\\bin\\cmake.exe",
-        "generator": "Visual Studio 17 2022"
+      "name": "Default",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "displayName": "VCPKG Default",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/out/build/${presetName}"
     },
     {
       "name": "Release",
