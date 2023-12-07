@@ -11,6 +11,8 @@ export module RenderCore.Types.AllocationTypes;
 export import <vector>;
 
 export import RenderCore.Utils.Constants;
+export import RenderCore.Types.Object;
+export import RenderCore.Types.Vertex;
 export import RenderCore.Types.MeshBufferData;
 export import RenderCore.Types.TextureBufferData;
 export import RenderCore.Types.UniformBufferObject;
@@ -67,5 +69,48 @@ namespace RenderCore
 
         [[nodiscard]] bool IsValid() const;
         void DestroyResources(VmaAllocator const&);
+    };
+
+    export struct ObjectAllocationData
+    {
+        Object Object {0U, ""};
+        ObjectAllocation Allocation {};
+        std::vector<Vertex> Vertices {};
+        std::vector<std::uint32_t> Indices {};
+        std::vector<ImageCreationData> ImageCreationDatas {};
+        std::vector<CommandBufferSet> CommandBufferSets {};
+    };
+
+    export struct BufferCopyTemporaryData
+    {
+        VkBuffer SourceBuffer {VK_NULL_HANDLE};
+        VmaAllocation SourceAllocation {VK_NULL_HANDLE};
+
+        VkBuffer DestinationBuffer {VK_NULL_HANDLE};
+        VmaAllocation DestinationAllocation {VK_NULL_HANDLE};
+
+        VkDeviceSize AllocationSize {0U};
+    };
+
+    export struct BufferCopyOperationData
+    {
+        BufferCopyTemporaryData VertexData {};
+        BufferCopyTemporaryData IndexData {};
+    };
+
+    export struct MoveOperationData
+    {
+        VkImage Image {VK_NULL_HANDLE};
+        VkFormat Format {VK_FORMAT_UNDEFINED};
+    };
+
+    export struct CopyOperationData
+    {
+        VkBuffer SourceBuffer {VK_NULL_HANDLE};
+        VmaAllocation SourceAllocation {VK_NULL_HANDLE};
+
+        VkImage DestinationImage {VK_NULL_HANDLE};
+        VkFormat Format {VK_FORMAT_UNDEFINED};
+        VkExtent2D Extent {0U, 0U};
     };
 }// namespace RenderCore
