@@ -1,5 +1,4 @@
 [![VulkanRenderer CMake Workflow](https://github.com/lucoiso/VulkanRenderer/actions/workflows/windows-x64-cmake-release.yml/badge.svg)](https://github.com/lucoiso/VulkanRenderer/actions/workflows/windows-x64-cmake-release.yml)  
-_Note: Github Actions Workflow Failing until CMake 3.28 official release._
 
 ---
 
