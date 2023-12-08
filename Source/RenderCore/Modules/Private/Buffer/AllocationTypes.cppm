@@ -9,8 +9,6 @@ module;
 
 module RenderCore.Types.AllocationTypes;
 
-import Timer.ExecutionCounter;
-
 using namespace RenderCore;
 
 bool ImageAllocation::IsValid() const
@@ -20,8 +18,6 @@ bool ImageAllocation::IsValid() const
 
 void ImageAllocation::DestroyResources(VmaAllocator const& Allocator)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     if (Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
     {
         vmaDestroyImage(Allocator, Image, Allocation);
@@ -54,8 +50,6 @@ bool BufferAllocation::IsValid() const
 
 void BufferAllocation::DestroyResources(VmaAllocator const& Allocator)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     if (Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
     {
         if (MappedData)
@@ -77,8 +71,6 @@ bool ObjectAllocation::IsValid() const
 
 void ObjectAllocation::DestroyResources(VmaAllocator const& Allocator)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     VertexBuffer.DestroyResources(Allocator);
     IndexBuffer.DestroyResources(Allocator);
 

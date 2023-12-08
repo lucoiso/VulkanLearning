@@ -7,6 +7,7 @@ module;
 #include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
 #include <imgui.h>
+#include <numeric>
 #include <volk.h>
 
 module RenderCore.Window;
@@ -37,7 +38,7 @@ Window::~Window()
 
 AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, InitializationFlags const Flags)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (IsInitialized())
     {
@@ -51,7 +52,7 @@ AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t
             std::binary_semaphore Semaphore {0U};
             {
                 Renderer::GetRenderTimerManager().SetTimer(
-                        0U,
+                        std::chrono::milliseconds(0U),
                         [this, &Semaphore] {
                             RequestRender();
                             Semaphore.release();
@@ -72,14 +73,14 @@ AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t
 
 AsyncTask Window::Shutdown()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (IsInitialized())
     {
         std::binary_semaphore Semaphore {0U};
         {
             Renderer::GetRenderTimerManager().SetTimer(
-                    0U,
+                    std::chrono::milliseconds(0U),
                     [&Semaphore, this] {
                         m_Renderer.Shutdown(m_GLFWHandler.GetWindow());
                         Semaphore.release();
@@ -133,38 +134,44 @@ void Window::CreateOverlay()
 {
     ImGui::Begin("Options", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     {
+        constexpr auto OptionNone                                              = "None";
+        static std::unordered_map<std::string, std::string> const s_OptionsMap = GetAvailableglTFAssetsInDirectory("Resources/Assets", {".gltf", ".glb"});
+        static std::string s_SelectedItem                                      = OptionNone;
+        static std::string s_ModelPath                                         = s_OptionsMap.at(s_SelectedItem);
+
         if (ImGui::CollapsingHeader("Status "))
         {
-            ImGui::Text("Frame Rate: %.2f", ImGui::GetIO().Framerate);
-            ImGui::Text("Frame Time: %.2f ms", 1000.0f / ImGui::GetIO().Framerate);
+            ImGui::Text("Frame Rate: %.3fms", m_Renderer.GetFrameTime());
+            ImGui::Text("Frame Time: %.0f FPS", 1.f / m_Renderer.GetFrameTime());
+
             ImGui::Text("Camera Position: %.2f, %.2f, %.2f", m_Renderer.GetCamera().GetPosition().X, m_Renderer.GetCamera().GetPosition().X, m_Renderer.GetCamera().GetPosition().Z);
             ImGui::Text("Camera Yaw: %.2f", m_Renderer.GetCamera().GetRotation().Yaw);
             ImGui::Text("Camera Pitch: %.2f", m_Renderer.GetCamera().GetRotation().Pitch);
             ImGui::Text("Camera Movement State: %d", static_cast<std::underlying_type_t<CameraMovementStateFlags>>(m_Renderer.GetCamera().GetCameraMovementStateFlags()));
 
             float CameraSpeed = m_Renderer.GetCamera().GetSpeed();
-            ImGui::InputFloat("Camera Speed", &CameraSpeed, 0.1F, 1.0F, "%.2f");
+            ImGui::InputFloat("Camera Speed", &CameraSpeed, 0.1F, 1.F, "%.2f");
             m_Renderer.GetMutableCamera().SetSpeed(CameraSpeed);
 
-            constexpr const char* OptionNone = "None";
-            static std::string SelectedItem  = OptionNone;
+            float CameraSensitivity = m_Renderer.GetCamera().GetSensitivity();
+            ImGui::InputFloat("Camera Sensitivity", &CameraSensitivity, 0.1F, 1.F, "%.2f");
+            m_Renderer.GetMutableCamera().SetSensitivity(CameraSensitivity);
+
             if (m_Renderer.GetNumObjects() == 0U)
             {
-                SelectedItem = OptionNone;
+                s_SelectedItem = OptionNone;
             }
 
-            if (ImGui::BeginCombo("glTF Scene", std::data(SelectedItem)))
+            if (ImGui::BeginCombo("glTF Scene", std::data(s_SelectedItem)))
             {
-                static std::unordered_map<std::string, std::string> const OptionsMap = GetAvailableglTFAssetsInDirectory("Resources/Assets", {".gltf", ".glb"});
-                static std::string s_ModelPath                                       = OptionsMap.at(SelectedItem);
-                bool SelectionChanged                                                = false;
+                bool SelectionChanged = false;
 
-                for (auto const& [Name, Path]: OptionsMap)
+                for (auto const& [Name, Path]: s_OptionsMap)
                 {
-                    bool const bIsSelected = SelectedItem == Name;
+                    bool const bIsSelected = s_SelectedItem == Name;
                     if (ImGui::Selectable(std::data(Name), bIsSelected))
                     {
-                        SelectedItem     = Name;
+                        s_SelectedItem   = Name;
                         s_ModelPath      = Path;
                         SelectionChanged = true;
                     }
@@ -190,6 +197,30 @@ void Window::CreateOverlay()
         if (auto const& Objects = m_Renderer.GetObjects();
             ImGui::CollapsingHeader(std::format("Loaded Objects: {} ", m_Renderer.GetNumObjects()).c_str()))
         {
+            if (!std::empty(Objects))
+            {
+                ImGui::Text("Loaded Objects: %d", m_Renderer.GetNumObjects());
+                ImGui::Text("Total Triangles: %d", std::accumulate(std::begin(Objects),
+                                                                   std::end(Objects),
+                                                                   0U,
+                                                                   [](std::uint32_t const Sum, auto const& Object) {
+                                                                       return Sum + Object->GetTrianglesCount();
+                                                                   }));
+
+                if (ImGui::Button("Reload Scene"))
+                {
+                    m_Renderer.UnloadAllScenes();
+                    [[maybe_unused]] auto const _ = m_Renderer.LoadScene(s_ModelPath);
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button("Destroy All"))
+                {
+                    m_Renderer.UnloadAllScenes();
+                }
+            }
+
             for (auto const& Object: Objects)
             {
                 if (!Object)
@@ -197,8 +228,16 @@ void Window::CreateOverlay()
                     continue;
                 }
 
-                if (ImGui::CollapsingHeader(std::format("[{}] {} ", Object->GetID(), std::data(Object->GetName())).c_str()))
+                if (ImGui::CollapsingHeader(std::format("[{}] {}", Object->GetID(), std::data(Object->GetName())).c_str()))
                 {
+                    ImGui::Text("ID: %d", Object->GetID());
+                    ImGui::Text("Name: %s", std::data(Object->GetName()));
+                    ImGui::Text("Path: %s", std::data(Object->GetPath()));
+                    ImGui::Text("Triangles Count: %d", Object->GetTrianglesCount());
+
+                    ImGui::Separator();
+
+                    ImGui::Text("Transform");
                     float Position[3] = {Object->GetPosition().X, Object->GetPosition().Y, Object->GetPosition().Z};
                     ImGui::InputFloat3(std::format("{} Position", Object->GetName()).c_str(), &Position[0], "%.2f");
                     Object->SetPosition({Position[0], Position[1], Position[2]});
@@ -224,7 +263,7 @@ void Window::CreateOverlay()
 
 void Window::RequestRender()
 {
-    if (IsOpen())
+    if (IsInitialized() && IsOpen())
     {
         m_Renderer.GetMutableCamera().UpdateCameraMovement(static_cast<float>(m_Renderer.GetDeltaTime()));
 
@@ -235,7 +274,7 @@ void Window::RequestRender()
         m_Renderer.DrawFrame(m_GLFWHandler.GetWindow(), m_Renderer.GetCamera());
 
         Renderer::GetRenderTimerManager().SetTimer(
-                1000U / g_FrameRate,
+                std::chrono::milliseconds(1000U / (2U * g_FrameRate)),
                 [this] {
                     RequestRender();
                 });

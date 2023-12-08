@@ -5,24 +5,25 @@
 export module RenderCore.Tests.SharedUtils;
 
 import RenderCore.Window;
+import RenderCore.Window.Flags;
 
 export class ScopedWindow
 {
     RenderCore::Window m_Window;
 
 public:
-    ScopedWindow()
+    ScopedWindow() noexcept
     {
         try
         {
-            m_Window.Initialize(600U, 600U, "Vulkan Renderer: Tests", true).Get();
+            m_Window.Initialize(600U, 600U, "Vulkan Renderer: Tests", RenderCore::InitializationFlags::HEADLESS).Get();
         }
         catch (...)
         {
         }
     }
 
-    ~ScopedWindow()
+    ~ScopedWindow() noexcept
     {
         try
         {

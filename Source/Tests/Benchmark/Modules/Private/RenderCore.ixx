@@ -17,7 +17,7 @@ static void InitializeWindow(benchmark::State& State)
 {
     for ([[maybe_unused]] auto const _: State)
     {
-        if (RenderCore::Window Window; Window.Initialize(600U, 600U, "Vulkan Renderer", true).Get())
+        if (RenderCore::Window Window; Window.Initialize(600U, 600U, "Vulkan Renderer", RenderCore::InitializationFlags::HEADLESS).Get())
         {
             Window.Shutdown().Get();
             benchmark::DoNotOptimize(Window);
@@ -32,15 +32,15 @@ static void LoadAndUnloadScene(benchmark::State& State)
     ScopedWindow Window;
     benchmark::DoNotOptimize(Window);
 
-    std::string ObjectPath {"Resources/Assets/Box/glTF/Box.gltf"};
+    std::string const ObjectPath {"Resources/Assets/Box/glTF/Box.gltf"};
     benchmark::DoNotOptimize(ObjectPath);
 
     for ([[maybe_unused]] auto const _: State)
     {
-        [[maybe_unused]] auto LoadedIDs = RenderCore::EngineCore::Get().LoadScene(ObjectPath);
+        [[maybe_unused]] auto LoadedIDs = Window.GetWindow().GetRenderer().LoadScene(ObjectPath);
         benchmark::DoNotOptimize(LoadedIDs);
 
-        RenderCore::EngineCore::Get().UnloadAllScenes();
+        Window.GetWindow().GetRenderer().UnloadAllScenes();
     }
 }
 

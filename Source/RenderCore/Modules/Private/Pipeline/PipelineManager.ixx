@@ -39,12 +39,12 @@ namespace RenderCore
         void SetIsBoundToImGui(bool);
         [[nodiscard]] bool GetIsBoundToImGui() const;
 
-        [[nodiscard]] VkRenderPass const& GetRenderPass();
-        [[nodiscard]] VkPipeline const& GetPipeline();
-        [[nodiscard]] VkPipelineLayout const& GetPipelineLayout();
-        [[nodiscard]] VkPipelineCache const& GetPipelineCache();
-        [[nodiscard]] VkDescriptorSetLayout const& GetDescriptorSetLayout();
-        [[nodiscard]] VkDescriptorPool const& GetDescriptorPool();
-        [[nodiscard]] VkDescriptorSet GetDescriptorSet(std::uint32_t);
+        [[nodiscard]] VkRenderPass const& GetRenderPass() const;
+        [[nodiscard]] VkPipeline const& GetPipeline() const;
+        [[nodiscard]] VkPipelineLayout const& GetPipelineLayout() const;
+        [[nodiscard]] VkPipelineCache const& GetPipelineCache() const;
+        [[nodiscard]] VkDescriptorSetLayout const& GetDescriptorSetLayout() const;
+        [[nodiscard]] VkDescriptorPool const& GetDescriptorPool() const;
+        [[nodiscard]] VkDescriptorSet GetDescriptorSet(std::uint32_t) const;
     };
 }// namespace RenderCore

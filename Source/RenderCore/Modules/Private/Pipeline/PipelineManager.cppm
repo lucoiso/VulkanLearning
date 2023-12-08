@@ -24,7 +24,7 @@ using namespace RenderCore;
 
 void PipelineManager::CreateRenderPass(SurfaceProperties const& SurfaceProperties)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (m_RenderPass != VK_NULL_HANDLE)
     {
@@ -75,7 +75,7 @@ void PipelineManager::CreateRenderPass(SurfaceProperties const& SurfacePropertie
             .srcAccessMask = 0U,
             .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
 
-    std::array<VkAttachmentDescription, 2U> const AttachmentDescriptions {
+    std::array const AttachmentDescriptions {
             ColorAttachmentDescription,
             DepthAttachmentDescription};
 
@@ -93,7 +93,7 @@ void PipelineManager::CreateRenderPass(SurfaceProperties const& SurfacePropertie
 
 void PipelineManager::CreateGraphicsPipeline()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan graphics pipeline";
 
@@ -217,11 +217,11 @@ void PipelineManager::CreateGraphicsPipeline()
 
 void PipelineManager::CreateDescriptorSetLayout()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
 
-    constexpr std::array<VkDescriptorSetLayoutBinding, 2U> LayoutBindings {
+    constexpr std::array LayoutBindings {
             VkDescriptorSetLayoutBinding {
                     .binding            = 0U,
                     .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -245,11 +245,11 @@ void PipelineManager::CreateDescriptorSetLayout()
 
 void PipelineManager::CreateDescriptorPool(std::uint32_t const NumAllocations)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor pool";
 
-    std::array<VkDescriptorPoolSize, 2U> const DescriptorPoolSizes {
+    std::array const DescriptorPoolSizes {
             VkDescriptorPoolSize {
                     .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .descriptorCount = NumAllocations},
@@ -268,7 +268,7 @@ void PipelineManager::CreateDescriptorPool(std::uint32_t const NumAllocations)
 
 void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& AllocatedObjects)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     auto const NumAllocations = static_cast<std::uint32_t>(std::size(AllocatedObjects));
 
@@ -309,7 +309,7 @@ void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& Al
                 .offset = 0U,
                 .range  = UniformBufferSize});
 
-        for (auto const& [Type, TextureData]: AllocatedObjects.at(Index).Textures)
+        for (auto const& TextureData: AllocatedObjects.at(Index).Textures | std::views::values)
         {
             ImageInfos.push_back(VkDescriptorImageInfo {
                     .sampler     = TextureData.Sampler,
@@ -354,7 +354,7 @@ void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& Al
 
 void PipelineManager::ReleasePipelineResources()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan pipeline resources";
 
@@ -369,7 +369,7 @@ void PipelineManager::ReleasePipelineResources()
 
 void PipelineManager::ReleaseDynamicPipelineResources()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan pipeline resources";
 
@@ -416,37 +416,37 @@ bool PipelineManager::GetIsBoundToImGui() const
     return m_BoundToImGui;
 }
 
-VkRenderPass const& PipelineManager::GetRenderPass()
+VkRenderPass const& PipelineManager::GetRenderPass() const
 {
     return m_RenderPass;
 }
 
-VkPipeline const& PipelineManager::GetPipeline()
+VkPipeline const& PipelineManager::GetPipeline() const
 {
     return m_Pipeline;
 }
 
-VkPipelineLayout const& PipelineManager::GetPipelineLayout()
+VkPipelineLayout const& PipelineManager::GetPipelineLayout() const
 {
     return m_PipelineLayout;
 }
 
-VkPipelineCache const& PipelineManager::GetPipelineCache()
+VkPipelineCache const& PipelineManager::GetPipelineCache() const
 {
     return m_PipelineCache;
 }
 
-VkDescriptorSetLayout const& PipelineManager::GetDescriptorSetLayout()
+VkDescriptorSetLayout const& PipelineManager::GetDescriptorSetLayout() const
 {
     return m_DescriptorSetLayout;
 }
 
-VkDescriptorPool const& PipelineManager::GetDescriptorPool()
+VkDescriptorPool const& PipelineManager::GetDescriptorPool() const
 {
     return m_DescriptorPool;
 }
 
-VkDescriptorSet PipelineManager::GetDescriptorSet(std::uint32_t const ObjectID)
+VkDescriptorSet PipelineManager::GetDescriptorSet(std::uint32_t const ObjectID) const
 {
     if (!m_DescriptorSets.contains(ObjectID))
     {

@@ -29,7 +29,7 @@ VkDescriptorPool g_ImGuiDescriptorPool {VK_NULL_HANDLE};
 
 void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& PipelineManager)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     IMGUI_CHECKVERSION();
 
@@ -103,7 +103,7 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& Pipe
 
 void RenderCore::ReleaseImGuiResources()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (g_ImGuiDescriptorPool != VK_NULL_HANDLE)
     {

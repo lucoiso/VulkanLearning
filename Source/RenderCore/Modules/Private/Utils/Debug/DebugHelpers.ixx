@@ -4,7 +4,9 @@
 
 module;
 
+#ifdef _DEBUG
 #include <volk.h>
+#endif
 
 export module RenderCore.Utils.DebugHelpers;
 

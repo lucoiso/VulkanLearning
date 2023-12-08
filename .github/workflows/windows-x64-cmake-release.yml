@@ -16,6 +16,7 @@ env:
   VCPKG_DEFAULT_BINARY_CACHE: ${{github.workspace}}/vcpkg/bincache
   VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
   OUTPUT_DIRECTORY: out/build
+  BUILD_TESTS: ON
 
 permissions:
   actions: read

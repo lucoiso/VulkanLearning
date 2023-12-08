@@ -29,8 +29,6 @@ std::vector<std::uint8_t> g_UniqueQueueFamilyIndices {};
 
 bool IsPhysicalDeviceSuitable(VkPhysicalDevice const& Device)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     if (Device == VK_NULL_HANDLE)
     {
         return false;
@@ -50,7 +48,7 @@ bool GetQueueFamilyIndices(VkSurfaceKHR const& VulkanSurface,
                            std::optional<std::uint8_t>& PresentationQueueFamilyIndex,
                            std::optional<std::uint8_t>& TransferQueueFamilyIndex)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting queue family indices";
 
@@ -97,7 +95,7 @@ bool GetQueueFamilyIndices(VkSurfaceKHR const& VulkanSurface,
 
 void PickPhysicalDevice()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Picking a physical device";
 
@@ -118,7 +116,7 @@ void PickPhysicalDevice()
 
 void CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     std::optional<std::uint8_t> GraphicsQueueFamilyIndex {std::nullopt};
     std::optional<std::uint8_t> PresentationQueueFamilyIndex {std::nullopt};
@@ -181,7 +179,7 @@ void CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
                         .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                         .queueFamilyIndex = Index,
                         .queueCount       = Count,
-                        .pQueuePriorities = std::data(std::vector(Count, 1.0F))});
+                        .pQueuePriorities = std::data(std::vector(Count, 1.F))});
     }
 
     VkPhysicalDeviceRobustness2FeaturesEXT RobustnessFeatures {
@@ -232,7 +230,7 @@ void RenderCore::InitializeDevice(VkSurfaceKHR const& VulkanSurface)
         return;
     }
 
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulkan devices";
 
@@ -352,7 +350,7 @@ std::vector<std::uint32_t> RenderCore::GetUniqueQueueFamilyIndicesU32()
 
 void RenderCore::ReleaseDeviceResources()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan device resources";
 
@@ -367,7 +365,7 @@ void RenderCore::ReleaseDeviceResources()
 
 std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     VkInstance const& VulkanInstance = volkGetLoadedInstance();
 
@@ -382,7 +380,7 @@ std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
 
 std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceExtensions(VkPhysicalDevice const& PhysicalDevice)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -400,7 +398,7 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceExtensi
 
 std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers(VkPhysicalDevice const& PhysicalDevice)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -418,7 +416,7 @@ std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers(VkPh
 
 std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(VkPhysicalDevice const& PhysicalDevice, std::string_view const& LayerName)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -442,7 +440,7 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerEx
 
 std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames(VkPhysicalDevice const& PhysicalDevice)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     std::vector<std::string> Output;
     for (VkExtensionProperties const& ExtensionIter: GetAvailablePhysicalDeviceExtensions(PhysicalDevice))
@@ -455,7 +453,7 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames(V
 
 std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(VkPhysicalDevice const& PhysicalDevice, std::string_view const& LayerName)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     std::vector<std::string> Output;
     for (VkExtensionProperties const& ExtensionIter: GetAvailablePhysicalDeviceLayerExtensions(PhysicalDevice, LayerName))
@@ -468,7 +466,7 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNa
 
 std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames(VkPhysicalDevice const& PhysicalDevice)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     std::vector<std::string> Output;
     for (VkLayerProperties const& LayerIter: GetAvailablePhysicalDeviceLayers(PhysicalDevice))
@@ -513,7 +511,7 @@ std::vector<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePrese
 
 VkDeviceSize RenderCore::GetMinUniformBufferOffsetAlignment()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {

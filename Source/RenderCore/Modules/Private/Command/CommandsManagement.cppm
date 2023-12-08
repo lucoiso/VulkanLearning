@@ -90,7 +90,7 @@ void FreeCommandBuffers()
 
 void RenderCore::ReleaseCommandsResources()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan commands resources";
 
@@ -112,7 +112,7 @@ VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex)
 
 void RenderCore::CreateCommandsSynchronizationObjects()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan synchronization objects";
 
@@ -130,7 +130,7 @@ void RenderCore::CreateCommandsSynchronizationObjects()
 
 void RenderCore::DestroyCommandsSynchronizationObjects()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan synchronization objects";
 
@@ -208,7 +208,7 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage(VkSwapchainKHR con
     return static_cast<std::int32_t>(Output);
 }
 
-void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint32_t const ImageIndex, Camera const& Camera, BufferManager& BufferManager, PipelineManager& PipelineManager, std::vector<std::shared_ptr<Object>> const& Objects)
+void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint32_t const ImageIndex, Camera const& Camera, BufferManager const& BufferManager, PipelineManager& PipelineManager, std::vector<std::shared_ptr<Object>> const& Objects)
 {
     AllocateCommandBuffer(QueueFamily);
     VkCommandBuffer const& MainCommandBuffer = g_CommandBuffers.back();
@@ -375,8 +375,6 @@ void RenderCore::PresentFrame(VkQueue const& Queue, std::uint32_t const ImageInd
 
 void RenderCore::InitializeSingleCommandQueue(VkCommandPool& CommandPool, std::vector<VkCommandBuffer>& CommandBuffers, std::uint8_t const QueueFamilyIndex)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     VkCommandPoolCreateInfo const CommandPoolCreateInfo {
             .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
@@ -405,8 +403,6 @@ void RenderCore::InitializeSingleCommandQueue(VkCommandPool& CommandPool, std::v
 
 void RenderCore::FinishSingleCommandQueue(VkQueue const& Queue, VkCommandPool const& CommandPool, std::vector<VkCommandBuffer>& CommandBuffers)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     if (CommandPool == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan command pool is invalid.");

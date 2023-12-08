@@ -52,8 +52,6 @@ using namespace RenderCore;
 
 VmaAllocationInfo CreateBuffer(VmaAllocator const& Allocator, VkDeviceSize const& Size, VkBufferUsageFlags const Usage, VkMemoryPropertyFlags const Flags, VkBuffer& Buffer, VmaAllocation& Allocation)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     if (Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
@@ -76,8 +74,6 @@ VmaAllocationInfo CreateBuffer(VmaAllocator const& Allocator, VkDeviceSize const
 
 void CopyBuffer(VkCommandBuffer const& CommandBuffer, VkBuffer const& Source, VkBuffer const& Destination, VkDeviceSize const& Size)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     VkBufferCopy const BufferCopy {
             .size = Size,
     };
@@ -85,14 +81,16 @@ void CopyBuffer(VkCommandBuffer const& CommandBuffer, VkBuffer const& Source, Vk
     vkCmdCopyBuffer(CommandBuffer, Source, Destination, 1U, &BufferCopy);
 }
 
-CommandBufferSet CreateVertexBuffer(VmaAllocator const& Allocator, ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<Vertex> const& Vertices)
+CommandBufferSet CreateVertexBuffers(VmaAllocator const& Allocator, ObjectAllocation& Object, std::vector<Vertex> const& Vertices)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan vertex buffers";
 
     if (Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
+
+    VkDeviceSize const BufferSize = std::size(Vertices) * sizeof(Vertex);
 
     constexpr VkBufferUsageFlags SourceUsageFlags             = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -102,32 +100,34 @@ CommandBufferSet CreateVertexBuffer(VmaAllocator const& Allocator, ObjectAllocat
 
     CommandBufferSet Output {
             .bVertexBuffer  = true,
-            .AllocationSize = AllocationSize};
+            .AllocationSize = BufferSize};
 
     VmaAllocationInfo const
             StagingInfo
             = CreateBuffer(Allocator,
-                           AllocationSize,
+                           BufferSize,
                            SourceUsageFlags,
                            SourceMemoryPropertyFlags,
                            Output.StagingBuffer.first,
                            Output.StagingBuffer.second);
 
-    std::memcpy(StagingInfo.pMappedData, std::data(Vertices), AllocationSize);
+    std::memcpy(StagingInfo.pMappedData, std::data(Vertices), BufferSize);
 
-    CreateBuffer(Allocator, AllocationSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.VertexBuffer.Buffer, Object.VertexBuffer.Allocation);
+    CreateBuffer(Allocator, BufferSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.VertexBuffer.Buffer, Object.VertexBuffer.Allocation);
 
     return Output;
 }
 
-CommandBufferSet CreateIndexBuffer(VmaAllocator const& Allocator, ObjectAllocation& Object, VkDeviceSize const& AllocationSize, std::vector<std::uint32_t> const& Indices)
+CommandBufferSet CreateIndexBuffers(VmaAllocator const& Allocator, ObjectAllocation& Object, std::vector<std::uint32_t> const& Indices)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
 
     if (Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
+
+    VkDeviceSize const BufferSize = std::size(Indices) * sizeof(std::uint32_t);
 
     constexpr VkBufferUsageFlags SourceUsageFlags             = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -137,69 +137,41 @@ CommandBufferSet CreateIndexBuffer(VmaAllocator const& Allocator, ObjectAllocati
 
     CommandBufferSet Output {
             .bVertexBuffer  = false,
-            .AllocationSize = AllocationSize};
+            .AllocationSize = BufferSize};
 
     VmaAllocationInfo const
             StagingInfo
             = CreateBuffer(Allocator,
-                           AllocationSize,
+                           BufferSize,
                            SourceUsageFlags,
                            SourceMemoryPropertyFlags,
                            Output.StagingBuffer.first,
                            Output.StagingBuffer.second);
 
-    std::memcpy(StagingInfo.pMappedData, std::data(Indices), AllocationSize);
-    CheckVulkanResult(vmaFlushAllocation(Allocator, Output.StagingBuffer.second, 0U, AllocationSize));
+    std::memcpy(StagingInfo.pMappedData, std::data(Indices), BufferSize);
+    CheckVulkanResult(vmaFlushAllocation(Allocator, Output.StagingBuffer.second, 0U, BufferSize));
 
-    CreateBuffer(Allocator, AllocationSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.IndexBuffer.Buffer, Object.IndexBuffer.Allocation);
+    CreateBuffer(Allocator, BufferSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.IndexBuffer.Buffer, Object.IndexBuffer.Allocation);
 
     return Output;
 }
 
-void CreateUniformBuffer(VmaAllocator const& Allocator, ObjectAllocation& Object, VkDeviceSize const& AllocationSize)
+void CreateUniformBuffers(VmaAllocator const& Allocator, ObjectAllocation& Object)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan uniform buffers";
 
     if (Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
 
+    constexpr VkDeviceSize BufferSize = sizeof(UniformBufferObject);
+
     constexpr VkBufferUsageFlags DestinationUsageFlags             = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
-    CreateBuffer(Allocator, AllocationSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.UniformBuffer.Buffer, Object.UniformBuffer.Allocation);
+    CreateBuffer(Allocator, BufferSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Object.UniformBuffer.Buffer, Object.UniformBuffer.Allocation);
     vmaMapMemory(Allocator, Object.UniformBuffer.Allocation, &Object.UniformBuffer.MappedData);
-}
-
-CommandBufferSet CreateVertexBuffers(VmaAllocator const& Allocator, ObjectAllocation& Object, std::vector<Vertex> const& Vertices)
-{
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan vertex buffers";
-
-    VkDeviceSize const BufferSize = std::size(Vertices) * sizeof(Vertex);
-    return CreateVertexBuffer(Allocator, Object, BufferSize, Vertices);
-}
-
-CommandBufferSet CreateIndexBuffers(VmaAllocator const& Allocator, ObjectAllocation& Object, std::vector<std::uint32_t> const& Indices)
-{
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan index buffers";
-
-    VkDeviceSize const BufferSize = std::size(Indices) * sizeof(std::uint32_t);
-    return CreateIndexBuffer(Allocator, Object, BufferSize, Indices);
-}
-
-void CreateUniformBuffers(VmaAllocator const& Allocator, ObjectAllocation& Object)
-{
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan uniform buffers";
-
-    constexpr VkDeviceSize BufferSize = sizeof(UniformBufferObject);
-    CreateUniformBuffer(Allocator, Object, BufferSize);
 }
 
 void CreateImage(VmaAllocator const& Allocator,
@@ -211,8 +183,6 @@ void CreateImage(VmaAllocator const& Allocator,
                  VkImage& Image,
                  VmaAllocation& Allocation)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     if (Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
@@ -243,8 +213,6 @@ void CreateImage(VmaAllocator const& Allocator,
 
 void CreateImageView(VkImage const& Image, VkFormat const& Format, VkImageAspectFlags const& AspectFlags, VkImageView& ImageView)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     VkImageViewCreateInfo const ImageViewCreateInfo {
             .sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             .image      = Image,
@@ -262,7 +230,7 @@ void CreateImageView(VkImage const& Image, VkFormat const& Format, VkImageAspect
 
 void CreateSwapChainImageViews(std::vector<ImageAllocation>& Images, VkFormat const& ImageFormat)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan swap chain image views";
     for (auto& [Image, View, Sampler, Allocation, Type]: Images)
@@ -273,15 +241,11 @@ void CreateSwapChainImageViews(std::vector<ImageAllocation>& Images, VkFormat co
 
 void CreateTextureImageView(ImageAllocation& Allocation)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     CreateImageView(Allocation.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, Allocation.View);
 }
 
 void CreateTextureSampler(VmaAllocator const& Allocator, ImageAllocation& Allocation)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     if (Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
@@ -313,8 +277,6 @@ void CreateTextureSampler(VmaAllocator const& Allocator, ImageAllocation& Alloca
 
 void CopyBufferToImage(VkCommandBuffer const& CommandBuffer, VkBuffer const& Source, VkImage const& Destination, VkExtent2D const& Extent)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     VkBufferImageCopy const BufferImageCopy {
             .bufferOffset      = 0U,
             .bufferRowLength   = 0U,
@@ -333,8 +295,6 @@ void CopyBufferToImage(VkCommandBuffer const& CommandBuffer, VkBuffer const& Sou
 template<VkImageLayout OldLayout, VkImageLayout NewLayout>
 constexpr void MoveImageLayout(VkCommandBuffer& CommandBuffer, VkImage const& Image, VkFormat const& Format)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     VkPipelineStageFlags SourceStage;
     VkPipelineStageFlags DestinationStage;
 
@@ -396,8 +356,6 @@ constexpr void MoveImageLayout(VkCommandBuffer& CommandBuffer, VkImage const& Im
 
 ImageCreationData AllocateTexture(VmaAllocator const& Allocator, unsigned char const* Data, std::uint32_t const Width, std::uint32_t const Height, std::size_t const AllocationSize)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     ImageAllocation ImageAllocation {};
 
     constexpr VkBufferUsageFlags SourceUsageFlags             = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -438,7 +396,7 @@ ImageCreationData AllocateTexture(VmaAllocator const& Allocator, unsigned char c
 
 void BufferManager::CreateVulkanSurface(GLFWwindow* const Window)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan surface";
 
@@ -447,7 +405,7 @@ void BufferManager::CreateVulkanSurface(GLFWwindow* const Window)
 
 void BufferManager::CreateMemoryAllocator(VkPhysicalDevice const& PhysicalDevice)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan memory allocator";
 
@@ -473,7 +431,7 @@ void BufferManager::CreateMemoryAllocator(VkPhysicalDevice const& PhysicalDevice
 
 void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, VkSurfaceCapabilitiesKHR const& Capabilities, std::vector<std::uint32_t> const& QueueFamilyIndices)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain";
 
@@ -525,7 +483,7 @@ void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, 
 
 void BufferManager::CreateFrameBuffers(VkRenderPass const& RenderPass)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan frame buffers";
 
@@ -551,7 +509,7 @@ void BufferManager::CreateFrameBuffers(VkRenderPass const& RenderPass)
 
 void BufferManager::CreateDepthResources(SurfaceProperties const& SurfaceProperties, std::pair<std::uint8_t, VkQueue> const& QueuePair)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan depth resources";
 
@@ -590,7 +548,7 @@ void InsertIndiceInContainer(std::vector<std::uint32_t>& Indices, tinygltf::Acce
     {
         Indices.push_back(static_cast<std::uint32_t>(Data[Iterator]));
     }
-};
+}
 
 void AllocateModelTexture(ObjectAllocationData& ObjectCreationData, tinygltf::Model const& Model, VmaAllocator const& Allocator, std::int32_t const TextureIndex, TextureType const TextureType)
 {
@@ -605,12 +563,10 @@ void AllocateModelTexture(ObjectAllocationData& ObjectCreationData, tinygltf::Mo
             ObjectCreationData.ImageCreationDatas.back().Type = TextureType;
         }
     }
-};
+}
 
 std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPath, std::pair<std::uint8_t, VkQueue> const& QueuePair)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     std::vector<ObjectAllocationData> AllocationData {};
     tinygltf::Model Model {};
 
@@ -717,6 +673,7 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
                 unsigned char const* const IndicesData      = std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset;
 
                 NewObjectAllocation.Indices.reserve(IndexAccessor.count);
+                NewObjectAllocation.Object.SetTrianglesCount(IndexAccessor.count / 3U);
 
                 switch (IndexAccessor.componentType)
                 {
@@ -831,116 +788,78 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
         }
     }
 
-    // Copy buffers
+    VkCommandPool CopyCommandPool {VK_NULL_HANDLE};
+    std::vector<VkCommandBuffer> CommandBuffers {};
+    CommandBuffers.resize(std::size(AllocationData) + std::size(MoveOperation) + std::size(CopyOperation) + std::size(MoveOperation));
+
+    InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, QueuePair.first);
     {
-        VkCommandPool CopyCommandPool {VK_NULL_HANDLE};
-        std::vector<VkCommandBuffer> CopyCommandBuffers {};
-        CopyCommandBuffers.resize(std::size(AllocationData));
+        std::uint32_t Count = 0U;
 
-        InitializeSingleCommandQueue(CopyCommandPool, CopyCommandBuffers, QueuePair.first);
+        for (BufferCopyOperationData const& CopyOperationDataIter: BufferCopyOperationDatas)
         {
-            std::uint32_t Count = 0U;
-            for (BufferCopyOperationData const& CopyOperationDataIter: BufferCopyOperationDatas)
-            {
-                VkCommandBuffer const CommandBuffer = CopyCommandBuffers.at(Count);
+            VkCommandBuffer const& CommandBuffer = CommandBuffers.at(Count);
 
-                VkBufferCopy const VertexBufferCopy {
-                        .size = CopyOperationDataIter.VertexData.AllocationSize};
+            VkBufferCopy const VertexBufferCopy {
+                    .size = CopyOperationDataIter.VertexData.AllocationSize};
 
-                VkBufferCopy const IndexBufferCopy {
-                        .size = CopyOperationDataIter.IndexData.AllocationSize};
+            VkBufferCopy const IndexBufferCopy {
+                    .size = CopyOperationDataIter.IndexData.AllocationSize};
 
-                vkCmdCopyBuffer(CommandBuffer, CopyOperationDataIter.VertexData.SourceBuffer, CopyOperationDataIter.VertexData.DestinationBuffer, 1U, &VertexBufferCopy);
-                vkCmdCopyBuffer(CommandBuffer, CopyOperationDataIter.IndexData.SourceBuffer, CopyOperationDataIter.IndexData.DestinationBuffer, 1U, &IndexBufferCopy);
+            vkCmdCopyBuffer(CommandBuffer, CopyOperationDataIter.VertexData.SourceBuffer, CopyOperationDataIter.VertexData.DestinationBuffer, 1U, &VertexBufferCopy);
+            vkCmdCopyBuffer(CommandBuffer, CopyOperationDataIter.IndexData.SourceBuffer, CopyOperationDataIter.IndexData.DestinationBuffer, 1U, &IndexBufferCopy);
 
-                ++Count;
-            }
+            ++Count;
         }
-        FinishSingleCommandQueue(QueuePair.second, CopyCommandPool, CopyCommandBuffers);
-    }
 
-    // Move image layout
-    {
-        VkCommandPool TextureCommandPool {VK_NULL_HANDLE};
-        std::vector<VkCommandBuffer> TextureCommandBuffers {};
-        TextureCommandBuffers.resize(std::size(MoveOperation));
-        InitializeSingleCommandQueue(TextureCommandPool, TextureCommandBuffers, QueuePair.first);
+        for (MoveOperationData const& MoveOperationIter: MoveOperation)
         {
-            std::uint32_t Count = 0U;
-            for (MoveOperationData const& MoveOperationIter: MoveOperation)
-            {
-                MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL>(TextureCommandBuffers.at(Count),
-                                                                                                 MoveOperationIter.Image,
-                                                                                                 MoveOperationIter.Format);
+            MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL>(CommandBuffers.at(Count),
+                                                                                             MoveOperationIter.Image,
+                                                                                             MoveOperationIter.Format);
 
-                ++Count;
-            }
+            ++Count;
         }
-        FinishSingleCommandQueue(QueuePair.second, TextureCommandPool, TextureCommandBuffers);
-    }
 
-    // Copy image data
-    {
-        VkCommandPool TextureCommandPool {VK_NULL_HANDLE};
-        std::vector<VkCommandBuffer> TextureCommandBuffers {};
-        TextureCommandBuffers.resize(std::size(CopyOperation));
-        InitializeSingleCommandQueue(TextureCommandPool, TextureCommandBuffers, QueuePair.first);
+        for (CopyOperationData const& CopyOperationIter: CopyOperation)
         {
-            std::uint32_t Count = 0U;
-            for (CopyOperationData const& CopyOperationIter: CopyOperation)
-            {
-                CopyBufferToImage(TextureCommandBuffers.at(Count),
-                                  CopyOperationIter.SourceBuffer,
-                                  CopyOperationIter.DestinationImage,
-                                  CopyOperationIter.Extent);
+            CopyBufferToImage(CommandBuffers.at(Count),
+                              CopyOperationIter.SourceBuffer,
+                              CopyOperationIter.DestinationImage,
+                              CopyOperationIter.Extent);
 
-                ++Count;
-            }
+            ++Count;
         }
-        FinishSingleCommandQueue(QueuePair.second, TextureCommandPool, TextureCommandBuffers);
-    }
 
-    // Move image layout
-    {
-        VkCommandPool TextureCommandPool {VK_NULL_HANDLE};
-        std::vector<VkCommandBuffer> TextureCommandBuffers {};
-        TextureCommandBuffers.resize(std::size(MoveOperation));
-        InitializeSingleCommandQueue(TextureCommandPool, TextureCommandBuffers, QueuePair.first);
+        for (MoveOperationData const& MoveOperationIter: MoveOperation)
         {
-            std::uint32_t Count = 0U;
-            for (MoveOperationData const& MoveOperationIter: MoveOperation)
-            {
-                MoveImageLayout<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>(TextureCommandBuffers.at(Count),
-                                                                          MoveOperationIter.Image,
-                                                                          MoveOperationIter.Format);
+            MoveImageLayout<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>(CommandBuffers.at(Count),
+                                                                      MoveOperationIter.Image,
+                                                                      MoveOperationIter.Format);
 
-                ++Count;
-            }
+            ++Count;
         }
-        FinishSingleCommandQueue(QueuePair.second, TextureCommandPool, TextureCommandBuffers);
     }
+    FinishSingleCommandQueue(QueuePair.second, CopyCommandPool, CommandBuffers);
 
-    // Create view, sampler and destroy staging buffers
+    for (ObjectAllocationData& AllocationDataIter: AllocationData)
     {
-        for (ObjectAllocationData& AllocationDataIter: AllocationData)
+        for (ImageCreationData& ImageDataIter: AllocationDataIter.ImageCreationDatas)
         {
-            for (ImageCreationData& ImageDataIter: AllocationDataIter.ImageCreationDatas)
+            if (m_Objects.contains(AllocationDataIter.Object.GetID()))
             {
-                if (m_Objects.contains(AllocationDataIter.Object.GetID()))
-                {
-                    CreateTextureImageView(ImageDataIter.Allocation);
-                    CreateTextureSampler(m_Allocator, ImageDataIter.Allocation);
-                    m_Objects.at(AllocationDataIter.Object.GetID()).TextureImages.push_back(ImageDataIter.Allocation);
-                }
-
-                vmaDestroyBuffer(m_Allocator, ImageDataIter.StagingBuffer.first, ImageDataIter.StagingBuffer.second);
+                CreateTextureImageView(ImageDataIter.Allocation);
+                CreateTextureSampler(m_Allocator, ImageDataIter.Allocation);
+                m_Objects.at(AllocationDataIter.Object.GetID()).TextureImages.push_back(ImageDataIter.Allocation);
             }
 
-            for (CommandBufferSet& CommandBufferSetIter: AllocationDataIter.CommandBufferSets)
-            {
-                vmaDestroyBuffer(m_Allocator, CommandBufferSetIter.StagingBuffer.first, CommandBufferSetIter.StagingBuffer.second);
-            }
+            vmaDestroyBuffer(m_Allocator, ImageDataIter.StagingBuffer.first, ImageDataIter.StagingBuffer.second);
+        }
+
+        for (CommandBufferSet& CommandBufferSetIter: AllocationDataIter.CommandBufferSets)
+        {
+            vmaDestroyBuffer(m_Allocator, CommandBufferSetIter.StagingBuffer.first, CommandBufferSetIter.StagingBuffer.second);
         }
     }
 
@@ -949,7 +868,7 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
 
 void BufferManager::ReleaseScene(std::vector<std::uint32_t> const& ObjectIDs)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     for (std::uint32_t const ObjectIDIter: ObjectIDs)
     {
@@ -970,7 +889,7 @@ void BufferManager::ReleaseScene(std::vector<std::uint32_t> const& ObjectIDs)
 
 void BufferManager::ReleaseBufferResources()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan buffer resources";
 
@@ -991,7 +910,7 @@ void BufferManager::ReleaseBufferResources()
 
 void BufferManager::DestroyBufferResources(bool const ClearScene)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan buffer resources";
 

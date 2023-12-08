@@ -37,6 +37,7 @@ namespace RenderCore
         RendererStateFlags m_StateFlags {RendererStateFlags::NONE};
         std::vector<std::shared_ptr<Object>> m_Objects {};
         double m_DeltaTime {};
+        double m_FrameTime {};
         std::mutex m_ObjectsMutex {};
 
         friend class Window;
@@ -58,7 +59,7 @@ namespace RenderCore
 
         void AddStateFlag(RendererStateFlags);
         void RemoveStateFlag(RendererStateFlags);
-        [[nodiscard]] bool HasStateFlag(RendererStateFlags);
+        [[nodiscard]] bool HasStateFlag(RendererStateFlags) const;
 
         [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view const&);
         void UnloadScene(std::vector<std::uint32_t> const&);
@@ -66,6 +67,7 @@ namespace RenderCore
 
         static [[nodiscard]] Timer::Manager& GetRenderTimerManager();
         [[nodiscard]] double GetDeltaTime() const;
+        [[nodiscard]] double GetFrameTime() const;
         [[nodiscard]] Camera const& GetCamera() const;
         [[nodiscard]] Camera& GetMutableCamera();
         [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;

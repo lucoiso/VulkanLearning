@@ -20,7 +20,7 @@ RenderingSubsystem& RenderingSubsystem::Get()
 
 void RenderingSubsystem::RegisterRenderer(GLFWwindow* Window, Renderer& Renderer)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (!Window)
     {
@@ -32,7 +32,7 @@ void RenderingSubsystem::RegisterRenderer(GLFWwindow* Window, Renderer& Renderer
 
 void RenderingSubsystem::UnregisterRenderer(GLFWwindow* const Window)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (!m_RegisteredRenderers.contains(Window))
     {

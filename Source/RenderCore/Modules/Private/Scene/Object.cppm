@@ -13,6 +13,11 @@ import RenderCore.Renderer;
 
 using namespace RenderCore;
 
+void Object::SetTrianglesCount(std::uint32_t const TrianglesCount)
+{
+    m_TrianglesCount = TrianglesCount;
+}
+
 Object::Object(std::uint32_t const ID, std::string_view const& Path)
     : m_ID(ID),
       m_Path(Path),
@@ -39,6 +44,11 @@ std::string_view Object::GetPath() const
 std::string_view Object::GetName() const
 {
     return m_Name;
+}
+
+std::uint32_t Object::GetTrianglesCount() const
+{
+    return m_TrianglesCount;
 }
 
 Transform& Object::GetMutableTransform()

@@ -36,26 +36,26 @@ TEST_CASE("Scene Management", "[RenderCore]")
 {
     ScopedWindow Window;
 
-    auto const& LoadedObjects = RenderCore::EngineCore::Get().GetObjects();
+    auto const& LoadedObjects = Window.GetWindow().GetRenderer().GetObjects();
     REQUIRE(std::empty(LoadedObjects));
 
     std::string const ObjectPath {"Resources/Assets/Box/glTF/Box.gltf"};
     std::string const ObjectName {"Mesh_000"};
 
-    REQUIRE_FALSE(std::empty(RenderCore::EngineCore::Get().LoadScene(ObjectPath)));
+    REQUIRE_FALSE(std::empty(Window.GetWindow().GetRenderer().LoadScene(ObjectPath)));
     REQUIRE(LoadedObjects[0]->GetPath() == ObjectPath);
     REQUIRE(LoadedObjects[0]->GetName() == ObjectName);
 
     SECTION("Unload Default Scene")
     {
-        RenderCore::EngineCore::Get().UnloadAllScenes();
+        Window.GetWindow().GetRenderer().UnloadAllScenes();
         REQUIRE(std::empty(LoadedObjects));
-        REQUIRE(std::empty(RenderCore::EngineCore::Get().GetObjects()));
+        REQUIRE(std::empty(Window.GetWindow().GetRenderer().GetObjects()));
     }
 
     SECTION("Reload Scene")
     {
-        REQUIRE_FALSE(std::empty(RenderCore::EngineCore::Get().LoadScene(ObjectPath)));
+        REQUIRE_FALSE(std::empty(Window.GetWindow().GetRenderer().LoadScene(ObjectPath)));
         REQUIRE(LoadedObjects[0]->GetPath() == ObjectPath);
         REQUIRE(LoadedObjects[0]->GetName() == ObjectName);
     }

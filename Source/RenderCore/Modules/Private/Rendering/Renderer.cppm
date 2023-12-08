@@ -33,6 +33,7 @@ import RenderCore.Utils.EnumHelpers;
 import RenderCore.Utils.DebugHelpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Subsystem.Rendering;
+import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
@@ -102,6 +103,15 @@ void Renderer::DrawFrame(GLFWwindow* const Window, Camera const& Camera)
     if (Window == nullptr)
     {
         throw std::runtime_error("Window is invalid");
+    }
+
+    static std::uint64_t LastTime   = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    std::uint64_t const CurrentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+    if (double const DeltaTime = static_cast<double>(CurrentTime - LastTime) / 1000.0; DeltaTime > 0.F)
+    {
+        m_FrameTime = DeltaTime;
+        LastTime    = CurrentTime;
     }
 
     RemoveInvalidObjects();
@@ -203,12 +213,13 @@ void Renderer::Tick()
     std::uint64_t const CurrentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     double const DeltaTime          = static_cast<double>(CurrentTime - LastTime) / 1000.0;
 
-    if (DeltaTime <= 0.0f)
+    if (DeltaTime <= 0.F)
     {
         return;
     }
 
     m_DeltaTime = DeltaTime;
+    LastTime    = CurrentTime;
 
     if (m_ObjectsMutex.try_lock())
     {
@@ -346,13 +357,15 @@ void Renderer::RemoveStateFlag(RendererStateFlags const Flag)
     RemoveFlags(m_StateFlags, Flag);
 }
 
-bool Renderer::HasStateFlag(RendererStateFlags const Flag)
+bool Renderer::HasStateFlag(RendererStateFlags const Flag) const
 {
     return HasFlag(m_StateFlags, Flag);
 }
 
 std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const& ObjectPath)
 {
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+
     if (!IsInitialized())
     {
         return {};
@@ -367,13 +380,13 @@ std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const& ObjectPat
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
 
-    std::vector<Object> LoadedObjects = m_BufferManager.AllocateScene(ObjectPath, GetGraphicsQueue());
+    std::vector<Object> const LoadedObjects = m_BufferManager.AllocateScene(ObjectPath, GetGraphicsQueue());
     std::vector<std::uint32_t> Output;
     Output.reserve(std::size(LoadedObjects));
 
-    for (Object& ObjectIter: LoadedObjects)
+    for (Object const& ObjectIter: LoadedObjects)
     {
-        m_Objects.emplace_back(std::make_shared<Object>(std::move(ObjectIter)));
+        m_Objects.emplace_back(std::make_shared<Object>(ObjectIter));
         Output.push_back(ObjectIter.GetID());
     }
 
@@ -385,6 +398,8 @@ std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const& ObjectPat
 
 void Renderer::UnloadScene(std::vector<std::uint32_t> const& ObjectIDs)
 {
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+
     if (!IsInitialized())
     {
         return;
@@ -428,6 +443,11 @@ Timer::Manager& Renderer::GetRenderTimerManager()
 double Renderer::GetDeltaTime() const
 {
     return m_DeltaTime;
+}
+
+double Renderer::GetFrameTime() const
+{
+    return m_FrameTime;
 }
 
 Camera const& Renderer::GetCamera() const

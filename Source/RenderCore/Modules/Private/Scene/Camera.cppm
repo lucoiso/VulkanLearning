@@ -165,7 +165,7 @@ bool Camera::IsInsideCameraFrustum(Vector const& TestLocation, VkExtent2D const&
 {
     glm::mat4 const ViewProjectionMatrix = GetProjectionMatrix(Extent) * GetViewMatrix();
 
-    glm::vec4 const HomogeneousTestLocation = glm::vec4(TestLocation.ToGlmVec3(), 1.0f);
+    auto const HomogeneousTestLocation = glm::vec4(TestLocation.ToGlmVec3(), 1.F);
     glm::vec4 const ClipSpaceTestLocation   = ViewProjectionMatrix * HomogeneousTestLocation;
 
     return std::abs(ClipSpaceTestLocation.x) <= std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.y) <= std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.z) <= std::abs(ClipSpaceTestLocation.w);

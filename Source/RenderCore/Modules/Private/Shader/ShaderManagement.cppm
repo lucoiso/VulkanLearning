@@ -29,7 +29,7 @@ std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> g_StageInfos
 
 bool Compile(std::string_view const& Source, EShLanguage const Language, std::vector<std::uint32_t>& OutSPIRVCode)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     glslang::InitializeProcess();
 
@@ -89,7 +89,7 @@ bool Compile(std::string_view const& Source, EShLanguage const Language, std::ve
 
 void StageInfo(VkShaderModule const& Module, EShLanguage const Language)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (Module == VK_NULL_HANDLE)
     {
@@ -160,10 +160,9 @@ void StageInfo(VkShaderModule const& Module, EShLanguage const Language)
     g_StageInfos.emplace(Module, StageInfo);
 }
 
+#ifdef _DEBUG
 bool ValidateSPIRV(const std::vector<std::uint32_t>& SPIRVData)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
-
     static spvtools::SpirvTools SPIRVToolsInstance(SPV_ENV_VULKAN_1_3);
     if (!SPIRVToolsInstance.IsValid())
     {
@@ -182,10 +181,11 @@ bool ValidateSPIRV(const std::vector<std::uint32_t>& SPIRVData)
 
     return SPIRVToolsInstance.Validate(SPIRVData);
 }
+#endif
 
 bool RenderCore::Compile(std::string_view const& Source, std::vector<std::uint32_t>& OutSPIRVCode)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     EShLanguage Language = EShLangVertex;
     std::filesystem::path const Path(Source);
@@ -253,10 +253,12 @@ bool RenderCore::Compile(std::string_view const& Source, std::vector<std::uint32
     bool const Result = Compile(ShaderSource.str(), Language, OutSPIRVCode);
     if (Result)
     {
+#ifdef _DEBUG
         if (!ValidateSPIRV(OutSPIRVCode))
         {
             throw std::runtime_error("Failed to validate SPIR-V code");
         }
+#endif
 
         std::string const SPIRVPath = std::format("{}.spv", Source);
         std::ofstream SPIRVFile(SPIRVPath, std::ios::binary);
@@ -276,7 +278,7 @@ bool RenderCore::Compile(std::string_view const& Source, std::vector<std::uint32
 
 bool RenderCore::Load(std::string_view const& Source, std::vector<std::uint32_t>& OutSPIRVCode)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     std::filesystem::path const Path(Source);
     if (!exists(Path))
@@ -311,7 +313,7 @@ bool RenderCore::Load(std::string_view const& Source, std::vector<std::uint32_t>
 
 bool RenderCore::CompileOrLoadIfExists(std::string_view const& Source, std::vector<uint32_t>& OutSPIRVCode)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (std::string const CompiledShaderPath = std::format("{}.spv", Source);
         std::filesystem::exists(CompiledShaderPath))
@@ -323,17 +325,19 @@ bool RenderCore::CompileOrLoadIfExists(std::string_view const& Source, std::vect
 
 VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const& SPIRVCode, EShLanguage const Language)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (std::empty(SPIRVCode))
     {
         throw std::runtime_error("Invalid SPIRV code");
     }
 
+#ifdef _DEBUG
     if (!ValidateSPIRV(SPIRVCode))
     {
         throw std::runtime_error("Failed to validate SPIR-V code");
     }
+#endif
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating shader module...";
 
@@ -379,7 +383,7 @@ std::vector<VkPipelineShaderStageCreateInfo> RenderCore::GetStageInfos()
 
 void RenderCore::ReleaseShaderResources()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan shader resources";
 
@@ -395,7 +399,7 @@ void RenderCore::ReleaseShaderResources()
 
 void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const& StagedModules)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
 

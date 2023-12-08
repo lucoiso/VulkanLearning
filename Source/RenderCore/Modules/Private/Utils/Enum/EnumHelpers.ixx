@@ -16,7 +16,7 @@ constexpr T operator|(T Lhs, T Rhs)
 
 export template<typename T>
     requires std::is_enum_v<T>
-constexpr T operator|=(T& Lhs, T Rhs)
+constexpr void operator|=(T& Lhs, T Rhs)
 {
     Lhs = static_cast<T>(static_cast<std::underlying_type_t<T>>(Lhs) | static_cast<std::underlying_type_t<T>>(Rhs));
 }
@@ -30,7 +30,7 @@ constexpr T operator&(T Lhs, T Rhs)
 
 export template<typename T>
     requires std::is_enum_v<T>
-constexpr T operator&=(T& Lhs, T Rhs)
+constexpr void operator&=(T& Lhs, T Rhs)
 {
     Lhs = static_cast<T>(static_cast<std::underlying_type_t<T>>(Lhs) & static_cast<std::underlying_type_t<T>>(Rhs));
 }

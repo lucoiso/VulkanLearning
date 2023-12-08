@@ -15,7 +15,7 @@ import RenderCore.Input.GLFWCallbacks;
 
 bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, InitializationFlags const Flags)
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (glfwInit() == 0)
     {
@@ -45,12 +45,12 @@ bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Heig
 
 void GLFWHandler::Shutdown()
 {
-    Timer::ScopedTimer TotalSceneAllocationTimer(__FUNCTION__);
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     glfwSetWindowShouldClose(m_Window, GLFW_TRUE);
     glfwDestroyWindow(m_Window);
-    glfwTerminate();
     m_Window = nullptr;
+    glfwTerminate();
 }
 
 [[nodiscard]] GLFWwindow* GLFWHandler::GetWindow() const
@@ -60,5 +60,5 @@ void GLFWHandler::Shutdown()
 
 [[nodiscard]] bool GLFWHandler::IsOpen() const
 {
-    return m_Window && !glfwWindowShouldClose(m_Window);
+    return m_Window != nullptr && glfwWindowShouldClose(m_Window) == GLFW_FALSE;
 }

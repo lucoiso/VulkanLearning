@@ -22,7 +22,7 @@ namespace RenderCore
     export void ReleaseDeviceResources();
 
     export [[nodiscard]] VkSurfaceCapabilitiesKHR GetSurfaceCapabilities(VkSurfaceKHR const&);
-    export [[nodiscard]] SurfaceProperties GetSurfaceProperties(GLFWwindow* const Window, VkSurfaceKHR const& VulkanSurface);
+    export [[nodiscard]] SurfaceProperties GetSurfaceProperties(GLFWwindow* Window, VkSurfaceKHR const& VulkanSurface);
 
     export [[nodiscard]] VkDevice& GetLogicalDevice();
     export [[nodiscard]] VkPhysicalDevice& GetPhysicalDevice();
