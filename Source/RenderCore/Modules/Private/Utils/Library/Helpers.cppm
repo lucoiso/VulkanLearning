@@ -52,8 +52,8 @@ std::vector<char const*> RenderCore::GetGLFWExtensions()
     std::uint32_t GLFWExtensionsCount = 0U;
     char const** GLFWExtensions       = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
 
-    std::vector<char const*> Output(GLFWExtensionsCount, nullptr);
-    std::move(GLFWExtensions, GLFWExtensions + GLFWExtensionsCount, std::data(Output));
+    std::span const GLFWExtensionsSpan(GLFWExtensions, GLFWExtensionsCount);
+    std::vector Output(std::cbegin(GLFWExtensionsSpan), std::cend(GLFWExtensionsSpan));
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found extensions:";
 

@@ -9,7 +9,7 @@ import RenderCore.Window.Flags;
 
 export class ScopedWindow
 {
-    RenderCore::Window m_Window;
+    RenderCore::Window m_Window {};
 
 public:
     ScopedWindow() noexcept

@@ -170,16 +170,21 @@ void CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
 
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo;
     QueueCreateInfo.reserve(std::size(QueueFamilyIndices));
+
+    std::vector<std::vector<float>> PriorityHandles;
+    PriorityHandles.reserve(std::size(QueueFamilyIndices));
+
     for (auto const& [Index, Count]: QueueFamilyIndices)
     {
         g_UniqueQueueFamilyIndices.push_back(Index);
+        PriorityHandles.emplace_back(Count, 1.F);
 
         QueueCreateInfo.push_back(
                 VkDeviceQueueCreateInfo {
                         .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                         .queueFamilyIndex = Index,
                         .queueCount       = Count,
-                        .pQueuePriorities = std::data(std::vector(Count, 1.F))});
+                        .pQueuePriorities = std::data(PriorityHandles.back())});
     }
 
     VkPhysicalDeviceRobustness2FeaturesEXT RobustnessFeatures {
