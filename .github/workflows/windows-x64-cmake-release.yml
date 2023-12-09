@@ -53,17 +53,14 @@ jobs:
           vcpkgGitCommitId: ${{env.VCPKG_BUILTIN_BASELINE}}
           vcpkgJsonGlob: '**/vcpkg.json'
 
-      - name: Configure CMake
+      - name: Configure and Build Project
         uses: lukka/run-cmake@v10
         with:
           cmakeListsTxtPath: '${{github.workspace}}/CMakeLists.txt'
           configurePreset: ${{env.VCPKG_PRESET}}
           buildPreset: ${{env.VCPKG_PRESET}}
 
-      - name: Build Project
-        run: cmake --build ${{env.OUTPUT_DIRECTORY}} --preset ${{env.VCPKG_PRESET}}
-
-      - name: Test Binaries
+      - name: Run Tests
         working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.VCPKG_PRESET}}
         run: ctest -C ${{env.BUILD_TYPE}} --repeat until-pass:8 --output-on-failure --verbose
 
