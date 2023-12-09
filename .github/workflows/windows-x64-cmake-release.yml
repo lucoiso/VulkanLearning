@@ -64,12 +64,12 @@ jobs:
         run: cmake --build ${{env.OUTPUT_DIRECTORY}} --preset ${{env.BUILD_TYPE}}
 
       - name: Test Binaries
-        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}
+        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}
         run: ctest -C ${{env.BUILD_TYPE}}
 
       - name: Run Application Benchmark
         working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/bin
-        run: ./Benchmark.exe --benchmark_format=json | tee application_benchmark_result.json
+        run: ./RenderCoreBenchmark.exe --benchmark_format=json | tee application_benchmark_result.json
 
       - name: Store Application Benchmark Result
         uses: benchmark-action/github-action-benchmark@v1
