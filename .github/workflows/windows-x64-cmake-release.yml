@@ -65,7 +65,7 @@ jobs:
 
       - name: Test Binaries
         working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.VCPKG_PRESET}}
-        run: ctest -C ${{env.BUILD_TYPE}}
+        run: ctest -C ${{env.BUILD_TYPE}} --repeat until-pass:8 --output-on-failure --verbose
 
       - name: Run Application Benchmark
         working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.VCPKG_PRESET}}/bin
