@@ -8,6 +8,7 @@ on:
 
 env:
   BUILD_TYPE: Release
+  VCPKG_PRESET: Release_w_Tests
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   VCPKG_ROOT: ${{github.workspace}}/vcpkg
   VCPKG_BUILTIN_BASELINE: 5a38b5ec0eee3d1a1a6faab5e944617fee2697cf
@@ -16,7 +17,6 @@ env:
   VCPKG_DEFAULT_BINARY_CACHE: ${{github.workspace}}/vcpkg/bincache
   VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
   OUTPUT_DIRECTORY: out/build
-  BUILD_TESTS: ON
 
 permissions:
   actions: read
@@ -57,11 +57,11 @@ jobs:
         uses: lukka/run-cmake@v10
         with:
           cmakeListsTxtPath: '${{github.workspace}}/CMakeLists.txt'
-          configurePreset: ${{env.BUILD_TYPE}}
-          buildPreset: ${{env.BUILD_TYPE}}
+          configurePreset: ${{env.VCPKG_PRESET}}
+          buildPreset: ${{env.VCPKG_PRESET}}
 
       - name: Build Project
-        run: cmake --build ${{env.OUTPUT_DIRECTORY}} --preset ${{env.BUILD_TYPE}}
+        run: cmake --build ${{env.OUTPUT_DIRECTORY}} --preset ${{env.VCPKG_PRESET}}
 
       - name: Test Binaries
         working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}
