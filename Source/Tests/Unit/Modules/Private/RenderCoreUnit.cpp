@@ -2,11 +2,14 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRenderer
 
+#include <catch2/catch_all.hpp>
+
+#ifndef _DEBUG
+#include <boost/log/trivial.hpp>
+#endif
+
 import Unit.RenderCore;
 import Unit.RenderCore.Helpers;
-
-#include <boost/log/trivial.hpp>
-#include <catch2/catch_all.hpp>
 
 int main(int const ArgC, char** ArgV)
 {

@@ -7,8 +7,8 @@ on:
     branches: [ "main" ]
 
 env:
-  BUILD_TYPE: Release
-  VCPKG_PRESET: Release_w_Tests
+  BUILD_TYPE: Debug # Temporary type to check application logs while running benchmarks and tests
+  BUILD_TESTS: true
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   VCPKG_ROOT: ${{github.workspace}}/vcpkg
   VCPKG_BUILTIN_BASELINE: 5a38b5ec0eee3d1a1a6faab5e944617fee2697cf
@@ -57,34 +57,34 @@ jobs:
         uses: lukka/run-cmake@v10
         with:
           cmakeListsTxtPath: '${{github.workspace}}/CMakeLists.txt'
-          configurePreset: ${{env.VCPKG_PRESET}}
-          buildPreset: ${{env.VCPKG_PRESET}}
+          configurePreset: ${{env.BUILD_TYPE}}
+          buildPreset: ${{env.BUILD_TYPE}}
 
       - name: Run Tests
-        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.VCPKG_PRESET}}
+        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}
         run: ctest -C ${{env.BUILD_TYPE}} --repeat until-pass:8 --output-on-failure --verbose
 
       - name: Run Application Benchmark
-        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.VCPKG_PRESET}}/bin
+        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/bin
         run: ./RenderCoreBenchmark.exe --benchmark_format=json | tee application_benchmark_result.json
 
       - name: Store Application Benchmark Result
         uses: benchmark-action/github-action-benchmark@v1
         with:
           tool: 'googlecpp'
-          output-file-path: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.VCPKG_PRESET}}/bin/application_benchmark_result.json
+          output-file-path: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/bin/application_benchmark_result.json
           github-token: ${{ secrets.LUCOISO_PAT }}
           auto-push: true
 
       - name: Run Submodules Benchmark
-        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.VCPKG_PRESET}}/bin
+        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/bin
         run: ./SubmodulesBenchmark.exe --benchmark_format=json | tee submodules_benchmark_result.json
 
       - name: Push Submodules Benchmark Result
         uses: benchmark-action/github-action-benchmark@v1
         with:
           tool: 'googlecpp'
-          output-file-path: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.VCPKG_PRESET}}/bin/submodules_benchmark_result.json
+          output-file-path: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/bin/submodules_benchmark_result.json
           github-token: ${{ secrets.LUCOISO_PAT }}
           auto-push: true
           gh-repository: 'github.com/lucoiso/cpp-submodules'

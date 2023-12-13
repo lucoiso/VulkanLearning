@@ -27,14 +27,6 @@
         "VCPKG_BUILD_TYPE": "debug",
         "VCPKG_TARGET_TRIPLET": "x64-windows"
       }
-    },
-    {
-      "name": "Release_w_Tests",
-      "displayName": "VCPKG Release with Tests",
-      "inherits": "Release",
-      "cacheVariables": {
-        "BUILD_TESTS": true
-      }
     }
   ],
   "buildPresets": [
@@ -47,11 +39,6 @@
       "name": "Debug",
       "configurePreset": "Debug",
       "configuration": "Debug"
-    },
-    {
-      "name": "Release_w_Tests",
-      "configurePreset": "Release_w_Tests",
-      "configuration": "Release"
     }
   ]
 }
