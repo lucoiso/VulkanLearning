@@ -43,7 +43,7 @@ VkExtent2D RenderCore::GetWindowExtent(GLFWwindow* const Window, VkSurfaceCapabi
     return ActualExtent;
 }
 
-std::vector<char const*> RenderCore::GetGLFWExtensions()
+std::vector<std::string> RenderCore::GetGLFWExtensions()
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -51,15 +51,41 @@ std::vector<char const*> RenderCore::GetGLFWExtensions()
 
     std::uint32_t GLFWExtensionsCount = 0U;
     char const** GLFWExtensions       = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
-
     std::span const GLFWExtensionsSpan(GLFWExtensions, GLFWExtensionsCount);
-    std::vector Output(std::cbegin(GLFWExtensionsSpan), std::cend(GLFWExtensionsSpan));
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found extensions:";
+    std::vector<std::string> Output {};
+    Output.reserve(GLFWExtensionsCount);
 
-    for (char const* const& ExtensionIter: Output)
+    if (!std::empty(GLFWExtensionsSpan))
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: " << ExtensionIter;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found extensions:";
+
+        for (char const* const& ExtensionIter: GLFWExtensionsSpan)
+        {
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: " << ExtensionIter;
+            Output.emplace_back(ExtensionIter);
+        }
+    }
+    else
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Failed to get GLFW extensions. Forcing Vulkan extensions:";
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: VK_KHR_surface";
+        Output.emplace_back("VK_KHR_surface");
+
+#ifdef WIN32
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: VK_KHR_win32_surface";
+        Output.emplace_back("VK_KHR_win32_surface");
+#elif __linux__
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: VK_KHR_xcb_surface";
+        Output.emplace_back("VK_KHR_xcb_surface");
+#elif __APPLE__
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: VK_KHR_macos_surface";
+        Output.emplace_back("VK_KHR_macos_surface");
+        elif __ANDROID__
+                        BOOST_LOG_TRIVIAL(debug)
+                << "[" << __func__ << "]: VK_KHR_android_surface";
+        Output.emplace_back("VK_KHR_android_surface");
+#endif
     }
 
     return Output;

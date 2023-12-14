@@ -4,8 +4,8 @@
 
 module;
 
-#include <boost/log/trivial.hpp>
 #include <GLFW/glfw3.h>
+#include <boost/log/trivial.hpp>
 
 module RenderCore.Window.GLFWHandler;
 
