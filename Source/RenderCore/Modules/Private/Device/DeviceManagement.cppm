@@ -419,7 +419,7 @@ std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers(VkPh
     return Output;
 }
 
-std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(VkPhysicalDevice const& PhysicalDevice, std::string_view const& LayerName)
+std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(VkPhysicalDevice const& PhysicalDevice, std::string_view const LayerName)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -456,7 +456,7 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames(V
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(VkPhysicalDevice const& PhysicalDevice, std::string_view const& LayerName)
+std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(VkPhysicalDevice const& PhysicalDevice, std::string_view const LayerName)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 

@@ -117,7 +117,7 @@ std::vector<std::string> RenderCore::GetAvailableInstanceExtensionsNames()
     return Output;
 }
 
-std::unordered_map<std::string, std::string> RenderCore::GetAvailableglTFAssetsInDirectory(std::string_view const& Root, std::vector<std::string_view> const& Extensions)
+std::unordered_map<std::string, std::string> RenderCore::GetAvailableglTFAssetsInDirectory(std::string_view const Root, std::vector<std::string_view> const& Extensions)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -173,7 +173,7 @@ std::array<VkVertexInputAttributeDescription, 4U> RenderCore::GetAttributeDescri
                     .offset   = static_cast<std::uint32_t>(offsetof(Vertex, TextureCoordinate))}};
 }
 
-std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::string_view const& LayerName)
+std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::string_view const LayerName)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -192,7 +192,7 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailableLayerExtensionsNames(std::string_view const& LayerName)
+std::vector<std::string> RenderCore::GetAvailableLayerExtensionsNames(std::string_view const LayerName)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 

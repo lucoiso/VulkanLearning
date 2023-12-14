@@ -4,6 +4,7 @@
 
 module;
 
+#include <boost/log/trivial.hpp>
 #include <GLFW/glfw3.h>
 
 module RenderCore.Window.GLFWHandler;
@@ -13,9 +14,11 @@ using namespace RenderCore;
 import Timer.ExecutionCounter;
 import RenderCore.Input.GLFWCallbacks;
 
-bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, InitializationFlags const Flags)
+bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, InitializationFlags const Flags)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing GLFW Handler";
 
     if (glfwInit() == 0)
     {
@@ -46,6 +49,8 @@ bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Heig
 void GLFWHandler::Shutdown()
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down GLFW Handler";
 
     glfwSetWindowShouldClose(m_Window, GLFW_TRUE);
     glfwDestroyWindow(m_Window);

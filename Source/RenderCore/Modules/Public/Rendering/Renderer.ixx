@@ -61,7 +61,7 @@ namespace RenderCore
         void RemoveStateFlag(RendererStateFlags);
         [[nodiscard]] bool HasStateFlag(RendererStateFlags) const;
 
-        [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view const&);
+        [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view const);
         void UnloadScene(std::vector<std::uint32_t> const&);
         void UnloadAllScenes();
 

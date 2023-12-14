@@ -362,7 +362,7 @@ bool Renderer::HasStateFlag(RendererStateFlags const Flag) const
     return HasFlag(m_StateFlags, Flag);
 }
 
-std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const& ObjectPath)
+std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const ObjectPath)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
