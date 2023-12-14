@@ -43,7 +43,7 @@ VkExtent2D RenderCore::GetWindowExtent(GLFWwindow* const Window, VkSurfaceCapabi
     return ActualExtent;
 }
 
-std::vector<std::string> RenderCore::GetGLFWExtensions()
+std::vector<char const*> RenderCore::GetGLFWExtensions()
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -53,16 +53,13 @@ std::vector<std::string> RenderCore::GetGLFWExtensions()
     char const** GLFWExtensions       = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
 
     std::span const GLFWExtensionsSpan(GLFWExtensions, GLFWExtensionsCount);
-    std::vector const TempHolder(std::cbegin(GLFWExtensionsSpan), std::cend(GLFWExtensionsSpan));
-
-    std::vector<std::string> Output {};
+    std::vector Output(std::cbegin(GLFWExtensionsSpan), std::cend(GLFWExtensionsSpan));
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found extensions:";
 
-    for (char const* const& ExtensionIter: TempHolder)
+    for (char const* const& ExtensionIter: Output)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: " << ExtensionIter;
-        Output.emplace_back(ExtensionIter);
     }
 
     return Output;

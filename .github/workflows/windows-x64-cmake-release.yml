@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: Debug # Temporary type to check application logs while running benchmarks and tests
   BUILD_TESTS: true
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   VCPKG_ROOT: ${{github.workspace}}/vcpkg
