@@ -64,8 +64,15 @@ void CreateVulkanInstance()
             .enabledLayerCount = 0U};
 
     std::vector Layers(std::cbegin(g_RequiredInstanceLayers), std::cend(g_RequiredInstanceLayers));
-    std::vector<char const*> Extensions = GetGLFWExtensions();
-    Extensions.insert(std::cend(Extensions), std::cbegin(g_RequiredInstanceExtensions), std::cend(g_RequiredInstanceExtensions));
+    std::vector Extensions(std::cbegin(g_RequiredInstanceExtensions), std::cend(g_RequiredInstanceExtensions));
+
+    // ReSharper disable once CppTooWideScopeInitStatement
+    std::vector const GLFWExtensionsHandle = GetGLFWExtensions();
+
+    for (std::string const& ExtensionIter : GLFWExtensionsHandle)
+    {
+        Extensions.emplace_back(std::data(ExtensionIter));
+    }
 
 #ifdef _DEBUG
     VkValidationFeaturesEXT const ValidationFeatures = GetInstanceValidationFeatures();

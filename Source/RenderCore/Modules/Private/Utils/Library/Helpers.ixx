@@ -18,7 +18,7 @@ export import <string_view>;
 namespace RenderCore
 {
     export [[nodiscard]] VkExtent2D GetWindowExtent(GLFWwindow*, VkSurfaceCapabilitiesKHR const&);
-    export [[nodiscard]] std::vector<char const*> GetGLFWExtensions();
+    export [[nodiscard]] std::vector<std::string> GetGLFWExtensions();
     export [[nodiscard]] std::vector<VkLayerProperties> GetAvailableInstanceLayers();
     export [[nodiscard]] std::vector<std::string> GetAvailableInstanceLayersNames();
     export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceExtensions();
