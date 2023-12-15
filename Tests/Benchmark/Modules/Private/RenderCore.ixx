@@ -8,7 +8,7 @@ module;
 
 export module Benchmark.RenderCore;
 
-import RenderCore.Tests.SharedUtils;
+import RenderCore.Unit.Utils;
 
 import RenderCore.Window;
 import RenderCore.Window.Flags;
@@ -18,10 +18,12 @@ static void InitializeWindow(benchmark::State& State)
 {
     for ([[maybe_unused]] auto const _: State)
     {
-        if (RenderCore::Window Window; Window.Initialize(600U, 600U, "Vulkan Renderer", RenderCore::InitializationFlags::HEADLESS))
+        RenderCore::Window Window;
+        benchmark::DoNotOptimize(Window);
+
+        if (Window.Initialize(600U, 600U, "Vulkan Renderer", RenderCore::InitializationFlags::HEADLESS))
         {
             Window.Shutdown();
-            benchmark::DoNotOptimize(Window);
         }
     }
 }
@@ -33,7 +35,7 @@ static void LoadAndUnloadScene(benchmark::State& State)
     ScopedWindow Window;
     benchmark::DoNotOptimize(Window);
 
-    std::string const ObjectPath {"Resources/Assets/Box/glTF/Box.gltf"};
+    std::string ObjectPath {"Resources/Assets/Box/glTF/Box.gltf"};
     benchmark::DoNotOptimize(ObjectPath);
 
     for ([[maybe_unused]] auto const _: State)

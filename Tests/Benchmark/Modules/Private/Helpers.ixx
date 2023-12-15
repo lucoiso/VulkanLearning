@@ -8,14 +8,14 @@ module;
 
 export module Benchmark.RenderCore.Helpers;
 
-import RenderCore.Tests.SharedUtils;
+import RenderCore.Unit.Utils;
 
 import RenderCore.Window;
 import RenderCore.Utils.Helpers;
 
 static void GetGLFWExtensions(benchmark::State& State)
 {
-    ScopedWindow const Window;
+    ScopedWindow Window;
     benchmark::DoNotOptimize(Window);
 
     for ([[maybe_unused]] auto const _: State)
@@ -29,7 +29,7 @@ BENCHMARK(GetGLFWExtensions);
 
 static void GetAvailableInstanceLayers(benchmark::State& State)
 {
-    ScopedWindow const Window;
+    ScopedWindow Window;
     benchmark::DoNotOptimize(Window);
 
     for ([[maybe_unused]] auto const _: State)
@@ -43,7 +43,7 @@ BENCHMARK(GetAvailableInstanceLayers);
 
 static void GetAvailableInstanceLayersNames(benchmark::State& State)
 {
-    ScopedWindow const Window;
+    ScopedWindow Window;
     benchmark::DoNotOptimize(Window);
 
     for ([[maybe_unused]] auto const _: State)
@@ -57,7 +57,7 @@ BENCHMARK(GetAvailableInstanceLayersNames);
 
 static void GetAvailableInstanceExtensions(benchmark::State& State)
 {
-    ScopedWindow const Window;
+    ScopedWindow Window;
     benchmark::DoNotOptimize(Window);
 
     for ([[maybe_unused]] auto const _: State)
@@ -71,7 +71,7 @@ BENCHMARK(GetAvailableInstanceExtensions);
 
 static void GetAvailableInstanceExtensionsNames(benchmark::State& State)
 {
-    ScopedWindow const Window;
+    ScopedWindow Window;
     benchmark::DoNotOptimize(Window);
 
     for ([[maybe_unused]] auto const _: State)

@@ -8,7 +8,7 @@ module;
 
 export module Unit.RenderCore;
 
-import RenderCore.Tests.SharedUtils;
+import RenderCore.Benchmark.Utils;
 
 import RenderCore.Window;
 import RenderCore.Renderer;

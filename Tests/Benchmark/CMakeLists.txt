@@ -8,6 +8,7 @@ SET(LIBRARY_NAME RenderCoreBenchmark)
 # ------------- Library Setup --------------
 SET(PRIVATE_MODULES
 	Modules/Private/RenderCoreBenchmark.cpp
+	Modules/Private/Utils.ixx
 	Modules/Private/RenderCore.ixx
 	Modules/Private/Helpers.ixx
 )
@@ -20,7 +21,6 @@ FIND_PACKAGE(benchmark CONFIG REQUIRED)
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
 					  benchmark::benchmark_main
 					  RenderCore
-					  RenderCoreTestsSharedUtils
 )
 
 IF (BUILD_TYPE STREQUAL "Debug")

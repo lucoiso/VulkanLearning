@@ -8,6 +8,7 @@ SET(LIBRARY_NAME RenderCoreUnit)
 # ------------- Library Setup --------------
 SET(PRIVATE_MODULES
 	Modules/Private/RenderCoreUnit.cpp
+	Modules/Private/Utils.ixx
 	Modules/Private/RenderCore.ixx
 	Modules/Private/Helpers.ixx
 )
@@ -22,7 +23,6 @@ FIND_PACKAGE(Catch2 CONFIG REQUIRED)
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
 					  Catch2::Catch2
 					  RenderCore
-					  RenderCoreTestsSharedUtils
 )
 
 IF (BUILD_TYPE STREQUAL "Debug")
