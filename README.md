@@ -1,9 +1,5 @@
 [![VulkanRenderer CMake Workflow](https://github.com/lucoiso/VulkanRenderer/actions/workflows/windows-x64-cmake-release.yml/badge.svg)](https://github.com/lucoiso/VulkanRenderer/actions/workflows/windows-x64-cmake-release.yml)
 
----
-
-![image](https://github.com/lucoiso/VulkanRenderer/assets/77353979/28d0619e-5cb0-4efb-8f13-bd09d304cd13)
-
 # Dependencies
 
 1. Vcpkg (w/ ENVIRONMENT VARIABLE VCPKG_ROOT set to the vcpkg root directory)
