@@ -9,9 +9,9 @@ module;
 
 export module RenderCore.Management.ShaderManagement;
 
-export import <string_view>;
-export import <vector>;
-export import <cstdint>;
+import <string_view>;
+import <vector>;
+import <cstdint>;
 
 namespace RenderCore
 {

@@ -10,7 +10,7 @@ module;
 
 export module RenderCore.Types.Transform;
 
-export import <string>;
+import <string>;
 
 namespace RenderCore
 {

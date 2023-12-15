@@ -8,8 +8,8 @@ module;
 
 export module RenderCore.Utils.Constants;
 
-export import <array>;
-export import <cstdint>;
+import <array>;
+import <cstdint>;
 import <limits>;
 
 export namespace RenderCore

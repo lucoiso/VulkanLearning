@@ -9,16 +9,16 @@ module;
 
 export module RenderCore.Renderer;
 
-export import <cstdint>;
-export import <memory>;
-export import <mutex>;
-export import <vector>;
-export import <optional>;
-export import <string_view>;
+import <cstdint>;
+import <memory>;
+import <mutex>;
+import <vector>;
+import <optional>;
+import <string_view>;
 
-export import RenderCore.Types.Camera;
-export import RenderCore.Types.Object;
-export import Timer.Manager;
+import RenderCore.Types.Camera;
+import RenderCore.Types.Object;
+import Timer.Manager;
 
 import RenderCore.Utils.EngineStateFlags;
 import RenderCore.Management.BufferManagement;

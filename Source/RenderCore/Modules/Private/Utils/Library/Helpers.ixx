@@ -10,10 +10,10 @@ module;
 
 export module RenderCore.Utils.Helpers;
 
-export import <cstdint>;
-export import <vector>;
-export import <string>;
-export import <string_view>;
+import <cstdint>;
+import <vector>;
+import <string>;
+import <string_view>;
 
 namespace RenderCore
 {

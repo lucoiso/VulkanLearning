@@ -8,7 +8,7 @@ module;
 
 export module RenderCore.Input.GLFWCallbacks;
 
-export import <cstdint>;
+import <cstdint>;
 
 namespace RenderCore
 {

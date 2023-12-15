@@ -8,11 +8,11 @@ module;
 
 export module RenderCore.Types.MeshBufferData;
 
-export import <cstdint>;
-export import <string>;
-export import <unordered_map>;
+import <cstdint>;
+import <string>;
+import <unordered_map>;
 
-export import RenderCore.Types.TextureBufferData;
+import RenderCore.Types.TextureBufferData;
 
 namespace RenderCore
 {

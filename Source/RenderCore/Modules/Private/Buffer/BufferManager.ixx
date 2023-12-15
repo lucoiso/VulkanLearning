@@ -9,16 +9,18 @@ module;
 
 export module RenderCore.Management.BufferManagement;
 
-export import <string_view>;
-export import <cstdint>;
-export import <vector>;
-export import <atomic>;
-export import <memory>;
+import <string_view>;
+import <cstdint>;
+import <vector>;
+import <atomic>;
+import <memory>;
+import <unordered_map>;
 
-export import RenderCore.Types.Object;
-export import RenderCore.Types.Camera;
-export import RenderCore.Types.AllocationTypes;
-export import RenderCore.Types.SurfaceProperties;
+import RenderCore.Types.Object;
+import RenderCore.Types.Camera;
+import RenderCore.Types.AllocationTypes;
+import RenderCore.Types.SurfaceProperties;
+import RenderCore.Types.MeshBufferData;
 
 namespace RenderCore
 {

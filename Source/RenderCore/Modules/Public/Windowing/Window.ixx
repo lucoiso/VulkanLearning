@@ -8,13 +8,12 @@ module;
 
 export module RenderCore.Window;
 
-export import <cstdint>;
-export import <string_view>;
-export import <memory>;
+import <cstdint>;
+import <string_view>;
+import <memory>;
 
-export import Coroutine.Types;
-export import RenderCore.Renderer;
-export import RenderCore.Window.Flags;
+import RenderCore.Renderer;
+import RenderCore.Window.Flags;
 import RenderCore.Window.GLFWHandler;
 
 namespace RenderCore
@@ -32,8 +31,8 @@ namespace RenderCore
 
         virtual ~Window();
 
-        AsyncOperation<bool> Initialize(std::uint16_t, std::uint16_t, std::string_view, InitializationFlags Flags = InitializationFlags::NONE);
-        AsyncTask Shutdown();
+        bool Initialize(std::uint16_t, std::uint16_t, std::string_view, InitializationFlags Flags = InitializationFlags::NONE);
+        void Shutdown();
 
         [[nodiscard]] bool IsInitialized() const;
         [[nodiscard]] bool IsOpen() const;

@@ -9,10 +9,10 @@ module;
 
 export module RenderCore.Types.Object;
 
-export import <string>;
-export import <string_view>;
+import <string>;
+import <string_view>;
 
-export import RenderCore.Types.Transform;
+import RenderCore.Types.Transform;
 
 namespace RenderCore
 {

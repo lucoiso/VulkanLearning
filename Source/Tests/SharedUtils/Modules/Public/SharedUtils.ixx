@@ -12,26 +12,14 @@ export class ScopedWindow
     RenderCore::Window m_Window {};
 
 public:
-    ScopedWindow() noexcept
+    ScopedWindow()
     {
-        try
-        {
-            m_Window.Initialize(600U, 600U, "Vulkan Renderer: Tests", RenderCore::InitializationFlags::HEADLESS).Get();
-        }
-        catch (...)
-        {
-        }
+        m_Window.Initialize(600U, 600U, "Vulkan Renderer: Tests", RenderCore::InitializationFlags::HEADLESS);
     }
 
-    ~ScopedWindow() noexcept
+    ~ScopedWindow()
     {
-        try
-        {
-            m_Window.Shutdown().Get();
-        }
-        catch (...)
-        {
-        }
+        m_Window.Shutdown();
     }
 
     RenderCore::Window& GetWindow()

@@ -9,12 +9,12 @@ module;
 
 export module RenderCore.Management.DeviceManagement;
 
-export import <vector>;
-export import <string>;
-export import <string_view>;
-export import <optional>;
+import <vector>;
+import <string>;
+import <string_view>;
+import <optional>;
 
-export import RenderCore.Types.SurfaceProperties;
+import RenderCore.Types.SurfaceProperties;
 
 namespace RenderCore
 {

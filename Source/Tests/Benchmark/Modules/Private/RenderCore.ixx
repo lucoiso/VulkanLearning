@@ -11,15 +11,16 @@ export module Benchmark.RenderCore;
 import RenderCore.Tests.SharedUtils;
 
 import RenderCore.Window;
+import RenderCore.Window.Flags;
 import RenderCore.Renderer;
 
 static void InitializeWindow(benchmark::State& State)
 {
     for ([[maybe_unused]] auto const _: State)
     {
-        if (RenderCore::Window Window; Window.Initialize(600U, 600U, "Vulkan Renderer", RenderCore::InitializationFlags::HEADLESS).Get())
+        if (RenderCore::Window Window; Window.Initialize(600U, 600U, "Vulkan Renderer", RenderCore::InitializationFlags::HEADLESS))
         {
-            Window.Shutdown().Get();
+            Window.Shutdown();
             benchmark::DoNotOptimize(Window);
         }
     }

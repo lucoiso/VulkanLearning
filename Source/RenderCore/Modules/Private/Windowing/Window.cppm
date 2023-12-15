@@ -29,20 +29,20 @@ Window::~Window()
 {
     try
     {
-        Shutdown().Get();
+        Shutdown();
     }
     catch (...)
     {
     }
 }
 
-AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, InitializationFlags const Flags)
+bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, InitializationFlags const Flags)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     if (IsInitialized())
     {
-        co_return false;
+        return false;
     }
 
     try
@@ -59,19 +59,19 @@ AsyncOperation<bool> Window::Initialize(std::uint16_t const Width, std::uint16_t
                         });
             }
             Semaphore.acquire();
-            co_return true;
+            return true;
         }
     }
     catch (std::exception const& Ex)
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
-        Shutdown().Get();
+        Shutdown();
     }
 
-    co_return false;
+    return false;
 }
 
-AsyncTask Window::Shutdown()
+void Window::Shutdown()
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -93,8 +93,6 @@ AsyncTask Window::Shutdown()
     {
         m_GLFWHandler.Shutdown();
     }
-
-    co_return;
 }
 
 bool Window::IsInitialized() const

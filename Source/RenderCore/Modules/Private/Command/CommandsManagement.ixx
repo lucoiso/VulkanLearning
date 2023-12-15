@@ -8,12 +8,15 @@ module;
 
 export module RenderCore.Management.CommandsManagement;
 
-export import <optional>;
-export import <cstdint>;
-export import <memory>;
+import <optional>;
+import <cstdint>;
+import <memory>;
+import <vector>;
 
 import RenderCore.Management.BufferManagement;
 import RenderCore.Management.PipelineManagement;
+import RenderCore.Types.Camera;
+import RenderCore.Types.Object;
 
 namespace RenderCore
 {

@@ -8,7 +8,7 @@ module;
 
 export module RenderCore.Management.ImGuiManagement;
 
-export import <functional>;
+import <functional>;
 
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.PipelineManagement;

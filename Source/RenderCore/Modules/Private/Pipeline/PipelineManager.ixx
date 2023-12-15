@@ -8,11 +8,11 @@ module;
 
 export module RenderCore.Management.PipelineManagement;
 
-export import <vector>;
-export import <unordered_map>;
+import <vector>;
+import <unordered_map>;
 
-export import RenderCore.Types.MeshBufferData;
-export import RenderCore.Types.SurfaceProperties;
+import RenderCore.Types.MeshBufferData;
+import RenderCore.Types.SurfaceProperties;
 
 namespace RenderCore
 {

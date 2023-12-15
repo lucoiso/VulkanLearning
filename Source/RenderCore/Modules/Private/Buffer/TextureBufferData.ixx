@@ -8,7 +8,7 @@ module;
 
 export module RenderCore.Types.TextureBufferData;
 
-export import <cstdint>;
+import <cstdint>;
 
 namespace RenderCore
 {

@@ -11,11 +11,11 @@ module;
 
 export module RenderCore.Types.Camera;
 
-export import <cstdint>;
-export import <memory>;
+import <cstdint>;
+import <memory>;
 
-export import RenderCore.Types.Transform;
-export import RenderCore.Types.Object;
+import RenderCore.Types.Transform;
+import RenderCore.Types.Object;
 
 namespace RenderCore
 {

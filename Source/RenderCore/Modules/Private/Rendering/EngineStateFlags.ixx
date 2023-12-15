@@ -4,8 +4,8 @@
 
 export module RenderCore.Utils.EngineStateFlags;
 
-export import <cstdint>;
-export import RenderCore.Utils.EnumHelpers;
+import <cstdint>;
+import RenderCore.Utils.EnumHelpers;
 
 namespace RenderCore
 {

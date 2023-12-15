@@ -26,7 +26,7 @@ TEST_CASE("Window Status", "[RenderCore]")
 
     SECTION("Shutdown")
     {
-        Window.GetWindow().Shutdown().Get();
+        Window.GetWindow().Shutdown();
         REQUIRE_FALSE(Window.GetWindow().IsInitialized());
         REQUIRE_FALSE(Window.GetWindow().IsOpen());
     }

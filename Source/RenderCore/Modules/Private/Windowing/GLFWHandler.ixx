@@ -8,10 +8,10 @@ module;
 
 export module RenderCore.Window.GLFWHandler;
 
-export import <cstdint>;
-export import <string_view>;
+import <cstdint>;
+import <string_view>;
 
-export import RenderCore.Window.Flags;
+import RenderCore.Window.Flags;
 
 namespace RenderCore
 {

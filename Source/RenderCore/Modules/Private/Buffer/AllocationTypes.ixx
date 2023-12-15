@@ -8,14 +8,14 @@ module;
 
 export module RenderCore.Types.AllocationTypes;
 
-export import <vector>;
+import <vector>;
 
-export import RenderCore.Utils.Constants;
-export import RenderCore.Types.Object;
-export import RenderCore.Types.Vertex;
-export import RenderCore.Types.MeshBufferData;
-export import RenderCore.Types.TextureBufferData;
-export import RenderCore.Types.UniformBufferObject;
+import RenderCore.Utils.Constants;
+import RenderCore.Types.Object;
+import RenderCore.Types.Vertex;
+import RenderCore.Types.MeshBufferData;
+import RenderCore.Types.TextureBufferData;
+import RenderCore.Types.UniformBufferObject;
 
 namespace RenderCore
 {

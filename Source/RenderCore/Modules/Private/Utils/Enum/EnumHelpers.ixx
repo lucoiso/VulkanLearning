@@ -4,7 +4,7 @@
 
 export module RenderCore.Utils.EnumHelpers;
 
-export import <type_traits>;
+import <type_traits>;
 
 #pragma region Operators
 export template<typename T>
