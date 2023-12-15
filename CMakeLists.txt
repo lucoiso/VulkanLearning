@@ -3,7 +3,11 @@
 # Repo: https://github.com/lucoiso/VulkanRenderer
 
 # ----------- Global Definitions -----------
-PROJECT(VulkanRenderer VERSION 1.0.0 LANGUAGES CXX)
+if(POLICY CMP0048)
+	CMAKE_POLICY(SET CMP0048 NEW)
+endif()
+
+PROJECT(VulkanRenderer VERSION 0.0.1 LANGUAGES CXX)
 CMAKE_MINIMUM_REQUIRED(VERSION 3.28)
 
 SET(CMAKE_CXX_STANDARD 20)
