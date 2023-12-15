@@ -3,6 +3,7 @@
 # Repo: https://github.com/lucoiso/VulkanRenderer
 
 # ----------- Global Definitions -----------
+PROJECT(VulkanRenderer VERSION 0.1.0 LANGUAGES CXX)
 CMAKE_MINIMUM_REQUIRED(VERSION 3.28)
 
 SET(BUILD_TESTS $ENV{BUILD_TESTS})

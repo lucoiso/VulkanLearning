@@ -7,9 +7,9 @@ SET(LIBRARY_NAME RenderCoreUnit)
 
 # ------------- Library Setup --------------
 SET(PRIVATE_MODULES
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/RenderCoreUnit.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/RenderCore.ixx
-	${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private/Helpers.ixx
+	Modules/Private/RenderCoreUnit.cpp
+	Modules/Private/RenderCore.ixx
+	Modules/Private/Helpers.ixx
 )
 
 ADD_EXECUTABLE(${LIBRARY_NAME} ${PRIVATE_MODULES})
