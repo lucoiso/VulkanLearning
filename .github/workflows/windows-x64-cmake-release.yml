@@ -30,6 +30,11 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      - name: Clear all caches
+        run: gh cache delete --all --repo lucoiso/cpp-submodules
+        env:
+          GITHUB_TOKEN: ${{ secrets.LUCOISO_PAT }}
+
       - name: Checkout & Init Submodules
         uses: actions/checkout@v4
         with:
