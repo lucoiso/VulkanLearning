@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout & Init Submodules
-        uses: actions/checkout@latest
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: 'recursive'
