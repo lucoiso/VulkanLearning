@@ -5,14 +5,12 @@
 module;
 
 #include <volk.h>
-
+#include <array>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
 module RenderCore.Management.ImGuiManagement;
-
-import <array>;
 
 import RenderCore.Renderer;
 import RenderCore.Management.DeviceManagement;

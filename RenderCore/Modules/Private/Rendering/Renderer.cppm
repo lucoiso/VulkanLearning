@@ -6,6 +6,9 @@ module;
 
 #include <boost/log/trivial.hpp>
 #include <glm/ext.hpp>
+#include <vector>
+#include <filesystem>
+#include <mutex>
 
 #ifndef VOLK_IMPLEMENTATION
 #define VOLK_IMPLEMENTATION
@@ -18,9 +21,6 @@ module;
 #include <GLFW/glfw3.h>
 
 module RenderCore.Renderer;
-
-import <vector>;
-import <filesystem>;
 
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.BufferManagement;
@@ -153,7 +153,8 @@ void Renderer::DrawFrame(GLFWwindow* const Window, Camera const& Camera)
             auto const SurfaceProperties   = GetSurfaceProperties(Window, m_BufferManager.GetSurface());
             auto const SurfaceCapabilities = GetSurfaceCapabilities(m_BufferManager.GetSurface());
 
-            m_BufferManager.CreateSwapChain(SurfaceProperties, SurfaceCapabilities, GetUniqueQueueFamilyIndicesU32());
+            auto const QueueFamilyIndices = GetUniqueQueueFamilyIndicesU32();
+            m_BufferManager.CreateSwapChain(SurfaceProperties, SurfaceCapabilities, QueueFamilyIndices);
             m_BufferManager.CreateDepthResources(SurfaceProperties, GetGraphicsQueue());
             CreateCommandsSynchronizationObjects();
 
@@ -375,7 +376,7 @@ bool Renderer::HasStateFlag(RendererStateFlags const Flag) const
     return HasFlag(m_StateFlags, Flag);
 }
 
-std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const ObjectPath)
+std::vector<std::uint32_t> Renderer::LoadScene(std::string const& ObjectPath)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 

@@ -6,13 +6,11 @@ module;
 
 #include <GLFW/glfw3.h>
 #include <volk.h>
+#include <vector>
+#include <string>
+#include <optional>
 
 export module RenderCore.Management.DeviceManagement;
-
-import <vector>;
-import <string>;
-import <string_view>;
-import <optional>;
 
 import RenderCore.Types.SurfaceProperties;
 
@@ -35,9 +33,9 @@ namespace RenderCore
     export [[nodiscard]] std::vector<VkPhysicalDevice> GetAvailablePhysicalDevices();
     export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions(VkPhysicalDevice const&);
     export [[nodiscard]] std::vector<VkLayerProperties> GetAvailablePhysicalDeviceLayers(VkPhysicalDevice const&);
-    export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(VkPhysicalDevice const&, std::string_view);
+    export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(VkPhysicalDevice const&, std::string const&);
     export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceExtensionsNames(VkPhysicalDevice const&);
-    export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayerExtensionsNames(VkPhysicalDevice const&, std::string_view);
+    export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayerExtensionsNames(VkPhysicalDevice const&, std::string const&);
     export [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayersNames(VkPhysicalDevice const&);
     export [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats(VkPhysicalDevice const&, VkSurfaceKHR const&);
     export [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes(VkPhysicalDevice const&, VkSurfaceKHR const&);

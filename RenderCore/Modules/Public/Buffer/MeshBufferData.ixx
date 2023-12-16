@@ -4,13 +4,12 @@
 
 module;
 
+#include <cstdint>
+#include <string>
+#include <unordered_map>
 #include <volk.h>
 
 export module RenderCore.Types.MeshBufferData;
-
-import <cstdint>;
-import <string>;
-import <unordered_map>;
 
 import RenderCore.Types.TextureBufferData;
 

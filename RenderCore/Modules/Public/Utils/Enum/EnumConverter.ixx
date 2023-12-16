@@ -5,13 +5,12 @@
 module;
 
 #include <volk.h>
+#include <cstdint>
+#include <array>
+#include <span>
+#include <charconv>
 
 export module RenderCore.Utils.EnumConverter;
-
-import <cstdint>;
-import <array>;
-import <span>;
-import <charconv>;
 
 namespace RenderCore
 {

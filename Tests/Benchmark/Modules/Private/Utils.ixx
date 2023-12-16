@@ -2,9 +2,11 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRenderer
 
-export module RenderCore.Unit.Utils;
+module;
 
-import <string>;
+#include <string>
+
+export module RenderCore.Unit.Utils;
 
 import RenderCore.Window;
 import RenderCore.Window.Flags;

@@ -8,6 +8,7 @@ module;
 #include <boost/log/trivial.hpp>
 #include <imgui.h>
 #include <numeric>
+#include <string>
 #include <volk.h>
 
 module RenderCore.Window;
@@ -33,7 +34,7 @@ Window::~Window()
     }
 }
 
-bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, InitializationFlags const Flags)
+bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string const Title, InitializationFlags const Flags)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -42,9 +43,14 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
         return false;
     }
 
+    m_Title = Title;
+    m_Width = Width;
+    m_Height = Height;
+    m_Flags = Flags;
+
     try
     {
-        return m_GLFWHandler.Initialize(Width, Height, Title, Flags) && m_Renderer.Initialize(m_GLFWHandler.GetWindow());
+        return m_GLFWHandler.Initialize(m_Width, m_Height, m_Title, m_Flags) && m_Renderer.Initialize(m_GLFWHandler.GetWindow());
     }
     catch (std::exception const& Ex)
     {

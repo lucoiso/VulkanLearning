@@ -5,12 +5,11 @@
 module;
 
 #include "RenderCoreModule.h"
-
 #include <GLFW/glfw3.h>
+#include <unordered_map>
 
 export module RenderCore.Subsystem.Rendering;
 
-import <unordered_map>;
 import RenderCore.Renderer;
 
 namespace RenderCore

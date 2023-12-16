@@ -5,16 +5,15 @@
 module;
 
 #include <GLFW/glfw3.h>
-#include <RenderCoreModule.h>
+#include "RenderCoreModule.h"
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <vector>
+#include <optional>
+#include <string>
 
 export module RenderCore.Renderer;
-
-import <cstdint>;
-import <memory>;
-import <mutex>;
-import <vector>;
-import <optional>;
-import <string_view>;
 
 import RenderCore.Types.Camera;
 import RenderCore.Types.Object;
@@ -62,7 +61,7 @@ namespace RenderCore
         void RemoveStateFlag(RendererStateFlags);
         [[nodiscard]] bool HasStateFlag(RendererStateFlags) const;
 
-        [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view);
+        [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string const&);
         void UnloadScene(std::vector<std::uint32_t> const&);
         void UnloadAllScenes();
 

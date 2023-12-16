@@ -5,12 +5,11 @@
 module;
 
 #include <volk.h>
+#include <array>
+#include <cstdint>
+#include <limits>
 
 export module RenderCore.Utils.Constants;
-
-import <array>;
-import <cstdint>;
-import <limits>;
 
 export namespace RenderCore
 {

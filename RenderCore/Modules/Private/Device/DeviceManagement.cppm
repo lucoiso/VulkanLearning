@@ -6,11 +6,10 @@ module;
 
 #include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
+#include <optional>
 #include <volk.h>
 
 module RenderCore.Management.DeviceManagement;
-
-import <optional>;
 
 import RenderCore.Management.BufferManagement;
 import RenderCore.Utils.Helpers;
@@ -419,7 +418,7 @@ std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers(VkPh
     return Output;
 }
 
-std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(VkPhysicalDevice const& PhysicalDevice, std::string_view const LayerName)
+std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(VkPhysicalDevice const& PhysicalDevice, std::string const& LayerName)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -456,7 +455,7 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames(V
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(VkPhysicalDevice const& PhysicalDevice, std::string_view const LayerName)
+std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(VkPhysicalDevice const& PhysicalDevice, std::string const& LayerName)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 

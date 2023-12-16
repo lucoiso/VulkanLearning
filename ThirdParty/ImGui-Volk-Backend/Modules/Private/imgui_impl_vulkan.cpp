@@ -348,7 +348,7 @@ static ImGui_ImplVulkan_Data* ImGui_ImplVulkan_GetBackendData()
 
 static uint32_t ImGui_ImplVulkan_MemoryType(VkMemoryPropertyFlags const properties, uint32_t const type_bits)
 {
-    ImGui_ImplVulkan_Data* bd    = ImGui_ImplVulkan_GetBackendData();
+    ImGui_ImplVulkan_Data* bd          = ImGui_ImplVulkan_GetBackendData();
     ImGui_ImplVulkan_InitInfo const* v = &bd->VulkanInitInfo;
     VkPhysicalDeviceMemoryProperties prop;
     vkGetPhysicalDeviceMemoryProperties(v->PhysicalDevice, &prop);
@@ -370,7 +370,7 @@ static void check_vk_result(VkResult const err)
 
 static void CreateOrResizeBuffer(VkBuffer& buffer, VkDeviceMemory& buffer_memory, VkDeviceSize& p_buffer_size, size_t const new_size, VkBufferUsageFlagBits const usage)
 {
-    ImGui_ImplVulkan_Data* bd    = ImGui_ImplVulkan_GetBackendData();
+    ImGui_ImplVulkan_Data* bd          = ImGui_ImplVulkan_GetBackendData();
     ImGui_ImplVulkan_InitInfo const* v = &bd->VulkanInitInfo;
     VkResult err;
     if (buffer != VK_NULL_HANDLE)
@@ -379,12 +379,12 @@ static void CreateOrResizeBuffer(VkBuffer& buffer, VkDeviceMemory& buffer_memory
         vkFreeMemory(v->Device, buffer_memory, v->Allocator);
 
     VkDeviceSize const vertex_buffer_size_aligned = ((new_size - 1) / bd->BufferMemoryAlignment + 1) * bd->BufferMemoryAlignment;
-    VkBufferCreateInfo buffer_info          = {};
-    buffer_info.sType                       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buffer_info.size                        = vertex_buffer_size_aligned;
-    buffer_info.usage                       = usage;
-    buffer_info.sharingMode                 = VK_SHARING_MODE_EXCLUSIVE;
-    err                                     = vkCreateBuffer(v->Device, &buffer_info, v->Allocator, &buffer);
+    VkBufferCreateInfo buffer_info                = {};
+    buffer_info.sType                             = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buffer_info.size                              = vertex_buffer_size_aligned;
+    buffer_info.usage                             = usage;
+    buffer_info.sharingMode                       = VK_SHARING_MODE_EXCLUSIVE;
+    err                                           = vkCreateBuffer(v->Device, &buffer_info, v->Allocator, &buffer);
     check_vk_result(err);
 
     VkMemoryRequirements req;
@@ -455,7 +455,7 @@ void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer cons
     if (fb_width <= 0 || fb_height <= 0)
         return;
 
-    ImGui_ImplVulkan_Data* bd    = ImGui_ImplVulkan_GetBackendData();
+    ImGui_ImplVulkan_Data* bd          = ImGui_ImplVulkan_GetBackendData();
     ImGui_ImplVulkan_InitInfo const* v = &bd->VulkanInitInfo;
     if (pipeline == VK_NULL_HANDLE)
         pipeline = bd->Pipeline;
@@ -745,7 +745,7 @@ static void ImGui_ImplVulkan_CreateShaderModules(VkDevice const device, const Vk
         vert_info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         vert_info.codeSize                 = sizeof(glsl_shader_vert_spv);
         vert_info.pCode                    = (uint32_t*)glsl_shader_vert_spv;
-        VkResult const err                       = vkCreateShaderModule(device, &vert_info, allocator, &bd->ShaderModuleVert);
+        VkResult const err                 = vkCreateShaderModule(device, &vert_info, allocator, &bd->ShaderModuleVert);
         check_vk_result(err);
     }
     if (bd->ShaderModuleFrag == VK_NULL_HANDLE)
@@ -754,7 +754,7 @@ static void ImGui_ImplVulkan_CreateShaderModules(VkDevice const device, const Vk
         frag_info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         frag_info.codeSize                 = sizeof(glsl_shader_frag_spv);
         frag_info.pCode                    = (uint32_t*)glsl_shader_frag_spv;
-        VkResult const err                       = vkCreateShaderModule(device, &frag_info, allocator, &bd->ShaderModuleFrag);
+        VkResult const err                 = vkCreateShaderModule(device, &frag_info, allocator, &bd->ShaderModuleFrag);
         check_vk_result(err);
     }
 }
@@ -878,7 +878,7 @@ static void ImGui_ImplVulkan_CreatePipeline(VkDevice device, const VkAllocationC
 
 bool ImGui_ImplVulkan_CreateDeviceObjects()
 {
-    ImGui_ImplVulkan_Data* bd    = ImGui_ImplVulkan_GetBackendData();
+    ImGui_ImplVulkan_Data* bd          = ImGui_ImplVulkan_GetBackendData();
     ImGui_ImplVulkan_InitInfo const* v = &bd->VulkanInitInfo;
     VkResult err;
 
@@ -917,18 +917,18 @@ bool ImGui_ImplVulkan_CreateDeviceObjects()
     if (!bd->PipelineLayout)
     {
         // Constants: we are using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
-        VkPushConstantRange push_constants[1]  = {};
-        push_constants[0].stageFlags           = VK_SHADER_STAGE_VERTEX_BIT;
-        push_constants[0].offset               = sizeof(float) * 0;
-        push_constants[0].size                 = sizeof(float) * 4;
-        VkDescriptorSetLayout const set_layout[1]    = {bd->DescriptorSetLayout};
-        VkPipelineLayoutCreateInfo layout_info = {};
-        layout_info.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        layout_info.setLayoutCount             = 1;
-        layout_info.pSetLayouts                = set_layout;
-        layout_info.pushConstantRangeCount     = 1;
-        layout_info.pPushConstantRanges        = push_constants;
-        err                                    = vkCreatePipelineLayout(v->Device, &layout_info, v->Allocator, &bd->PipelineLayout);
+        VkPushConstantRange push_constants[1]     = {};
+        push_constants[0].stageFlags              = VK_SHADER_STAGE_VERTEX_BIT;
+        push_constants[0].offset                  = sizeof(float) * 0;
+        push_constants[0].size                    = sizeof(float) * 4;
+        VkDescriptorSetLayout const set_layout[1] = {bd->DescriptorSetLayout};
+        VkPipelineLayoutCreateInfo layout_info    = {};
+        layout_info.sType                         = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        layout_info.setLayoutCount                = 1;
+        layout_info.pSetLayouts                   = set_layout;
+        layout_info.pushConstantRangeCount        = 1;
+        layout_info.pPushConstantRanges           = push_constants;
+        err                                       = vkCreatePipelineLayout(v->Device, &layout_info, v->Allocator, &bd->PipelineLayout);
         check_vk_result(err);
     }
 
@@ -939,7 +939,7 @@ bool ImGui_ImplVulkan_CreateDeviceObjects()
 
 void ImGui_ImplVulkan_DestroyFontUploadObjects()
 {
-    ImGui_ImplVulkan_Data* bd    = ImGui_ImplVulkan_GetBackendData();
+    ImGui_ImplVulkan_Data* bd          = ImGui_ImplVulkan_GetBackendData();
     ImGui_ImplVulkan_InitInfo const* v = &bd->VulkanInitInfo;
     if (bd->UploadBuffer)
     {
@@ -955,7 +955,7 @@ void ImGui_ImplVulkan_DestroyFontUploadObjects()
 
 void ImGui_ImplVulkan_DestroyDeviceObjects()
 {
-    ImGui_ImplVulkan_Data* bd    = ImGui_ImplVulkan_GetBackendData();
+    ImGui_ImplVulkan_Data* bd          = ImGui_ImplVulkan_GetBackendData();
     ImGui_ImplVulkan_InitInfo const* v = &bd->VulkanInitInfo;
     ImGui_ImplVulkanH_DestroyWindowRenderBuffers(v->Device, &bd->MainWindowRenderBuffers, v->Allocator);
     ImGui_ImplVulkan_DestroyFontUploadObjects();
@@ -1119,7 +1119,7 @@ void ImGui_ImplVulkan_SetMinImageCount(uint32_t const min_image_count)
 // FIXME: This is experimental in the sense that we are unsure how to best design/tackle this problem, please post to https://github.com/ocornut/imgui/pull/914 if you have suggestions.
 VkDescriptorSet ImGui_ImplVulkan_AddTexture(VkSampler const sampler, VkImageView const image_view, VkImageLayout const image_layout)
 {
-    ImGui_ImplVulkan_Data* bd    = ImGui_ImplVulkan_GetBackendData();
+    ImGui_ImplVulkan_Data* bd          = ImGui_ImplVulkan_GetBackendData();
     ImGui_ImplVulkan_InitInfo const* v = &bd->VulkanInitInfo;
 
     // Create Descriptor Set:
@@ -1130,7 +1130,7 @@ VkDescriptorSet ImGui_ImplVulkan_AddTexture(VkSampler const sampler, VkImageView
         alloc_info.descriptorPool              = v->DescriptorPool;
         alloc_info.descriptorSetCount          = 1;
         alloc_info.pSetLayouts                 = &bd->DescriptorSetLayout;
-        VkResult const err                           = vkAllocateDescriptorSets(v->Device, &alloc_info, &descriptor_set);
+        VkResult const err                     = vkAllocateDescriptorSets(v->Device, &alloc_info, &descriptor_set);
         check_vk_result(err);
     }
 
@@ -1153,7 +1153,7 @@ VkDescriptorSet ImGui_ImplVulkan_AddTexture(VkSampler const sampler, VkImageView
 
 void ImGui_ImplVulkan_RemoveTexture(VkDescriptorSet const descriptor_set)
 {
-    ImGui_ImplVulkan_Data* bd    = ImGui_ImplVulkan_GetBackendData();
+    ImGui_ImplVulkan_Data* bd          = ImGui_ImplVulkan_GetBackendData();
     ImGui_ImplVulkan_InitInfo const* v = &bd->VulkanInitInfo;
     vkFreeDescriptorSets(v->Device, v->DescriptorPool, 1, &descriptor_set);
 }

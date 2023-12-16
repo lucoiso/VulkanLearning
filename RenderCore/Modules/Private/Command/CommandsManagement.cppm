@@ -6,6 +6,8 @@ module;
 
 #include <boost/log/trivial.hpp>
 #include <volk.h>
+#include <array>
+#include <optional>
 
 /* ImGui Headers */
 #include <imgui.h>
@@ -13,7 +15,6 @@ module;
 
 module RenderCore.Management.CommandsManagement;
 
-import <array>;
 
 import RenderCore.Renderer;
 import RenderCore.Management.DeviceManagement;

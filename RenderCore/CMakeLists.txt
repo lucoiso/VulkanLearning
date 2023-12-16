@@ -13,79 +13,57 @@ SET(PUBLIC_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public)
 SET(PRIVATE_MODULES
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/Window.cppm
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/GLFWHandler.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/GLFWHandler.ixx
-
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Renderer.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/EngineStateFlags.ixx
-
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.ixx
-
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.ixx
-
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.ixx
-
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.ixx
-
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/SurfaceProperties.ixx
-
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/MeshBufferData.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/TextureBufferData.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/UniformBufferObject.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.ixx
-
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.cppm
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.ixx
-
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Input/GLFWCallbacks.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Input/GLFWCallbacks.ixx
-
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Camera.cppm
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Object.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Vertex.ixx
-
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Debug/DebugHelpers.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Debug/DebugHelpers.cppm
-
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Library/Constants.ixx
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Library/Helpers.cppm
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Library/Helpers.ixx
-
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Enum/EnumConverter.ixx
-	${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Enum/EnumHelpers.ixx
-
 	${PRIVATE_MODULES_BASE_DIRECTORY}/Subsystem/RenderingSubsystem.cppm
 )
 
 SET(PUBLIC_MODULES
 	${PUBLIC_MODULES_BASE_DIRECTORY}/Windowing/Window.ixx
 	${PUBLIC_MODULES_BASE_DIRECTORY}/Windowing/WindowFlags.ixx
-
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Windowing/GLFWHandler.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/EngineStateFlags.ixx
 	${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Renderer.ixx
-
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.ixx
 	${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Camera.ixx
 	${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Object.ixx
 	${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Transform.ixx
-
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Vertex.ixx
 	${PUBLIC_MODULES_BASE_DIRECTORY}/Subsystem/RenderingSubsystem.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Debug/DebugHelpers.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Library/Helpers.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Library/Constants.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Enum/EnumConverter.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Enum/EnumHelpers.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Input/GLFWCallbacks.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Device/SurfaceProperties.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/MeshBufferData.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/TextureBufferData.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/UniformBufferObject.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.ixx
+	${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.ixx
 )
 
-ADD_LIBRARY(${LIBRARY_NAME})
+ADD_LIBRARY(${LIBRARY_NAME} ${PRIVATE_MODULES})
+
 SET_TARGET_PROPERTIES(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 TARGET_SOURCES(${LIBRARY_NAME}
-			   PRIVATE
-			   FILE_SET cxx_private_modules
-			   TYPE CXX_MODULES
-			   BASE_DIRS ${PRIVATE_MODULES_BASE_DIRECTORY}
-			   FILES ${PRIVATE_MODULES}
-
 			   PUBLIC
 			   FILE_SET cxx_public_modules
 			   TYPE CXX_MODULES

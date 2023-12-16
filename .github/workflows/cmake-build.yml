@@ -38,13 +38,11 @@ jobs:
           fetch-depth: 0
           submodules: 'recursive'
 
-      - name: Install Latest CMake Version
+      - name: Get CMake and Ninja
         uses: lukka/get-cmake@latest
-
-      - name: Setup Environment
-        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
-        run: |
-          # Add any setup steps needed for Linux and macOS
+        with:
+          cmakeVersion: latest
+          ninjaVersion: latest
 
       - name: Install Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0

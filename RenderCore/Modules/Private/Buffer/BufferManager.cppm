@@ -7,6 +7,10 @@ module;
 #include <boost/log/trivial.hpp>
 #include <glm/ext.hpp>
 #include <volk.h>
+#include <filesystem>
+#include <span>
+#include <algorithm>
+#include <ranges>
 
 #ifndef VMA_IMPLEMENTATION
 #define VMA_IMPLEMENTATION
@@ -30,11 +34,6 @@ module;
 #include <GLFW/glfw3.h>
 
 module RenderCore.Management.BufferManagement;
-
-import <filesystem>;
-import <span>;
-import <algorithm>;
-import <ranges>;
 
 import RenderCore.Renderer;
 import RenderCore.Management.CommandsManagement;
@@ -565,7 +564,7 @@ void AllocateModelTexture(ObjectAllocationData& ObjectCreationData, tinygltf::Mo
     }
 }
 
-std::vector<Object> BufferManager::AllocateScene(std::string_view const ModelPath, std::pair<std::uint8_t, VkQueue> const& QueuePair)
+std::vector<Object> BufferManager::AllocateScene(std::string const& ModelPath, std::pair<std::uint8_t, VkQueue> const& QueuePair)
 {
     std::vector<ObjectAllocationData> AllocationData {};
     tinygltf::Model Model {};

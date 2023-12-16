@@ -2,9 +2,11 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRenderer
 
-export module RenderCore.Utils.EnumHelpers;
+module;
 
-import <type_traits>;
+#include <type_traits>
+
+export module RenderCore.Utils.EnumHelpers;
 
 #pragma region Operators
 export template<typename T>

@@ -6,6 +6,7 @@ module;
 
 #include <glm/ext.hpp>
 #include <utility>
+#include <string>
 
 module RenderCore.Types.Object;
 
@@ -18,14 +19,14 @@ void Object::SetTrianglesCount(std::uint32_t const TrianglesCount)
     m_TrianglesCount = TrianglesCount;
 }
 
-Object::Object(std::uint32_t const ID, std::string_view const Path)
+Object::Object(std::uint32_t const ID, std::string const& Path)
     : m_ID(ID),
       m_Path(Path),
       m_Name(m_Path.substr(m_Path.find_last_of('/') + 1, m_Path.find_last_of('.') - m_Path.find_last_of('/') - 1))
 {
 }
 
-Object::Object(std::uint32_t const ID, std::string_view const Path, std::string_view const Name)
+Object::Object(std::uint32_t const ID, std::string const& Path, std::string const& Name)
     : m_ID(ID),
       m_Path(Path),
       m_Name(Name)
@@ -36,12 +37,12 @@ std::uint32_t Object::GetID() const
     return m_ID;
 }
 
-std::string_view Object::GetPath() const
+std::string const& Object::GetPath() const
 {
     return m_Path;
 }
 
-std::string_view Object::GetName() const
+std::string const& Object::GetName() const
 {
     return m_Name;
 }

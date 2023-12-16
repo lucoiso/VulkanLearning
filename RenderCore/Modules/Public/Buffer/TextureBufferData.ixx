@@ -5,10 +5,9 @@
 module;
 
 #include <volk.h>
+#include <cstdint>
 
 export module RenderCore.Types.TextureBufferData;
-
-import <cstdint>;
 
 namespace RenderCore
 {

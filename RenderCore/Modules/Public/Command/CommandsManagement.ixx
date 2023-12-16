@@ -4,14 +4,13 @@
 
 module;
 
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <vector>
 #include <volk.h>
 
 export module RenderCore.Management.CommandsManagement;
-
-import <optional>;
-import <cstdint>;
-import <memory>;
-import <vector>;
 
 import RenderCore.Management.BufferManagement;
 import RenderCore.Management.PipelineManagement;

@@ -7,10 +7,9 @@ module;
 #include "RenderCoreModule.h"
 
 #include <glm/ext.hpp>
+#include <string>
 
 export module RenderCore.Types.Transform;
-
-import <string>;
 
 namespace RenderCore
 {

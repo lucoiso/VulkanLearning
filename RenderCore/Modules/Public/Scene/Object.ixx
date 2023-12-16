@@ -6,11 +6,9 @@ module;
 
 #include "RenderCoreModule.h"
 #include <glm/ext.hpp>
+#include <string>
 
 export module RenderCore.Types.Object;
-
-import <string>;
-import <string_view>;
 
 import RenderCore.Types.Transform;
 
@@ -32,12 +30,12 @@ namespace RenderCore
         Object()          = delete;
         virtual ~Object() = default;
 
-        Object(std::uint32_t, std::string_view);
-        Object(std::uint32_t, std::string_view, std::string_view);
+        Object(std::uint32_t, std::string const&);
+        Object(std::uint32_t, std::string const&, std::string const&);
 
         [[nodiscard]] std::uint32_t GetID() const;
-        [[nodiscard]] std::string_view GetPath() const;
-        [[nodiscard]] std::string_view GetName() const;
+        [[nodiscard]] std::string const& GetPath() const;
+        [[nodiscard]] std::string const& GetName() const;
         [[nodiscard]] std::uint32_t GetTrianglesCount() const;
 
         [[nodiscard]] Transform const& GetTransform() const;

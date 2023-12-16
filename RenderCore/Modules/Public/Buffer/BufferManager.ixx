@@ -5,16 +5,15 @@
 module;
 
 #include <GLFW/glfw3.h>
+#include <atomic>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 #include <vk_mem_alloc.h>
 
 export module RenderCore.Management.BufferManagement;
-
-import <string_view>;
-import <cstdint>;
-import <vector>;
-import <atomic>;
-import <memory>;
-import <unordered_map>;
 
 import RenderCore.Types.Object;
 import RenderCore.Types.Camera;
@@ -44,7 +43,7 @@ namespace RenderCore
         void CreateFrameBuffers(VkRenderPass const&);
         void CreateDepthResources(SurfaceProperties const&, std::pair<std::uint8_t, VkQueue> const&);
 
-        std::vector<Object> AllocateScene(std::string_view, std::pair<std::uint8_t, VkQueue> const&);
+        std::vector<Object> AllocateScene(std::string const&, std::pair<std::uint8_t, VkQueue> const&);
         void ReleaseScene(std::vector<std::uint32_t> const&);
 
         void DestroyBufferResources(bool);

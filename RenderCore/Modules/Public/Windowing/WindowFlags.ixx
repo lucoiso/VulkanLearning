@@ -2,9 +2,12 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRenderer
 
+module;
+
+#include <cstdint>
+
 export module RenderCore.Window.Flags;
 
-import <cstdint>;
 import RenderCore.Utils.EnumHelpers;
 
 namespace RenderCore

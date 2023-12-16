@@ -5,10 +5,9 @@
 module;
 
 #include <GLFW/glfw3.h>
+#include <functional>
 
 export module RenderCore.Management.ImGuiManagement;
-
-import <functional>;
 
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.PipelineManagement;

@@ -5,14 +5,12 @@
 module;
 
 #include "RenderCoreModule.h"
-
+#include <cstdint>
 #include <glm/ext.hpp>
+#include <memory>
 #include <volk.h>
 
 export module RenderCore.Types.Camera;
-
-import <cstdint>;
-import <memory>;
 
 import RenderCore.Types.Transform;
 import RenderCore.Types.Object;

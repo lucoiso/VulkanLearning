@@ -4,12 +4,11 @@
 
 module;
 
+#include <unordered_map>
+#include <vector>
 #include <volk.h>
 
 export module RenderCore.Management.PipelineManagement;
-
-import <vector>;
-import <unordered_map>;
 
 import RenderCore.Types.MeshBufferData;
 import RenderCore.Types.SurfaceProperties;

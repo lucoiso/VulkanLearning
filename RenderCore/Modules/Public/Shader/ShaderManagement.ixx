@@ -9,15 +9,15 @@ module;
 
 export module RenderCore.Management.ShaderManagement;
 
-import <string_view>;
-import <vector>;
-import <cstdint>;
+#include <string>
+#include <vector>
+#include <cstdint>
 
 namespace RenderCore
 {
-    export [[nodiscard]] bool Compile(std::string_view, std::vector<uint32_t>&);
-    export [[nodiscard]] bool Load(std::string_view, std::vector<uint32_t>&);
-    export [[nodiscard]] bool CompileOrLoadIfExists(std::string_view, std::vector<uint32_t>&);
+    export [[nodiscard]] bool Compile(std::string const&, std::vector<uint32_t>&);
+    export [[nodiscard]] bool Load(std::string const&, std::vector<uint32_t>&);
+    export [[nodiscard]] bool CompileOrLoadIfExists(std::string const&, std::vector<uint32_t>&);
     export [[nodiscard]] VkShaderModule CreateModule(std::vector<uint32_t> const&, EShLanguage);
 
     export [[nodiscard]] VkPipelineShaderStageCreateInfo GetStageInfo(VkShaderModule const& Module);

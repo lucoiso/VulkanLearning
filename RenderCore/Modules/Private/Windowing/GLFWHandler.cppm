@@ -15,7 +15,7 @@ import Timer.ExecutionCounter;
 import RenderCore.Input.GLFWCallbacks;
 import RenderCore.Utils.EnumHelpers;
 
-bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, InitializationFlags const Flags)
+bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string const Title, InitializationFlags const Flags)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 

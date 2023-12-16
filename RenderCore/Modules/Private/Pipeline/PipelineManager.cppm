@@ -6,11 +6,10 @@ module;
 
 #include <boost/log/trivial.hpp>
 #include <volk.h>
+#include <array>
+#include <ranges>
 
 module RenderCore.Management.PipelineManagement;
-
-import <array>;
-import <ranges>;
 
 import RenderCore.Management.ShaderManagement;
 import RenderCore.Management.DeviceManagement;

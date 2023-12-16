@@ -5,11 +5,10 @@
 module;
 
 #include <GLFW/glfw3.h>
+#include <cstdint>
+#include <string>
 
 export module RenderCore.Window.GLFWHandler;
-
-import <cstdint>;
-import <string_view>;
 
 import RenderCore.Window.Flags;
 
@@ -20,7 +19,7 @@ namespace RenderCore
         GLFWwindow* m_Window {nullptr};
 
     public:
-        [[nodiscard]] bool Initialize(std::uint16_t, std::uint16_t, std::string_view, InitializationFlags);
+        [[nodiscard]] bool Initialize(std::uint16_t, std::uint16_t, std::string, InitializationFlags);
         void Shutdown();
 
         [[nodiscard]] GLFWwindow* GetWindow() const;

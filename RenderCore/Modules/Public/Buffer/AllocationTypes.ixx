@@ -5,10 +5,9 @@
 module;
 
 #include <vk_mem_alloc.h>
+#include <vector>
 
 export module RenderCore.Types.AllocationTypes;
-
-import <vector>;
 
 import RenderCore.Utils.Constants;
 import RenderCore.Types.Object;

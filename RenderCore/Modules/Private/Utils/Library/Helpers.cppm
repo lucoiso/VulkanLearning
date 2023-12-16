@@ -7,6 +7,9 @@ module;
 #include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
 #include <volk.h>
+#include <span>
+#include <array>
+#include <filesystem>
 
 #ifndef GLM_FORCE_RADIANS
 #define GLM_FORCE_RADIANS
@@ -17,10 +20,6 @@ module;
 #include <glm/ext.hpp>
 
 module RenderCore.Utils.Helpers;
-
-import <span>;
-import <array>;
-import <filesystem>;
 
 import RenderCore.Types.Vertex;
 import Timer.ExecutionCounter;
@@ -177,7 +176,7 @@ std::array<VkVertexInputAttributeDescription, 4U> RenderCore::GetAttributeDescri
                     .offset   = static_cast<std::uint32_t>(offsetof(Vertex, TextureCoordinate))}};
 }
 
-std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::string_view const LayerName)
+std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::string const& LayerName)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -196,7 +195,7 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailableLayerExtensionsNames(std::string_view const LayerName)
+std::vector<std::string> RenderCore::GetAvailableLayerExtensionsNames(std::string const& LayerName)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 

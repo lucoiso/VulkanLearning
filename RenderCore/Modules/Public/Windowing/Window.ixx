@@ -4,13 +4,11 @@
 
 module;
 
-#include <RenderCoreModule.h>
+#include "RenderCoreModule.h"
+#include <cstdint>
+#include <string>
 
 export module RenderCore.Window;
-
-import <cstdint>;
-import <string_view>;
-import <memory>;
 
 import RenderCore.Renderer;
 import RenderCore.Window.Flags;
@@ -23,6 +21,11 @@ namespace RenderCore
         GLFWHandler m_GLFWHandler {};
         Renderer m_Renderer {};
 
+        std::string m_Title{};
+        std::uint16_t m_Width{};
+        std::uint16_t m_Height{};
+        InitializationFlags m_Flags{};
+
     public:
         Window() = default;
 
@@ -31,7 +34,7 @@ namespace RenderCore
 
         virtual ~Window();
 
-        bool Initialize(std::uint16_t, std::uint16_t, std::string_view, InitializationFlags Flags = InitializationFlags::NONE);
+        bool Initialize(std::uint16_t, std::uint16_t, std::string, InitializationFlags Flags = InitializationFlags::NONE);
         void Shutdown();
 
         [[nodiscard]] bool IsInitialized() const;

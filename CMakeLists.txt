@@ -3,9 +3,9 @@
 # Repo: https://github.com/lucoiso/VulkanRenderer
 
 # ----------- Global Definitions -----------
-if(POLICY CMP0048)
+IF (POLICY CMP0048)
 	CMAKE_POLICY(SET CMP0048 NEW)
-endif()
+ENDIF ()
 
 PROJECT(VulkanRenderer VERSION 0.0.1 LANGUAGES CXX)
 CMAKE_MINIMUM_REQUIRED(VERSION 3.28)
