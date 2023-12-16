@@ -66,12 +66,12 @@ jobs:
 
       - name: Run Application Benchmark
         working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/Binaries
-        run: ./RenderCoreBenchmark.exe --benchmark_format=json | tee application_benchmark_result.json
+        run: ./RenderCoreBenchmark.exe --benchmark_format=json | tee benchmark_result.json
 
       - name: Store Application Benchmark Result
         uses: benchmark-action/github-action-benchmark@v1
         with:
           tool: 'googlecpp'
-          output-file-path: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/Binaries/application_benchmark_result.json
+          output-file-path: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/Binaries/benchmark_result.json
           github-token: ${{ secrets.LUCOISO_PAT }}
           auto-push: true
