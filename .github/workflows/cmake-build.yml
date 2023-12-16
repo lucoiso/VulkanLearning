@@ -41,7 +41,10 @@ jobs:
       - name: Setup Environment
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt install libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
+          sudo apt-get update
+          sudo apt-get install libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100
 
       - name: Get CMake and Ninja
         uses: lukka/get-cmake@latest
