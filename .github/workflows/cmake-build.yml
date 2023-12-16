@@ -11,7 +11,7 @@ env:
   BUILD_TESTS: true
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   VCPKG_ROOT: ${{github.workspace}}/vcpkg
-  VCPKG_BUILTIN_BASELINE: 5a38b5ec0eee3d1a1a6faab5e944617fee2697cf
+  VCPKG_BUILTIN_BASELINE: c8696863d371ab7f46e213d8f5ca923c4aef2a00
   VCPKG_ENABLE_METRICS: 1
   VCPKG_DEFAULT_BINARY_CACHE: ${{github.workspace}}/vcpkg/bincache
   VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
@@ -33,10 +33,15 @@ jobs:
 
     steps:
       - name: Checkout & Init Submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@latest
         with:
           fetch-depth: 0
           submodules: 'recursive'
+
+      - name: Setup Environment
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt install libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
 
       - name: Get CMake and Ninja
         uses: lukka/get-cmake@latest
@@ -45,21 +50,21 @@ jobs:
           ninjaVersion: latest
 
       - name: Install Vulkan SDK
-        uses: humbletim/setup-vulkan-sdk@v1.2.0
+        uses: humbletim/setup-vulkan-sdk@latest
         with:
           vulkan-query-version: latest
           vulkan-components: Vulkan-Headers
           vulkan-use-cache: true
 
       - name: Setup VCPKG
-        uses: lukka/run-vcpkg@v11
+        uses: lukka/run-vcpkg@latest
         with:
           vcpkgDirectory: ${{env.VCPKG_ROOT}}
           vcpkgGitCommitId: ${{env.VCPKG_BUILTIN_BASELINE}}
           vcpkgJsonGlob: '**/vcpkg.json'
 
       - name: Configure and Build Project
-        uses: lukka/run-cmake@v10
+        uses: lukka/run-cmake@latest
         with:
           cmakeListsTxtPath: '${{github.workspace}}/CMakeLists.txt'
           configurePreset: ${{env.BUILD_TYPE}}
