@@ -7,13 +7,13 @@ on:
     branches: [ "main" ]
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: Debug
   BUILD_TESTS: true
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   VCPKG_ROOT: ${{github.workspace}}/vcpkg
   VCPKG_BUILTIN_BASELINE: 5a38b5ec0eee3d1a1a6faab5e944617fee2697cf
   VCPKG_ENABLE_METRICS: 1
-  VCPKG_DEFAULT_TRIPLET: x64-windows-release
+  VCPKG_DEFAULT_TRIPLET: x64-windows
   VCPKG_DEFAULT_BINARY_CACHE: ${{github.workspace}}/vcpkg/bincache
   VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
   OUTPUT_DIRECTORY: out/build
