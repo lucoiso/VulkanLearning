@@ -14,8 +14,6 @@ module RenderCore.Window;
 
 using namespace RenderCore;
 
-import <semaphore>;
-
 import RenderCore.Renderer;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.ImGuiManagement;
@@ -46,20 +44,7 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
 
     try
     {
-        if (m_GLFWHandler.Initialize(Width, Height, Title, Flags) && m_Renderer.Initialize(m_GLFWHandler.GetWindow()))
-        {
-            std::binary_semaphore Semaphore {0U};
-            {
-                Renderer::GetRenderTimerManager().SetTimer(
-                        std::chrono::milliseconds(0U),
-                        [this, &Semaphore] {
-                            RequestRender();
-                            Semaphore.release();
-                        });
-            }
-            Semaphore.acquire();
-            return true;
-        }
+        return m_GLFWHandler.Initialize(Width, Height, Title, Flags) && m_Renderer.Initialize(m_GLFWHandler.GetWindow());
     }
     catch (std::exception const& Ex)
     {
@@ -76,16 +61,7 @@ void Window::Shutdown()
 
     if (IsInitialized())
     {
-        std::binary_semaphore Semaphore {0U};
-        {
-            Renderer::GetRenderTimerManager().SetTimer(
-                    std::chrono::milliseconds(0U),
-                    [&Semaphore, this] {
-                        m_Renderer.Shutdown(m_GLFWHandler.GetWindow());
-                        Semaphore.release();
-                    });
-        }
-        Semaphore.acquire();
+        m_Renderer.Shutdown(m_GLFWHandler.GetWindow());
     }
 
     if (IsOpen())
@@ -120,6 +96,7 @@ void Window::PollEvents()
     {
         glfwPollEvents();
         m_Renderer.Tick();
+        RequestRender();
     }
     catch (std::exception const& Ex)
     {
@@ -136,18 +113,10 @@ void Window::RequestRender()
 {
     if (IsInitialized() && IsOpen())
     {
-        m_Renderer.GetMutableCamera().UpdateCameraMovement(static_cast<float>(m_Renderer.GetDeltaTime()));
-
         DrawImGuiFrame([this] {
             CreateOverlay();
         });
-
+        m_Renderer.GetMutableCamera().UpdateCameraMovement(static_cast<float>(m_Renderer.GetDeltaTime()));
         m_Renderer.DrawFrame(m_GLFWHandler.GetWindow(), m_Renderer.GetCamera());
-
-        Renderer::GetRenderTimerManager().SetTimer(
-                std::chrono::milliseconds(1000U / (2U * g_FrameRate)),
-                [this] {
-                    RequestRender();
-                });
     }
 }

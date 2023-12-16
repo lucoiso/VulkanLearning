@@ -144,7 +144,7 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
 
         Camera& Camera {Target->GetMutableCamera()};
 
-        float const Sensitivity {Camera.GetSensitivity() * 0.1F};
+        float const Sensitivity {Camera.GetSensitivity()};
 
         float const OffsetX {static_cast<float>(NewCursorPosX - LastCursorPosX) * Sensitivity};
         float const OffsetY {static_cast<float>(LastCursorPosY - NewCursorPosY) * Sensitivity};

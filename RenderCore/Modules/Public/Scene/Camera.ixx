@@ -35,7 +35,7 @@ namespace RenderCore
         Rotator m_CameraRotation {0.F, -90.F, 0.F};
 
         float m_CameraSpeed {250.F};
-        float m_CameraSensitivity {1.F};
+        float m_CameraSensitivity {10.F};
 
         float m_FieldOfView {45.F};
         float m_NearPlane {0.001F};
