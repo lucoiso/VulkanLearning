@@ -38,16 +38,16 @@ jobs:
           fetch-depth: 0
           submodules: 'recursive'
 
-      - name: Setup Environment
+      - name: Setup Ubuntu Environment
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
+          sudo apt-get --purge remove g++
           sudo apt-get install libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
           sudo apt-get install build-essential
-          sudo apt-get install clang
-          sudo update-alternatives --config c++
+          sudo update-alternatives --config g++
 
-      - name: Setup Environment
+      - name: Setup MacOS Environment
         if: matrix.os == 'macos-latest'
         run: |
           brew update && brew upgrade
