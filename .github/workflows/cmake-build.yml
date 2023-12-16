@@ -45,7 +45,6 @@ jobs:
           sudo apt-get --purge remove g++
           sudo apt-get install libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
           sudo apt-get install build-essential
-          sudo update-alternatives --config g++
 
       - name: Setup MacOS Environment
         if: matrix.os == 'macos-latest'
