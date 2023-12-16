@@ -4,6 +4,8 @@
 
 export module RenderCore.Unit.Utils;
 
+import <string>;
+
 import RenderCore.Window;
 import RenderCore.Window.Flags;
 
@@ -11,13 +13,18 @@ export class ScopedWindow
 {
     RenderCore::Window m_Window {};
 
+    std::string const m_WindowTitle {"Vulkan Renderer: Tests"};
+    std::uint16_t const m_WindowWidth {600U};
+    std::uint16_t const m_WindowHeight {600U};
+    RenderCore::InitializationFlags const m_WindowFlags {RenderCore::InitializationFlags::HEADLESS};
+
 public:
-    ScopedWindow()
+    ScopedWindow() noexcept
     {
-        m_Window.Initialize(600U, 600U, "Vulkan Renderer: Tests", RenderCore::InitializationFlags::HEADLESS);
+        m_Window.Initialize(m_WindowWidth, m_WindowHeight, m_WindowTitle, m_WindowFlags);
     }
 
-    ~ScopedWindow()
+    ~ScopedWindow() noexcept
     {
         m_Window.Shutdown();
     }
