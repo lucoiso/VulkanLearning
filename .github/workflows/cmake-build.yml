@@ -50,21 +50,21 @@ jobs:
           ninjaVersion: latest
 
       - name: Install Vulkan SDK
-        uses: humbletim/setup-vulkan-sdk@latest
+        uses: humbletim/setup-vulkan-sdk@v1.2.0
         with:
           vulkan-query-version: latest
           vulkan-components: Vulkan-Headers
           vulkan-use-cache: true
 
       - name: Setup VCPKG
-        uses: lukka/run-vcpkg@latest
+        uses: lukka/run-vcpkg@v11
         with:
           vcpkgDirectory: ${{env.VCPKG_ROOT}}
           vcpkgGitCommitId: ${{env.VCPKG_BUILTIN_BASELINE}}
           vcpkgJsonGlob: '**/vcpkg.json'
 
       - name: Configure and Build Project
-        uses: lukka/run-cmake@latest
+        uses: lukka/run-cmake@v10
         with:
           cmakeListsTxtPath: '${{github.workspace}}/CMakeLists.txt'
           configurePreset: ${{env.BUILD_TYPE}}
