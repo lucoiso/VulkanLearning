@@ -1,4 +1,4 @@
-name: VulkanRenderer CMake Workflow
+name: CMake Build Workflow
 
 on:
   push:
@@ -27,7 +27,10 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
       - name: Checkout & Init Submodules
@@ -38,6 +41,11 @@ jobs:
 
       - name: Install Latest CMake Version
         uses: lukka/get-cmake@latest
+
+      - name: Setup Environment
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+        run: |
+          # Add any setup steps needed for Linux and macOS
 
       - name: Install Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0
