@@ -43,17 +43,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
-          sudo apt-get install gcc-14 g++-14
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+          sudo apt-get install build-essential
+          sudo apt-get install clang
+          sudo update-alternatives --config c++
 
       - name: Setup Environment
         if: matrix.os == 'macos-latest'
         run: |
-          brew update
-          brew install gcc@14
-          echo 'export PATH="/usr/local/opt/gcc@14/bin:$PATH"' >> $HOME/.bash_profile
-          source $HOME/.bash_profile
+          brew update && brew upgrade
+          brew install llvm
+          echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.zshrc
 
       - name: Get CMake and Ninja
         uses: lukka/get-cmake@latest
