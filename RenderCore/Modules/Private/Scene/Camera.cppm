@@ -122,7 +122,7 @@ void Camera::SetCameraMovementStateFlags(CameraMovementStateFlags const State)
 
 void Camera::UpdateCameraMovement(float const DeltaTime)
 {
-    float const CameraSpeed {GetSpeed() * 0.01F};
+    float const CameraSpeed {GetSpeed() * 0.1F};
     Vector const CameraFront {m_CameraRotation.GetFront()};
     Vector const CameraRight {m_CameraRotation.GetRight()};
 
@@ -165,8 +165,8 @@ bool Camera::IsInsideCameraFrustum(Vector const& TestLocation, VkExtent2D const&
 {
     glm::mat4 const ViewProjectionMatrix = GetProjectionMatrix(Extent) * GetViewMatrix();
 
-    auto const HomogeneousTestLocation = glm::vec4(TestLocation.ToGlmVec3(), 1.F);
-    glm::vec4 const ClipSpaceTestLocation   = ViewProjectionMatrix * HomogeneousTestLocation;
+    auto const HomogeneousTestLocation    = glm::vec4(TestLocation.ToGlmVec3(), 1.F);
+    glm::vec4 const ClipSpaceTestLocation = ViewProjectionMatrix * HomogeneousTestLocation;
 
     return std::abs(ClipSpaceTestLocation.x) <= std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.y) <= std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.z) <= std::abs(ClipSpaceTestLocation.w);
 }

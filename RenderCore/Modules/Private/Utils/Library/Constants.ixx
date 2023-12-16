@@ -69,7 +69,6 @@ export namespace RenderCore
 
     constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-    constexpr std::uint8_t g_FrameRate     = 60U;
     constexpr std::uint8_t g_MinImageCount = 3U;
 
     constexpr std::uint32_t g_Timeout = std::numeric_limits<std::uint32_t>::max();
@@ -82,8 +81,4 @@ export namespace RenderCore
                              0.5F,
                              1.F}}},
             VkClearValue {.depthStencil = {1.F, 0U}}};
-
-    constexpr float g_KeyCallbackRate    = g_FrameRate / 5000.f;
-    constexpr float g_CursorCallbackRate = g_FrameRate / 25000.f;
-    constexpr float g_ScrollCallbackRate = g_FrameRate / 500.f;
 }// namespace RenderCore

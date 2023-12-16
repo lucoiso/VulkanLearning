@@ -36,8 +36,9 @@ namespace RenderCore
 
         RendererStateFlags m_StateFlags {RendererStateFlags::NONE};
         std::vector<std::shared_ptr<Object>> m_Objects {};
-        double m_DeltaTime {};
-        double m_FrameTime {};
+        double m_DeltaTime {0.F};
+        double m_FrameTime {0.F};
+        double m_FrameRateCap {0.016667F};
         std::mutex m_ObjectsMutex {};
 
         friend class Window;
@@ -68,6 +69,10 @@ namespace RenderCore
         static [[nodiscard]] Timer::Manager& GetRenderTimerManager();
         [[nodiscard]] double GetDeltaTime() const;
         [[nodiscard]] double GetFrameTime() const;
+
+        void SetFrameRateCap(double);
+        [[nodiscard]] double GetFrameRateCap() const;
+
         [[nodiscard]] Camera const& GetCamera() const;
         [[nodiscard]] Camera& GetMutableCamera();
         [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;

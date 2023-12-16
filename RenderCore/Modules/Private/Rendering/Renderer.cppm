@@ -114,8 +114,14 @@ void Renderer::DrawFrame(GLFWwindow* const Window, Camera const& Camera)
 
     static std::uint64_t LastTime   = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     std::uint64_t const CurrentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    double const DeltaTime          = static_cast<double>(CurrentTime - LastTime) / 1000.0;
 
-    if (double const DeltaTime = static_cast<double>(CurrentTime - LastTime) / 1000.0; DeltaTime > 0.F)
+    if (DeltaTime < m_FrameRateCap)
+    {
+        return;
+    }
+
+    if (DeltaTime > 0.F)
     {
         m_FrameTime = DeltaTime;
         LastTime    = CurrentTime;
@@ -455,6 +461,19 @@ double Renderer::GetDeltaTime() const
 double Renderer::GetFrameTime() const
 {
     return m_FrameTime;
+}
+
+void Renderer::SetFrameRateCap(double const FrameRateCap)
+{
+    if (FrameRateCap > 0.0)
+    {
+        m_FrameRateCap = 1.0 / FrameRateCap;
+    }
+}
+
+double Renderer::GetFrameRateCap() const
+{
+    return m_FrameRateCap;
 }
 
 Camera const& Renderer::GetCamera() const
