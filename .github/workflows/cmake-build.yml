@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 env:
-  BUILD_TYPE: Debug
+  BUILD_TYPE: Release
   BUILD_TESTS: true
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   VCPKG_ROOT: ${{github.workspace}}/vcpkg
@@ -25,7 +25,7 @@ permissions:
   security-events: write
 
 jobs:
-  setup_environment:
+  build_project:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -55,7 +55,7 @@ jobs:
         uses: humbletim/setup-vulkan-sdk@v1.2.0
         with:
           vulkan-query-version: latest
-          vulkan-components: Vulkan-Headers
+          vulkan-components: Vulkan-Headers,Vulkan-Loader
           vulkan-use-cache: true
 
       - name: Inspect Root Directory
