@@ -8,8 +8,9 @@
 #include <boost/log/trivial.hpp>
 #endif
 
-import Benchmark.RenderCore;
-import Benchmark.RenderCore.Helpers;
+// User defined modules
+#include "Helpers.hpp"
+#include "RenderCore.hpp"
 
 int main(int ArgC, char** ArgV)
 {

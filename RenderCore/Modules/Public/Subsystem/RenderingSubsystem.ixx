@@ -4,7 +4,7 @@
 
 module;
 
-#include "RenderCoreModule.h"
+#include "RenderCoreModule.hpp"
 #include <GLFW/glfw3.h>
 #include <unordered_map>
 

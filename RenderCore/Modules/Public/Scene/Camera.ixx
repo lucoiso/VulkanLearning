@@ -4,7 +4,7 @@
 
 module;
 
-#include "RenderCoreModule.h"
+#include "RenderCoreModule.hpp"
 #include <cstdint>
 #include <glm/ext.hpp>
 #include <memory>

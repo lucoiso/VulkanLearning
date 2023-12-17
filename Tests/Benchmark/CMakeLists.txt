@@ -6,21 +6,25 @@
 SET(LIBRARY_NAME RenderCoreBenchmark)
 
 # ------------- Library Setup --------------
+SET(PRIVATE_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private)
+
 SET(PRIVATE_MODULES
-	Modules/Private/RenderCoreBenchmark.cpp
-	Modules/Private/Utils.ixx
-	Modules/Private/RenderCore.ixx
-	Modules/Private/Helpers.ixx
+	${PRIVATE_MODULES_BASE_DIRECTORY}/RenderCoreBenchmark.cpp
+	${PRIVATE_MODULES_BASE_DIRECTORY}/RenderCore.hpp
+	${PRIVATE_MODULES_BASE_DIRECTORY}/Helpers.hpp
 )
 
 ADD_EXECUTABLE(${LIBRARY_NAME} ${PRIVATE_MODULES})
 SET_TARGET_PROPERTIES(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${PRIVATE_MODULES_BASE_DIRECTORY})
 
 FIND_PACKAGE(benchmark CONFIG REQUIRED)
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
 					  benchmark::benchmark_main
 					  RenderCore
+					  SharedUtils
 )
 
 IF (BUILD_TYPE STREQUAL "Debug")

@@ -2,13 +2,10 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRenderer
 
-module;
+#pragma once
 
+#include <Utils.hpp>
 #include <catch2/catch_test_macros.hpp>
-
-export module Unit.RenderCore.Helpers;
-
-import RenderCore.Benchmark.Utils;
 
 import RenderCore.Window;
 import RenderCore.Utils.Helpers;

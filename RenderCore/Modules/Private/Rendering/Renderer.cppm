@@ -5,10 +5,10 @@
 module;
 
 #include <boost/log/trivial.hpp>
-#include <glm/ext.hpp>
-#include <vector>
 #include <filesystem>
+#include <glm/ext.hpp>
 #include <mutex>
+#include <vector>
 
 #ifndef VOLK_IMPLEMENTATION
 #define VOLK_IMPLEMENTATION

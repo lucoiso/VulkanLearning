@@ -4,12 +4,13 @@
 
 #include <catch2/catch_all.hpp>
 
+// User defined modules
+#include "Helpers.hpp"
+#include "RenderCore.hpp"
+
 #ifndef _DEBUG
 #include <boost/log/trivial.hpp>
 #endif
-
-import Unit.RenderCore;
-import Unit.RenderCore.Helpers;
 
 int main(int const ArgC, char** ArgV)
 {

@@ -5,7 +5,7 @@
 module;
 
 #include <GLFW/glfw3.h>
-#include "RenderCoreModule.h"
+#include "RenderCoreModule.hpp"
 #include <cstdint>
 #include <memory>
 #include <mutex>
