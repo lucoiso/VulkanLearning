@@ -44,6 +44,13 @@ jobs:
           cmakeVersion: latest
           ninjaVersion: latest
 
+      - name: Setup VCPKG
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: ${{env.VCPKG_ROOT}}
+          vcpkgGitCommitId: ${{env.VCPKG_BUILTIN_BASELINE}}
+          vcpkgJsonGlob: '**/vcpkg.json'
+
       - name: Install Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0
         with:
