@@ -76,6 +76,10 @@ jobs:
   configure_and_build:
     needs: setup_environment
     runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-latest, ubuntu-latest, macos-latest ]
+      fail-fast: false
 
     steps:
       - name: Configure and Build Project
@@ -88,6 +92,10 @@ jobs:
   run_tests:
     needs: configure_and_build
     runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-latest, ubuntu-latest, macos-latest ]
+      fail-fast: false
 
     steps:
       - name: Run Tests
@@ -97,6 +105,10 @@ jobs:
   run_benchmark:
     needs: configure_and_build
     runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-latest, ubuntu-latest, macos-latest ]
+      fail-fast: false
 
     steps:
       - name: Run Benchmark
