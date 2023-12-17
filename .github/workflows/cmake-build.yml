@@ -65,50 +65,19 @@ jobs:
           vulkan-components: Vulkan-Headers
           vulkan-use-cache: true
 
-      - name: Setup VCPKG
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgDirectory: ${{env.VCPKG_ROOT}}
-          vcpkgGitCommitId: ${{env.VCPKG_BUILTIN_BASELINE}}
-          vcpkgJsonGlob: '**/vcpkg.json'
-
       - name: Inspect Root Directory
         if: matrix.os == 'windows-latest'
         working-directory: ${{github.workspace}}
         run: ls
 
-  configure_and_build:
-    needs: setup_environment
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ windows-latest ] # , ubuntu-latest, macos-latest
-
-    steps:
       - name: Configure and Build Project
         run: |
           cmake --build --preset ${{env.BUILD_TYPE}}
 
-  run_tests:
-    needs: configure_and_build
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ windows-latest ] # , ubuntu-latest, macos-latest
-
-    steps:
       - name: Run Tests
         working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}
         run: ctest -C ${{env.BUILD_TYPE}} --repeat until-pass:8 --output-on-failure --verbose
 
-  run_benchmark:
-    needs: configure_and_build
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ windows-latest ] # , ubuntu-latest, macos-latest
-
-    steps:
       - name: Run Benchmark
         working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/Binaries
         run: ./RenderCoreBenchmark.exe
