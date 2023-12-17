@@ -45,7 +45,7 @@ Timer::Manager g_RenderTimerManager {};
 VkDebugUtilsMessengerEXT g_DebugMessenger {VK_NULL_HANDLE};
 #endif
 
-void CreateVulkanInstance()
+bool CreateVulkanInstance()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan instance";
 
@@ -98,6 +98,8 @@ void CreateVulkanInstance()
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Setting up debug messages";
     CheckVulkanResult(CreateDebugUtilsMessenger(g_Instance, &CreateDebugInfo, nullptr, &g_DebugMessenger));
 #endif
+
+    return g_Instance != VK_NULL_HANDLE;
 }
 
 void Renderer::DrawFrame(GLFWwindow* const Window, Camera const& Camera)
@@ -291,7 +293,11 @@ bool Renderer::Initialize(GLFWwindow* const Window)
 
     if (++g_RenderersCount == 1U || g_Instance == VK_NULL_HANDLE)
     {
-        CreateVulkanInstance();
+        if (!CreateVulkanInstance())
+        {
+            BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Failed to create vulkan instance";
+            return false;
+        }
     }
 
     m_BufferManager.CreateVulkanSurface(Window);
