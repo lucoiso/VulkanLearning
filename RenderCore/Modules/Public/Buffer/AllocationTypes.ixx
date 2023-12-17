@@ -4,8 +4,8 @@
 
 module;
 
-#include <vk_mem_alloc.h>
 #include <vector>
+#include <vk_mem_alloc.h>
 
 export module RenderCore.Types.AllocationTypes;
 

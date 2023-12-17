@@ -15,15 +15,22 @@ import Timer.ExecutionCounter;
 import RenderCore.Input.GLFWCallbacks;
 import RenderCore.Utils.EnumHelpers;
 
-bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string const Title, InitializationFlags const Flags)
+bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string const& Title, InitializationFlags const Flags)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing GLFW Handler";
 
-    if (glfwInit() == 0)
+    if (glfwInit() == GLFW_FALSE)
     {
         throw std::runtime_error("Failed to initialize GLFW");
+    }
+
+    if (static bool GLFWErrorCallbacksSet = false;
+        !GLFWErrorCallbacksSet)
+    {
+        glfwSetErrorCallback(&GLFWErrorCallback);
+        GLFWErrorCallbacksSet = true;
     }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -37,6 +44,8 @@ bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Heig
     {
         throw std::runtime_error("Failed to create GLFW Window");
     }
+
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: GLFW Window created successfully. Setting up callbacks";
 
     glfwSetWindowCloseCallback(m_Window, &GLFWWindowCloseRequested);
     glfwSetWindowSizeCallback(m_Window, &GLFWWindowResized);

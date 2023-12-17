@@ -5,7 +5,6 @@
 module;
 
 #include <glm/ext.hpp>
-#include <utility>
 #include <string>
 
 module RenderCore.Types.Object;

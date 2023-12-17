@@ -4,17 +4,16 @@
 
 module;
 
-#include <boost/log/trivial.hpp>
-#include <volk.h>
 #include <array>
+#include <boost/log/trivial.hpp>
 #include <optional>
+#include <volk.h>
 
 /* ImGui Headers */
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
 
 module RenderCore.Management.CommandsManagement;
-
 
 import RenderCore.Renderer;
 import RenderCore.Management.DeviceManagement;
@@ -209,7 +208,7 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage(VkSwapchainKHR con
     return static_cast<std::int32_t>(Output);
 }
 
-void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint32_t const ImageIndex, Camera const& Camera, BufferManager const& BufferManager, PipelineManager& PipelineManager, std::vector<std::shared_ptr<Object>> const& Objects)
+void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint32_t const ImageIndex, Camera const& Camera, BufferManager const& BufferManager, PipelineManager const& PipelineManager, std::vector<std::shared_ptr<Object>> const& Objects)
 {
     AllocateCommandBuffer(QueueFamily);
     VkCommandBuffer const& MainCommandBuffer = g_CommandBuffers.back();

@@ -34,7 +34,7 @@ Window::~Window()
     }
 }
 
-bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string const Title, InitializationFlags const Flags)
+bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string const& Title, InitializationFlags const Flags)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -43,10 +43,10 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
         return false;
     }
 
-    m_Title = Title;
-    m_Width = Width;
+    m_Title  = Title;
+    m_Width  = Width;
     m_Height = Height;
-    m_Flags = Flags;
+    m_Flags  = Flags;
 
     try
     {

@@ -34,7 +34,7 @@ namespace RenderCore
 
         virtual ~Window();
 
-        bool Initialize(std::uint16_t, std::uint16_t, std::string, InitializationFlags Flags = InitializationFlags::NONE);
+        bool Initialize(std::uint16_t, std::uint16_t, std::string const&, InitializationFlags Flags = InitializationFlags::NONE);
         void Shutdown();
 
         [[nodiscard]] bool IsInitialized() const;
