@@ -25,11 +25,12 @@ permissions:
   security-events: write
 
 jobs:
-  build:
+  setup_environment:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ windows-latest ] # , ubuntu-latest, macos-latest
+        os: [ windows-latest, ubuntu-latest, macos-latest ]
+      fail-fast: false
 
     steps:
       - name: Checkout & Init Submodules
@@ -43,6 +44,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
+          sudo apt-get install -y clang
 
       - name: Setup MacOS Environment
         if: matrix.os == 'macos-latest'
@@ -71,6 +73,11 @@ jobs:
           vcpkgGitCommitId: ${{env.VCPKG_BUILTIN_BASELINE}}
           vcpkgJsonGlob: '**/vcpkg.json'
 
+  configure_and_build:
+    needs: setup_environment
+    runs-on: ${{ matrix.os }}
+
+    steps:
       - name: Configure and Build Project
         uses: lukka/run-cmake@v10
         with:
@@ -78,10 +85,20 @@ jobs:
           configurePreset: ${{env.BUILD_TYPE}}
           buildPreset: ${{env.BUILD_TYPE}}
 
+  run_tests:
+    needs: configure_and_build
+    runs-on: ${{ matrix.os }}
+
+    steps:
       - name: Run Tests
         working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}
         run: ctest -C ${{env.BUILD_TYPE}} --repeat until-pass:8 --output-on-failure --verbose
 
+  run_benchmark:
+    needs: configure_and_build
+    runs-on: ${{ matrix.os }}
+
+    steps:
       - name: Run Benchmark
         working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/Binaries
         run: ./RenderCoreBenchmark.exe
