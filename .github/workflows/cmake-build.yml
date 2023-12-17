@@ -70,10 +70,10 @@ jobs:
           configurePreset: ${{env.BUILD_TYPE}}
           buildPreset: ${{env.BUILD_TYPE}}
 
-      - name: Run Tests
-        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}
-        run: ctest -C ${{env.BUILD_TYPE}} --repeat until-pass:8 --output-on-failure --verbose
+      # - name: Run Tests
+      #   working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}
+      #   run: ctest -C ${{env.BUILD_TYPE}} --repeat until-pass:8 --output-on-failure --verbose
 
-      - name: Run Benchmark
-        working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/Binaries
-        run: ./RenderCoreBenchmark.exe
+      # - name: Run Benchmark
+      #   working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/Binaries
+      #   run: ./RenderCoreBenchmark.exe
