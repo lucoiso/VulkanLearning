@@ -57,9 +57,11 @@ jobs:
         run: ls
 
       - name: Configure and Build Project
-        run: |
-          mkdir -p ${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}
-          cmake --build --preset ${{env.BUILD_TYPE}}
+        uses: lukka/run-cmake@v10
+        with:
+          cmakeListsTxtPath: '${{github.workspace}}/CMakeLists.txt'
+          configurePreset: ${{env.BUILD_TYPE}}
+          buildPreset: ${{env.BUILD_TYPE}}
 
       - name: Run Tests
         working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}
