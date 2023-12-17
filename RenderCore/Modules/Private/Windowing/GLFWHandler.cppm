@@ -4,8 +4,13 @@
 
 module;
 
-#include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
+
+// Include vulkan before glfw
+#include <volk.h>
+
+// Include glfw after vulkan
+#include <GLFW/glfw3.h>
 
 module RenderCore.Window.GLFWHandler;
 

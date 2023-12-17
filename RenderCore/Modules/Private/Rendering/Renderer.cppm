@@ -10,14 +10,13 @@ module;
 #include <mutex>
 #include <vector>
 
+// Include vulkan before glfw
 #ifndef VOLK_IMPLEMENTATION
 #define VOLK_IMPLEMENTATION
 #endif
 #include <volk.h>
 
-#ifdef GLFW_INCLUDE_VULKAN
-#undef GLFW_INCLUDE_VULKAN
-#endif
+// Include glfw after vulkan
 #include <GLFW/glfw3.h>
 
 module RenderCore.Renderer;
@@ -291,13 +290,9 @@ bool Renderer::Initialize(GLFWwindow* const Window)
 
     CheckVulkanResult(volkInitialize());
 
-    if (++g_RenderersCount == 1U || g_Instance == VK_NULL_HANDLE)
+    if ((++g_RenderersCount == 1U || g_Instance == VK_NULL_HANDLE) && !CreateVulkanInstance())
     {
-        if (!CreateVulkanInstance())
-        {
-            BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Failed to create vulkan instance";
-            return false;
-        }
+        throw std::runtime_error("Failed to create vulkan instance");
     }
 
     m_BufferManager.CreateVulkanSurface(Window);
