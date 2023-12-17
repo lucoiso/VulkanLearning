@@ -38,20 +38,6 @@ jobs:
           fetch-depth: 0
           submodules: 'recursive'
 
-      - name: Setup Ubuntu Environment
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
-          sudo apt-get install -y clang
-
-      - name: Setup MacOS Environment
-        if: matrix.os == 'macos-latest'
-        run: |
-          brew update && brew upgrade
-          brew install llvm
-          echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.zshrc
-
       - name: Get CMake and Ninja
         uses: lukka/get-cmake@latest
         with:
@@ -72,6 +58,7 @@ jobs:
 
       - name: Configure and Build Project
         run: |
+          mkdir -p ${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}
           cmake --build --preset ${{env.BUILD_TYPE}}
 
       - name: Run Tests
