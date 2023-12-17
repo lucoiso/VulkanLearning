@@ -88,7 +88,6 @@ jobs:
       - name: Configure and Build Project
         uses: lukka/run-cmake@v10
         with:
-          cmakeListsTxtPath: '${{github.workspace}}/CMakeLists.txt'
           configurePreset: ${{env.BUILD_TYPE}}
           buildPreset: ${{env.BUILD_TYPE}}
 
