@@ -31,6 +31,11 @@ bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Heig
         throw std::runtime_error("Failed to initialize GLFW");
     }
 
+    if (glfwVulkanSupported() == GLFW_FALSE)
+    {
+        throw std::runtime_error("Vulkan is not supported by GLFW");
+    }
+
     if (static bool GLFWErrorCallbacksSet = false;
         !GLFWErrorCallbacksSet)
     {

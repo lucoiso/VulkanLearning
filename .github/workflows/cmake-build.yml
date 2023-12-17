@@ -7,8 +7,8 @@ on:
     branches: [ "main" ]
 
 env:
-  BUILD_TYPE: Debug
-  BUILD_TESTS: true
+  BUILD_TYPE: Release
+  BUILD_TESTS: false # The CI isn't supporting vulkan at the moment, will re-enable later
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   VCPKG_ROOT: ${{github.workspace}}/vcpkg
   VCPKG_BUILTIN_BASELINE: c8696863d371ab7f46e213d8f5ca923c4aef2a00
