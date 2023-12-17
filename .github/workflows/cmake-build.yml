@@ -72,6 +72,11 @@ jobs:
           vcpkgGitCommitId: ${{env.VCPKG_BUILTIN_BASELINE}}
           vcpkgJsonGlob: '**/vcpkg.json'
 
+      - name: Inspect Root Directory
+        if: matrix.os == 'windows-latest'
+        working-directory: ${{github.workspace}}
+        run: ls
+
   configure_and_build:
     needs: setup_environment
     runs-on: ${{ matrix.os }}
