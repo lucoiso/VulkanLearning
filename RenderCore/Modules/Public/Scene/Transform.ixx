@@ -13,6 +13,14 @@ export module RenderCore.Types.Transform;
 
 namespace RenderCore
 {
+    export struct RENDERCOREMODULE_API ViewSize
+    {
+        float X {0.f};
+        float Y {0.f};
+        float W {0.f};
+        float H {0.f};
+    };
+
     export struct RENDERCOREMODULE_API Vector
     {
         float X {0.f};
@@ -255,7 +263,7 @@ namespace RenderCore
         }
 
         explicit Rotator(glm::quat const& Value)
-            : Pitch(glm::degrees(roll(Value))), Yaw(glm::degrees(pitch(Value))), Roll(glm::degrees(yaw(Value)))
+            : Pitch(glm::degrees(pitch(Value))), Yaw(glm::degrees(yaw(Value))), Roll(glm::degrees(roll(Value)))
         {
         }
 

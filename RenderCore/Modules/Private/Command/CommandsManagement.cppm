@@ -208,7 +208,7 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage(VkSwapchainKHR con
     return static_cast<std::int32_t>(Output);
 }
 
-void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint32_t const ImageIndex, Camera const& Camera, BufferManager const& BufferManager, PipelineManager const& PipelineManager, std::vector<std::shared_ptr<Object>> const& Objects)
+void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint32_t const ImageIndex, Camera const& Camera, BufferManager const& BufferManager, PipelineManager const& PipelineManager, std::vector<std::shared_ptr<Object>> const& Objects, ViewSize const& ViewportSize)
 {
     AllocateCommandBuffer(QueueFamily);
     VkCommandBuffer const& MainCommandBuffer = g_CommandBuffers.back();
@@ -226,21 +226,22 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint
 
     constexpr std::array<VkDeviceSize, 1U> Offsets {0U};
 
-    VkExtent2D const Extent = BufferManager.GetSwapChainExtent();
-
     VkViewport const Viewport {
-            .x        = 0.F,
-            .y        = 0.F,
-            .width    = static_cast<float>(Extent.width),
-            .height   = static_cast<float>(Extent.height),
+            .x        = ViewportSize.X,
+            .y        = ViewportSize.Y,
+            .width    = ViewportSize.W,
+            .height   = ViewportSize.H,
             .minDepth = 0.F,
             .maxDepth = 1.F};
 
     VkRect2D const Scissor {
             .offset = {
-                    0,
-                    0},
-            .extent = Extent};
+                    .x = static_cast<std::int32_t>(ViewportSize.X),
+                    .y = static_cast<std::int32_t>(ViewportSize.Y)},
+            .extent = {
+                    .width  = static_cast<std::uint32_t>(ViewportSize.W),
+                    .height = static_cast<std::uint32_t>(ViewportSize.H),
+            }};
 
     vkCmdSetViewport(MainCommandBuffer, 0U, 1U, &Viewport);
     vkCmdSetScissor(MainCommandBuffer, 0U, 1U, &Scissor);
@@ -256,7 +257,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint
                          .offset = {
                                 0,
                                 0},
-                         .extent = Extent},
+                         .extent = BufferManager.GetSwapChainExtent()},
                 .clearValueCount = static_cast<std::uint32_t>(std::size(g_ClearValues)),
                 .pClearValues    = std::data(g_ClearValues)};
 

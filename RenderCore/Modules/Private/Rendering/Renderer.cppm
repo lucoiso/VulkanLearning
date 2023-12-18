@@ -184,7 +184,7 @@ void Renderer::DrawFrame(GLFWwindow* const Window, Camera const& Camera)
         {
             std::lock_guard Lock(m_ObjectsMutex);
 
-            RecordCommandBuffers(GetGraphicsQueue().first, ImageIndice.value(), Camera, m_BufferManager, m_PipelineManager, GetObjects());
+            RecordCommandBuffers(GetGraphicsQueue().first, ImageIndice.value(), Camera, m_BufferManager, m_PipelineManager, GetObjects(), GetViewportSize());
             SubmitCommandBuffers(GetGraphicsQueue().second);
             PresentFrame(GetGraphicsQueue().second, ImageIndice.value(), m_BufferManager.GetSwapChain());
         }
@@ -486,6 +486,16 @@ Camera const& Renderer::GetCamera() const
 Camera& Renderer::GetMutableCamera()
 {
     return m_Camera;
+}
+
+ViewSize const& Renderer::GetViewportSize() const
+{
+    return m_ViewportOffset;
+}
+
+void Renderer::SetViewportOffset(ViewSize const& Value)
+{
+    m_ViewportOffset = Value;
 }
 
 std::vector<std::shared_ptr<Object>> const& Renderer::GetObjects() const

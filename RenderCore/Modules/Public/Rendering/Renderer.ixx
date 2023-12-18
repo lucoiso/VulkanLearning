@@ -16,6 +16,7 @@ module;
 export module RenderCore.Renderer;
 
 import RenderCore.Types.Camera;
+import RenderCore.Types.Transform;
 import RenderCore.Types.Object;
 import Timer.Manager;
 
@@ -32,6 +33,7 @@ namespace RenderCore
         BufferManager m_BufferManager {};
         PipelineManager m_PipelineManager {};
         Camera m_Camera {};
+        ViewSize m_ViewportOffset{};
 
         RendererStateFlags m_StateFlags {RendererStateFlags::NONE};
         std::vector<std::shared_ptr<Object>> m_Objects {};
@@ -74,6 +76,10 @@ namespace RenderCore
 
         [[nodiscard]] Camera const& GetCamera() const;
         [[nodiscard]] Camera& GetMutableCamera();
+
+        [[nodiscard]] ViewSize const& GetViewportSize() const;
+        void SetViewportOffset(ViewSize const&);
+
         [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;
         [[nodiscard]] std::shared_ptr<Object> GetObjectByID(std::uint32_t) const;
         [[nodiscard]] std::uint32_t GetNumObjects() const;

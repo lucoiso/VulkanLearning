@@ -4,13 +4,13 @@
 
 module;
 
-#include <boost/log/trivial.hpp>
-#include <glm/ext.hpp>
-#include <volk.h>
-#include <filesystem>
-#include <span>
 #include <algorithm>
+#include <boost/log/trivial.hpp>
+#include <filesystem>
+#include <glm/ext.hpp>
 #include <ranges>
+#include <span>
+#include <volk.h>
 
 #ifndef VMA_IMPLEMENTATION
 #define VMA_IMPLEMENTATION
