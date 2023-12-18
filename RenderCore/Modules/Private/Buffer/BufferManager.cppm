@@ -564,7 +564,7 @@ void AllocateModelTexture(ObjectAllocationData& ObjectCreationData, tinygltf::Mo
     }
 }
 
-std::vector<Object> BufferManager::AllocateScene(std::string const& ModelPath, std::pair<std::uint8_t, VkQueue> const& QueuePair)
+std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPath, std::pair<std::uint8_t, VkQueue> const& QueuePair)
 {
     std::vector<ObjectAllocationData> AllocationData {};
     tinygltf::Model Model {};

@@ -30,8 +30,8 @@ namespace RenderCore
         Object()          = delete;
         virtual ~Object() = default;
 
-        Object(std::uint32_t, std::string const&);
-        Object(std::uint32_t, std::string const&, std::string const&);
+        Object(std::uint32_t, std::string_view const&);
+        Object(std::uint32_t, std::string_view const&, std::string_view const&);
 
         [[nodiscard]] std::uint32_t GetID() const;
         [[nodiscard]] std::string const& GetPath() const;

@@ -43,7 +43,7 @@ namespace RenderCore
         void CreateFrameBuffers(VkRenderPass const&);
         void CreateDepthResources(SurfaceProperties const&, std::pair<std::uint8_t, VkQueue> const&);
 
-        std::vector<Object> AllocateScene(std::string const&, std::pair<std::uint8_t, VkQueue> const&);
+        std::vector<Object> AllocateScene(std::string_view const&, std::pair<std::uint8_t, VkQueue> const&);
         void ReleaseScene(std::vector<std::uint32_t> const&);
 
         void DestroyBufferResources(bool);

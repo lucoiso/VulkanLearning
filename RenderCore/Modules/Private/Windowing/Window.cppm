@@ -23,6 +23,11 @@ import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
 import Timer.ExecutionCounter;
 
+Window::Window()
+    : Control(nullptr)
+{
+}
+
 Window::~Window()
 {
     try
@@ -34,7 +39,7 @@ Window::~Window()
     }
 }
 
-bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string const& Title, InitializationFlags const Flags)
+bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, InitializationFlags const Flags)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -110,17 +115,12 @@ void Window::PollEvents()
     }
 }
 
-void Window::CreateOverlay()
-{
-    // Implement in child classes to create overlay
-}
-
 void Window::RequestRender()
 {
     if (IsInitialized() && IsOpen())
     {
         DrawImGuiFrame([this] {
-            CreateOverlay();
+            Update();
         });
         m_Renderer.GetMutableCamera().UpdateCameraMovement(static_cast<float>(m_Renderer.GetDeltaTime()));
         m_Renderer.DrawFrame(m_GLFWHandler.GetWindow(), m_Renderer.GetCamera());

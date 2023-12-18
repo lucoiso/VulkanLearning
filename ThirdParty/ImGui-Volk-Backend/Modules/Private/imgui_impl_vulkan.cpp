@@ -343,12 +343,12 @@ static uint32_t glsl_shader_frag_spv[] = {
 // FIXME: multi-context support is not tested and probably dysfunctional in this backend.
 static ImGui_ImplVulkan_Data* ImGui_ImplVulkan_GetBackendData()
 {
-    return ImGui::GetCurrentContext() ? (ImGui_ImplVulkan_Data*)ImGui::GetIO().BackendRendererUserData : nullptr;
+    return ImGui::GetCurrentContext() ? static_cast<ImGui_ImplVulkan_Data*>(ImGui::GetIO().BackendRendererUserData) : nullptr;
 }
 
 static uint32_t ImGui_ImplVulkan_MemoryType(VkMemoryPropertyFlags const properties, uint32_t const type_bits)
 {
-    ImGui_ImplVulkan_Data* bd          = ImGui_ImplVulkan_GetBackendData();
+    ImGui_ImplVulkan_Data const* bd    = ImGui_ImplVulkan_GetBackendData();
     ImGui_ImplVulkan_InitInfo const* v = &bd->VulkanInitInfo;
     VkPhysicalDeviceMemoryProperties prop;
     vkGetPhysicalDeviceMemoryProperties(v->PhysicalDevice, &prop);
@@ -360,7 +360,7 @@ static uint32_t ImGui_ImplVulkan_MemoryType(VkMemoryPropertyFlags const properti
 
 static void check_vk_result(VkResult const err)
 {
-    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+    ImGui_ImplVulkan_Data const* bd = ImGui_ImplVulkan_GetBackendData();
     if (!bd)
         return;
     ImGui_ImplVulkan_InitInfo const* v = &bd->VulkanInitInfo;
@@ -414,8 +414,8 @@ static void ImGui_ImplVulkan_SetupRenderState(ImDrawData const* draw_data, VkPip
     // Bind Vertex And Index Buffer:
     if (draw_data->TotalVtxCount > 0)
     {
-        VkBuffer const vertex_buffers[1]    = {rb->VertexBuffer};
-        VkDeviceSize const vertex_offset[1] = {0};
+        VkBuffer const vertex_buffers[1]        = {rb->VertexBuffer};
+        constexpr VkDeviceSize vertex_offset[1] = {0};
         vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offset);
         vkCmdBindIndexBuffer(command_buffer, rb->IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
     }
@@ -425,8 +425,8 @@ static void ImGui_ImplVulkan_SetupRenderState(ImDrawData const* draw_data, VkPip
         VkViewport viewport;
         viewport.x        = 0;
         viewport.y        = 0;
-        viewport.width    = (float)fb_width;
-        viewport.height   = (float)fb_height;
+        viewport.width    = static_cast<float>(fb_width);
+        viewport.height   = static_cast<float>(fb_height);
         viewport.minDepth = 0.F;
         viewport.maxDepth = 1.F;
         vkCmdSetViewport(command_buffer, 0, 1, &viewport);
@@ -450,8 +450,8 @@ static void ImGui_ImplVulkan_SetupRenderState(ImDrawData const* draw_data, VkPip
 void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer const command_buffer, VkPipeline pipeline)
 {
     // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
-    int const fb_width  = (int)(draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
-    int const fb_height = (int)(draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
+    int const fb_width  = static_cast<int>(draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
+    int const fb_height = static_cast<int>(draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
     if (fb_width <= 0 || fb_height <= 0)
         return;
 
@@ -466,7 +466,7 @@ void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer cons
     {
         wrb->Index              = 0;
         wrb->Count              = v->ImageCount;
-        wrb->FrameRenderBuffers = (ImGui_ImplVulkanH_FrameRenderBuffers*)IM_ALLOC(sizeof(ImGui_ImplVulkanH_FrameRenderBuffers) * wrb->Count);
+        wrb->FrameRenderBuffers = static_cast<ImGui_ImplVulkanH_FrameRenderBuffers*>(IM_ALLOC(sizeof(ImGui_ImplVulkanH_FrameRenderBuffers) * wrb->Count));
         memset(wrb->FrameRenderBuffers, 0, sizeof(ImGui_ImplVulkanH_FrameRenderBuffers) * wrb->Count);
     }
     IM_ASSERT(wrb->Count == v->ImageCount);
@@ -565,14 +565,14 @@ void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer cons
 
                 // Apply scissor/clipping rectangle
                 VkRect2D scissor;
-                scissor.offset.x      = (int32_t)(clip_min.x);
-                scissor.offset.y      = (int32_t)(clip_min.y);
-                scissor.extent.width  = (uint32_t)(clip_max.x - clip_min.x);
-                scissor.extent.height = (uint32_t)(clip_max.y - clip_min.y);
+                scissor.offset.x      = static_cast<int32_t>(clip_min.x);
+                scissor.offset.y      = static_cast<int32_t>(clip_min.y);
+                scissor.extent.width  = static_cast<uint32_t>(clip_max.x - clip_min.x);
+                scissor.extent.height = static_cast<uint32_t>(clip_max.y - clip_min.y);
                 vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
                 // Bind DescriptorSet with font or user texture
-                VkDescriptorSet const desc_set[1] = {(VkDescriptorSet)pcmd->TextureId};
+                VkDescriptorSet const desc_set[1] = {static_cast<VkDescriptorSet>(pcmd->TextureId)};
                 vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, bd->PipelineLayout, 0, 1, desc_set, 0, nullptr);
 
                 // Draw
@@ -590,7 +590,7 @@ void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer cons
     // If you use VK_DYNAMIC_STATE_VIEWPORT or VK_DYNAMIC_STATE_SCISSOR you are responsible for setting the values before rendering.
     // In theory we should aim to backup/restore those values but I am not sure this is possible.
     // We perform a call to vkCmdSetScissor() to set back a full viewport which is likely to fix things for 99% users but technically this is not perfect. (See github #4644)
-    VkRect2D const scissor = {{0, 0}, {(uint32_t)fb_width, (uint32_t)fb_height}};
+    VkRect2D const scissor = {{0, 0}, {static_cast<uint32_t>(fb_width), static_cast<uint32_t>(fb_height)}};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 }
 
@@ -744,7 +744,7 @@ static void ImGui_ImplVulkan_CreateShaderModules(VkDevice const device, const Vk
         VkShaderModuleCreateInfo vert_info = {};
         vert_info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         vert_info.codeSize                 = sizeof(glsl_shader_vert_spv);
-        vert_info.pCode                    = (uint32_t*)glsl_shader_vert_spv;
+        vert_info.pCode                    = static_cast<uint32_t*>(glsl_shader_vert_spv);
         VkResult const err                 = vkCreateShaderModule(device, &vert_info, allocator, &bd->ShaderModuleVert);
         check_vk_result(err);
     }
@@ -753,7 +753,7 @@ static void ImGui_ImplVulkan_CreateShaderModules(VkDevice const device, const Vk
         VkShaderModuleCreateInfo frag_info = {};
         frag_info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         frag_info.codeSize                 = sizeof(glsl_shader_frag_spv);
-        frag_info.pCode                    = (uint32_t*)glsl_shader_frag_spv;
+        frag_info.pCode                    = static_cast<uint32_t*>(glsl_shader_frag_spv);
         VkResult const err                 = vkCreateShaderModule(device, &frag_info, allocator, &bd->ShaderModuleFrag);
         check_vk_result(err);
     }
@@ -840,7 +840,7 @@ static void ImGui_ImplVulkan_CreatePipeline(VkDevice device, const VkAllocationC
     VkDynamicState dynamic_states[2]               = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo dynamic_state = {};
     dynamic_state.sType                            = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamic_state.dynamicStateCount                = (uint32_t)IM_ARRAYSIZE(dynamic_states);
+    dynamic_state.dynamicStateCount                = static_cast<uint32_t>(IM_ARRAYSIZE(dynamic_states));
     dynamic_state.pDynamicStates                   = dynamic_states;
 
     VkGraphicsPipelineCreateInfo info = {};
@@ -1058,7 +1058,7 @@ bool ImGui_ImplVulkan_Init(ImGui_ImplVulkan_InitInfo* info, VkRenderPass const r
 
     // Setup backend capabilities flags
     auto* bd                   = IM_NEW(ImGui_ImplVulkan_Data)();
-    io.BackendRendererUserData = (void*)bd;
+    io.BackendRendererUserData = static_cast<void*>(bd);
     io.BackendRendererName     = "imgui_impl_vulkan";
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;// We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
 
@@ -1119,7 +1119,7 @@ void ImGui_ImplVulkan_SetMinImageCount(uint32_t const min_image_count)
 // FIXME: This is experimental in the sense that we are unsure how to best design/tackle this problem, please post to https://github.com/ocornut/imgui/pull/914 if you have suggestions.
 VkDescriptorSet ImGui_ImplVulkan_AddTexture(VkSampler const sampler, VkImageView const image_view, VkImageLayout const image_layout)
 {
-    ImGui_ImplVulkan_Data* bd          = ImGui_ImplVulkan_GetBackendData();
+    ImGui_ImplVulkan_Data const* bd    = ImGui_ImplVulkan_GetBackendData();
     ImGui_ImplVulkan_InitInfo const* v = &bd->VulkanInitInfo;
 
     // Create Descriptor Set:
@@ -1153,7 +1153,7 @@ VkDescriptorSet ImGui_ImplVulkan_AddTexture(VkSampler const sampler, VkImageView
 
 void ImGui_ImplVulkan_RemoveTexture(VkDescriptorSet const descriptor_set)
 {
-    ImGui_ImplVulkan_Data* bd          = ImGui_ImplVulkan_GetBackendData();
+    ImGui_ImplVulkan_Data const* bd    = ImGui_ImplVulkan_GetBackendData();
     ImGui_ImplVulkan_InitInfo const* v = &bd->VulkanInitInfo;
     vkFreeDescriptorSets(v->Device, v->DescriptorPool, 1, &descriptor_set);
 }
@@ -1187,7 +1187,7 @@ VkSurfaceFormatKHR ImGui_ImplVulkanH_SelectSurfaceFormat(VkPhysicalDevice const 
     uint32_t avail_count;
     vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &avail_count, nullptr);
     ImVector<VkSurfaceFormatKHR> avail_format;
-    avail_format.resize((int)avail_count);
+    avail_format.resize(static_cast<int>(avail_count));
     vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &avail_count, avail_format.Data);
 
     // First check if only one format, VK_FORMAT_UNDEFINED, is available, which would imply that any format is available
@@ -1229,7 +1229,7 @@ VkPresentModeKHR ImGui_ImplVulkanH_SelectPresentMode(VkPhysicalDevice const phys
     uint32_t avail_count = 0;
     vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &avail_count, nullptr);
     ImVector<VkPresentModeKHR> avail_modes;
-    avail_modes.resize((int)avail_count);
+    avail_modes.resize(static_cast<int>(avail_count));
     vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &avail_count, avail_modes.Data);
     //for (uint32_t avail_i = 0; avail_i < avail_count; avail_i++)
     //    printf("[vulkan] avail_modes[%d] = %d\n", avail_i, avail_modes[avail_i]);
@@ -1376,8 +1376,8 @@ void ImGui_ImplVulkanH_CreateWindowSwapChain(VkPhysicalDevice physical_device, V
         check_vk_result(err);
 
         IM_ASSERT(wd->Frames == nullptr);
-        wd->Frames          = (ImGui_ImplVulkanH_Frame*)IM_ALLOC(sizeof(ImGui_ImplVulkanH_Frame) * wd->ImageCount);
-        wd->FrameSemaphores = (ImGui_ImplVulkanH_FrameSemaphores*)IM_ALLOC(sizeof(ImGui_ImplVulkanH_FrameSemaphores) * wd->ImageCount);
+        wd->Frames          = static_cast<ImGui_ImplVulkanH_Frame*>(IM_ALLOC(sizeof(ImGui_ImplVulkanH_Frame) * wd->ImageCount));
+        wd->FrameSemaphores = static_cast<ImGui_ImplVulkanH_FrameSemaphores*>(IM_ALLOC(sizeof(ImGui_ImplVulkanH_FrameSemaphores) * wd->ImageCount));
         memset(wd->Frames, 0, sizeof(wd->Frames[0]) * wd->ImageCount);
         memset(wd->FrameSemaphores, 0, sizeof(wd->FrameSemaphores[0]) * wd->ImageCount);
         for (uint32_t i = 0; i < wd->ImageCount; i++)

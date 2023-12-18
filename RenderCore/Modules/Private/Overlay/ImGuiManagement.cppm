@@ -43,6 +43,8 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& Pipe
         return;
     }
 
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_DockingEnable;
+
     PipelineManager.SetIsBoundToImGui(true);
     ImGui_ImplGlfw_InitForVulkan(Window, true);
 
@@ -128,4 +130,10 @@ void RenderCore::DrawImGuiFrame(std::function<void()>&& OverlayDrawFunction)
     OverlayDrawFunction();
 
     ImGui::Render();
+
+    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+    }
 }

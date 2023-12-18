@@ -68,7 +68,7 @@ bool CreateVulkanInstance()
     // ReSharper disable once CppTooWideScopeInitStatement
     std::vector const GLFWExtensions = GetGLFWExtensions();
 
-    for (std::string const& ExtensionIter: GLFWExtensions)
+    for (std::string_view const& ExtensionIter: GLFWExtensions)
     {
         Extensions.push_back(std::data(ExtensionIter));
     }
@@ -377,7 +377,7 @@ bool Renderer::HasStateFlag(RendererStateFlags const Flag) const
     return HasFlag(m_StateFlags, Flag);
 }
 
-std::vector<std::uint32_t> Renderer::LoadScene(std::string const& ObjectPath)
+std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const& ObjectPath)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 

@@ -32,7 +32,7 @@ static void LoadAndUnloadScene(benchmark::State& State)
     ScopedWindow Window;
     benchmark::DoNotOptimize(Window);
 
-    std::string ObjectPath {"Resources/Assets/Box/glTF/Box.gltf"};
+    std::string const ObjectPath {"Resources/Assets/Box/glTF/Box.gltf"};
     benchmark::DoNotOptimize(ObjectPath);
 
     for ([[maybe_unused]] auto const _: State)

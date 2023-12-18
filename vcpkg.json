@@ -16,7 +16,8 @@
     {
       "name": "imgui",
       "features": [
-        "glfw-binding"
+        "glfw-binding",
+        "docking-experimental"
       ]
     }
   ]

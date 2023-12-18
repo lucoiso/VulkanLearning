@@ -176,7 +176,7 @@ std::array<VkVertexInputAttributeDescription, 4U> RenderCore::GetAttributeDescri
                     .offset   = static_cast<std::uint32_t>(offsetof(Vertex, TextureCoordinate))}};
 }
 
-std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::string const& LayerName)
+std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::string_view const& LayerName)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -195,7 +195,7 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailableLayerExtensionsNames(std::string const& LayerName)
+std::vector<std::string> RenderCore::GetAvailableLayerExtensionsNames(std::string_view const& LayerName)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 

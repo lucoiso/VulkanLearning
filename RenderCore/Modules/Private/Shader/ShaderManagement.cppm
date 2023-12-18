@@ -26,7 +26,7 @@ constexpr std::int32_t g_GlslVersion = 450;
 
 std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> g_StageInfos {};
 
-bool Compile(std::string const& Source, EShLanguage const Language, std::vector<std::uint32_t>& OutSPIRVCode)
+bool Compile(std::string_view const& Source, EShLanguage const Language, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -182,7 +182,7 @@ bool ValidateSPIRV(const std::vector<std::uint32_t>& SPIRVData)
 }
 #endif
 
-bool RenderCore::Compile(std::string const& Source, std::vector<std::uint32_t>& OutSPIRVCode)
+bool RenderCore::Compile(std::string_view const& Source, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -275,7 +275,7 @@ bool RenderCore::Compile(std::string const& Source, std::vector<std::uint32_t>& 
     return Result;
 }
 
-bool RenderCore::Load(std::string const& Source, std::vector<std::uint32_t>& OutSPIRVCode)
+bool RenderCore::Load(std::string_view const& Source, std::vector<std::uint32_t>& OutSPIRVCode)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -310,7 +310,7 @@ bool RenderCore::Load(std::string const& Source, std::vector<std::uint32_t>& Out
     return !ReadResult.fail();
 }
 
-bool RenderCore::CompileOrLoadIfExists(std::string const& Source, std::vector<uint32_t>& OutSPIRVCode)
+bool RenderCore::CompileOrLoadIfExists(std::string_view const& Source, std::vector<uint32_t>& OutSPIRVCode)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 

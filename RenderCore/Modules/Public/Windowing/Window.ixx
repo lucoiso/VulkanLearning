@@ -11,12 +11,13 @@ module;
 export module RenderCore.Window;
 
 import RenderCore.Renderer;
+import RenderCore.Window.Control;
 import RenderCore.Window.Flags;
 import RenderCore.Window.GLFWHandler;
 
 namespace RenderCore
 {
-    export class RENDERCOREMODULE_API Window
+    export class RENDERCOREMODULE_API Window : public Control
     {
         GLFWHandler m_GLFWHandler {};
         Renderer m_Renderer {};
@@ -27,14 +28,14 @@ namespace RenderCore
         InitializationFlags m_Flags{};
 
     public:
-        Window() = default;
+        Window();
 
         Window(Window const&)            = delete;
         Window& operator=(Window const&) = delete;
 
-        virtual ~Window();
+        ~Window() override;
 
-        bool Initialize(std::uint16_t, std::uint16_t, std::string const&, InitializationFlags Flags = InitializationFlags::NONE);
+        bool Initialize(std::uint16_t, std::uint16_t, std::string_view const&, InitializationFlags Flags = InitializationFlags::NONE);
         void Shutdown();
 
         [[nodiscard]] bool IsInitialized() const;
@@ -43,9 +44,6 @@ namespace RenderCore
         [[nodiscard]] Renderer& GetRenderer();
 
         virtual void PollEvents();
-
-    protected:
-        virtual void CreateOverlay();
 
     private:
         void RequestRender();

@@ -19,7 +19,7 @@ namespace RenderCore
         GLFWwindow* m_Window {nullptr};
 
     public:
-        [[nodiscard]] bool Initialize(std::uint16_t, std::uint16_t, std::string const&, InitializationFlags);
+        [[nodiscard]] bool Initialize(std::uint16_t, std::uint16_t, std::string_view const&, InitializationFlags);
         void Shutdown();
 
         [[nodiscard]] GLFWwindow* GetWindow() const;
