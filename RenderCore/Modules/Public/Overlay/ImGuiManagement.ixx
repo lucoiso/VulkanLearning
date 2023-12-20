@@ -16,5 +16,5 @@ namespace RenderCore
 {
     export void InitializeImGui(GLFWwindow*, PipelineManager&);
     export void ReleaseImGuiResources();
-    export void DrawImGuiFrame(std::function<void()>&&);
+    export void DrawImGuiFrame(std::function<void()>&&, std::function<void()>&&, std::function<void()>&&);
 }// namespace RenderCore

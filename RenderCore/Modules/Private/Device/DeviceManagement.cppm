@@ -269,10 +269,10 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow* const Window, VkS
         throw std::runtime_error("No supported presentation modes found.");
     }
 
-    SurfaceProperties Output {};
-    Output.Extent = GetWindowExtent(Window, GetSurfaceCapabilities(VulkanSurface));
+    SurfaceProperties Output {
+            .Format = SupportedFormats.front(),
+            .Extent = GetWindowExtent(Window, GetSurfaceCapabilities(VulkanSurface))};
 
-    Output.Format = SupportedFormats.front();
     if (auto const MatchingFormat = std::ranges::find_if(
                 SupportedFormats,
                 [](VkSurfaceFormatKHR const& Iter) {

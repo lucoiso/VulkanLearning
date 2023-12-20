@@ -227,20 +227,20 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint
     constexpr std::array<VkDeviceSize, 1U> Offsets {0U};
 
     VkViewport const Viewport {
-            .x        = ViewportSize.X,
-            .y        = ViewportSize.Y,
-            .width    = ViewportSize.W,
-            .height   = ViewportSize.H,
+            .x        = static_cast<float>(ViewportSize.X),
+            .y        = static_cast<float>(ViewportSize.Y),
+            .width    = static_cast<float>(ViewportSize.W),
+            .height   = static_cast<float>(ViewportSize.H),
             .minDepth = 0.F,
             .maxDepth = 1.F};
 
     VkRect2D const Scissor {
             .offset = {
-                    .x = static_cast<std::int32_t>(ViewportSize.X),
-                    .y = static_cast<std::int32_t>(ViewportSize.Y)},
+                    .x = ViewportSize.X,
+                    .y = ViewportSize.Y},
             .extent = {
-                    .width  = static_cast<std::uint32_t>(ViewportSize.W),
-                    .height = static_cast<std::uint32_t>(ViewportSize.H),
+                    .width  = ViewportSize.W,
+                    .height = ViewportSize.H,
             }};
 
     vkCmdSetViewport(MainCommandBuffer, 0U, 1U, &Viewport);
@@ -255,9 +255,9 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint
                 .framebuffer = FrameBuffers.at(ImageIndex),
                 .renderArea  = {
                          .offset = {
-                                0,
-                                0},
-                         .extent = BufferManager.GetSwapChainExtent()},
+                                 .x = ViewportSize.X,
+                                 .y = ViewportSize.Y},
+                         .extent = {.width = ViewportSize.W, .height = ViewportSize.H}},
                 .clearValueCount = static_cast<std::uint32_t>(std::size(g_ClearValues)),
                 .pClearValues    = std::data(g_ClearValues)};
 
@@ -274,7 +274,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint
     {
         for (std::shared_ptr<Object> const& ObjectIter: Objects)
         {
-            if (!ObjectIter || ObjectIter->IsPendingDestroy() || !Camera.CanDrawObject(ObjectIter, BufferManager.GetSwapChainExtent()))
+            if (!ObjectIter || ObjectIter->IsPendingDestroy() || !Camera.CanDrawObject(ObjectIter, ViewportSize))
             {
                 continue;
             }
@@ -294,7 +294,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint
             VkBuffer const& IndexBuffer    = BufferManager.GetIndexBuffer(ObjectID);
             std::uint32_t const IndexCount = BufferManager.GetIndicesCount(ObjectID);
 
-            BufferManager.UpdateUniformBuffers(ObjectIter, Camera, BufferManager.GetSwapChainExtent());
+            BufferManager.UpdateUniformBuffers(ObjectIter, Camera, ViewportSize);
 
             bool ActiveVertexBinding {false};
             if (VertexBuffer != VK_NULL_HANDLE)

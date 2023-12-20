@@ -210,6 +210,37 @@ void CreateImage(VmaAllocator const& Allocator,
     CheckVulkanResult(vmaCreateImage(Allocator, &ImageViewCreateInfo, &ImageCreateInfo, &Image, &Allocation, &AllocationInfo));
 }
 
+void CreateTextureSampler(VmaAllocator const& Allocator, VkSampler& Sampler)
+{
+    if (Allocator == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Vulkan memory allocator is invalid.");
+    }
+
+    VkPhysicalDeviceProperties SurfaceProperties;
+    vkGetPhysicalDeviceProperties(Allocator->GetPhysicalDevice(), &SurfaceProperties);
+
+    VkSamplerCreateInfo const SamplerCreateInfo {
+            .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            .magFilter               = VK_FILTER_LINEAR,
+            .minFilter               = VK_FILTER_LINEAR,
+            .mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+            .addressModeU            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeV            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeW            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .mipLodBias              = 0.F,
+            .anisotropyEnable        = VK_TRUE,
+            .maxAnisotropy           = SurfaceProperties.limits.maxSamplerAnisotropy,
+            .compareEnable           = VK_FALSE,
+            .compareOp               = VK_COMPARE_OP_ALWAYS,
+            .minLod                  = 0.F,
+            .maxLod                  = FLT_MAX,
+            .borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+            .unnormalizedCoordinates = VK_FALSE};
+
+    CheckVulkanResult(vkCreateSampler(volkGetLoadedDevice(), &SamplerCreateInfo, nullptr, &Sampler));
+}
+
 void CreateImageView(VkImage const& Image, VkFormat const& Format, VkImageAspectFlags const& AspectFlags, VkImageView& ImageView)
 {
     VkImageViewCreateInfo const ImageViewCreateInfo {
@@ -241,37 +272,6 @@ void CreateSwapChainImageViews(std::vector<ImageAllocation>& Images, VkFormat co
 void CreateTextureImageView(ImageAllocation& Allocation)
 {
     CreateImageView(Allocation.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, Allocation.View);
-}
-
-void CreateTextureSampler(VmaAllocator const& Allocator, ImageAllocation& Allocation)
-{
-    if (Allocator == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan memory allocator is invalid.");
-    }
-
-    VkPhysicalDeviceProperties SurfaceProperties;
-    vkGetPhysicalDeviceProperties(Allocator->GetPhysicalDevice(), &SurfaceProperties);
-
-    VkSamplerCreateInfo const SamplerCreateInfo {
-            .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-            .magFilter               = VK_FILTER_LINEAR,
-            .minFilter               = VK_FILTER_LINEAR,
-            .mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-            .addressModeU            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeV            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeW            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .mipLodBias              = 0.F,
-            .anisotropyEnable        = VK_TRUE,
-            .maxAnisotropy           = SurfaceProperties.limits.maxSamplerAnisotropy,
-            .compareEnable           = VK_FALSE,
-            .compareOp               = VK_COMPARE_OP_ALWAYS,
-            .minLod                  = 0.F,
-            .maxLod                  = FLT_MAX,
-            .borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-            .unnormalizedCoordinates = VK_FALSE};
-
-    CheckVulkanResult(vkCreateSampler(volkGetLoadedDevice(), &SamplerCreateInfo, nullptr, &Allocation.Sampler));
 }
 
 void CopyBufferToImage(VkCommandBuffer const& CommandBuffer, VkBuffer const& Source, VkImage const& Destination, VkExtent2D const& Extent)
@@ -344,6 +344,14 @@ constexpr void MoveImageLayout(VkCommandBuffer& CommandBuffer, VkImage const& Im
 
         SourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         DestinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    }
+    else if (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        Barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+        Barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
+        SourceStage      = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        DestinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
     }
     else
     {
@@ -478,6 +486,31 @@ void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, 
     }
 
     CreateSwapChainImageViews(m_SwapChainImages, SurfaceProperties.Format.format);
+
+    for (ImageAllocation& ImageViewIter: m_SwapChainRenderImages)
+    {
+        ImageViewIter.DestroyResources(m_Allocator);
+    }
+    m_SwapChainRenderImages.clear();
+
+    if (!std::empty(m_SwapChainImages))
+    {
+        m_SwapChainRenderImages.emplace_back();
+        CreateImage(m_Allocator, SurfaceProperties.Format.format, SurfaceProperties.Extent, VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 0U, m_SwapChainRenderImages.at(0U).Image, m_SwapChainRenderImages.at(0U).Allocation);
+        CreateImageView(m_SwapChainRenderImages.back().Image, SurfaceProperties.Format.format, VK_IMAGE_ASPECT_COLOR_BIT, m_SwapChainRenderImages.back().View);
+        CreateTextureSampler(m_Allocator, m_SwapChainRenderImages.back().Sampler);
+
+        VkCommandPool CopyCommandPool {VK_NULL_HANDLE};
+        std::vector<VkCommandBuffer> CommandBuffers {VK_NULL_HANDLE};
+
+        InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, GetGraphicsQueue().first);
+        {
+            MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>(CommandBuffers.back(),
+                                                                                                 m_SwapChainRenderImages.back().Image,
+                                                                                                 SurfaceProperties.Format.format);
+        }
+        FinishSingleCommandQueue(GetGraphicsQueue().second, CopyCommandPool, CommandBuffers);
+    }
 }
 
 void BufferManager::CreateFrameBuffers(VkRenderPass const& RenderPass)
@@ -521,7 +554,7 @@ void BufferManager::CreateDepthResources(SurfaceProperties const& SurfacePropert
     constexpr VkImageLayout InitialLayout               = VK_IMAGE_LAYOUT_UNDEFINED;
     constexpr VkImageLayout DestinationLayout           = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    CreateImage(m_Allocator, SurfaceProperties.DepthFormat, m_SwapChainExtent, Tiling, Usage, MemoryPropertyFlags, m_DepthImage.Image, m_DepthImage.Allocation);
+    CreateImage(m_Allocator, SurfaceProperties.DepthFormat, SurfaceProperties.Extent, Tiling, Usage, MemoryPropertyFlags, m_DepthImage.Image, m_DepthImage.Allocation);
     CreateImageView(m_DepthImage.Image, SurfaceProperties.DepthFormat, Aspect, m_DepthImage.View);
 
     VkCommandPool CommandPool {VK_NULL_HANDLE};
@@ -849,7 +882,7 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
             if (m_Objects.contains(AllocationDataIter.Object.GetID()))
             {
                 CreateTextureImageView(ImageDataIter.Allocation);
-                CreateTextureSampler(m_Allocator, ImageDataIter.Allocation);
+                CreateTextureSampler(m_Allocator, ImageDataIter.Allocation.Sampler);
                 m_Objects.at(AllocationDataIter.Object.GetID()).TextureImages.push_back(ImageDataIter.Allocation);
             }
 
@@ -919,6 +952,12 @@ void BufferManager::DestroyBufferResources(bool const ClearScene)
     }
     m_SwapChainImages.clear();
 
+    for (ImageAllocation& ImageViewIter: m_SwapChainRenderImages)
+    {
+        ImageViewIter.DestroyResources(m_Allocator);
+    }
+    m_SwapChainRenderImages.clear();
+
     for (VkFramebuffer& FrameBufferIter: m_FrameBuffers)
     {
         if (FrameBufferIter != VK_NULL_HANDLE)
@@ -954,6 +993,30 @@ VkSwapchainKHR const& BufferManager::GetSwapChain() const
 VkExtent2D const& BufferManager::GetSwapChainExtent() const
 {
     return m_SwapChainExtent;
+}
+
+std::vector<VkImageView> BufferManager::GetSwapChainImageViews() const
+{
+    std::vector<VkImageView> Output;
+    Output.reserve(std::size(m_SwapChainRenderImages));
+    for (auto const& [Image, View, Sampler, Allocation, Type]: m_SwapChainRenderImages)
+    {
+        Output.push_back(View);
+    }
+
+    return Output;
+}
+
+std::vector<VkSampler> BufferManager::GetSwapChainSamplers() const
+{
+    std::vector<VkSampler> Output;
+    Output.reserve(std::size(m_SwapChainRenderImages));
+    for (auto const& [Image, View, Sampler, Allocation, Type]: m_SwapChainRenderImages)
+    {
+        Output.push_back(Sampler);
+    }
+
+    return Output;
 }
 
 std::vector<VkFramebuffer> const& BufferManager::GetFrameBuffers() const
@@ -1022,10 +1085,7 @@ std::vector<MeshBufferData> BufferManager::GetAllocatedObjects() const
 
         for (auto const& ImageAllocation: Data.TextureImages)
         {
-            Output.back().Textures.emplace(ImageAllocation.Type,
-                                           TextureBufferData {
-                                                   .ImageView = ImageAllocation.View,
-                                                   .Sampler   = ImageAllocation.Sampler});
+            Output.back().Textures.emplace(ImageAllocation.Type, std::pair(ImageAllocation.View, ImageAllocation.Sampler));
         }
     }
 
@@ -1042,7 +1102,7 @@ std::uint32_t BufferManager::GetClampedNumAllocations() const
     return std::clamp(static_cast<std::uint32_t>(std::size(m_Objects)), 1U, UINT32_MAX);
 }
 
-void BufferManager::UpdateUniformBuffers(std::shared_ptr<Object> const& Object, Camera const& Camera, VkExtent2D const& Extent) const
+void BufferManager::UpdateUniformBuffers(std::shared_ptr<Object> const& Object, Camera const& Camera, ViewSize const& Extent) const
 {
     if (!Object)
     {

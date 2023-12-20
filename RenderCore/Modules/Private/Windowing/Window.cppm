@@ -55,7 +55,12 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
 
     try
     {
-        return m_GLFWHandler.Initialize(m_Width, m_Height, m_Title, m_Flags) && m_Renderer.Initialize(m_GLFWHandler.GetWindow());
+        if (m_GLFWHandler.Initialize(m_Width, m_Height, m_Title, m_Flags) && m_Renderer.Initialize(m_GLFWHandler.GetWindow()))
+        {
+            OnInitialized();
+            RefreshResources();
+            return true;
+        }
     }
     catch (std::exception const& Ex)
     {
@@ -119,10 +124,19 @@ void Window::RequestRender()
 {
     if (IsInitialized() && IsOpen())
     {
-        DrawImGuiFrame([this] {
-            Update();
-        });
+        DrawImGuiFrame(
+                [this] {
+                    PreUpdate();
+                },
+                [this] {
+                    Update();
+                },
+                [this] {
+                    PostUpdate();
+                });
         m_Renderer.GetMutableCamera().UpdateCameraMovement(static_cast<float>(m_Renderer.GetDeltaTime()));
-        m_Renderer.DrawFrame(m_GLFWHandler.GetWindow(), m_Renderer.GetCamera());
+        m_Renderer.DrawFrame(m_GLFWHandler.GetWindow(), m_Renderer.GetCamera(), [this] {
+            RefreshResources();
+        });
     }
 }

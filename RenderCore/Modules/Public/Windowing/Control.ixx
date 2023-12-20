@@ -46,6 +46,16 @@ namespace RenderCore
         void Update();
 
     protected:
+        void RefreshResources();
+        void PreUpdate();
+        void PostUpdate();
+
+        virtual void Refresh()
+        {
+        }
+        virtual void PreRender()
+        {
+        }
         virtual void PrePaint()
         {
         }
@@ -55,19 +65,28 @@ namespace RenderCore
         virtual void PostPaint()
         {
         }
+        virtual void PostRender()
+        {
+        }
 
     private:
-        static constexpr void ProcessPaint(std::vector<std::shared_ptr<Control>>& Children)
+        static constexpr void RemoveInvalid(std::vector<std::shared_ptr<Control>>& Children)
         {
             std::erase_if(Children, [](std::shared_ptr<Control> const& Child) {
                 return !Child;
             });
+        }
+
+        template<typename Functor>
+        static constexpr void Process(std::vector<std::shared_ptr<Control>>& Children, Functor&& Call)
+        {
+            RemoveInvalid(Children);
 
             for (auto const& Child: Children)
             {
                 if (Child)
                 {
-                    Child->Paint();
+                    (Child.get()->*Call)();
                 }
             }
         }

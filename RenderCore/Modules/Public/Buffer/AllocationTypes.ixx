@@ -13,7 +13,7 @@ import RenderCore.Utils.Constants;
 import RenderCore.Types.Object;
 import RenderCore.Types.Vertex;
 import RenderCore.Types.MeshBufferData;
-import RenderCore.Types.TextureBufferData;
+import RenderCore.Types.TextureType;
 import RenderCore.Types.UniformBufferObject;
 
 namespace RenderCore

@@ -17,6 +17,7 @@ export module RenderCore.Management.BufferManagement;
 
 import RenderCore.Types.Object;
 import RenderCore.Types.Camera;
+import RenderCore.Types.Transform;
 import RenderCore.Types.AllocationTypes;
 import RenderCore.Types.SurfaceProperties;
 import RenderCore.Types.MeshBufferData;
@@ -31,6 +32,7 @@ namespace RenderCore
         VkSwapchainKHR m_OldSwapChain {VK_NULL_HANDLE};
         VkExtent2D m_SwapChainExtent {0U, 0U};
         std::vector<ImageAllocation> m_SwapChainImages {};
+        std::vector<ImageAllocation> m_SwapChainRenderImages {};
         ImageAllocation m_DepthImage {};
         std::vector<VkFramebuffer> m_FrameBuffers {};
         std::unordered_map<std::uint32_t, ObjectAllocation> m_Objects {};
@@ -52,6 +54,8 @@ namespace RenderCore
         [[nodiscard]] VkSurfaceKHR const& GetSurface() const;
         [[nodiscard]] VkSwapchainKHR const& GetSwapChain() const;
         [[nodiscard]] VkExtent2D const& GetSwapChainExtent() const;
+        [[nodiscard]] std::vector<VkImageView> GetSwapChainImageViews() const;
+        [[nodiscard]] std::vector<VkSampler> GetSwapChainSamplers() const;
         [[nodiscard]] std::vector<VkFramebuffer> const& GetFrameBuffers() const;
         [[nodiscard]] VkBuffer GetVertexBuffer(std::uint32_t) const;
         [[nodiscard]] VkBuffer GetIndexBuffer(std::uint32_t) const;
@@ -63,6 +67,6 @@ namespace RenderCore
         [[nodiscard]] std::uint32_t GetClampedNumAllocations() const;
 
         [[nodiscard]] VmaAllocator const& GetAllocator() const;
-        void UpdateUniformBuffers(std::shared_ptr<Object> const&, Camera const&, VkExtent2D const&) const;
+        void UpdateUniformBuffers(std::shared_ptr<Object> const&, Camera const&, ViewSize const&) const;
     };
 }// namespace RenderCore

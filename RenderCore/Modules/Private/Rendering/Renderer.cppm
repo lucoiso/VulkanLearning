@@ -101,7 +101,7 @@ bool CreateVulkanInstance()
     return g_Instance != VK_NULL_HANDLE;
 }
 
-void Renderer::DrawFrame(GLFWwindow* const Window, Camera const& Camera)
+void Renderer::DrawFrame(GLFWwindow* const Window, Camera const& Camera, std::function<void()>&& RefreshCallback)
 {
     if (!IsInitialized())
     {
@@ -151,12 +151,17 @@ void Renderer::DrawFrame(GLFWwindow* const Window, Camera const& Camera)
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
 
-            auto const SurfaceProperties   = GetSurfaceProperties(Window, m_BufferManager.GetSurface());
-            auto const SurfaceCapabilities = GetSurfaceCapabilities(m_BufferManager.GetSurface());
+            auto const SurfaceProperties = GetSurfaceProperties(Window, m_BufferManager.GetSurface());
+            auto SurfaceCapabilities     = GetSurfaceCapabilities(m_BufferManager.GetSurface());
+            VkExtent2D const Extent {m_ViewportOffset.W, m_ViewportOffset.H};
+            SurfaceCapabilities.currentExtent  = Extent;
+            SurfaceCapabilities.minImageExtent = Extent;
+            SurfaceCapabilities.maxImageExtent = Extent;
 
             auto const QueueFamilyIndices = GetUniqueQueueFamilyIndicesU32();
             m_BufferManager.CreateSwapChain(SurfaceProperties, SurfaceCapabilities, QueueFamilyIndices);
             m_BufferManager.CreateDepthResources(SurfaceProperties, GetGraphicsQueue());
+            RefreshCallback();
             CreateCommandsSynchronizationObjects();
 
             RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
@@ -513,4 +518,16 @@ std::shared_ptr<Object> Renderer::GetObjectByID(std::uint32_t const ObjectID) co
 std::uint32_t Renderer::GetNumObjects() const
 {
     return std::size(m_Objects);
+}
+
+VkImageView Renderer::GetSwapChainImageView(std::uint32_t const Index) const
+{
+    auto const SwapChainImageViews = m_BufferManager.GetSwapChainImageViews();
+    return std::size(m_BufferManager.GetSwapChainImageViews()) > Index ? SwapChainImageViews.at(Index) : VK_NULL_HANDLE;
+}
+
+VkSampler Renderer::GetSwapChainSampler(std::uint32_t const Index) const
+{
+    auto const SwapChainSamplers = m_BufferManager.GetSwapChainSamplers();
+    return std::size(m_BufferManager.GetSwapChainSamplers()) > Index ? SwapChainSamplers.at(Index) : VK_NULL_HANDLE;
 }

@@ -4,11 +4,11 @@
 
 module;
 
-#include <volk.h>
 #include <array>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
+#include <volk.h>
 
 module RenderCore.Management.ImGuiManagement;
 
@@ -48,7 +48,7 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& Pipe
     PipelineManager.SetIsBoundToImGui(true);
     ImGui_ImplGlfw_InitForVulkan(Window, true);
 
-    constexpr std::uint32_t DescriptorCount = 100U;
+    constexpr std::uint32_t DescriptorCount = 1000U;
 
     constexpr std::array DescriptorPoolSizes {
             VkDescriptorPoolSize {VK_DESCRIPTOR_TYPE_SAMPLER, DescriptorCount},
@@ -66,7 +66,7 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& Pipe
     VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-            .maxSets       = 1000U,
+            .maxSets       = 1000U * static_cast<std::uint32_t>(std::size(DescriptorPoolSizes)),
             .poolSizeCount = std::size(DescriptorPoolSizes),
             .pPoolSizes    = std::data(DescriptorPoolSizes)};
 
@@ -116,20 +116,20 @@ void RenderCore::ReleaseImGuiResources()
     ImGui::DestroyContext();
 }
 
-void RenderCore::DrawImGuiFrame(std::function<void()>&& OverlayDrawFunction)
+void RenderCore::DrawImGuiFrame(std::function<void()>&& PreDraw, std::function<void()>&& Draw, std::function<void()>&& PostDraw)
 {
     if (!ImGui::GetCurrentContext())
     {
         return;
     }
 
+    PreDraw();
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-
-    OverlayDrawFunction();
-
+    Draw();
     ImGui::Render();
+    PostDraw();
 
     if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {

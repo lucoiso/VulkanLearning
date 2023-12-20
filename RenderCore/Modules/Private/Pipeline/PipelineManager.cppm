@@ -4,10 +4,10 @@
 
 module;
 
-#include <boost/log/trivial.hpp>
-#include <volk.h>
 #include <array>
+#include <boost/log/trivial.hpp>
 #include <ranges>
+#include <volk.h>
 
 module RenderCore.Management.PipelineManagement;
 
@@ -308,11 +308,11 @@ void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& Al
                 .offset = 0U,
                 .range  = UniformBufferSize});
 
-        for (auto const& TextureData: AllocatedObjects.at(Index).Textures | std::views::values)
+        for (auto const& [View, Sampler]: AllocatedObjects.at(Index).Textures | std::views::values)
         {
             ImageInfos.push_back(VkDescriptorImageInfo {
-                    .sampler     = TextureData.Sampler,
-                    .imageView   = TextureData.ImageView,
+                    .sampler     = Sampler,
+                    .imageView   = View,
                     .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
         }
 

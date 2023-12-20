@@ -15,10 +15,20 @@ namespace RenderCore
 {
     export struct RENDERCOREMODULE_API ViewSize
     {
-        float X {0.f};
-        float Y {0.f};
-        float W {0.f};
-        float H {0.f};
+        std::int32_t X {0};
+        std::int32_t Y {0};
+        std::uint32_t W {0U};
+        std::uint32_t H {0U};
+
+        [[nodiscard]] bool operator==(ViewSize const& Other) const
+        {
+            return X == Other.X && Y == Other.Y && W == Other.W && H == Other.H;
+        }
+
+        [[nodiscard]] bool operator!=(ViewSize const& Other) const
+        {
+            return X != Other.X || Y != Other.Y || W != Other.W || H != Other.H;
+        }
     };
 
     export struct RENDERCOREMODULE_API Vector

@@ -99,10 +99,10 @@ glm::mat4 Camera::GetViewMatrix() const
     return lookAt(m_CameraPosition.ToGlmVec3(), (m_CameraPosition + m_CameraRotation.GetFront()).ToGlmVec3(), m_CameraRotation.GetUp().ToGlmVec3());
 }
 
-glm::mat4 Camera::GetProjectionMatrix(VkExtent2D const& Extent) const
+glm::mat4 Camera::GetProjectionMatrix(ViewSize const& Extent) const
 {
     glm::mat4 Projection = glm::perspective(glm::radians(m_FieldOfView),
-                                            static_cast<float>(Extent.width) / static_cast<float>(Extent.height),
+                                            static_cast<float>(Extent.W) / static_cast<float>(Extent.H),
                                             m_NearPlane,
                                             m_FarPlane);
     Projection[1][1] *= -1;
@@ -161,7 +161,7 @@ void Camera::UpdateCameraMovement(float const DeltaTime)
     SetPosition(NewPosition);
 }
 
-bool Camera::IsInsideCameraFrustum(Vector const& TestLocation, VkExtent2D const& Extent) const
+bool Camera::IsInsideCameraFrustum(Vector const& TestLocation, ViewSize const& Extent) const
 {
     glm::mat4 const ViewProjectionMatrix = GetProjectionMatrix(Extent) * GetViewMatrix();
 
@@ -179,7 +179,7 @@ bool Camera::IsInAllowedDistance(Vector const& TestLocation) const
     return DistanceToTestLocation <= GetDrawDistance();
 }
 
-bool Camera::CanDrawObject(std::shared_ptr<Object> const& Object, VkExtent2D const& Extent) const
+bool Camera::CanDrawObject(std::shared_ptr<Object> const& Object, ViewSize const& Extent) const
 {
     if (!Object)
     {

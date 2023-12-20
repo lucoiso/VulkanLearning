@@ -45,6 +45,9 @@ namespace RenderCore
 
         virtual void PollEvents();
 
+    protected:
+        virtual void OnInitialized() {}
+
     private:
         void RequestRender();
     };

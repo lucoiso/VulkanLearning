@@ -7,11 +7,13 @@ module;
 #include "RenderCoreModule.hpp"
 #include <GLFW/glfw3.h>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
+#include <volk.h>
 
 export module RenderCore.Renderer;
 
@@ -33,7 +35,7 @@ namespace RenderCore
         BufferManager m_BufferManager {};
         PipelineManager m_PipelineManager {};
         Camera m_Camera {};
-        ViewSize m_ViewportOffset{};
+        ViewSize m_ViewportOffset {};
 
         RendererStateFlags m_StateFlags {RendererStateFlags::NONE};
         std::vector<std::shared_ptr<Object>> m_Objects {};
@@ -44,7 +46,7 @@ namespace RenderCore
 
         friend class Window;
 
-        void DrawFrame(GLFWwindow*, Camera const&);
+        void DrawFrame(GLFWwindow*, Camera const&, std::function<void()>&&);
         std::optional<std::int32_t> RequestImageIndex(GLFWwindow*);
 
         void Tick();
@@ -83,5 +85,8 @@ namespace RenderCore
         [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;
         [[nodiscard]] std::shared_ptr<Object> GetObjectByID(std::uint32_t) const;
         [[nodiscard]] std::uint32_t GetNumObjects() const;
+
+        [[nodiscard]] VkImageView GetSwapChainImageView(std::uint32_t) const;
+        [[nodiscard]] VkSampler GetSwapChainSampler(std::uint32_t) const;
     };
 }// namespace RenderCore
