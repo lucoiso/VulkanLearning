@@ -104,12 +104,48 @@ void RenderCore::InitializeImGuiContext(GLFWwindow* const Window)
     ImGui_ImplVulkan_CreateFontsTexture();
 }
 
-void RenderCore::CreateImGuiRenderPass(PipelineManager const& Manager, SurfaceProperties const& SurfaceProperties)
+void RenderCore::CreateImGuiRenderPass(SurfaceProperties const& SurfaceProperties)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating ImGui Render Pass";
 
-    Manager.CreateRenderPass(SurfaceProperties, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, g_ImGuiRenderPass);
+    VkAttachmentDescription const Attachment {
+            .format         = SurfaceProperties.Format.format,
+            .samples        = VK_SAMPLE_COUNT_1_BIT,
+            .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
+            .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .initialLayout  = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            .finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
+
+    VkAttachmentReference const ColorAttachment {
+            .attachment = 0U,
+            .layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+
+    VkSubpassDescription const Subpass {
+            .pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS,
+            .colorAttachmentCount = 1U,
+            .pColorAttachments    = &ColorAttachment};
+
+    VkSubpassDependency const Dependency {
+            .srcSubpass    = VK_SUBPASS_EXTERNAL,
+            .dstSubpass    = 0U,
+            .srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            .dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            .srcAccessMask = 0U,
+            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT};
+
+    VkRenderPassCreateInfo const RenderPassCreateInfo {
+            .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            .attachmentCount = 1U,
+            .pAttachments    = &Attachment,
+            .subpassCount    = 1U,
+            .pSubpasses      = &Subpass,
+            .dependencyCount = 1U,
+            .pDependencies   = &Dependency};
+
+    CheckVulkanResult(vkCreateRenderPass(volkGetLoadedDevice(), &RenderPassCreateInfo, nullptr, &g_ImGuiRenderPass));
 }
 
 void RenderCore::DestroyImGuiRenderPass()
@@ -128,7 +164,7 @@ void RenderCore::CreateImGuiFrameBuffers(BufferManager const& BufferManager)
 
     DestroyImGuiFrameBuffers();
 
-    g_ImGuiFrameBuffers = BufferManager.CreateFrameBuffers(g_ImGuiRenderPass, BufferManager.GetSwapChainImages());
+    g_ImGuiFrameBuffers = BufferManager.CreateFrameBuffers(g_ImGuiRenderPass, BufferManager.GetSwapChainImages(), false);
 }
 
 void RenderCore::DestroyImGuiFrameBuffers()

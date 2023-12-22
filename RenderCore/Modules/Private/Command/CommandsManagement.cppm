@@ -358,20 +358,20 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
 
     // Viewport rendering commands
     {
-        VkRenderPass const& RenderPass      = PipelineManager.GetViewportRenderPass();
-        VkPipeline const& Pipeline          = PipelineManager.GetViewportPipeline();
-        VkFramebuffer const& FrameBuffer    = BufferManager.GetViewportFrameBuffer();
-        constexpr bool UpdateViewport       = true;
-        constexpr bool UpdateUniformBuffers = true;
+        VkRenderPass const& RenderPass                 = PipelineManager.GetViewportRenderPass();
+        VkPipeline const& Pipeline                     = PipelineManager.GetViewportPipeline();
+        std::vector<VkFramebuffer> const& FrameBuffers = BufferManager.GetViewportFrameBuffers();
+        constexpr bool UpdateViewport                  = true;
+        constexpr bool UpdateUniformBuffers            = true;
 
         RecordRenderingCommands(g_CommandBuffers.at(1U),
                                 RenderPass,
                                 Pipeline,
                                 PipelineLayout,
-                                {FrameBuffer},
+                                FrameBuffers,
                                 UpdateViewport,
                                 UpdateUniformBuffers,
-                                0U,
+                                ImageIndex,
                                 Camera,
                                 BufferManager,
                                 PipelineManager,
@@ -402,8 +402,8 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
                     .renderArea  = {
                              .offset = {0, 0},
                              .extent = SwapChainExtent},
-                    .clearValueCount = static_cast<std::uint32_t>(std::size(g_ClearValues)),
-                    .pClearValues    = std::data(g_ClearValues)};
+                    .clearValueCount = 1U,
+                    .pClearValues    = &g_ClearValues.at(1U)};
 
             vkCmdBeginRenderPass(CommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
             ActiveRenderPass = true;

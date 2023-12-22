@@ -197,7 +197,7 @@ void CreateImage(VmaAllocator const& Allocator,
                        .depth  = 1U},
             .mipLevels     = 1U,
             .arrayLayers   = 1U,
-            .samples       = VK_SAMPLE_COUNT_1_BIT,
+            .samples       = g_MSAASamples,
             .tiling        = Tiling,
             .usage         = Usage,
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
@@ -506,24 +506,35 @@ void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, 
     }
     CreateSwapChainImageViews(m_SwapChainImages, SurfaceProperties.Format.format);
 
-    m_ViewportImage.DestroyResources(m_Allocator);
-
-    constexpr VkImageAspectFlags AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-    constexpr VkImageTiling Tiling           = VK_IMAGE_TILING_LINEAR;
-    constexpr VkImageUsageFlags UsageFlags   = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
     VkCommandPool CommandPool {VK_NULL_HANDLE};
-    std::vector<VkCommandBuffer> CommandBuffers {VK_NULL_HANDLE};
-
+    std::vector<VkCommandBuffer> CommandBuffers(std::size(m_SwapChainImages), VK_NULL_HANDLE);
     InitializeSingleCommandQueue(CommandPool, CommandBuffers, GetGraphicsQueue().first);
     {
-        CreateImage(m_Allocator, SurfaceProperties.Format.format, SurfaceProperties.Extent, Tiling, UsageFlags, 0U, m_ViewportImage.Image, m_ViewportImage.Allocation);
-        CreateImageView(m_ViewportImage.Image, SurfaceProperties.Format.format, AspectFlags, m_ViewportImage.View);
+        constexpr VkFormat ImageFormat                      = VK_FORMAT_B8G8R8A8_SRGB;
+        constexpr VkImageAspectFlags AspectFlags            = VK_IMAGE_ASPECT_COLOR_BIT;
+        constexpr VkImageTiling Tiling                      = VK_IMAGE_TILING_LINEAR;
+        constexpr VkImageUsageFlags UsageFlags              = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        constexpr VkMemoryPropertyFlags MemoryPropertyFlags = 0U;
 
-        MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED,
-                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>(CommandBuffers.front(),
-                                                                  m_ViewportImage.Image,
-                                                                  SurfaceProperties.Format.format);
+        for (ImageAllocation& ImageIter: m_ViewportImages)
+        {
+            if (ImageIter.IsValid())
+            {
+                ImageIter.DestroyResources(m_Allocator);
+            }
+        }
+        m_ViewportImages.resize(std::size(m_SwapChainImages));
+
+        for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(m_ViewportImages)); ++Iterator)
+        {
+            CreateImage(m_Allocator, ImageFormat, SurfaceProperties.Extent, Tiling, UsageFlags, MemoryPropertyFlags, m_ViewportImages.at(Iterator).Image, m_ViewportImages.at(Iterator).Allocation);
+            CreateImageView(m_ViewportImages.at(Iterator).Image, ImageFormat, AspectFlags, m_ViewportImages.at(Iterator).View);
+
+            MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED,
+                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>(CommandBuffers.at(Iterator),
+                                                                      m_ViewportImages.at(Iterator).Image,
+                                                                      ImageFormat);
+        }
     }
     FinishSingleCommandQueue(GetGraphicsQueue().second, CommandPool, CommandBuffers);
 }
@@ -533,7 +544,7 @@ void BufferManager::CreateSwapChainFrameBuffers(VkRenderPass const& RenderPass)
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain frame buffers";
 
-    m_SwapChainFrameBuffers = CreateFrameBuffers(RenderPass, m_SwapChainImages);
+    m_SwapChainFrameBuffers = CreateFrameBuffers(RenderPass, m_SwapChainImages, true);
 }
 
 void BufferManager::CreateViewportFrameBuffer(VkRenderPass const& RenderPass)
@@ -541,19 +552,21 @@ void BufferManager::CreateViewportFrameBuffer(VkRenderPass const& RenderPass)
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan viewport frame buffers";
 
-    m_ViewportFrameBuffer = CreateFrameBuffers(RenderPass, {m_ViewportImage}).front();
+    m_ViewportFrameBuffers = CreateFrameBuffers(RenderPass, m_ViewportImages, true);
 }
 
-std::vector<VkFramebuffer> BufferManager::CreateFrameBuffers(VkRenderPass const& RenderPass, std::vector<ImageAllocation> const& RenderImages) const
+std::vector<VkFramebuffer> BufferManager::CreateFrameBuffers(VkRenderPass const& RenderPass, std::vector<ImageAllocation> const& RenderImages, bool const IncludeDepth) const
 {
     std::vector<VkFramebuffer> Output {};
     Output.resize(std::size(RenderImages), VK_NULL_HANDLE);
 
     for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(Output)); ++Iterator)
     {
-        std::array Attachments {
-                RenderImages.at(Iterator).View,
-                m_DepthImage.View};
+        std::vector Attachments {RenderImages.at(Iterator).View};
+        if (IncludeDepth)
+        {
+            Attachments.push_back(m_DepthImage.View);
+        }
 
         VkFramebufferCreateInfo const FrameBufferCreateInfo {
                 .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -990,7 +1003,11 @@ void BufferManager::DestroyBufferResources(bool const ClearScene)
     }
     m_SwapChainImages.clear();
 
-    m_ViewportImage.DestroyResources(m_Allocator);
+    for (ImageAllocation& ImageViewIter: m_ViewportImages)
+    {
+        ImageViewIter.DestroyResources(m_Allocator);
+    }
+    m_ViewportImages.clear();
 
     for (VkFramebuffer& FrameBufferIter: m_SwapChainFrameBuffers)
     {
@@ -1002,11 +1019,15 @@ void BufferManager::DestroyBufferResources(bool const ClearScene)
     }
     m_SwapChainFrameBuffers.clear();
 
-    if (m_ViewportFrameBuffer != VK_NULL_HANDLE)
+    for (VkFramebuffer& FrameBufferIter: m_ViewportFrameBuffers)
     {
-        vkDestroyFramebuffer(volkGetLoadedDevice(), m_ViewportFrameBuffer, nullptr);
-        m_ViewportFrameBuffer = VK_NULL_HANDLE;
+        if (FrameBufferIter != VK_NULL_HANDLE)
+        {
+            vkDestroyFramebuffer(volkGetLoadedDevice(), FrameBufferIter, nullptr);
+            FrameBufferIter = VK_NULL_HANDLE;
+        }
     }
+    m_ViewportFrameBuffers.clear();
 
     m_DepthImage.DestroyResources(m_Allocator);
 
@@ -1047,9 +1068,16 @@ std::vector<VkImageView> BufferManager::GetSwapChainImageViews() const
     return Output;
 }
 
-VkImageView BufferManager::GetViewportImageView() const
+std::vector<VkImageView> BufferManager::GetViewportImageViews() const
 {
-    return m_ViewportImage.View;
+    std::vector<VkImageView> Output;
+    Output.reserve(std::size(m_ViewportImages));
+    for (auto const& [Image, View, Allocation, Type]: m_ViewportImages)
+    {
+        Output.push_back(View);
+    }
+
+    return Output;
 }
 
 std::vector<ImageAllocation> const& BufferManager::GetSwapChainImages() const
@@ -1057,9 +1085,9 @@ std::vector<ImageAllocation> const& BufferManager::GetSwapChainImages() const
     return m_SwapChainImages;
 }
 
-ImageAllocation const& BufferManager::GetViewportImage() const
+std::vector<ImageAllocation> const& BufferManager::GetViewportImages() const
 {
-    return m_ViewportImage;
+    return m_ViewportImages;
 }
 
 VkSampler const& BufferManager::GetSampler() const
@@ -1072,9 +1100,9 @@ std::vector<VkFramebuffer> const& BufferManager::GetSwapChainFrameBuffers() cons
     return m_SwapChainFrameBuffers;
 }
 
-VkFramebuffer const& BufferManager::GetViewportFrameBuffer() const
+std::vector<VkFramebuffer> const& BufferManager::GetViewportFrameBuffers() const
 {
-    return m_ViewportFrameBuffer;
+    return m_ViewportFrameBuffers;
 }
 
 VkBuffer BufferManager::GetVertexBuffer(std::uint32_t const ObjectID) const

@@ -35,8 +35,8 @@ namespace RenderCore
         std::vector<ImageAllocation> m_SwapChainImages {};
         std::vector<VkFramebuffer> m_SwapChainFrameBuffers {};
 
-        ImageAllocation m_ViewportImage {};
-        VkFramebuffer m_ViewportFrameBuffer {};
+        std::vector<ImageAllocation> m_ViewportImages {};
+        std::vector<VkFramebuffer> m_ViewportFrameBuffers {};
 
         VkSampler m_Sampler {VK_NULL_HANDLE};
         ImageAllocation m_DepthImage {};
@@ -50,7 +50,7 @@ namespace RenderCore
         void CreateSwapChain(SurfaceProperties const&, VkSurfaceCapabilitiesKHR const&);
         void CreateSwapChainFrameBuffers(VkRenderPass const&);
         void CreateViewportFrameBuffer(VkRenderPass const&);
-        [[nodiscard]] std::vector<VkFramebuffer> CreateFrameBuffers(VkRenderPass const&, std::vector<ImageAllocation> const&) const;
+        [[nodiscard]] std::vector<VkFramebuffer> CreateFrameBuffers(VkRenderPass const&, std::vector<ImageAllocation> const&, bool) const;
         void CreateDepthResources(SurfaceProperties const&);
 
         std::vector<Object> AllocateScene(std::string_view const&);
@@ -63,12 +63,12 @@ namespace RenderCore
         [[nodiscard]] VkSwapchainKHR const& GetSwapChain() const;
         [[nodiscard]] VkExtent2D const& GetSwapChainExtent() const;
         [[nodiscard]] std::vector<VkImageView> GetSwapChainImageViews() const;
-        [[nodiscard]] VkImageView GetViewportImageView() const;
+        [[nodiscard]] std::vector<VkImageView> GetViewportImageViews() const;
         [[nodiscard]] std::vector<ImageAllocation> const& GetSwapChainImages() const;
-        [[nodiscard]] ImageAllocation const& GetViewportImage() const;
+        [[nodiscard]] std::vector<ImageAllocation> const& GetViewportImages() const;
         [[nodiscard]] VkSampler const& GetSampler() const;
         [[nodiscard]] std::vector<VkFramebuffer> const& GetSwapChainFrameBuffers() const;
-        [[nodiscard]] VkFramebuffer const& GetViewportFrameBuffer() const;
+        [[nodiscard]] std::vector<VkFramebuffer> const& GetViewportFrameBuffers() const;
         [[nodiscard]] VkBuffer GetVertexBuffer(std::uint32_t) const;
         [[nodiscard]] VkBuffer GetIndexBuffer(std::uint32_t) const;
         [[nodiscard]] std::uint32_t GetIndicesCount(std::uint32_t) const;

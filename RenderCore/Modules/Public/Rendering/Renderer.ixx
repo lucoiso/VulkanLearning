@@ -41,6 +41,7 @@ namespace RenderCore
         double m_DeltaTime {0.F};
         double m_FrameTime {0.F};
         double m_FrameRateCap {0.016667F};
+        std::optional<std::int32_t> m_ImageIndex {};
         std::mutex m_ObjectsMutex {};
 
         friend class Window;
@@ -78,11 +79,13 @@ namespace RenderCore
         [[nodiscard]] Camera const& GetCamera() const;
         [[nodiscard]] Camera& GetMutableCamera();
 
+        [[nodiscard]] std::optional<std::int32_t> const& GetImageIndex() const;
+
         [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;
         [[nodiscard]] std::shared_ptr<Object> GetObjectByID(std::uint32_t) const;
         [[nodiscard]] std::uint32_t GetNumObjects() const;
 
-        [[nodiscard]] VkImageView GetViewportRenderImageView() const;
+        [[nodiscard]] std::vector<VkImageView> GetViewportRenderImageViews() const;
         [[nodiscard]] VkSampler GetSampler() const;
 
         static [[nodiscard]] bool IsImGuiInitialized();

@@ -18,7 +18,7 @@ namespace RenderCore
 {
     export void InitializeImGuiContext(GLFWwindow*);
 
-    export void CreateImGuiRenderPass(PipelineManager const&, SurfaceProperties const&);
+    export void CreateImGuiRenderPass(SurfaceProperties const&);
     export void DestroyImGuiRenderPass();
 
     export void CreateImGuiFrameBuffers(BufferManager const& BufferManager);

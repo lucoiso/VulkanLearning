@@ -169,14 +169,14 @@ void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera
 
     if (!HasAnyFlag(m_StateFlags, InvalidStatesToRender))
     {
-        if (std::optional<std::int32_t> const ImageIndice = RequestImageIndex(Window);
-            ImageIndice.has_value())
+        if (m_ImageIndex = RequestImageIndex(Window);
+            m_ImageIndex.has_value())
         {
             std::unique_lock Lock(m_ObjectsMutex);
 
-            RecordCommandBuffers(ImageIndice.value(), Camera, m_BufferManager, m_PipelineManager, GetObjects(), m_BufferManager.GetSwapChainExtent());
+            RecordCommandBuffers(m_ImageIndex.value(), Camera, m_BufferManager, m_PipelineManager, GetObjects(), m_BufferManager.GetSwapChainExtent());
             SubmitCommandBuffers();
-            PresentFrame(ImageIndice.value(), m_BufferManager.GetSwapChain());
+            PresentFrame(m_ImageIndex.value(), m_BufferManager.GetSwapChain());
         }
     }
 }
@@ -291,7 +291,7 @@ bool Renderer::Initialize(GLFWwindow* const Window)
     auto const _                 = CompileDefaultShaders();
     auto const SurfaceProperties = GetSurfaceProperties(Window, m_BufferManager.GetSurface());
     m_PipelineManager.CreateRenderPasses(SurfaceProperties);
-    CreateImGuiRenderPass(m_PipelineManager, SurfaceProperties);
+    CreateImGuiRenderPass(SurfaceProperties);
     InitializeImGuiContext(Window);
 
     AddFlags(m_StateFlags, RendererStateFlags::INITIALIZED);
@@ -477,6 +477,11 @@ Camera& Renderer::GetMutableCamera()
     return m_Camera;
 }
 
+std::optional<std::int32_t> const& Renderer::GetImageIndex() const
+{
+    return m_ImageIndex;
+}
+
 std::vector<std::shared_ptr<Object>> const& Renderer::GetObjects() const
 {
     return m_Objects;
@@ -494,9 +499,9 @@ std::uint32_t Renderer::GetNumObjects() const
     return std::size(m_Objects);
 }
 
-VkImageView Renderer::GetViewportRenderImageView() const
+std::vector<VkImageView> Renderer::GetViewportRenderImageViews() const
 {
-    return m_BufferManager.GetViewportImageView();
+    return m_BufferManager.GetViewportImageViews();
 }
 
 VkSampler Renderer::GetSampler() const
