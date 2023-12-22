@@ -263,7 +263,7 @@ void CreateSwapChainImageViews(std::vector<ImageAllocation>& Images, VkFormat co
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan swap chain image views";
-    for (auto& [Image, View, Sampler, Allocation, Type]: Images)
+    for (auto& [Image, View, Allocation, Type]: Images)
     {
         CreateImageView(Image, ImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, View);
     }
@@ -347,7 +347,7 @@ constexpr void MoveImageLayout(VkCommandBuffer& CommandBuffer, VkImage const& Im
     }
     else if (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
     {
-        Barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+        Barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
         Barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 
         SourceStage      = VK_PIPELINE_STAGE_TRANSFER_BIT;
@@ -436,24 +436,34 @@ void BufferManager::CreateMemoryAllocator(VkPhysicalDevice const& PhysicalDevice
     CheckVulkanResult(vmaCreateAllocator(&AllocatorInfo, &m_Allocator));
 }
 
-void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, VkSurfaceCapabilitiesKHR const& Capabilities, std::vector<std::uint32_t> const& QueueFamilyIndices)
+void BufferManager::CreateImageSampler()
+{
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan image sampler";
+
+    CreateTextureSampler(m_Allocator, m_Sampler);
+}
+
+void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, VkSurfaceCapabilitiesKHR const& Capabilities)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain";
 
+    auto const QueueFamilyIndices      = GetUniqueQueueFamilyIndicesU32();
     auto const QueueFamilyIndicesCount = static_cast<std::uint32_t>(std::size(QueueFamilyIndices));
 
-    m_OldSwapChain    = m_SwapChain;
-    m_SwapChainExtent = SurfaceProperties.Extent;
+    m_OldSwapChain = m_SwapChain;
+    m_RenderExtent = SurfaceProperties.Extent;
 
-    VkSwapchainCreateInfoKHR const SwapChainCreateInfo {
+    VkSwapchainCreateInfoKHR SwapChainCreateInfo {
             .sType                 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface               = GetSurface(),
             .minImageCount         = g_MinImageCount,
             .imageFormat           = SurfaceProperties.Format.format,
             .imageColorSpace       = SurfaceProperties.Format.colorSpace,
-            .imageExtent           = m_SwapChainExtent,
+            .imageExtent           = m_RenderExtent,
             .imageArrayLayers      = 1U,
             .imageUsage            = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             .imageSharingMode      = QueueFamilyIndicesCount > 1U ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
@@ -464,6 +474,16 @@ void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, 
             .presentMode           = SurfaceProperties.Mode,
             .clipped               = VK_TRUE,
             .oldSwapchain          = m_OldSwapChain};
+
+    if (Capabilities.supportedTransforms & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+    {
+        SwapChainCreateInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    }
+
+    if (Capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+    {
+        SwapChainCreateInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    }
 
     CheckVulkanResult(vkCreateSwapchainKHR(volkGetLoadedDevice(), &SwapChainCreateInfo, nullptr, &m_SwapChain));
 
@@ -487,69 +507,83 @@ void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, 
 
     CreateSwapChainImageViews(m_SwapChainImages, SurfaceProperties.Format.format);
 
-    for (ImageAllocation& ImageViewIter: m_SwapChainRenderImages)
+    m_ViewportImage.DestroyResources(m_Allocator);
+
+    constexpr VkImageAspectFlags AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+    constexpr VkImageTiling Tiling           = VK_IMAGE_TILING_LINEAR;
+    constexpr VkImageUsageFlags UsageFlags   = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+    VkCommandPool CommandPool {VK_NULL_HANDLE};
+    std::vector<VkCommandBuffer> CommandBuffers {VK_NULL_HANDLE};
+
+    InitializeSingleCommandQueue(CommandPool, CommandBuffers, GetGraphicsQueue().first);
     {
-        ImageViewIter.DestroyResources(m_Allocator);
+        CreateImage(m_Allocator, SurfaceProperties.Format.format, SurfaceProperties.Extent, Tiling, UsageFlags, 0U, m_ViewportImage.Image, m_ViewportImage.Allocation);
+        CreateImageView(m_ViewportImage.Image, SurfaceProperties.Format.format, AspectFlags, m_ViewportImage.View);
+
+        MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED,
+                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>(CommandBuffers.front(),
+                                                                  m_ViewportImage.Image,
+                                                                  SurfaceProperties.Format.format);
     }
-    m_SwapChainRenderImages.clear();
-
-    if (!std::empty(m_SwapChainImages))
-    {
-        m_SwapChainRenderImages.emplace_back();
-        CreateImage(m_Allocator, SurfaceProperties.Format.format, SurfaceProperties.Extent, VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 0U, m_SwapChainRenderImages.at(0U).Image, m_SwapChainRenderImages.at(0U).Allocation);
-        CreateImageView(m_SwapChainRenderImages.back().Image, SurfaceProperties.Format.format, VK_IMAGE_ASPECT_COLOR_BIT, m_SwapChainRenderImages.back().View);
-        CreateTextureSampler(m_Allocator, m_SwapChainRenderImages.back().Sampler);
-
-        VkCommandPool CopyCommandPool {VK_NULL_HANDLE};
-        std::vector<VkCommandBuffer> CommandBuffers {VK_NULL_HANDLE};
-
-        InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, GetGraphicsQueue().first);
-        {
-            MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>(CommandBuffers.back(),
-                                                                                                 m_SwapChainRenderImages.back().Image,
-                                                                                                 SurfaceProperties.Format.format);
-        }
-        FinishSingleCommandQueue(GetGraphicsQueue().second, CopyCommandPool, CommandBuffers);
-    }
+    FinishSingleCommandQueue(GetGraphicsQueue().second, CommandPool, CommandBuffers);
 }
 
-void BufferManager::CreateFrameBuffers(VkRenderPass const& RenderPass)
+void BufferManager::CreateSwapChainFrameBuffers(VkRenderPass const& RenderPass)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain frame buffers";
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan frame buffers";
+    m_SwapChainFrameBuffers = CreateFrameBuffers(RenderPass, m_SwapChainImages, true);
+}
 
-    m_FrameBuffers.resize(std::size(m_SwapChainImages), VK_NULL_HANDLE);
-    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(m_FrameBuffers)); ++Iterator)
+void BufferManager::CreateViewportFrameBuffer(VkRenderPass const& RenderPass)
+{
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan viewport frame buffers";
+
+    m_ViewportFrameBuffer = CreateFrameBuffers(RenderPass, {m_ViewportImage}, true).front();
+}
+
+std::vector<VkFramebuffer> BufferManager::CreateFrameBuffers(VkRenderPass const& RenderPass, std::vector<ImageAllocation> const& RenderImages, bool const IncludeDepth) const
+{
+    std::vector<VkFramebuffer> Output {};
+    Output.resize(std::size(RenderImages), VK_NULL_HANDLE);
+
+    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(Output)); ++Iterator)
     {
-        std::array const Attachments {
-                m_SwapChainImages.at(Iterator).View,
-                m_DepthImage.View};
+        std::vector Attachments {RenderImages.at(Iterator).View};
+        if (IncludeDepth)
+        {
+            Attachments.push_back(m_DepthImage.View);
+        }
 
         VkFramebufferCreateInfo const FrameBufferCreateInfo {
                 .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .renderPass      = RenderPass,
                 .attachmentCount = static_cast<std::uint32_t>(std::size(Attachments)),
                 .pAttachments    = std::data(Attachments),
-                .width           = m_SwapChainExtent.width,
-                .height          = m_SwapChainExtent.height,
+                .width           = m_RenderExtent.width,
+                .height          = m_RenderExtent.height,
                 .layers          = 1U};
 
-        CheckVulkanResult(vkCreateFramebuffer(volkGetLoadedDevice(), &FrameBufferCreateInfo, nullptr, &m_FrameBuffers.at(Iterator)));
+        CheckVulkanResult(vkCreateFramebuffer(volkGetLoadedDevice(), &FrameBufferCreateInfo, nullptr, &Output.at(Iterator)));
     }
+
+    return Output;
 }
 
-void BufferManager::CreateDepthResources(SurfaceProperties const& SurfaceProperties, std::pair<std::uint8_t, VkQueue> const& QueuePair)
+void BufferManager::CreateDepthResources(SurfaceProperties const& SurfaceProperties)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan depth resources";
 
-    auto const& [FamilyIndex, Queue] = QueuePair;
+    auto const& [FamilyIndex, Queue] = GetGraphicsQueue();
 
     constexpr VkImageTiling Tiling                      = VK_IMAGE_TILING_OPTIMAL;
     constexpr VkImageUsageFlagBits Usage                = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    constexpr VkMemoryPropertyFlags MemoryPropertyFlags = 0U;
+    constexpr VkMemoryPropertyFlags MemoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     constexpr VkImageAspectFlagBits Aspect              = VK_IMAGE_ASPECT_DEPTH_BIT;
     constexpr VkImageLayout InitialLayout               = VK_IMAGE_LAYOUT_UNDEFINED;
     constexpr VkImageLayout DestinationLayout           = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -597,7 +631,7 @@ void AllocateModelTexture(ObjectAllocationData& ObjectCreationData, tinygltf::Mo
     }
 }
 
-std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPath, std::pair<std::uint8_t, VkQueue> const& QueuePair)
+std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPath)
 {
     std::vector<ObjectAllocationData> AllocationData {};
     tinygltf::Model Model {};
@@ -820,11 +854,13 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
         }
     }
 
+    auto const& [FamilyIndex, Queue] = GetGraphicsQueue();
+
     VkCommandPool CopyCommandPool {VK_NULL_HANDLE};
     std::vector<VkCommandBuffer> CommandBuffers {};
     CommandBuffers.resize(std::size(AllocationData) + std::size(MoveOperation) + std::size(CopyOperation) + std::size(MoveOperation));
 
-    InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, QueuePair.first);
+    InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, FamilyIndex);
     {
         std::uint32_t Count = 0U;
 
@@ -873,7 +909,7 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
             ++Count;
         }
     }
-    FinishSingleCommandQueue(QueuePair.second, CopyCommandPool, CommandBuffers);
+    FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);
 
     for (ObjectAllocationData& AllocationDataIter: AllocationData)
     {
@@ -882,7 +918,6 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
             if (m_Objects.contains(AllocationDataIter.Object.GetID()))
             {
                 CreateTextureImageView(ImageDataIter.Allocation);
-                CreateTextureSampler(m_Allocator, ImageDataIter.Allocation.Sampler);
                 m_Objects.at(AllocationDataIter.Object.GetID()).TextureImages.push_back(ImageDataIter.Allocation);
             }
 
@@ -931,6 +966,12 @@ void BufferManager::ReleaseBufferResources()
         m_SwapChain = VK_NULL_HANDLE;
     }
 
+    if (m_Sampler != VK_NULL_HANDLE)
+    {
+        vkDestroySampler(volkGetLoadedDevice(), m_Sampler, nullptr);
+        m_Sampler = VK_NULL_HANDLE;
+    }
+
     DestroyBufferResources(true);
 
     vkDestroySurfaceKHR(volkGetLoadedInstance(), m_Surface, nullptr);
@@ -952,13 +993,9 @@ void BufferManager::DestroyBufferResources(bool const ClearScene)
     }
     m_SwapChainImages.clear();
 
-    for (ImageAllocation& ImageViewIter: m_SwapChainRenderImages)
-    {
-        ImageViewIter.DestroyResources(m_Allocator);
-    }
-    m_SwapChainRenderImages.clear();
+    m_ViewportImage.DestroyResources(m_Allocator);
 
-    for (VkFramebuffer& FrameBufferIter: m_FrameBuffers)
+    for (VkFramebuffer& FrameBufferIter: m_SwapChainFrameBuffers)
     {
         if (FrameBufferIter != VK_NULL_HANDLE)
         {
@@ -966,7 +1003,13 @@ void BufferManager::DestroyBufferResources(bool const ClearScene)
             FrameBufferIter = VK_NULL_HANDLE;
         }
     }
-    m_FrameBuffers.clear();
+    m_SwapChainFrameBuffers.clear();
+
+    if (m_ViewportFrameBuffer != VK_NULL_HANDLE)
+    {
+        vkDestroyFramebuffer(volkGetLoadedDevice(), m_ViewportFrameBuffer, nullptr);
+        m_ViewportFrameBuffer = VK_NULL_HANDLE;
+    }
 
     m_DepthImage.DestroyResources(m_Allocator);
 
@@ -992,14 +1035,14 @@ VkSwapchainKHR const& BufferManager::GetSwapChain() const
 
 VkExtent2D const& BufferManager::GetSwapChainExtent() const
 {
-    return m_SwapChainExtent;
+    return m_RenderExtent;
 }
 
 std::vector<VkImageView> BufferManager::GetSwapChainImageViews() const
 {
     std::vector<VkImageView> Output;
-    Output.reserve(std::size(m_SwapChainRenderImages));
-    for (auto const& [Image, View, Sampler, Allocation, Type]: m_SwapChainRenderImages)
+    Output.reserve(std::size(m_SwapChainImages));
+    for (auto const& [Image, View, Allocation, Type]: m_SwapChainImages)
     {
         Output.push_back(View);
     }
@@ -1007,21 +1050,34 @@ std::vector<VkImageView> BufferManager::GetSwapChainImageViews() const
     return Output;
 }
 
-std::vector<VkSampler> BufferManager::GetSwapChainSamplers() const
+VkImageView BufferManager::GetViewportImageView() const
 {
-    std::vector<VkSampler> Output;
-    Output.reserve(std::size(m_SwapChainRenderImages));
-    for (auto const& [Image, View, Sampler, Allocation, Type]: m_SwapChainRenderImages)
-    {
-        Output.push_back(Sampler);
-    }
-
-    return Output;
+    return m_ViewportImage.View;
 }
 
-std::vector<VkFramebuffer> const& BufferManager::GetFrameBuffers() const
+std::vector<ImageAllocation> const& BufferManager::GetSwapChainImages() const
 {
-    return m_FrameBuffers;
+    return m_SwapChainImages;
+}
+
+ImageAllocation const& BufferManager::GetViewportImage() const
+{
+    return m_ViewportImage;
+}
+
+VkSampler const& BufferManager::GetSampler() const
+{
+    return m_Sampler;
+}
+
+std::vector<VkFramebuffer> const& BufferManager::GetSwapChainFrameBuffers() const
+{
+    return m_SwapChainFrameBuffers;
+}
+
+VkFramebuffer const& BufferManager::GetViewportFrameBuffer() const
+{
+    return m_ViewportFrameBuffer;
 }
 
 VkBuffer BufferManager::GetVertexBuffer(std::uint32_t const ObjectID) const
@@ -1085,7 +1141,7 @@ std::vector<MeshBufferData> BufferManager::GetAllocatedObjects() const
 
         for (auto const& ImageAllocation: Data.TextureImages)
         {
-            Output.back().Textures.emplace(ImageAllocation.Type, std::pair(ImageAllocation.View, ImageAllocation.Sampler));
+            Output.back().Textures.emplace(ImageAllocation.Type, ImageAllocation.View);
         }
     }
 
@@ -1102,7 +1158,7 @@ std::uint32_t BufferManager::GetClampedNumAllocations() const
     return std::clamp(static_cast<std::uint32_t>(std::size(m_Objects)), 1U, UINT32_MAX);
 }
 
-void BufferManager::UpdateUniformBuffers(std::shared_ptr<Object> const& Object, Camera const& Camera, ViewSize const& Extent) const
+void BufferManager::UpdateUniformBuffers(std::shared_ptr<Object> const& Object, Camera const& Camera, VkExtent2D const& Extent) const
 {
     if (!Object)
     {

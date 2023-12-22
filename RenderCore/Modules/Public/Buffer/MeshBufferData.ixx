@@ -19,6 +19,6 @@ namespace RenderCore
         std::uint32_t ID {0U};
         VkBuffer UniformBuffer {VK_NULL_HANDLE};
         void* UniformBufferData {nullptr};
-        std::unordered_map<TextureType, std::pair<VkImageView, VkSampler>> Textures {};
+        std::unordered_map<TextureType, VkImageView> Textures {};
     };
 }// namespace RenderCore

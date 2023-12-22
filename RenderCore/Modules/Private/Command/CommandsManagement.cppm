@@ -19,6 +19,7 @@ import RenderCore.Renderer;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.BufferManagement;
 import RenderCore.Management.PipelineManagement;
+import RenderCore.Management.ImGuiManagement;
 import RenderCore.Types.Camera;
 import RenderCore.Types.Object;
 import RenderCore.Utils.Helpers;
@@ -34,13 +35,9 @@ VkSemaphore g_ImageAvailableSemaphore {};
 VkSemaphore g_RenderFinishedSemaphore {};
 VkFence g_Fence {};
 
-void AllocateCommandBuffer(std::uint32_t const QueueFamily)
+void AllocateCommandBuffer(std::uint32_t const QueueFamily, std::uint8_t const NumberOfBuffers)
 {
-    if (std::empty(g_CommandBuffers))
-    {
-        g_CommandBuffers.emplace_back();
-    }
-    else
+    if (!std::empty(g_CommandBuffers))
     {
         vkFreeCommandBuffers(volkGetLoadedDevice(), g_CommandPool, static_cast<std::uint32_t>(std::size(g_CommandBuffers)), std::data(g_CommandBuffers));
         g_CommandBuffers.clear();
@@ -53,6 +50,7 @@ void AllocateCommandBuffer(std::uint32_t const QueueFamily)
     }
 
     g_CommandPool = CreateCommandPool(QueueFamily);
+    g_CommandBuffers.resize(NumberOfBuffers);
 
     VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -208,129 +206,218 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage(VkSwapchainKHR con
     return static_cast<std::int32_t>(Output);
 }
 
-void RenderCore::RecordCommandBuffers(std::uint32_t const QueueFamily, std::uint32_t const ImageIndex, Camera const& Camera, BufferManager const& BufferManager, PipelineManager const& PipelineManager, std::vector<std::shared_ptr<Object>> const& Objects, ViewSize const& ViewportSize)
+void RecordRenderingCommands(VkCommandBuffer const& CommandBuffer,
+                             VkRenderPass const& RenderPass,
+                             VkPipeline const& Pipeline,
+                             VkPipelineLayout const& PipelineLayout,
+                             std::vector<VkFramebuffer> const& FrameBuffers,
+                             bool const UpdateViewport,
+                             bool const UpdateUniformBuffers,
+                             std::uint32_t const ImageIndex,
+                             Camera const& Camera,
+                             BufferManager const& BufferManager,
+                             PipelineManager const& PipelineManager,
+                             std::vector<std::shared_ptr<Object>> const& Objects,
+                             VkRect2D const& ViewportRect)
 {
-    AllocateCommandBuffer(QueueFamily);
-    VkCommandBuffer const& MainCommandBuffer = g_CommandBuffers.back();
+    constexpr std::array<VkDeviceSize, 1U> Offsets {0U};
 
     constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
-    CheckVulkanResult(vkBeginCommandBuffer(MainCommandBuffer, &CommandBufferBeginInfo));
+    CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
 
-    VkRenderPass const& RenderPass                 = PipelineManager.GetRenderPass();
-    VkPipeline const& Pipeline                     = PipelineManager.GetPipeline();
-    VkPipelineLayout const& PipelineLayout         = PipelineManager.GetPipelineLayout();
-    std::vector<VkFramebuffer> const& FrameBuffers = BufferManager.GetFrameBuffers();
+    if (UpdateViewport)
+    {
+        VkViewport const Viewport {
+                .x        = static_cast<float>(ViewportRect.offset.x),
+                .y        = static_cast<float>(ViewportRect.offset.y),
+                .width    = static_cast<float>(ViewportRect.extent.width),
+                .height   = static_cast<float>(ViewportRect.extent.height),
+                .minDepth = 0.F,
+                .maxDepth = 1.F};
 
-    constexpr std::array<VkDeviceSize, 1U> Offsets {0U};
+        VkRect2D const Scissor { ViewportRect };
 
-    VkViewport const Viewport {
-            .x        = static_cast<float>(ViewportSize.X),
-            .y        = static_cast<float>(ViewportSize.Y),
-            .width    = static_cast<float>(ViewportSize.W),
-            .height   = static_cast<float>(ViewportSize.H),
-            .minDepth = 0.F,
-            .maxDepth = 1.F};
+        vkCmdSetViewport(CommandBuffer, 0U, 1U, &Viewport);
+        vkCmdSetScissor(CommandBuffer, 0U, 1U, &Scissor);
+    }
 
-    VkRect2D const Scissor {
-            .offset = {
-                    .x = ViewportSize.X,
-                    .y = ViewportSize.Y},
-            .extent = {
-                    .width  = ViewportSize.W,
-                    .height = ViewportSize.H,
-            }};
-
-    vkCmdSetViewport(MainCommandBuffer, 0U, 1U, &Viewport);
-    vkCmdSetScissor(MainCommandBuffer, 0U, 1U, &Scissor);
+    if (Pipeline != VK_NULL_HANDLE)
+    {
+        vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
+    }
 
     bool ActiveRenderPass = false;
     if (RenderPass != VK_NULL_HANDLE && !std::empty(FrameBuffers))
     {
         VkRenderPassBeginInfo const RenderPassBeginInfo {
-                .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                .renderPass  = RenderPass,
-                .framebuffer = FrameBuffers.at(ImageIndex),
-                .renderArea  = {
-                         .offset = {
-                                 .x = ViewportSize.X,
-                                 .y = ViewportSize.Y},
-                         .extent = {.width = ViewportSize.W, .height = ViewportSize.H}},
+                .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                .renderPass      = RenderPass,
+                .framebuffer     = FrameBuffers.at(ImageIndex),
+                .renderArea      = ViewportRect,
                 .clearValueCount = static_cast<std::uint32_t>(std::size(g_ClearValues)),
                 .pClearValues    = std::data(g_ClearValues)};
 
-        vkCmdBeginRenderPass(MainCommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(CommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         ActiveRenderPass = true;
-    }
-
-    if (Pipeline != VK_NULL_HANDLE)
-    {
-        vkCmdBindPipeline(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
     }
 
     if (ActiveRenderPass)
     {
-        for (std::shared_ptr<Object> const& ObjectIter: Objects)
+        if (UpdateUniformBuffers)
         {
-            if (!ObjectIter || ObjectIter->IsPendingDestroy() || !Camera.CanDrawObject(ObjectIter, ViewportSize))
+            for (std::shared_ptr<Object> const& ObjectIter: Objects)
             {
-                continue;
-            }
+                if (!ObjectIter || ObjectIter->IsPendingDestroy() || !Camera.CanDrawObject(ObjectIter, ViewportRect.extent))
+                {
+                    continue;
+                }
 
-            std::uint32_t const ObjectID = ObjectIter->GetID();
+                std::uint32_t const ObjectID = ObjectIter->GetID();
 
-            if (VkDescriptorSet const& DescriptorSet = PipelineManager.GetDescriptorSet(ObjectID); DescriptorSet != VK_NULL_HANDLE)
-            {
-                vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, 1U, &DescriptorSet, 0U, nullptr);
-            }
-            else
-            {
-                continue;
-            }
+                if (VkDescriptorSet const& DescriptorSet = PipelineManager.GetDescriptorSet(ObjectID); DescriptorSet != VK_NULL_HANDLE)
+                {
+                    vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0U, 1U, &DescriptorSet, 0U, nullptr);
+                }
+                else
+                {
+                    continue;
+                }
 
-            VkBuffer const& VertexBuffer   = BufferManager.GetVertexBuffer(ObjectID);
-            VkBuffer const& IndexBuffer    = BufferManager.GetIndexBuffer(ObjectID);
-            std::uint32_t const IndexCount = BufferManager.GetIndicesCount(ObjectID);
+                VkBuffer const& VertexBuffer   = BufferManager.GetVertexBuffer(ObjectID);
+                VkBuffer const& IndexBuffer    = BufferManager.GetIndexBuffer(ObjectID);
+                std::uint32_t const IndexCount = BufferManager.GetIndicesCount(ObjectID);
 
-            BufferManager.UpdateUniformBuffers(ObjectIter, Camera, ViewportSize);
+                BufferManager.UpdateUniformBuffers(ObjectIter, Camera, ViewportRect.extent);
 
-            bool ActiveVertexBinding {false};
-            if (VertexBuffer != VK_NULL_HANDLE)
-            {
-                vkCmdBindVertexBuffers(MainCommandBuffer, 0U, 1U, &VertexBuffer, std::data(Offsets));
-                ActiveVertexBinding = true;
-            }
+                bool ActiveVertexBinding {false};
+                if (VertexBuffer != VK_NULL_HANDLE)
+                {
+                    vkCmdBindVertexBuffers(CommandBuffer, 0U, 1U, &VertexBuffer, std::data(Offsets));
+                    ActiveVertexBinding = true;
+                }
 
-            bool ActiveIndexBinding {false};
-            if (IndexBuffer != VK_NULL_HANDLE)
-            {
-                vkCmdBindIndexBuffer(MainCommandBuffer, IndexBuffer, 0U, VK_INDEX_TYPE_UINT32);
-                ActiveIndexBinding = true;
-            }
+                bool ActiveIndexBinding {false};
+                if (IndexBuffer != VK_NULL_HANDLE)
+                {
+                    vkCmdBindIndexBuffer(CommandBuffer, IndexBuffer, 0U, VK_INDEX_TYPE_UINT32);
+                    ActiveIndexBinding = true;
+                }
 
-            if (ActiveVertexBinding && ActiveIndexBinding)
-            {
-                vkCmdDrawIndexed(MainCommandBuffer, IndexCount, 1U, 0U, 0U, 0U);
+                if (ActiveVertexBinding && ActiveIndexBinding)
+                {
+                    vkCmdDrawIndexed(CommandBuffer, IndexCount, 1U, 0U, 0U, 0U);
+                }
             }
         }
 
-        if (PipelineManager.GetIsBoundToImGui())
+        vkCmdEndRenderPass(CommandBuffer);
+    }
+
+    CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
+}
+
+void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
+                                      Camera const& Camera,
+                                      BufferManager const& BufferManager,
+                                      PipelineManager const& PipelineManager,
+                                      std::vector<std::shared_ptr<Object>> const& Objects,
+                                      VkRect2D const& ViewportRect)
+{
+    AllocateCommandBuffer(GetGraphicsQueue().first, IsImGuiInitialized() ? 3U : 2U);
+    VkPipelineLayout const& PipelineLayout = PipelineManager.GetPipelineLayout();
+
+    // Main rendering commands
+    {
+        VkRenderPass const& RenderPass                 = PipelineManager.GetMainRenderPass();
+        VkPipeline const& Pipeline                     = PipelineManager.GetMainPipeline();
+        std::vector<VkFramebuffer> const& FrameBuffers = BufferManager.GetSwapChainFrameBuffers();
+        constexpr bool UpdateViewport                  = false;
+        constexpr bool UpdateUniformBuffers            = false;
+
+        RecordRenderingCommands(g_CommandBuffers.at(0U),
+                                RenderPass,
+                                Pipeline,
+                                PipelineLayout,
+                                FrameBuffers,
+                                UpdateViewport,
+                                UpdateUniformBuffers,
+                                ImageIndex,
+                                Camera,
+                                BufferManager,
+                                PipelineManager,
+                                Objects,
+                                ViewportRect);
+    }
+
+    // Viewport rendering commands
+    {
+        VkRenderPass const& RenderPass      = PipelineManager.GetViewportRenderPass();
+        VkPipeline const& Pipeline          = PipelineManager.GetViewportPipeline();
+        VkFramebuffer const& FrameBuffer    = BufferManager.GetViewportFrameBuffer();
+        constexpr bool UpdateViewport       = true;
+        constexpr bool UpdateUniformBuffers = true;
+
+        RecordRenderingCommands(g_CommandBuffers.at(1U),
+                                RenderPass,
+                                Pipeline,
+                                PipelineLayout,
+                                {FrameBuffer},
+                                UpdateViewport,
+                                UpdateUniformBuffers,
+                                0U,
+                                Camera,
+                                BufferManager,
+                                PipelineManager,
+                                Objects,
+                                ViewportRect);
+    }
+
+    if (IsImGuiInitialized())
+    {
+        VkCommandBuffer const& CommandBuffer = g_CommandBuffers.at(2U);
+
+        constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+        CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
+
+        VkRenderPass const& RenderPass                 = GetImGuiRenderPass();
+        std::vector<VkFramebuffer> const& FrameBuffers = GetImGuiFrameBuffers();
+
+        bool ActiveRenderPass = false;
+        if (RenderPass != VK_NULL_HANDLE && !std::empty(FrameBuffers))
+        {
+            VkRenderPassBeginInfo const RenderPassBeginInfo {
+                    .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                    .renderPass      = RenderPass,
+                    .framebuffer     = FrameBuffers.at(ImageIndex),
+                    .renderArea      = ViewportRect,
+                    .clearValueCount = 0U,
+                    .pClearValues    = VK_NULL_HANDLE};
+
+            vkCmdBeginRenderPass(CommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+            ActiveRenderPass = true;
+        }
+
+        if (ActiveRenderPass)
         {
             if (ImDrawData* const ImGuiDrawData = ImGui::GetDrawData())
             {
-                ImGui_ImplVulkan_RenderDrawData(ImGuiDrawData, MainCommandBuffer);
+                ImGui_ImplVulkan_RenderDrawData(ImGuiDrawData, CommandBuffer);
             }
+
+            vkCmdEndRenderPass(CommandBuffer);
         }
 
-        vkCmdEndRenderPass(MainCommandBuffer);
+        CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
     }
-
-    CheckVulkanResult(vkEndCommandBuffer(MainCommandBuffer));
 }
 
-void RenderCore::SubmitCommandBuffers(VkQueue const& GraphicsQueue)
+void RenderCore::SubmitCommandBuffers()
 {
     WaitAndResetFences();
 
@@ -347,13 +434,15 @@ void RenderCore::SubmitCommandBuffers(VkQueue const& GraphicsQueue)
             .signalSemaphoreCount = 1U,
             .pSignalSemaphores    = &g_RenderFinishedSemaphore};
 
+    auto const& GraphicsQueue = GetGraphicsQueue().second;
+
     CheckVulkanResult(vkQueueSubmit(GraphicsQueue, 1U, &SubmitInfo, g_Fence));
     CheckVulkanResult(vkQueueWaitIdle(GraphicsQueue));
 
     FreeCommandBuffers();
 }
 
-void RenderCore::PresentFrame(VkQueue const& Queue, std::uint32_t const ImageIndice, VkSwapchainKHR const& SwapChain)
+void RenderCore::PresentFrame(std::uint32_t const ImageIndice, VkSwapchainKHR const& SwapChain)
 {
     VkPresentInfoKHR const PresentInfo {
             .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
@@ -363,6 +452,8 @@ void RenderCore::PresentFrame(VkQueue const& Queue, std::uint32_t const ImageInd
             .pSwapchains        = &SwapChain,
             .pImageIndices      = &ImageIndice,
             .pResults           = nullptr};
+
+    auto const& Queue = GetGraphicsQueue().second;
 
     if (VkResult const OperationResult = vkQueuePresentKHR(Queue, &PresentInfo);
         OperationResult != VK_SUCCESS)

@@ -21,40 +21,36 @@ import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
-void PipelineManager::CreateRenderPass(SurfaceProperties const& SurfaceProperties)
+void CreateRenderPass(SurfaceProperties const& SurfaceProperties, const VkImageLayout FinalLayout, VkRenderPass& OutRenderPass)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-
-    if (m_RenderPass != VK_NULL_HANDLE)
+    if (OutRenderPass != VK_NULL_HANDLE)
     {
-        vkDestroyRenderPass(volkGetLoadedDevice(), m_RenderPass, nullptr);
+        vkDestroyRenderPass(volkGetLoadedDevice(), OutRenderPass, nullptr);
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render pass";
-
-    VkAttachmentDescription const ColorAttachmentDescription {
-            .format         = SurfaceProperties.Format.format,
-            .samples        = g_MSAASamples,
-            .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
-            .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
+    std::array const AttachmentDescriptions {
+            VkAttachmentDescription {
+                    .format         = SurfaceProperties.Format.format,
+                    .samples        = g_MSAASamples,
+                    .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
+                    .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                    .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .finalLayout    = FinalLayout},
+            VkAttachmentDescription {
+                    .format         = SurfaceProperties.DepthFormat,
+                    .samples        = g_MSAASamples,
+                    .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
+                    .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                    .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
 
     constexpr VkAttachmentReference ColorAttachmentReference {
             .attachment = 0U,
             .layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-
-    VkAttachmentDescription const DepthAttachmentDescription {
-            .format         = SurfaceProperties.DepthFormat,
-            .samples        = g_MSAASamples,
-            .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
 
     constexpr VkAttachmentReference DepthAttachmentReference {
             .attachment = 1U,
@@ -62,21 +58,32 @@ void PipelineManager::CreateRenderPass(SurfaceProperties const& SurfacePropertie
 
     VkSubpassDescription const SubpassDescription {
             .pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS,
+            .inputAttachmentCount    = 0U,
+            .pInputAttachments       = nullptr,
             .colorAttachmentCount    = 1U,
             .pColorAttachments       = &ColorAttachmentReference,
-            .pDepthStencilAttachment = &DepthAttachmentReference};
+            .pResolveAttachments     = nullptr,
+            .pDepthStencilAttachment = &DepthAttachmentReference,
+            .preserveAttachmentCount = 0U,
+            .pPreserveAttachments    = nullptr};
 
-    constexpr VkSubpassDependency SubpassDependency {
-            .srcSubpass    = VK_SUBPASS_EXTERNAL,
-            .dstSubpass    = 0U,
-            .srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-            .dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-            .srcAccessMask = 0U,
-            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
-
-    std::array const AttachmentDescriptions {
-            ColorAttachmentDescription,
-            DepthAttachmentDescription};
+    constexpr std::array SubpassDependencies {
+            VkSubpassDependency {
+                    .srcSubpass      = VK_SUBPASS_EXTERNAL,
+                    .dstSubpass      = 0U,
+                    .srcStageMask    = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                    .dstStageMask    = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                    .srcAccessMask   = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                    .dstAccessMask   = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+                    .dependencyFlags = 0U},
+            VkSubpassDependency {
+                    .srcSubpass      = VK_SUBPASS_EXTERNAL,
+                    .dstSubpass      = 0U,
+                    .srcStageMask    = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .dstStageMask    = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .srcAccessMask   = 0U,
+                    .dstAccessMask   = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
+                    .dependencyFlags = 0U}};
 
     VkRenderPassCreateInfo const RenderPassCreateInfo {
             .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
@@ -84,20 +91,25 @@ void PipelineManager::CreateRenderPass(SurfaceProperties const& SurfacePropertie
             .pAttachments    = std::data(AttachmentDescriptions),
             .subpassCount    = 1U,
             .pSubpasses      = &SubpassDescription,
-            .dependencyCount = 1U,
-            .pDependencies   = &SubpassDependency};
+            .dependencyCount = static_cast<std::uint32_t>(std::size(SubpassDependencies)),
+            .pDependencies   = std::data(SubpassDependencies)};
 
-    CheckVulkanResult(vkCreateRenderPass(volkGetLoadedDevice(), &RenderPassCreateInfo, nullptr, &m_RenderPass));
+    CheckVulkanResult(vkCreateRenderPass(volkGetLoadedDevice(), &RenderPassCreateInfo, nullptr, &OutRenderPass));
 }
 
-void PipelineManager::CreateGraphicsPipeline()
+void PipelineManager::CreateRenderPasses(SurfaceProperties const& SurfaceProperties)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan render passes";
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan graphics pipeline";
+    CreateRenderPass(SurfaceProperties, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, m_MainRenderPass);
+    CreateRenderPass(SurfaceProperties, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_ViewportRenderPass);
+}
 
-    auto const BindingDescription    = GetBindingDescriptors();
-    auto const AttributeDescriptions = GetAttributeDescriptions();
+void CreatePipeline(VkRenderPass const& RenderPass, VkPipelineLayout const& PipelineLayout, VkPipeline& OutPipeline)
+{
+    static auto const BindingDescription    = GetBindingDescriptors();
+    static auto const AttributeDescriptions = GetAttributeDescriptions();
 
     VkPipelineVertexInputStateCreateInfo const VertexInputState {
             .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -167,18 +179,6 @@ void PipelineManager::CreateGraphicsPipeline()
             .dynamicStateCount = static_cast<uint32_t>(std::size(g_DynamicStates)),
             .pDynamicStates    = std::data(g_DynamicStates)};
 
-    VkPipelineLayoutCreateInfo const PipelineLayoutCreateInfo {
-            .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = 1U,
-            .pSetLayouts    = &m_DescriptorSetLayout};
-
-    CheckVulkanResult(vkCreatePipelineLayout(volkGetLoadedDevice(), &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
-
-    constexpr VkPipelineCacheCreateInfo PipelineCacheCreateInfo {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
-
-    CheckVulkanResult(vkCreatePipelineCache(volkGetLoadedDevice(), &PipelineCacheCreateInfo, nullptr, &m_PipelineCache));
-
     constexpr VkPipelineDepthStencilStateCreateInfo DepthStencilState {
             .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
             .depthTestEnable       = VK_TRUE,
@@ -205,13 +205,34 @@ void PipelineManager::CreateGraphicsPipeline()
             .pDepthStencilState  = &DepthStencilState,
             .pColorBlendState    = &ColorBlendState,
             .pDynamicState       = &DynamicState,
-            .layout              = m_PipelineLayout,
-            .renderPass          = m_RenderPass,
+            .layout              = PipelineLayout,
+            .renderPass          = RenderPass,
             .subpass             = 0U,
             .basePipelineHandle  = VK_NULL_HANDLE,
             .basePipelineIndex   = -1};
 
-    CheckVulkanResult(vkCreateGraphicsPipelines(volkGetLoadedDevice(), VK_NULL_HANDLE, 1U, &GraphicsPipelineCreateInfo, nullptr, &m_Pipeline));
+    CheckVulkanResult(vkCreateGraphicsPipelines(volkGetLoadedDevice(), VK_NULL_HANDLE, 1U, &GraphicsPipelineCreateInfo, nullptr, &OutPipeline));
+}
+
+void PipelineManager::CreatePipelines()
+{
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan graphics pipelines";
+
+    VkPipelineLayoutCreateInfo const PipelineLayoutCreateInfo {
+            .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .setLayoutCount = 1U,
+            .pSetLayouts    = &m_DescriptorSetLayout};
+
+    CheckVulkanResult(vkCreatePipelineLayout(volkGetLoadedDevice(), &PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
+
+    constexpr VkPipelineCacheCreateInfo PipelineCacheCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
+
+    CheckVulkanResult(vkCreatePipelineCache(volkGetLoadedDevice(), &PipelineCacheCreateInfo, nullptr, &m_PipelineCache));
+
+    CreatePipeline(m_MainRenderPass, m_PipelineLayout, m_MainPipeline);
+    CreatePipeline(m_ViewportRenderPass, m_PipelineLayout, m_ViewportPipeline);
 }
 
 void PipelineManager::CreateDescriptorSetLayout()
@@ -265,7 +286,7 @@ void PipelineManager::CreateDescriptorPool(std::uint32_t const NumAllocations)
     CheckVulkanResult(vkCreateDescriptorPool(volkGetLoadedDevice(), &DescriptorPoolCreateInfo, nullptr, &m_DescriptorPool));
 }
 
-void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& AllocatedObjects)
+void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& AllocatedObjects, VkSampler const& Sampler)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -308,7 +329,7 @@ void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& Al
                 .offset = 0U,
                 .range  = UniformBufferSize});
 
-        for (auto const& [View, Sampler]: AllocatedObjects.at(Index).Textures | std::views::values)
+        for (auto const& View: AllocatedObjects.at(Index).Textures | std::views::values)
         {
             ImageInfos.push_back(VkDescriptorImageInfo {
                     .sampler     = Sampler,
@@ -357,10 +378,16 @@ void PipelineManager::ReleasePipelineResources()
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan pipeline resources";
 
-    if (m_RenderPass != VK_NULL_HANDLE)
+    if (m_MainRenderPass != VK_NULL_HANDLE)
     {
-        vkDestroyRenderPass(volkGetLoadedDevice(), m_RenderPass, nullptr);
-        m_RenderPass = VK_NULL_HANDLE;
+        vkDestroyRenderPass(volkGetLoadedDevice(), m_MainRenderPass, nullptr);
+        m_MainRenderPass = VK_NULL_HANDLE;
+    }
+
+    if (m_ViewportRenderPass != VK_NULL_HANDLE)
+    {
+        vkDestroyRenderPass(volkGetLoadedDevice(), m_ViewportRenderPass, nullptr);
+        m_ViewportRenderPass = VK_NULL_HANDLE;
     }
 
     ReleaseDynamicPipelineResources();
@@ -372,10 +399,16 @@ void PipelineManager::ReleaseDynamicPipelineResources()
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan pipeline resources";
 
-    if (m_Pipeline != VK_NULL_HANDLE)
+    if (m_MainPipeline != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(volkGetLoadedDevice(), m_Pipeline, nullptr);
-        m_Pipeline = VK_NULL_HANDLE;
+        vkDestroyPipeline(volkGetLoadedDevice(), m_MainPipeline, nullptr);
+        m_MainPipeline = VK_NULL_HANDLE;
+    }
+
+    if (m_ViewportPipeline != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(volkGetLoadedDevice(), m_ViewportPipeline, nullptr);
+        m_ViewportPipeline = VK_NULL_HANDLE;
     }
 
     if (m_PipelineLayout != VK_NULL_HANDLE)
@@ -405,34 +438,29 @@ void PipelineManager::ReleaseDynamicPipelineResources()
     m_DescriptorSets.clear();
 }
 
-void PipelineManager::SetIsBoundToImGui(bool const Value)
+VkRenderPass const& PipelineManager::GetMainRenderPass() const
 {
-    m_BoundToImGui = Value;
+    return m_MainRenderPass;
 }
 
-bool PipelineManager::GetIsBoundToImGui() const
+VkRenderPass const& PipelineManager::GetViewportRenderPass() const
 {
-    return m_BoundToImGui;
+    return m_ViewportRenderPass;
 }
 
-VkRenderPass const& PipelineManager::GetRenderPass() const
+VkPipeline const& PipelineManager::GetMainPipeline() const
 {
-    return m_RenderPass;
+    return m_MainPipeline;
 }
 
-VkPipeline const& PipelineManager::GetPipeline() const
+VkPipeline const& PipelineManager::GetViewportPipeline() const
 {
-    return m_Pipeline;
+    return m_ViewportPipeline;
 }
 
 VkPipelineLayout const& PipelineManager::GetPipelineLayout() const
 {
     return m_PipelineLayout;
-}
-
-VkPipelineCache const& PipelineManager::GetPipelineCache() const
-{
-    return m_PipelineCache;
 }
 
 VkDescriptorSetLayout const& PipelineManager::GetDescriptorSetLayout() const

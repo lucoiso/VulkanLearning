@@ -22,7 +22,6 @@ namespace RenderCore
     {
         VkImage Image {VK_NULL_HANDLE};
         VkImageView View {VK_NULL_HANDLE};
-        VkSampler Sampler {VK_NULL_HANDLE};
         VmaAllocation Allocation {VK_NULL_HANDLE};
 
         TextureType Type {TextureType::BaseColor};

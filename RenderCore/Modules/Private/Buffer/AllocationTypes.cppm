@@ -35,12 +35,6 @@ void ImageAllocation::DestroyResources(VmaAllocator const& Allocator)
             Image = VK_NULL_HANDLE;
         }
     }
-
-    if (Sampler != VK_NULL_HANDLE)
-    {
-        vkDestroySampler(volkGetLoadedDevice(), Sampler, nullptr);
-        Sampler = VK_NULL_HANDLE;
-    }
 }
 
 bool BufferAllocation::IsValid() const

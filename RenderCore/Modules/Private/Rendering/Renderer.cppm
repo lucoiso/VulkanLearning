@@ -68,7 +68,7 @@ bool CreateVulkanInstance()
     // ReSharper disable once CppTooWideScopeInitStatement
     std::vector const GLFWExtensions = GetGLFWExtensions();
 
-    for (std::string_view const& ExtensionIter: GLFWExtensions)
+    for (std::string const& ExtensionIter: GLFWExtensions)
     {
         Extensions.push_back(std::data(ExtensionIter));
     }
@@ -101,7 +101,7 @@ bool CreateVulkanInstance()
     return g_Instance != VK_NULL_HANDLE;
 }
 
-void Renderer::DrawFrame(GLFWwindow* const Window, Camera const& Camera, std::function<void()>&& RefreshCallback)
+void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera const& Camera, std::function<void()>&& RefreshCallback)
 {
     if (!IsInitialized())
     {
@@ -113,20 +113,7 @@ void Renderer::DrawFrame(GLFWwindow* const Window, Camera const& Camera, std::fu
         throw std::runtime_error("Window is invalid");
     }
 
-    static std::uint64_t LastTime   = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    std::uint64_t const CurrentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    double const DeltaTime          = static_cast<double>(CurrentTime - LastTime) / 1000.0;
-
-    if (DeltaTime < m_FrameRateCap)
-    {
-        return;
-    }
-
-    if (DeltaTime > 0.F)
-    {
-        m_FrameTime = DeltaTime;
-        LastTime    = CurrentTime;
-    }
+    m_FrameTime = DeltaTime;
 
     RemoveInvalidObjects();
 
@@ -151,16 +138,12 @@ void Renderer::DrawFrame(GLFWwindow* const Window, Camera const& Camera, std::fu
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
 
-            auto const SurfaceProperties = GetSurfaceProperties(Window, m_BufferManager.GetSurface());
-            auto SurfaceCapabilities     = GetSurfaceCapabilities(m_BufferManager.GetSurface());
-            VkExtent2D const Extent {m_ViewportOffset.W, m_ViewportOffset.H};
-            SurfaceCapabilities.currentExtent  = Extent;
-            SurfaceCapabilities.minImageExtent = Extent;
-            SurfaceCapabilities.maxImageExtent = Extent;
+            auto const SurfaceProperties   = GetSurfaceProperties(Window, m_BufferManager.GetSurface());
+            auto const SurfaceCapabilities = GetSurfaceCapabilities(m_BufferManager.GetSurface());
 
-            auto const QueueFamilyIndices = GetUniqueQueueFamilyIndicesU32();
-            m_BufferManager.CreateSwapChain(SurfaceProperties, SurfaceCapabilities, QueueFamilyIndices);
-            m_BufferManager.CreateDepthResources(SurfaceProperties, GetGraphicsQueue());
+            m_BufferManager.CreateSwapChain(SurfaceProperties, SurfaceCapabilities);
+            m_BufferManager.CreateDepthResources(SurfaceProperties);
+
             RefreshCallback();
             CreateCommandsSynchronizationObjects();
 
@@ -171,12 +154,14 @@ void Renderer::DrawFrame(GLFWwindow* const Window, Camera const& Camera, std::fu
         if (HasFlag(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH))
         {
             m_PipelineManager.CreateDescriptorSetLayout();
-            m_PipelineManager.CreateGraphicsPipeline();
+            m_PipelineManager.CreatePipelines();
 
-            m_BufferManager.CreateFrameBuffers(m_PipelineManager.GetRenderPass());
+            m_BufferManager.CreateSwapChainFrameBuffers(m_PipelineManager.GetMainRenderPass());
+            m_BufferManager.CreateViewportFrameBuffer(m_PipelineManager.GetViewportRenderPass());
+            CreateImGuiFrameBuffers(m_BufferManager);
 
             m_PipelineManager.CreateDescriptorPool(m_BufferManager.GetClampedNumAllocations());
-            m_PipelineManager.CreateDescriptorSets(m_BufferManager.GetAllocatedObjects());
+            m_PipelineManager.CreateDescriptorSets(m_BufferManager.GetAllocatedObjects(), m_BufferManager.GetSampler());
 
             RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
         }
@@ -187,11 +172,11 @@ void Renderer::DrawFrame(GLFWwindow* const Window, Camera const& Camera, std::fu
         if (std::optional<std::int32_t> const ImageIndice = RequestImageIndex(Window);
             ImageIndice.has_value())
         {
-            std::lock_guard Lock(m_ObjectsMutex);
+            std::unique_lock Lock(m_ObjectsMutex);
 
-            RecordCommandBuffers(GetGraphicsQueue().first, ImageIndice.value(), Camera, m_BufferManager, m_PipelineManager, GetObjects(), GetViewportSize());
-            SubmitCommandBuffers(GetGraphicsQueue().second);
-            PresentFrame(GetGraphicsQueue().second, ImageIndice.value(), m_BufferManager.GetSwapChain());
+            RecordCommandBuffers(ImageIndice.value(), Camera, m_BufferManager, m_PipelineManager, GetObjects(), m_ViewportRect);
+            SubmitCommandBuffers();
+            PresentFrame(ImageIndice.value(), m_BufferManager.GetSwapChain());
         }
     }
 }
@@ -241,17 +226,14 @@ void Renderer::Tick()
     m_DeltaTime = DeltaTime;
     LastTime    = CurrentTime;
 
-    if (m_ObjectsMutex.try_lock())
-    {
-        for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
-        {
-            if (ObjectIter && !ObjectIter->IsPendingDestroy())
-            {
-                ObjectIter->Tick(DeltaTime);
-            }
-        }
+    std::unique_lock Lock(m_ObjectsMutex);
 
-        m_ObjectsMutex.unlock();
+    for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
+    {
+        if (ObjectIter && !ObjectIter->IsPendingDestroy())
+        {
+            ObjectIter->Tick(DeltaTime);
+        }
     }
 }
 
@@ -305,10 +287,13 @@ bool Renderer::Initialize(GLFWwindow* const Window)
     volkLoadDevice(GetLogicalDevice());
 
     m_BufferManager.CreateMemoryAllocator(GetPhysicalDevice());
+    m_BufferManager.CreateImageSampler();
     auto const _                 = CompileDefaultShaders();
     auto const SurfaceProperties = GetSurfaceProperties(Window, m_BufferManager.GetSurface());
-    m_PipelineManager.CreateRenderPass(SurfaceProperties);
-    InitializeImGui(Window, m_PipelineManager);
+    m_ViewportRect.extent        = SurfaceProperties.Extent;
+    m_PipelineManager.CreateRenderPasses(SurfaceProperties);
+    CreateImGuiRenderPass(SurfaceProperties.Format.format);
+    InitializeImGui(Window);
 
     AddFlags(m_StateFlags, RendererStateFlags::INITIALIZED);
     AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
@@ -400,7 +385,7 @@ std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const& ObjectPat
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
 
-    std::vector<Object> const LoadedObjects = m_BufferManager.AllocateScene(ObjectPath, GetGraphicsQueue());
+    std::vector<Object> const LoadedObjects = m_BufferManager.AllocateScene(ObjectPath);
     std::vector<std::uint32_t> Output;
     Output.reserve(std::size(LoadedObjects));
 
@@ -493,14 +478,14 @@ Camera& Renderer::GetMutableCamera()
     return m_Camera;
 }
 
-ViewSize const& Renderer::GetViewportSize() const
+VkRect2D const& Renderer::GetViewportRect() const
 {
-    return m_ViewportOffset;
+    return m_ViewportRect;
 }
 
-void Renderer::SetViewportOffset(ViewSize const& Value)
+void Renderer::SetViewportRect(VkRect2D const& Value)
 {
-    m_ViewportOffset = Value;
+    m_ViewportRect = Value;
 }
 
 std::vector<std::shared_ptr<Object>> const& Renderer::GetObjects() const
@@ -520,14 +505,17 @@ std::uint32_t Renderer::GetNumObjects() const
     return std::size(m_Objects);
 }
 
-VkImageView Renderer::GetSwapChainImageView(std::uint32_t const Index) const
+VkImageView Renderer::GetViewportRenderImageView() const
 {
-    auto const SwapChainImageViews = m_BufferManager.GetSwapChainImageViews();
-    return std::size(m_BufferManager.GetSwapChainImageViews()) > Index ? SwapChainImageViews.at(Index) : VK_NULL_HANDLE;
+    return m_BufferManager.GetViewportImageView();
 }
 
-VkSampler Renderer::GetSwapChainSampler(std::uint32_t const Index) const
+VkSampler Renderer::GetSampler() const
 {
-    auto const SwapChainSamplers = m_BufferManager.GetSwapChainSamplers();
-    return std::size(m_BufferManager.GetSwapChainSamplers()) > Index ? SwapChainSamplers.at(Index) : VK_NULL_HANDLE;
+    return m_BufferManager.GetSampler();
+}
+
+bool Renderer::IsImGuiInitialized()
+{
+    return RenderCore::IsImGuiInitialized();
 }

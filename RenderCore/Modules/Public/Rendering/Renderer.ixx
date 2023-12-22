@@ -35,7 +35,7 @@ namespace RenderCore
         BufferManager m_BufferManager {};
         PipelineManager m_PipelineManager {};
         Camera m_Camera {};
-        ViewSize m_ViewportOffset {};
+        VkRect2D m_ViewportRect {};
 
         RendererStateFlags m_StateFlags {RendererStateFlags::NONE};
         std::vector<std::shared_ptr<Object>> m_Objects {};
@@ -46,7 +46,7 @@ namespace RenderCore
 
         friend class Window;
 
-        void DrawFrame(GLFWwindow*, Camera const&, std::function<void()>&&);
+        void DrawFrame(GLFWwindow*, float, Camera const&, std::function<void()>&&);
         std::optional<std::int32_t> RequestImageIndex(GLFWwindow*);
 
         void Tick();
@@ -79,14 +79,16 @@ namespace RenderCore
         [[nodiscard]] Camera const& GetCamera() const;
         [[nodiscard]] Camera& GetMutableCamera();
 
-        [[nodiscard]] ViewSize const& GetViewportSize() const;
-        void SetViewportOffset(ViewSize const&);
+        [[nodiscard]] VkRect2D const& GetViewportRect() const;
+        void SetViewportRect(VkRect2D const&);
 
         [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;
         [[nodiscard]] std::shared_ptr<Object> GetObjectByID(std::uint32_t) const;
         [[nodiscard]] std::uint32_t GetNumObjects() const;
 
-        [[nodiscard]] VkImageView GetSwapChainImageView(std::uint32_t) const;
-        [[nodiscard]] VkSampler GetSwapChainSampler(std::uint32_t) const;
+        [[nodiscard]] VkImageView GetViewportRenderImageView() const;
+        [[nodiscard]] VkSampler GetSampler() const;
+
+        static [[nodiscard]] bool IsImGuiInitialized();
     };
 }// namespace RenderCore

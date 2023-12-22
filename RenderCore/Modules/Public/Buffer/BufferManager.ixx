@@ -30,22 +30,30 @@ namespace RenderCore
         VmaAllocator m_Allocator {VK_NULL_HANDLE};
         VkSwapchainKHR m_SwapChain {VK_NULL_HANDLE};
         VkSwapchainKHR m_OldSwapChain {VK_NULL_HANDLE};
-        VkExtent2D m_SwapChainExtent {0U, 0U};
+        VkExtent2D m_RenderExtent {0U, 0U};
+
         std::vector<ImageAllocation> m_SwapChainImages {};
-        std::vector<ImageAllocation> m_SwapChainRenderImages {};
+        std::vector<VkFramebuffer> m_SwapChainFrameBuffers {};
+
+        ImageAllocation m_ViewportImage {};
+        VkFramebuffer m_ViewportFrameBuffer {};
+
+        VkSampler m_Sampler {VK_NULL_HANDLE};
         ImageAllocation m_DepthImage {};
-        std::vector<VkFramebuffer> m_FrameBuffers {};
         std::unordered_map<std::uint32_t, ObjectAllocation> m_Objects {};
         std::atomic<std::uint32_t> m_ObjectIDCounter {0U};
 
     public:
         void CreateVulkanSurface(GLFWwindow*);
         void CreateMemoryAllocator(VkPhysicalDevice const&);
-        void CreateSwapChain(SurfaceProperties const&, VkSurfaceCapabilitiesKHR const&, std::vector<std::uint32_t> const&);
-        void CreateFrameBuffers(VkRenderPass const&);
-        void CreateDepthResources(SurfaceProperties const&, std::pair<std::uint8_t, VkQueue> const&);
+        void CreateImageSampler();
+        void CreateSwapChain(SurfaceProperties const&, VkSurfaceCapabilitiesKHR const&);
+        void CreateSwapChainFrameBuffers(VkRenderPass const&);
+        void CreateViewportFrameBuffer(VkRenderPass const&);
+        [[nodiscard]] std::vector<VkFramebuffer> CreateFrameBuffers(VkRenderPass const&, std::vector<ImageAllocation> const&, bool) const;
+        void CreateDepthResources(SurfaceProperties const&);
 
-        std::vector<Object> AllocateScene(std::string_view const&, std::pair<std::uint8_t, VkQueue> const&);
+        std::vector<Object> AllocateScene(std::string_view const&);
         void ReleaseScene(std::vector<std::uint32_t> const&);
 
         void DestroyBufferResources(bool);
@@ -55,8 +63,12 @@ namespace RenderCore
         [[nodiscard]] VkSwapchainKHR const& GetSwapChain() const;
         [[nodiscard]] VkExtent2D const& GetSwapChainExtent() const;
         [[nodiscard]] std::vector<VkImageView> GetSwapChainImageViews() const;
-        [[nodiscard]] std::vector<VkSampler> GetSwapChainSamplers() const;
-        [[nodiscard]] std::vector<VkFramebuffer> const& GetFrameBuffers() const;
+        [[nodiscard]] VkImageView GetViewportImageView() const;
+        [[nodiscard]] std::vector<ImageAllocation> const& GetSwapChainImages() const;
+        [[nodiscard]] ImageAllocation const& GetViewportImage() const;
+        [[nodiscard]] VkSampler const& GetSampler() const;
+        [[nodiscard]] std::vector<VkFramebuffer> const& GetSwapChainFrameBuffers() const;
+        [[nodiscard]] VkFramebuffer const& GetViewportFrameBuffer() const;
         [[nodiscard]] VkBuffer GetVertexBuffer(std::uint32_t) const;
         [[nodiscard]] VkBuffer GetIndexBuffer(std::uint32_t) const;
         [[nodiscard]] std::uint32_t GetIndicesCount(std::uint32_t) const;
@@ -67,6 +79,6 @@ namespace RenderCore
         [[nodiscard]] std::uint32_t GetClampedNumAllocations() const;
 
         [[nodiscard]] VmaAllocator const& GetAllocator() const;
-        void UpdateUniformBuffers(std::shared_ptr<Object> const&, Camera const&, ViewSize const&) const;
+        void UpdateUniformBuffers(std::shared_ptr<Object> const&, Camera const&, VkExtent2D const&) const;
     };
 }// namespace RenderCore

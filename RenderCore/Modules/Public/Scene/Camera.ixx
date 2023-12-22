@@ -71,14 +71,14 @@ namespace RenderCore
         void SetDrawDistance(float);
 
         [[nodiscard]] glm::mat4 GetViewMatrix() const;
-        [[nodiscard]] glm::mat4 GetProjectionMatrix(ViewSize const&) const;
+        [[nodiscard]] glm::mat4 GetProjectionMatrix(VkExtent2D const&) const;
 
         [[nodiscard]] CameraMovementStateFlags GetCameraMovementStateFlags() const;
         void SetCameraMovementStateFlags(CameraMovementStateFlags);
         void UpdateCameraMovement(float);
 
-        [[nodiscard]] bool IsInsideCameraFrustum(Vector const&, ViewSize const&) const;
+        [[nodiscard]] bool IsInsideCameraFrustum(Vector const&, VkExtent2D const&) const;
         [[nodiscard]] bool IsInAllowedDistance(Vector const&) const;
-        [[nodiscard]] bool CanDrawObject(std::shared_ptr<Object> const&, ViewSize const&) const;
+        [[nodiscard]] bool CanDrawObject(std::shared_ptr<Object> const&, VkExtent2D const&) const;
     };
 }// namespace RenderCore
