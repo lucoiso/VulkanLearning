@@ -2,8 +2,9 @@
 // This needs to be used along with a Platform Backend (e.g. GLFW, SDL, Win32, custom..)
 
 // Implemented features:
-//  [!] Renderer: User texture binding. Use 'VkDescriptorSet' as ImTextureID. Read the FAQ about ImTextureID! See https://github.com/ocornut/imgui/pull/914 for discussions.
+//  [x] Renderer: User texture binding. Use 'VkDescriptorSet' as ImTextureID. Read the FAQ about ImTextureID! See https://github.com/ocornut/imgui/pull/914 for discussions.
 //  [X] Renderer: Large meshes support (64k+ vertices) with 16-bit indices.
+//  [x] Renderer: Multi-viewport / platform windows. With issues (flickering when creating a new viewport).
 
 // Important: on 32-bit systems, user texture binding is only supported if your imconfig file has '#define ImTextureID ImU64'.
 // See imgui_impl_vulkan.cpp file for details.
@@ -27,9 +28,20 @@
 // Read comments in imgui_impl_vulkan.h.
 
 #pragma once
-
 #ifndef IMGUI_DISABLE
 #include "imgui.h"// IMGUI_IMPL_API
+
+// [Configuration] in order to use a custom Vulkan function loader:
+// (1) You'll need to disable default Vulkan function prototypes.
+//     We provide a '#define IMGUI_IMPL_VULKAN_NO_PROTOTYPES' convenience configuration flag.
+//     In order to make sure this is visible from the imgui_impl_vulkan.cpp compilation unit:
+//     - Add '#define IMGUI_IMPL_VULKAN_NO_PROTOTYPES' in your imconfig.h file
+//     - Or as a compilation flag in your build system
+//     - Or uncomment here (not recommended because you'd be modifying imgui sources!)
+//     - Do not simply add it in a .cpp file!
+// (2) Call ImGui_ImplVulkan_LoadFunctions() before ImGui_ImplVulkan_Init() with your custom function.
+// If you have no idea what this is, leave it alone!
+//#define IMGUI_IMPL_VULKAN_NO_PROTOTYPES
 
 // Vulkan includes
 #include <volk.h>
@@ -64,8 +76,8 @@ IMGUI_IMPL_API bool ImGui_ImplVulkan_Init(ImGui_ImplVulkan_InitInfo* info, VkRen
 IMGUI_IMPL_API void ImGui_ImplVulkan_Shutdown();
 IMGUI_IMPL_API void ImGui_ImplVulkan_NewFrame();
 IMGUI_IMPL_API void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer command_buffer, VkPipeline pipeline = VK_NULL_HANDLE);
-IMGUI_IMPL_API bool ImGui_ImplVulkan_CreateFontsTexture(VkCommandBuffer command_buffer);
-IMGUI_IMPL_API void ImGui_ImplVulkan_DestroyFontUploadObjects();
+IMGUI_IMPL_API bool ImGui_ImplVulkan_CreateFontsTexture();
+IMGUI_IMPL_API void ImGui_ImplVulkan_DestroyFontsTexture();
 IMGUI_IMPL_API void ImGui_ImplVulkan_SetMinImageCount(uint32_t min_image_count);// To override MinImageCount after initialization (e.g. if swap chain is recreated)
 
 // Register a texture (VkDescriptorSet == ImTextureID)
@@ -127,22 +139,22 @@ struct ImGui_ImplVulkanH_FrameSemaphores
 // (Used by example's main.cpp. Used by multi-viewport features. Probably NOT used by your own engine/app.)
 struct ImGui_ImplVulkanH_Window
 {
-    int Width {};
-    int Height {};
-    VkSwapchainKHR Swapchain {};
-    VkSurfaceKHR Surface {};
-    VkSurfaceFormatKHR SurfaceFormat {};
-    VkPresentModeKHR PresentMode {};
-    VkRenderPass RenderPass {};
-    VkPipeline Pipeline {};// The window pipeline may uses a different VkRenderPass than the one passed in ImGui_ImplVulkan_InitInfo
-    bool UseDynamicRendering {};
-    bool ClearEnable {};
-    VkClearValue ClearValue {};
-    uint32_t FrameIndex {};    // Current frame being rendered to (0 <= FrameIndex < FrameInFlightCount)
-    uint32_t ImageCount {};    // Number of simultaneous in-flight frames (returned by vkGetSwapchainImagesKHR, usually derived from min_image_count)
-    uint32_t SemaphoreIndex {};// Current set of swapchain wait semaphores we're using (needs to be distinct from per frame data)
-    ImGui_ImplVulkanH_Frame* Frames {};
-    ImGui_ImplVulkanH_FrameSemaphores* FrameSemaphores {};
+    int Width;
+    int Height;
+    VkSwapchainKHR Swapchain;
+    VkSurfaceKHR Surface;
+    VkSurfaceFormatKHR SurfaceFormat;
+    VkPresentModeKHR PresentMode;
+    VkRenderPass RenderPass;
+    VkPipeline Pipeline;// The window pipeline may uses a different VkRenderPass than the one passed in ImGui_ImplVulkan_InitInfo
+    bool UseDynamicRendering;
+    bool ClearEnable;
+    VkClearValue ClearValue;
+    uint32_t FrameIndex;    // Current frame being rendered to (0 <= FrameIndex < FrameInFlightCount)
+    uint32_t ImageCount;    // Number of simultaneous in-flight frames (returned by vkGetSwapchainImagesKHR, usually derived from min_image_count)
+    uint32_t SemaphoreIndex;// Current set of swapchain wait semaphores we're using (needs to be distinct from per frame data)
+    ImGui_ImplVulkanH_Frame* Frames;
+    ImGui_ImplVulkanH_FrameSemaphores* FrameSemaphores;
 
     ImGui_ImplVulkanH_Window()
     {

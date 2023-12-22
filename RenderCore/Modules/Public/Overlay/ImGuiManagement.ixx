@@ -10,15 +10,20 @@ module;
 
 export module RenderCore.Management.ImGuiManagement;
 
-import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.BufferManagement;
+import RenderCore.Management.PipelineManagement;
 import RenderCore.Types.SurfaceProperties;
 
 namespace RenderCore
 {
-    export void InitializeImGui(GLFWwindow*);
-    export void CreateImGuiRenderPass(VkFormat const& Format);
+    export void InitializeImGuiContext(GLFWwindow*);
+
+    export void CreateImGuiRenderPass(PipelineManager const&, SurfaceProperties const&);
+    export void DestroyImGuiRenderPass();
+
     export void CreateImGuiFrameBuffers(BufferManager const& BufferManager);
+    export void DestroyImGuiFrameBuffers();
+
     export void ReleaseImGuiResources();
     export void DrawImGuiFrame(std::function<void()>&&, std::function<void()>&&, std::function<void()>&&);
 

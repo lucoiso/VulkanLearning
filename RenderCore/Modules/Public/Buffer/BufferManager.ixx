@@ -30,7 +30,7 @@ namespace RenderCore
         VmaAllocator m_Allocator {VK_NULL_HANDLE};
         VkSwapchainKHR m_SwapChain {VK_NULL_HANDLE};
         VkSwapchainKHR m_OldSwapChain {VK_NULL_HANDLE};
-        VkExtent2D m_RenderExtent {0U, 0U};
+        VkExtent2D m_SwapChainExtent {0U, 0U};
 
         std::vector<ImageAllocation> m_SwapChainImages {};
         std::vector<VkFramebuffer> m_SwapChainFrameBuffers {};
@@ -50,7 +50,7 @@ namespace RenderCore
         void CreateSwapChain(SurfaceProperties const&, VkSurfaceCapabilitiesKHR const&);
         void CreateSwapChainFrameBuffers(VkRenderPass const&);
         void CreateViewportFrameBuffer(VkRenderPass const&);
-        [[nodiscard]] std::vector<VkFramebuffer> CreateFrameBuffers(VkRenderPass const&, std::vector<ImageAllocation> const&, bool) const;
+        [[nodiscard]] std::vector<VkFramebuffer> CreateFrameBuffers(VkRenderPass const&, std::vector<ImageAllocation> const&) const;
         void CreateDepthResources(SurfaceProperties const&);
 
         std::vector<Object> AllocateScene(std::string_view const&);

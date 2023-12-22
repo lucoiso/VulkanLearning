@@ -454,8 +454,8 @@ void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, 
     auto const QueueFamilyIndices      = GetUniqueQueueFamilyIndicesU32();
     auto const QueueFamilyIndicesCount = static_cast<std::uint32_t>(std::size(QueueFamilyIndices));
 
-    m_OldSwapChain = m_SwapChain;
-    m_RenderExtent = SurfaceProperties.Extent;
+    m_OldSwapChain    = m_SwapChain;
+    m_SwapChainExtent = SurfaceProperties.Extent;
 
     VkSwapchainCreateInfoKHR SwapChainCreateInfo {
             .sType                 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -463,7 +463,7 @@ void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, 
             .minImageCount         = g_MinImageCount,
             .imageFormat           = SurfaceProperties.Format.format,
             .imageColorSpace       = SurfaceProperties.Format.colorSpace,
-            .imageExtent           = m_RenderExtent,
+            .imageExtent           = m_SwapChainExtent,
             .imageArrayLayers      = 1U,
             .imageUsage            = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             .imageSharingMode      = QueueFamilyIndicesCount > 1U ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
@@ -504,7 +504,6 @@ void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, 
     {
         m_SwapChainImages.at(Iterator).Image = SwapChainImages.at(Iterator);
     }
-
     CreateSwapChainImageViews(m_SwapChainImages, SurfaceProperties.Format.format);
 
     m_ViewportImage.DestroyResources(m_Allocator);
@@ -534,7 +533,7 @@ void BufferManager::CreateSwapChainFrameBuffers(VkRenderPass const& RenderPass)
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain frame buffers";
 
-    m_SwapChainFrameBuffers = CreateFrameBuffers(RenderPass, m_SwapChainImages, true);
+    m_SwapChainFrameBuffers = CreateFrameBuffers(RenderPass, m_SwapChainImages);
 }
 
 void BufferManager::CreateViewportFrameBuffer(VkRenderPass const& RenderPass)
@@ -542,29 +541,27 @@ void BufferManager::CreateViewportFrameBuffer(VkRenderPass const& RenderPass)
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan viewport frame buffers";
 
-    m_ViewportFrameBuffer = CreateFrameBuffers(RenderPass, {m_ViewportImage}, true).front();
+    m_ViewportFrameBuffer = CreateFrameBuffers(RenderPass, {m_ViewportImage}).front();
 }
 
-std::vector<VkFramebuffer> BufferManager::CreateFrameBuffers(VkRenderPass const& RenderPass, std::vector<ImageAllocation> const& RenderImages, bool const IncludeDepth) const
+std::vector<VkFramebuffer> BufferManager::CreateFrameBuffers(VkRenderPass const& RenderPass, std::vector<ImageAllocation> const& RenderImages) const
 {
     std::vector<VkFramebuffer> Output {};
     Output.resize(std::size(RenderImages), VK_NULL_HANDLE);
 
     for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(Output)); ++Iterator)
     {
-        std::vector Attachments {RenderImages.at(Iterator).View};
-        if (IncludeDepth)
-        {
-            Attachments.push_back(m_DepthImage.View);
-        }
+        std::array Attachments {
+                RenderImages.at(Iterator).View,
+                m_DepthImage.View};
 
         VkFramebufferCreateInfo const FrameBufferCreateInfo {
                 .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .renderPass      = RenderPass,
                 .attachmentCount = static_cast<std::uint32_t>(std::size(Attachments)),
                 .pAttachments    = std::data(Attachments),
-                .width           = m_RenderExtent.width,
-                .height          = m_RenderExtent.height,
+                .width           = m_SwapChainExtent.width,
+                .height          = m_SwapChainExtent.height,
                 .layers          = 1U};
 
         CheckVulkanResult(vkCreateFramebuffer(volkGetLoadedDevice(), &FrameBufferCreateInfo, nullptr, &Output.at(Iterator)));
@@ -1035,7 +1032,7 @@ VkSwapchainKHR const& BufferManager::GetSwapChain() const
 
 VkExtent2D const& BufferManager::GetSwapChainExtent() const
 {
-    return m_RenderExtent;
+    return m_SwapChainExtent;
 }
 
 std::vector<VkImageView> BufferManager::GetSwapChainImageViews() const

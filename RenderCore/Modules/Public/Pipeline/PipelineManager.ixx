@@ -11,7 +11,9 @@ module;
 export module RenderCore.Management.PipelineManagement;
 
 import RenderCore.Types.MeshBufferData;
+import RenderCore.Types.AllocationTypes;
 import RenderCore.Types.SurfaceProperties;
+import RenderCore.Utils.Constants;
 
 namespace RenderCore
 {
@@ -30,8 +32,11 @@ namespace RenderCore
         std::unordered_map<std::uint32_t, VkDescriptorSet> m_DescriptorSets {};
 
     public:
+        static void CreateRenderPass(SurfaceProperties const&, VkImageLayout, VkRenderPass&);
         void CreateRenderPasses(SurfaceProperties const&);
-        void CreatePipelines();
+
+        static void CreatePipeline(VkRenderPass const&, VkPipelineLayout const&, VkExtent2D const&, VkPipeline&);
+        void CreatePipelines(VkExtent2D const&);
 
         void CreateDescriptorSetLayout();
         void CreateDescriptorPool(std::uint32_t);

@@ -29,56 +29,15 @@ VkRenderPass g_ImGuiRenderPass {VK_NULL_HANDLE};
 std::vector<VkFramebuffer> g_ImGuiFrameBuffers {};
 VkDescriptorPool g_ImGuiDescriptorPool {VK_NULL_HANDLE};
 
-void RenderCore::CreateImGuiRenderPass(VkFormat const& Format)
+void RenderCore::InitializeImGuiContext(GLFWwindow* const Window)
 {
-    if (g_ImGuiRenderPass != VK_NULL_HANDLE)
+    if (g_ImGuiRenderPass == VK_NULL_HANDLE)
     {
-        vkDestroyRenderPass(volkGetLoadedDevice(), g_ImGuiRenderPass, nullptr);
-        g_ImGuiRenderPass = VK_NULL_HANDLE;
+        return;
     }
 
-    VkAttachmentDescription const Attachment {
-            .format         = Format,
-            .samples        = VK_SAMPLE_COUNT_1_BIT,
-            .loadOp         = VK_ATTACHMENT_LOAD_OP_LOAD,
-            .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
-            .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout  = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
-
-    VkAttachmentReference const ColorAttachment {
-            .attachment = 0,
-            .layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-
-    VkSubpassDescription const Subpass {
-            .pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS,
-            .colorAttachmentCount = 1,
-            .pColorAttachments    = &ColorAttachment};
-
-    VkSubpassDependency SubpassDependency {
-            .srcSubpass    = VK_SUBPASS_EXTERNAL,
-            .dstSubpass    = 0,
-            .srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            .dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            .srcAccessMask = 0,
-            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT};
-
-    VkRenderPassCreateInfo const RenderPassInfo {
-            .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-            .attachmentCount = 1,
-            .pAttachments    = &Attachment,
-            .subpassCount    = 1,
-            .pSubpasses      = &Subpass,
-            .dependencyCount = 1,
-            .pDependencies   = &SubpassDependency};
-
-    CheckVulkanResult(vkCreateRenderPass(volkGetLoadedDevice(), &RenderPassInfo, nullptr, &g_ImGuiRenderPass));
-}
-
-void RenderCore::InitializeImGui(GLFWwindow* const Window)
-{
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating ImGui Context";
 
     IMGUI_CHECKVERSION();
 
@@ -89,16 +48,19 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window)
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
 
-    if (ImGui::GetIO().BackendPlatformUserData)
+    ImGuiIO& ImIO = ImGui::GetIO();
+    (void)ImIO;
+
+    if (ImIO.BackendPlatformUserData)
     {
         return;
     }
 
-    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_DockingEnable;
+    ImIO.ConfigFlags |= /*ImGuiConfigFlags_ViewportsEnable |*/ ImGuiConfigFlags_DockingEnable;
 
     ImGui_ImplGlfw_InitForVulkan(Window, true);
 
-    constexpr std::uint32_t DescriptorCount = 1000U;
+    constexpr std::uint32_t DescriptorCount = 100U;
 
     constexpr std::array DescriptorPoolSizes {
             VkDescriptorPoolSize {VK_DESCRIPTOR_TYPE_SAMPLER, DescriptorCount},
@@ -139,23 +101,38 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window)
             }};
 
     ImGui_ImplVulkan_Init(&ImGuiVulkanInitInfo, g_ImGuiRenderPass);
+    ImGui_ImplVulkan_CreateFontsTexture();
+}
 
-    std::vector<VkCommandBuffer> CommandBuffer {VK_NULL_HANDLE};
-    VkCommandPool CommandPool = VK_NULL_HANDLE;
-    InitializeSingleCommandQueue(CommandPool, CommandBuffer, GetGraphicsQueue().first);
+void RenderCore::CreateImGuiRenderPass(PipelineManager const& Manager, SurfaceProperties const& SurfaceProperties)
+{
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating ImGui Render Pass";
+
+    Manager.CreateRenderPass(SurfaceProperties, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, g_ImGuiRenderPass);
+}
+
+void RenderCore::DestroyImGuiRenderPass()
+{
+    if (g_ImGuiRenderPass != VK_NULL_HANDLE)
     {
-        ImGui_ImplVulkan_CreateFontsTexture(CommandBuffer.back());
+        vkDestroyRenderPass(volkGetLoadedDevice(), g_ImGuiRenderPass, nullptr);
+        g_ImGuiRenderPass = VK_NULL_HANDLE;
     }
-    FinishSingleCommandQueue(GetGraphicsQueue().second, CommandPool, CommandBuffer);
-
-    ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
 void RenderCore::CreateImGuiFrameBuffers(BufferManager const& BufferManager)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan imgui frame buffers";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating ImGui Frame Buffers";
 
+    DestroyImGuiFrameBuffers();
+
+    g_ImGuiFrameBuffers = BufferManager.CreateFrameBuffers(g_ImGuiRenderPass, BufferManager.GetSwapChainImages());
+}
+
+void RenderCore::DestroyImGuiFrameBuffers()
+{
     if (!std::empty(g_ImGuiFrameBuffers))
     {
         for (VkFramebuffer const& FrameBufferIter: g_ImGuiFrameBuffers)
@@ -164,8 +141,6 @@ void RenderCore::CreateImGuiFrameBuffers(BufferManager const& BufferManager)
         }
         g_ImGuiFrameBuffers.clear();
     }
-
-    g_ImGuiFrameBuffers = BufferManager.CreateFrameBuffers(g_ImGuiRenderPass, BufferManager.GetSwapChainImages(), false);
 }
 
 void RenderCore::ReleaseImGuiResources()
@@ -178,20 +153,8 @@ void RenderCore::ReleaseImGuiResources()
         g_ImGuiDescriptorPool = VK_NULL_HANDLE;
     }
 
-    if (g_ImGuiRenderPass != VK_NULL_HANDLE)
-    {
-        vkDestroyRenderPass(volkGetLoadedDevice(), g_ImGuiRenderPass, nullptr);
-        g_ImGuiRenderPass = VK_NULL_HANDLE;
-    }
-
-    if (!std::empty(g_ImGuiFrameBuffers))
-    {
-        for (VkFramebuffer const& FrameBufferIter: g_ImGuiFrameBuffers)
-        {
-            vkDestroyFramebuffer(volkGetLoadedDevice(), FrameBufferIter, nullptr);
-        }
-        g_ImGuiFrameBuffers.clear();
-    }
+    DestroyImGuiRenderPass();
+    DestroyImGuiFrameBuffers();
 
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
@@ -200,24 +163,28 @@ void RenderCore::ReleaseImGuiResources()
 
 void RenderCore::DrawImGuiFrame(std::function<void()>&& PreDraw, std::function<void()>&& Draw, std::function<void()>&& PostDraw)
 {
-    if (!ImGui::GetCurrentContext())
+    if (!ImGui::GetCurrentContext() || !IsImGuiInitialized())
     {
         return;
     }
 
     PreDraw();
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-    Draw();
-    ImGui::Render();
-    PostDraw();
-
-    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        {
+            Draw();
+        }
+        ImGui::Render();
+
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+        }
     }
+    PostDraw();
 }
 
 bool RenderCore::IsImGuiInitialized()

@@ -80,8 +80,6 @@ namespace RenderCore
         template<typename Functor>
         static constexpr void Process(std::vector<std::shared_ptr<Control>>& Children, Functor&& Call)
         {
-            RemoveInvalid(Children);
-
             for (auto const& Child: Children)
             {
                 if (Child)

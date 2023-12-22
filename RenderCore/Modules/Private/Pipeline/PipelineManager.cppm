@@ -21,7 +21,7 @@ import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
-void CreateRenderPass(SurfaceProperties const& SurfaceProperties, const VkImageLayout FinalLayout, VkRenderPass& OutRenderPass)
+void PipelineManager::CreateRenderPass(SurfaceProperties const& SurfaceProperties, VkImageLayout const FinalLayout, VkRenderPass& OutRenderPass)
 {
     if (OutRenderPass != VK_NULL_HANDLE)
     {
@@ -58,14 +58,9 @@ void CreateRenderPass(SurfaceProperties const& SurfaceProperties, const VkImageL
 
     VkSubpassDescription const SubpassDescription {
             .pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS,
-            .inputAttachmentCount    = 0U,
-            .pInputAttachments       = nullptr,
             .colorAttachmentCount    = 1U,
             .pColorAttachments       = &ColorAttachmentReference,
-            .pResolveAttachments     = nullptr,
-            .pDepthStencilAttachment = &DepthAttachmentReference,
-            .preserveAttachmentCount = 0U,
-            .pPreserveAttachments    = nullptr};
+            .pDepthStencilAttachment = &DepthAttachmentReference};
 
     constexpr std::array SubpassDependencies {
             VkSubpassDependency {
@@ -106,7 +101,7 @@ void PipelineManager::CreateRenderPasses(SurfaceProperties const& SurfacePropert
     CreateRenderPass(SurfaceProperties, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_ViewportRenderPass);
 }
 
-void CreatePipeline(VkRenderPass const& RenderPass, VkPipelineLayout const& PipelineLayout, VkPipeline& OutPipeline)
+void PipelineManager::CreatePipeline(VkRenderPass const& RenderPass, VkPipelineLayout const& PipelineLayout, VkExtent2D const& ViewportExtent, VkPipeline& OutPipeline)
 {
     static auto const BindingDescription    = GetBindingDescriptors();
     static auto const AttributeDescriptions = GetAttributeDescriptions();
@@ -123,12 +118,24 @@ void CreatePipeline(VkRenderPass const& RenderPass, VkPipelineLayout const& Pipe
             .topology               = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             .primitiveRestartEnable = VK_FALSE};
 
-    constexpr VkPipelineViewportStateCreateInfo ViewportState {
+    VkViewport const Viewport {
+            .x        = 0.F,
+            .y        = 0.F,
+            .width    = static_cast<float>(ViewportExtent.width),
+            .height   = static_cast<float>(ViewportExtent.height),
+            .minDepth = 0.F,
+            .maxDepth = 1.F};
+
+    VkRect2D const Scissor {
+            .offset = {0, 0},
+            .extent = ViewportExtent};
+
+    VkPipelineViewportStateCreateInfo const ViewportState {
             .sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
             .viewportCount = 1U,
-            .pViewports    = nullptr,
+            .pViewports    = &Viewport,
             .scissorCount  = 1U,
-            .pScissors     = nullptr};
+            .pScissors     = &Scissor};
 
     constexpr VkPipelineRasterizationStateCreateInfo RasterizationState {
             .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -153,9 +160,9 @@ void CreatePipeline(VkRenderPass const& RenderPass, VkPipelineLayout const& Pipe
             .alphaToOneEnable      = VK_FALSE};
 
     constexpr VkPipelineColorBlendAttachmentState ColorBlendAttachmentStates {
-            .blendEnable         = VK_FALSE,
-            .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
-            .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
+            .blendEnable         = VK_TRUE,
+            .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+            .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
             .colorBlendOp        = VK_BLEND_OP_ADD,
             .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
             .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
@@ -186,12 +193,12 @@ void CreatePipeline(VkRenderPass const& RenderPass, VkPipelineLayout const& Pipe
             .depthCompareOp        = VK_COMPARE_OP_LESS,
             .depthBoundsTestEnable = VK_FALSE,
             .stencilTestEnable     = VK_FALSE,
-            .front                 = VkStencilOpState {},
-            .back                  = VkStencilOpState {},
+            .front                 = {},
+            .back                  = {},
             .minDepthBounds        = 0.F,
             .maxDepthBounds        = 1.F};
 
-    std::vector<VkPipelineShaderStageCreateInfo> const ShaderStages = GetStageInfos();
+    static std::vector<VkPipelineShaderStageCreateInfo> const ShaderStages = GetStageInfos();
 
     VkGraphicsPipelineCreateInfo const GraphicsPipelineCreateInfo {
             .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -214,7 +221,7 @@ void CreatePipeline(VkRenderPass const& RenderPass, VkPipelineLayout const& Pipe
     CheckVulkanResult(vkCreateGraphicsPipelines(volkGetLoadedDevice(), VK_NULL_HANDLE, 1U, &GraphicsPipelineCreateInfo, nullptr, &OutPipeline));
 }
 
-void PipelineManager::CreatePipelines()
+void PipelineManager::CreatePipelines(VkExtent2D const& ViewportExtent)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan graphics pipelines";
@@ -231,8 +238,8 @@ void PipelineManager::CreatePipelines()
 
     CheckVulkanResult(vkCreatePipelineCache(volkGetLoadedDevice(), &PipelineCacheCreateInfo, nullptr, &m_PipelineCache));
 
-    CreatePipeline(m_MainRenderPass, m_PipelineLayout, m_MainPipeline);
-    CreatePipeline(m_ViewportRenderPass, m_PipelineLayout, m_ViewportPipeline);
+    CreatePipeline(m_MainRenderPass, m_PipelineLayout, ViewportExtent, m_MainPipeline);
+    CreatePipeline(m_ViewportRenderPass, m_PipelineLayout, ViewportExtent, m_ViewportPipeline);
 }
 
 void PipelineManager::CreateDescriptorSetLayout()
@@ -290,7 +297,7 @@ void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& Al
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
-    auto const NumAllocations = static_cast<std::uint32_t>(std::size(AllocatedObjects));
+    auto const NumAllocations {static_cast<std::uint32_t>(std::size(AllocatedObjects))};
 
     if (NumAllocations == 0U)
     {
@@ -307,12 +314,12 @@ void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& Al
             .descriptorSetCount = 1U,
             .pSetLayouts        = &m_DescriptorSetLayout};
 
-    for (MeshBufferData const& BufferdataIter: AllocatedObjects)
+    for (auto const& [ID, UniformBuffer, UniformBufferData, Textures]: AllocatedObjects)
     {
         VkDescriptorSet AllocatedSet {VK_NULL_HANDLE};
         CheckVulkanResult(vkAllocateDescriptorSets(volkGetLoadedDevice(), &DescriptorSetAllocateInfo, &AllocatedSet));
 
-        m_DescriptorSets.emplace(BufferdataIter.ID, AllocatedSet);
+        m_DescriptorSets.emplace(ID, AllocatedSet);
     }
 
     for (auto Iterator = std::begin(AllocatedObjects); Iterator != std::end(AllocatedObjects); ++Iterator)
@@ -340,29 +347,25 @@ void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const& Al
         if (!std::empty(BufferInfos))
         {
             WriteDescriptors.push_back(VkWriteDescriptorSet {
-                    .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .dstSet           = m_DescriptorSets.at(Iterator->ID),
-                    .dstBinding       = 0U,
-                    .dstArrayElement  = 0U,
-                    .descriptorCount  = static_cast<std::uint32_t>(std::size(BufferInfos)),
-                    .descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .pImageInfo       = nullptr,
-                    .pBufferInfo      = std::data(BufferInfos),
-                    .pTexelBufferView = nullptr});
+                    .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet          = m_DescriptorSets.at(Iterator->ID),
+                    .dstBinding      = 0U,
+                    .dstArrayElement = 0U,
+                    .descriptorCount = static_cast<std::uint32_t>(std::size(BufferInfos)),
+                    .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .pBufferInfo     = std::data(BufferInfos)});
         }
 
         if (!std::empty(ImageInfos))
         {
             WriteDescriptors.push_back(VkWriteDescriptorSet {
-                    .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .dstSet           = m_DescriptorSets.at(Iterator->ID),
-                    .dstBinding       = 1U,
-                    .dstArrayElement  = 0U,
-                    .descriptorCount  = static_cast<std::uint32_t>(std::size(ImageInfos)),
-                    .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .pImageInfo       = std::data(ImageInfos),
-                    .pBufferInfo      = nullptr,
-                    .pTexelBufferView = nullptr});
+                    .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet          = m_DescriptorSets.at(Iterator->ID),
+                    .dstBinding      = 1U,
+                    .dstArrayElement = 0U,
+                    .descriptorCount = static_cast<std::uint32_t>(std::size(ImageInfos)),
+                    .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .pImageInfo      = std::data(ImageInfos)});
         }
 
         if (!std::empty(WriteDescriptors))

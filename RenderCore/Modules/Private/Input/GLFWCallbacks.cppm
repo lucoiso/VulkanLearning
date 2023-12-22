@@ -136,7 +136,7 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
     static double LastCursorPosX = NewCursorPosX;
     static double LastCursorPosY = NewCursorPosY;
 
-    g_CanMovementCamera = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_RIGHT) != GLFW_RELEASE /* && !ImGui::GetIO().WantCaptureMouse*/;
+    g_CanMovementCamera = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_RIGHT) != GLFW_RELEASE;
 
     if (g_CanMovementCamera)
     {
@@ -181,10 +181,7 @@ void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow* const Win
         return;
     }
 
-    // if (!ImGui::GetIO().WantCaptureMouse)
-    {
-        Camera& Camera   = Target->GetMutableCamera();
-        float const Zoom = static_cast<float>(OffsetY) * 0.1f;
-        Camera.SetPosition(Camera.GetPosition() + Camera.GetRotation().GetFront() * Zoom);
-    }
+    Camera& Camera   = Target->GetMutableCamera();
+    float const Zoom = static_cast<float>(OffsetY) * 0.1f;
+    Camera.SetPosition(Camera.GetPosition() + Camera.GetRotation().GetFront() * Zoom);
 }

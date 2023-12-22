@@ -154,7 +154,7 @@ void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera
         if (HasFlag(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH))
         {
             m_PipelineManager.CreateDescriptorSetLayout();
-            m_PipelineManager.CreatePipelines();
+            m_PipelineManager.CreatePipelines(m_BufferManager.GetSwapChainExtent());
 
             m_BufferManager.CreateSwapChainFrameBuffers(m_PipelineManager.GetMainRenderPass());
             m_BufferManager.CreateViewportFrameBuffer(m_PipelineManager.GetViewportRenderPass());
@@ -174,7 +174,7 @@ void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera
         {
             std::unique_lock Lock(m_ObjectsMutex);
 
-            RecordCommandBuffers(ImageIndice.value(), Camera, m_BufferManager, m_PipelineManager, GetObjects(), m_ViewportRect);
+            RecordCommandBuffers(ImageIndice.value(), Camera, m_BufferManager, m_PipelineManager, GetObjects(), m_BufferManager.GetSwapChainExtent());
             SubmitCommandBuffers();
             PresentFrame(ImageIndice.value(), m_BufferManager.GetSwapChain());
         }
@@ -290,10 +290,9 @@ bool Renderer::Initialize(GLFWwindow* const Window)
     m_BufferManager.CreateImageSampler();
     auto const _                 = CompileDefaultShaders();
     auto const SurfaceProperties = GetSurfaceProperties(Window, m_BufferManager.GetSurface());
-    m_ViewportRect.extent        = SurfaceProperties.Extent;
     m_PipelineManager.CreateRenderPasses(SurfaceProperties);
-    CreateImGuiRenderPass(SurfaceProperties.Format.format);
-    InitializeImGui(Window);
+    CreateImGuiRenderPass(m_PipelineManager, SurfaceProperties);
+    InitializeImGuiContext(Window);
 
     AddFlags(m_StateFlags, RendererStateFlags::INITIALIZED);
     AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
@@ -476,16 +475,6 @@ Camera const& Renderer::GetCamera() const
 Camera& Renderer::GetMutableCamera()
 {
     return m_Camera;
-}
-
-VkRect2D const& Renderer::GetViewportRect() const
-{
-    return m_ViewportRect;
-}
-
-void Renderer::SetViewportRect(VkRect2D const& Value)
-{
-    m_ViewportRect = Value;
 }
 
 std::vector<std::shared_ptr<Object>> const& Renderer::GetObjects() const

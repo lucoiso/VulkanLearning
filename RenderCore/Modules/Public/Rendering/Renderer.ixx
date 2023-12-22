@@ -35,7 +35,6 @@ namespace RenderCore
         BufferManager m_BufferManager {};
         PipelineManager m_PipelineManager {};
         Camera m_Camera {};
-        VkRect2D m_ViewportRect {};
 
         RendererStateFlags m_StateFlags {RendererStateFlags::NONE};
         std::vector<std::shared_ptr<Object>> m_Objects {};
@@ -78,9 +77,6 @@ namespace RenderCore
 
         [[nodiscard]] Camera const& GetCamera() const;
         [[nodiscard]] Camera& GetMutableCamera();
-
-        [[nodiscard]] VkRect2D const& GetViewportRect() const;
-        void SetViewportRect(VkRect2D const&);
 
         [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;
         [[nodiscard]] std::shared_ptr<Object> GetObjectByID(std::uint32_t) const;

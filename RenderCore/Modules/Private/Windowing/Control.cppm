@@ -48,11 +48,16 @@ void Control::Update()
     PrePaint();
     {
         Paint();
+
+        Process(m_Children, &Control::PrePaint);
         Process(m_Children, &Control::Paint);
+        Process(m_Children, &Control::PostPaint);
     }
     PostPaint();
 
+    Process(m_IndependentChildren, &Control::PrePaint);
     Process(m_IndependentChildren, &Control::Paint);
+    Process(m_IndependentChildren, &Control::PostPaint);
 }
 
 void Control::RefreshResources()
@@ -64,6 +69,9 @@ void Control::RefreshResources()
 
 void Control::PreUpdate()
 {
+    RemoveInvalid(m_Children);
+    RemoveInvalid(m_IndependentChildren);
+
     PreRender();
     Process(m_Children, &Control::PreRender);
     Process(m_IndependentChildren, &Control::PreRender);

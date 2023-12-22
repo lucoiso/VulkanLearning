@@ -22,10 +22,10 @@ namespace RenderCore
         GLFWHandler m_GLFWHandler {};
         Renderer m_Renderer {};
 
-        std::string m_Title{};
-        std::uint16_t m_Width{};
-        std::uint16_t m_Height{};
-        InitializationFlags m_Flags{};
+        std::string m_Title {};
+        std::uint16_t m_Width {};
+        std::uint16_t m_Height {};
+        InitializationFlags m_Flags {};
 
     public:
         Window();
@@ -46,7 +46,9 @@ namespace RenderCore
         virtual void PollEvents();
 
     protected:
-        virtual void OnInitialized() {}
+        virtual void OnInitialized()
+        {
+        }
 
     private:
         void RequestRender();

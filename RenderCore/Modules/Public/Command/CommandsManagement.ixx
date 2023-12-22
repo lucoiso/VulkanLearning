@@ -28,7 +28,7 @@ namespace RenderCore
 
     export [[nodiscard]] std::optional<std::int32_t> RequestSwapChainImage(VkSwapchainKHR const&);
 
-    export void RecordCommandBuffers(std::uint32_t, Camera const&, BufferManager const&, PipelineManager const&, std::vector<std::shared_ptr<Object>> const&, VkRect2D const&);
+    export void RecordCommandBuffers(std::uint32_t, Camera const&, BufferManager const&, PipelineManager const&, std::vector<std::shared_ptr<Object>> const&, VkExtent2D const&);
     export void SubmitCommandBuffers();
 
     export void PresentFrame(std::uint32_t, VkSwapchainKHR const&);

@@ -218,7 +218,7 @@ void RecordRenderingCommands(VkCommandBuffer const& CommandBuffer,
                              BufferManager const& BufferManager,
                              PipelineManager const& PipelineManager,
                              std::vector<std::shared_ptr<Object>> const& Objects,
-                             VkRect2D const& ViewportRect)
+                             VkExtent2D const& SwapChainExtent)
 {
     constexpr std::array<VkDeviceSize, 1U> Offsets {0U};
 
@@ -231,37 +231,41 @@ void RecordRenderingCommands(VkCommandBuffer const& CommandBuffer,
     if (UpdateViewport)
     {
         VkViewport const Viewport {
-                .x        = static_cast<float>(ViewportRect.offset.x),
-                .y        = static_cast<float>(ViewportRect.offset.y),
-                .width    = static_cast<float>(ViewportRect.extent.width),
-                .height   = static_cast<float>(ViewportRect.extent.height),
+                .x        = 0.F,
+                .y        = 0.F,
+                .width    = static_cast<float>(SwapChainExtent.width),
+                .height   = static_cast<float>(SwapChainExtent.height),
                 .minDepth = 0.F,
                 .maxDepth = 1.F};
 
-        VkRect2D const Scissor { ViewportRect };
+        VkRect2D const Scissor {
+                .offset = {0, 0},
+                .extent = SwapChainExtent};
 
         vkCmdSetViewport(CommandBuffer, 0U, 1U, &Viewport);
         vkCmdSetScissor(CommandBuffer, 0U, 1U, &Scissor);
-    }
-
-    if (Pipeline != VK_NULL_HANDLE)
-    {
-        vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
     }
 
     bool ActiveRenderPass = false;
     if (RenderPass != VK_NULL_HANDLE && !std::empty(FrameBuffers))
     {
         VkRenderPassBeginInfo const RenderPassBeginInfo {
-                .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                .renderPass      = RenderPass,
-                .framebuffer     = FrameBuffers.at(ImageIndex),
-                .renderArea      = ViewportRect,
+                .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                .renderPass  = RenderPass,
+                .framebuffer = FrameBuffers.at(ImageIndex),
+                .renderArea  = {
+                         .offset = {0, 0},
+                         .extent = SwapChainExtent},
                 .clearValueCount = static_cast<std::uint32_t>(std::size(g_ClearValues)),
                 .pClearValues    = std::data(g_ClearValues)};
 
         vkCmdBeginRenderPass(CommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         ActiveRenderPass = true;
+    }
+
+    if (Pipeline != VK_NULL_HANDLE)
+    {
+        vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
     }
 
     if (ActiveRenderPass)
@@ -270,7 +274,7 @@ void RecordRenderingCommands(VkCommandBuffer const& CommandBuffer,
         {
             for (std::shared_ptr<Object> const& ObjectIter: Objects)
             {
-                if (!ObjectIter || ObjectIter->IsPendingDestroy() || !Camera.CanDrawObject(ObjectIter, ViewportRect.extent))
+                if (!ObjectIter || ObjectIter->IsPendingDestroy() || !Camera.CanDrawObject(ObjectIter, SwapChainExtent))
                 {
                     continue;
                 }
@@ -290,7 +294,7 @@ void RecordRenderingCommands(VkCommandBuffer const& CommandBuffer,
                 VkBuffer const& IndexBuffer    = BufferManager.GetIndexBuffer(ObjectID);
                 std::uint32_t const IndexCount = BufferManager.GetIndicesCount(ObjectID);
 
-                BufferManager.UpdateUniformBuffers(ObjectIter, Camera, ViewportRect.extent);
+                BufferManager.UpdateUniformBuffers(ObjectIter, Camera, SwapChainExtent);
 
                 bool ActiveVertexBinding {false};
                 if (VertexBuffer != VK_NULL_HANDLE)
@@ -324,7 +328,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
                                       BufferManager const& BufferManager,
                                       PipelineManager const& PipelineManager,
                                       std::vector<std::shared_ptr<Object>> const& Objects,
-                                      VkRect2D const& ViewportRect)
+                                      VkExtent2D const& SwapChainExtent)
 {
     AllocateCommandBuffer(GetGraphicsQueue().first, IsImGuiInitialized() ? 3U : 2U);
     VkPipelineLayout const& PipelineLayout = PipelineManager.GetPipelineLayout();
@@ -349,7 +353,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
                                 BufferManager,
                                 PipelineManager,
                                 Objects,
-                                ViewportRect);
+                                SwapChainExtent);
     }
 
     // Viewport rendering commands
@@ -372,7 +376,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
                                 BufferManager,
                                 PipelineManager,
                                 Objects,
-                                ViewportRect);
+                                SwapChainExtent);
     }
 
     if (IsImGuiInitialized())
@@ -392,12 +396,14 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
         if (RenderPass != VK_NULL_HANDLE && !std::empty(FrameBuffers))
         {
             VkRenderPassBeginInfo const RenderPassBeginInfo {
-                    .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                    .renderPass      = RenderPass,
-                    .framebuffer     = FrameBuffers.at(ImageIndex),
-                    .renderArea      = ViewportRect,
-                    .clearValueCount = 0U,
-                    .pClearValues    = VK_NULL_HANDLE};
+                    .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                    .renderPass  = RenderPass,
+                    .framebuffer = FrameBuffers.at(ImageIndex),
+                    .renderArea  = {
+                             .offset = {0, 0},
+                             .extent = SwapChainExtent},
+                    .clearValueCount = static_cast<std::uint32_t>(std::size(g_ClearValues)),
+                    .pClearValues    = std::data(g_ClearValues)};
 
             vkCmdBeginRenderPass(CommandBuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
             ActiveRenderPass = true;
