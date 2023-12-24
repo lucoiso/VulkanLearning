@@ -34,10 +34,7 @@ namespace RenderCore
     public:
         static void CreateRenderPass(SurfaceProperties const&, VkImageLayout, VkRenderPass&);
         void CreateRenderPasses(SurfaceProperties const&);
-
-        static void CreatePipeline(VkRenderPass const&, VkPipelineLayout const&, VkExtent2D const&, VkPipeline&);
         void CreatePipelines(VkExtent2D const&);
-
         void CreateDescriptorSetLayout();
         void CreateDescriptorPool(std::uint32_t);
         void CreateDescriptorSets(std::vector<MeshBufferData> const&, VkSampler const&);

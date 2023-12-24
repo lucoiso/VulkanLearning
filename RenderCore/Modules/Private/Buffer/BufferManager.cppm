@@ -177,8 +177,9 @@ void CreateImage(VmaAllocator const& Allocator,
                  VkFormat const& ImageFormat,
                  VkExtent2D const& Extent,
                  VkImageTiling const& Tiling,
-                 VkImageUsageFlags const Usage,
-                 VkMemoryPropertyFlags const Flags,
+                 VkImageUsageFlags const ImageUsage,
+                 VmaAllocationCreateFlags const Flags,
+                 VmaMemoryUsage const MemoryUsage,
                  VkImage& Image,
                  VmaAllocation& Allocation)
 {
@@ -199,12 +200,13 @@ void CreateImage(VmaAllocator const& Allocator,
             .arrayLayers   = 1U,
             .samples       = g_MSAASamples,
             .tiling        = Tiling,
-            .usage         = Usage,
+            .usage         = ImageUsage,
+            .sharingMode   = VK_SHARING_MODE_EXCLUSIVE,
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
 
     VmaAllocationCreateInfo const ImageCreateInfo {
             .flags = Flags,
-            .usage = VMA_MEMORY_USAGE_AUTO};
+            .usage = MemoryUsage};
 
     VmaAllocationInfo AllocationInfo;
     CheckVulkanResult(vmaCreateImage(Allocator, &ImageViewCreateInfo, &ImageCreateInfo, &Image, &Allocation, &AllocationInfo));
@@ -244,16 +246,16 @@ void CreateTextureSampler(VmaAllocator const& Allocator, VkSampler& Sampler)
 void CreateImageView(VkImage const& Image, VkFormat const& Format, VkImageAspectFlags const& AspectFlags, VkImageView& ImageView)
 {
     VkImageViewCreateInfo const ImageViewCreateInfo {
-            .sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .image      = Image,
-            .viewType   = VK_IMAGE_VIEW_TYPE_2D,
-            .format     = Format,
-            .components = {
-                    .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-                    .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-                    .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                    .a = VK_COMPONENT_SWIZZLE_IDENTITY},
-            .subresourceRange = {.aspectMask = AspectFlags, .baseMipLevel = 0U, .levelCount = 1U, .baseArrayLayer = 0U, .layerCount = 1U}};
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image            = Image,
+            .viewType         = VK_IMAGE_VIEW_TYPE_2D,
+            .format           = Format,
+            .subresourceRange = {
+                    .aspectMask     = AspectFlags,
+                    .baseMipLevel   = 0U,
+                    .levelCount     = 1U,
+                    .baseArrayLayer = 0U,
+                    .layerCount     = 1U}};
 
     CheckVulkanResult(vkCreateImageView(volkGetLoadedDevice(), &ImageViewCreateInfo, nullptr, &ImageView));
 }
@@ -323,7 +325,7 @@ constexpr void MoveImageLayout(VkCommandBuffer& CommandBuffer, VkImage const& Im
 
     if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
     {
-        Barrier.srcAccessMask = 0;
+        Barrier.srcAccessMask = 0U;
         Barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
         SourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -339,13 +341,13 @@ constexpr void MoveImageLayout(VkCommandBuffer& CommandBuffer, VkImage const& Im
     }
     else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
     {
-        Barrier.srcAccessMask = 0;
+        Barrier.srcAccessMask = 0U;
         Barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
         SourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         DestinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     }
-    else if (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
     {
         Barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
         Barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
@@ -365,11 +367,13 @@ ImageCreationData AllocateTexture(VmaAllocator const& Allocator, unsigned char c
 {
     ImageAllocation ImageAllocation {};
 
-    constexpr VkBufferUsageFlags SourceUsageFlags             = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    constexpr VmaMemoryUsage MemoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-    constexpr VkImageUsageFlags DestinationUsageFlags              = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+    constexpr VkBufferUsageFlags SourceUsageFlags                = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    constexpr VmaAllocationCreateFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+    constexpr VkImageUsageFlags DestinationUsageFlags                 = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    constexpr VmaAllocationCreateFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
     constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
 
@@ -392,7 +396,7 @@ ImageCreationData AllocateTexture(VmaAllocator const& Allocator, unsigned char c
             .width  = Width,
             .height = Height};
 
-    CreateImage(Allocator, ImageFormat, Extent, Tiling, DestinationUsageFlags, DestinationMemoryPropertyFlags, ImageAllocation.Image, ImageAllocation.Allocation);
+    CreateImage(Allocator, ImageFormat, Extent, Tiling, DestinationUsageFlags, DestinationMemoryPropertyFlags, MemoryUsage, ImageAllocation.Image, ImageAllocation.Allocation);
 
     Output.Allocation = ImageAllocation;
     Output.Format     = ImageFormat;
@@ -505,38 +509,6 @@ void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, 
         m_SwapChainImages.at(Iterator).Image = SwapChainImages.at(Iterator);
     }
     CreateSwapChainImageViews(m_SwapChainImages, SurfaceProperties.Format.format);
-
-    VkCommandPool CommandPool {VK_NULL_HANDLE};
-    std::vector<VkCommandBuffer> CommandBuffers(std::size(m_SwapChainImages), VK_NULL_HANDLE);
-    InitializeSingleCommandQueue(CommandPool, CommandBuffers, GetGraphicsQueue().first);
-    {
-        constexpr VkFormat ImageFormat                      = VK_FORMAT_B8G8R8A8_SRGB;
-        constexpr VkImageAspectFlags AspectFlags            = VK_IMAGE_ASPECT_COLOR_BIT;
-        constexpr VkImageTiling Tiling                      = VK_IMAGE_TILING_LINEAR;
-        constexpr VkImageUsageFlags UsageFlags              = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        constexpr VkMemoryPropertyFlags MemoryPropertyFlags = 0U;
-
-        for (ImageAllocation& ImageIter: m_ViewportImages)
-        {
-            if (ImageIter.IsValid())
-            {
-                ImageIter.DestroyResources(m_Allocator);
-            }
-        }
-        m_ViewportImages.resize(std::size(m_SwapChainImages));
-
-        for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(m_ViewportImages)); ++Iterator)
-        {
-            CreateImage(m_Allocator, ImageFormat, SurfaceProperties.Extent, Tiling, UsageFlags, MemoryPropertyFlags, m_ViewportImages.at(Iterator).Image, m_ViewportImages.at(Iterator).Allocation);
-            CreateImageView(m_ViewportImages.at(Iterator).Image, ImageFormat, AspectFlags, m_ViewportImages.at(Iterator).View);
-
-            MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED,
-                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>(CommandBuffers.at(Iterator),
-                                                                      m_ViewportImages.at(Iterator).Image,
-                                                                      ImageFormat);
-        }
-    }
-    FinishSingleCommandQueue(GetGraphicsQueue().second, CommandPool, CommandBuffers);
 }
 
 void BufferManager::CreateSwapChainFrameBuffers(VkRenderPass const& RenderPass)
@@ -545,6 +517,52 @@ void BufferManager::CreateSwapChainFrameBuffers(VkRenderPass const& RenderPass)
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain frame buffers";
 
     m_SwapChainFrameBuffers = CreateFrameBuffers(RenderPass, m_SwapChainImages, true);
+}
+
+void BufferManager::CreateViewportResources(SurfaceProperties const& SurfaceProperties)
+{
+    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan viewport resources";
+
+    for (ImageAllocation& ImageIter: m_ViewportImages)
+    {
+        if (ImageIter.IsValid())
+        {
+            ImageIter.DestroyResources(m_Allocator);
+        }
+    }
+    m_ViewportImages.resize(std::size(m_SwapChainImages));
+
+    constexpr VmaMemoryUsage MemoryUsage                   = VMA_MEMORY_USAGE_GPU_ONLY;
+    constexpr VkImageAspectFlags AspectFlags               = VK_IMAGE_ASPECT_COLOR_BIT;
+    constexpr VkImageTiling Tiling                         = VK_IMAGE_TILING_LINEAR;
+    constexpr VkImageUsageFlags UsageFlags                 = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    constexpr VmaAllocationCreateFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+    VkCommandPool CommandPool {VK_NULL_HANDLE};
+    std::vector<VkCommandBuffer> CommandBuffers(std::size(m_SwapChainImages) * 2U, VK_NULL_HANDLE);
+    InitializeSingleCommandQueue(CommandPool, CommandBuffers, GetGraphicsQueue().first);
+    {
+        std::uint8_t CmdCount {0U};
+        for (auto& [Image, View, Allocation, Type]: m_ViewportImages)
+        {
+            CreateImage(m_Allocator, SurfaceProperties.Format.format, SurfaceProperties.Extent, Tiling, UsageFlags, MemoryPropertyFlags, MemoryUsage, Image, Allocation);
+            CreateImageView(Image, SurfaceProperties.Format.format, AspectFlags, View);
+
+            MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED,
+                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL>(CommandBuffers.at(CmdCount),
+                                                                  Image,
+                                                                  SurfaceProperties.Format.format);
+            ++CmdCount;
+
+            MoveImageLayout<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>(CommandBuffers.at(CmdCount),
+                                                                      Image,
+                                                                      SurfaceProperties.Format.format);
+            ++CmdCount;
+        }
+    }
+    FinishSingleCommandQueue(GetGraphicsQueue().second, CommandPool, CommandBuffers);
 }
 
 void BufferManager::CreateViewportFrameBuffer(VkRenderPass const& RenderPass)
@@ -591,14 +609,15 @@ void BufferManager::CreateDepthResources(SurfaceProperties const& SurfacePropert
 
     auto const& [FamilyIndex, Queue] = GetGraphicsQueue();
 
-    constexpr VkImageTiling Tiling                      = VK_IMAGE_TILING_OPTIMAL;
-    constexpr VkImageUsageFlagBits Usage                = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    constexpr VkMemoryPropertyFlags MemoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    constexpr VkImageAspectFlagBits Aspect              = VK_IMAGE_ASPECT_DEPTH_BIT;
-    constexpr VkImageLayout InitialLayout               = VK_IMAGE_LAYOUT_UNDEFINED;
-    constexpr VkImageLayout DestinationLayout           = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    constexpr VmaMemoryUsage MemoryUsage                   = VMA_MEMORY_USAGE_GPU_ONLY;
+    constexpr VkImageTiling Tiling                         = VK_IMAGE_TILING_OPTIMAL;
+    constexpr VkImageUsageFlagBits Usage                   = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    constexpr VmaAllocationCreateFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+    constexpr VkImageAspectFlagBits Aspect                 = VK_IMAGE_ASPECT_DEPTH_BIT;
+    constexpr VkImageLayout InitialLayout                  = VK_IMAGE_LAYOUT_UNDEFINED;
+    constexpr VkImageLayout DestinationLayout              = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    CreateImage(m_Allocator, SurfaceProperties.DepthFormat, SurfaceProperties.Extent, Tiling, Usage, MemoryPropertyFlags, m_DepthImage.Image, m_DepthImage.Allocation);
+    CreateImage(m_Allocator, SurfaceProperties.DepthFormat, SurfaceProperties.Extent, Tiling, Usage, MemoryPropertyFlags, MemoryUsage, m_DepthImage.Image, m_DepthImage.Allocation);
     CreateImageView(m_DepthImage.Image, SurfaceProperties.DepthFormat, Aspect, m_DepthImage.View);
 
     VkCommandPool CommandPool {VK_NULL_HANDLE};

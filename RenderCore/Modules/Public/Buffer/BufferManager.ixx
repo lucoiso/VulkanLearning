@@ -49,6 +49,7 @@ namespace RenderCore
         void CreateImageSampler();
         void CreateSwapChain(SurfaceProperties const&, VkSurfaceCapabilitiesKHR const&);
         void CreateSwapChainFrameBuffers(VkRenderPass const&);
+        void CreateViewportResources(SurfaceProperties const&);
         void CreateViewportFrameBuffer(VkRenderPass const&);
         [[nodiscard]] std::vector<VkFramebuffer> CreateFrameBuffers(VkRenderPass const&, std::vector<ImageAllocation> const&, bool) const;
         void CreateDepthResources(SurfaceProperties const&);

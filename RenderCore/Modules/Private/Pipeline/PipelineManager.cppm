@@ -42,8 +42,8 @@ void PipelineManager::CreateRenderPass(SurfaceProperties const& SurfacePropertie
                     .format         = SurfaceProperties.DepthFormat,
                     .samples        = g_MSAASamples,
                     .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                    .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
-                    .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    .storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                    .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
                     .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
                     .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
                     .finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
@@ -62,32 +62,12 @@ void PipelineManager::CreateRenderPass(SurfaceProperties const& SurfacePropertie
             .pColorAttachments       = &ColorAttachmentReference,
             .pDepthStencilAttachment = &DepthAttachmentReference};
 
-    constexpr std::array SubpassDependencies {
-            VkSubpassDependency {
-                    .srcSubpass      = VK_SUBPASS_EXTERNAL,
-                    .dstSubpass      = 0U,
-                    .srcStageMask    = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-                    .dstStageMask    = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-                    .srcAccessMask   = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                    .dstAccessMask   = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
-                    .dependencyFlags = 0U},
-            VkSubpassDependency {
-                    .srcSubpass      = VK_SUBPASS_EXTERNAL,
-                    .dstSubpass      = 0U,
-                    .srcStageMask    = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .dstStageMask    = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .srcAccessMask   = 0U,
-                    .dstAccessMask   = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
-                    .dependencyFlags = 0U}};
-
     VkRenderPassCreateInfo const RenderPassCreateInfo {
             .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
             .attachmentCount = static_cast<std::uint32_t>(std::size(AttachmentDescriptions)),
             .pAttachments    = std::data(AttachmentDescriptions),
             .subpassCount    = 1U,
-            .pSubpasses      = &SubpassDescription,
-            .dependencyCount = static_cast<std::uint32_t>(std::size(SubpassDependencies)),
-            .pDependencies   = std::data(SubpassDependencies)};
+            .pSubpasses      = &SubpassDescription};
 
     CheckVulkanResult(vkCreateRenderPass(volkGetLoadedDevice(), &RenderPassCreateInfo, nullptr, &OutRenderPass));
 }
@@ -101,18 +81,8 @@ void PipelineManager::CreateRenderPasses(SurfaceProperties const& SurfacePropert
     CreateRenderPass(SurfaceProperties, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_ViewportRenderPass);
 }
 
-void PipelineManager::CreatePipeline(VkRenderPass const& RenderPass, VkPipelineLayout const& PipelineLayout, VkExtent2D const& ViewportExtent, VkPipeline& OutPipeline)
+void CreatePipeline(VkRenderPass const& RenderPass, VkPipelineLayout const& PipelineLayout, VkExtent2D const& ViewportExtent, VkPipelineVertexInputStateCreateInfo const VertexInput, std::vector<VkPipelineShaderStageCreateInfo> const& ShaderStages, VkPipelineCache& PipelineCache, VkPipeline& OutPipeline)
 {
-    static auto const BindingDescription    = GetBindingDescriptors();
-    static auto const AttributeDescriptions = GetAttributeDescriptions();
-
-    VkPipelineVertexInputStateCreateInfo const VertexInputState {
-            .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            .vertexBindingDescriptionCount   = static_cast<std::uint32_t>(std::size(BindingDescription)),
-            .pVertexBindingDescriptions      = std::data(BindingDescription),
-            .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(std::size(AttributeDescriptions)),
-            .pVertexAttributeDescriptions    = std::data(AttributeDescriptions)};
-
     constexpr VkPipelineInputAssemblyStateCreateInfo InputAssemblyState {
             .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
             .topology               = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
@@ -160,9 +130,9 @@ void PipelineManager::CreatePipeline(VkRenderPass const& RenderPass, VkPipelineL
             .alphaToOneEnable      = VK_FALSE};
 
     constexpr VkPipelineColorBlendAttachmentState ColorBlendAttachmentStates {
-            .blendEnable         = VK_TRUE,
-            .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-            .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            .blendEnable         = VK_FALSE,
+            .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+            .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
             .colorBlendOp        = VK_BLEND_OP_ADD,
             .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
             .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
@@ -198,13 +168,11 @@ void PipelineManager::CreatePipeline(VkRenderPass const& RenderPass, VkPipelineL
             .minDepthBounds        = 0.F,
             .maxDepthBounds        = 1.F};
 
-    static std::vector<VkPipelineShaderStageCreateInfo> const ShaderStages = GetStageInfos();
-
     VkGraphicsPipelineCreateInfo const GraphicsPipelineCreateInfo {
             .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
             .stageCount          = static_cast<std::uint32_t>(std::size(ShaderStages)),
             .pStages             = std::data(ShaderStages),
-            .pVertexInputState   = &VertexInputState,
+            .pVertexInputState   = &VertexInput,
             .pInputAssemblyState = &InputAssemblyState,
             .pViewportState      = &ViewportState,
             .pRasterizationState = &RasterizationState,
@@ -218,7 +186,7 @@ void PipelineManager::CreatePipeline(VkRenderPass const& RenderPass, VkPipelineL
             .basePipelineHandle  = VK_NULL_HANDLE,
             .basePipelineIndex   = -1};
 
-    CheckVulkanResult(vkCreateGraphicsPipelines(volkGetLoadedDevice(), VK_NULL_HANDLE, 1U, &GraphicsPipelineCreateInfo, nullptr, &OutPipeline));
+    CheckVulkanResult(vkCreateGraphicsPipelines(volkGetLoadedDevice(), PipelineCache, 1U, &GraphicsPipelineCreateInfo, nullptr, &OutPipeline));
 }
 
 void PipelineManager::CreatePipelines(VkExtent2D const& ViewportExtent)
@@ -238,8 +206,20 @@ void PipelineManager::CreatePipelines(VkExtent2D const& ViewportExtent)
 
     CheckVulkanResult(vkCreatePipelineCache(volkGetLoadedDevice(), &PipelineCacheCreateInfo, nullptr, &m_PipelineCache));
 
-    CreatePipeline(m_MainRenderPass, m_PipelineLayout, ViewportExtent, m_MainPipeline);
-    CreatePipeline(m_ViewportRenderPass, m_PipelineLayout, ViewportExtent, m_ViewportPipeline);
+    auto const BindingDescription    = GetBindingDescriptors();
+    auto const AttributeDescriptions = GetAttributeDescriptions();
+
+    VkPipelineVertexInputStateCreateInfo const VertexInputState {
+            .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+            .vertexBindingDescriptionCount   = static_cast<std::uint32_t>(std::size(BindingDescription)),
+            .pVertexBindingDescriptions      = std::data(BindingDescription),
+            .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(std::size(AttributeDescriptions)),
+            .pVertexAttributeDescriptions    = std::data(AttributeDescriptions)};
+
+    std::vector<VkPipelineShaderStageCreateInfo> const ShaderStages = GetStageInfos();
+
+    CreatePipeline(m_MainRenderPass, m_PipelineLayout, ViewportExtent, VertexInputState, ShaderStages, m_PipelineCache, m_MainPipeline);
+    CreatePipeline(m_ViewportRenderPass, m_PipelineLayout, ViewportExtent, VertexInputState, ShaderStages, m_PipelineCache, m_ViewportPipeline);
 }
 
 void PipelineManager::CreateDescriptorSetLayout()

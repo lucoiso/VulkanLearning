@@ -23,6 +23,7 @@ import RenderCore.Types.Object;
 import Timer.Manager;
 
 import RenderCore.Utils.EngineStateFlags;
+import RenderCore.Window.Control;
 import RenderCore.Management.BufferManagement;
 import RenderCore.Management.PipelineManagement;
 import RenderCore.Management.CommandsManagement;
@@ -46,7 +47,7 @@ namespace RenderCore
 
         friend class Window;
 
-        void DrawFrame(GLFWwindow*, float, Camera const&, std::function<void()>&&);
+        void DrawFrame(GLFWwindow*, float, Camera const&, Control*);
         std::optional<std::int32_t> RequestImageIndex(GLFWwindow*);
 
         void Tick();

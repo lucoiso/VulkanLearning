@@ -14,6 +14,8 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Control
     {
+        friend class Renderer;
+
         Control* m_Parent {nullptr};
         std::vector<std::shared_ptr<Control>> m_Children {};
         std::vector<std::shared_ptr<Control>> m_IndependentChildren {};

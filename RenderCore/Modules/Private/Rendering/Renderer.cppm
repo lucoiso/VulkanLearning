@@ -101,14 +101,14 @@ bool CreateVulkanInstance()
     return g_Instance != VK_NULL_HANDLE;
 }
 
-void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera const& Camera, std::function<void()>&& RefreshCallback)
+void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera const& Camera, Control* const Owner)
 {
     if (!IsInitialized())
     {
         return;
     }
 
-    if (Window == nullptr)
+    if (Window == nullptr || Owner == nullptr)
     {
         throw std::runtime_error("Window is invalid");
     }
@@ -142,9 +142,10 @@ void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera
             auto const SurfaceCapabilities = GetSurfaceCapabilities(m_BufferManager.GetSurface());
 
             m_BufferManager.CreateSwapChain(SurfaceProperties, SurfaceCapabilities);
+            m_BufferManager.CreateViewportResources(SurfaceProperties);
             m_BufferManager.CreateDepthResources(SurfaceProperties);
 
-            RefreshCallback();
+            Owner->RefreshResources();
             CreateCommandsSynchronizationObjects();
 
             RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
@@ -167,17 +168,26 @@ void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera
         }
     }
 
-    if (!HasAnyFlag(m_StateFlags, InvalidStatesToRender))
-    {
-        if (m_ImageIndex = RequestImageIndex(Window);
-            m_ImageIndex.has_value())
-        {
-            std::unique_lock Lock(m_ObjectsMutex);
+    m_ImageIndex = RequestImageIndex(Window);
 
-            RecordCommandBuffers(m_ImageIndex.value(), Camera, m_BufferManager, m_PipelineManager, GetObjects(), m_BufferManager.GetSwapChainExtent());
-            SubmitCommandBuffers();
-            PresentFrame(m_ImageIndex.value(), m_BufferManager.GetSwapChain());
-        }
+    DrawImGuiFrame(
+            [Owner] {
+                Owner->PreUpdate();
+            },
+            [Owner] {
+                Owner->Update();
+            },
+            [Owner] {
+                Owner->PostUpdate();
+            });
+
+    if (!HasAnyFlag(m_StateFlags, InvalidStatesToRender) && m_ImageIndex.has_value())
+    {
+        std::unique_lock Lock(m_ObjectsMutex);
+
+        RecordCommandBuffers(m_ImageIndex.value(), Camera, m_BufferManager, m_PipelineManager, GetObjects(), m_BufferManager.GetSwapChainExtent());
+        SubmitCommandBuffers();
+        PresentFrame(m_ImageIndex.value(), m_BufferManager.GetSwapChain());
     }
 }
 

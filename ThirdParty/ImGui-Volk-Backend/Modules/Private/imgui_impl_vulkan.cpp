@@ -662,7 +662,7 @@ bool ImGui_ImplVulkan_CreateFontsTexture()
     {
         VkCommandPoolCreateInfo info = {};
         info.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        info.flags                   = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        info.flags                   = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
         info.queueFamilyIndex        = v->QueueFamily;
         vkCreateCommandPool(v->Device, &info, v->Allocator, &bd->FontCommandPool);
     }

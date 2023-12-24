@@ -139,21 +139,11 @@ void Window::RequestRender()
 
     if (IsInitialized() && IsOpen())
     {
-        DrawImGuiFrame(
-                [this] {
-                    PreUpdate();
-                },
-                [this] {
-                    Update();
-                },
-                [this] {
-                    PostUpdate();
-                });
-
         m_Renderer.GetMutableCamera().UpdateCameraMovement(static_cast<float>(m_Renderer.GetDeltaTime()));
 
-        m_Renderer.DrawFrame(m_GLFWHandler.GetWindow(), DeltaTime, m_Renderer.GetCamera(), [this] {
-            RefreshResources();
-        });
+        m_Renderer.DrawFrame(m_GLFWHandler.GetWindow(),
+                             DeltaTime,
+                             m_Renderer.GetCamera(),
+                             this);
     }
 }

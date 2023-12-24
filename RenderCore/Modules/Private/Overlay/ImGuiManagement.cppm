@@ -56,7 +56,7 @@ void RenderCore::InitializeImGuiContext(GLFWwindow* const Window)
         return;
     }
 
-    ImIO.ConfigFlags |= /*ImGuiConfigFlags_ViewportsEnable |*/ ImGuiConfigFlags_DockingEnable;
+    ImIO.ConfigFlags |= /*ImGuiConfigFlags_ViewportsEnable |*/ ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
 
     ImGui_ImplGlfw_InitForVulkan(Window, true);
 
@@ -183,18 +183,18 @@ void RenderCore::ReleaseImGuiResources()
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
-    if (g_ImGuiDescriptorPool != VK_NULL_HANDLE)
-    {
-        vkDestroyDescriptorPool(volkGetLoadedDevice(), g_ImGuiDescriptorPool, nullptr);
-        g_ImGuiDescriptorPool = VK_NULL_HANDLE;
-    }
-
     DestroyImGuiRenderPass();
     DestroyImGuiFrameBuffers();
 
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+
+    if (g_ImGuiDescriptorPool != VK_NULL_HANDLE)
+    {
+        vkDestroyDescriptorPool(volkGetLoadedDevice(), g_ImGuiDescriptorPool, nullptr);
+        g_ImGuiDescriptorPool = VK_NULL_HANDLE;
+    }
 }
 
 void RenderCore::DrawImGuiFrame(std::function<void()>&& PreDraw, std::function<void()>&& Draw, std::function<void()>&& PostDraw)

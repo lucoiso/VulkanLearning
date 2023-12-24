@@ -10,11 +10,11 @@ SET(PRIVATE_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private)
 SET(PUBLIC_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public)
 
 SET(PRIVATE_MODULES
-	${PRIVATE_MODULES_BASE_DIRECTORY}/imgui_impl_vulkan.cpp
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/imgui_impl_vulkan.cpp
 )
 
 SET(PUBLIC_MODULES
-	${PUBLIC_MODULES_BASE_DIRECTORY}/imgui_impl_vulkan.h
+        ${PUBLIC_MODULES_BASE_DIRECTORY}/imgui_impl_vulkan.h
 )
 
 ADD_LIBRARY(${LIBRARY_NAME} ${PRIVATE_MODULES})
@@ -26,6 +26,6 @@ FIND_PACKAGE(volk CONFIG REQUIRED)
 FIND_PACKAGE(imgui CONFIG REQUIRED)
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
-					  volk::volk_headers
-					  imgui::imgui
+        volk::volk_headers
+        imgui::imgui
 )
