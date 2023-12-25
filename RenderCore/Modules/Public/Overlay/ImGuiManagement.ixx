@@ -26,6 +26,7 @@ namespace RenderCore
 
     export void ReleaseImGuiResources();
     export void DrawImGuiFrame(std::function<void()>&&, std::function<void()>&&, std::function<void()>&&);
+    export void DrawPostImGuiResources();
 
     export [[nodiscard]] bool IsImGuiInitialized();
 

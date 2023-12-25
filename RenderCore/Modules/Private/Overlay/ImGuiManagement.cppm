@@ -56,7 +56,7 @@ void RenderCore::InitializeImGuiContext(GLFWwindow* const Window)
         return;
     }
 
-    ImIO.ConfigFlags |= /*ImGuiConfigFlags_ViewportsEnable |*/ ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
+    ImIO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
 
     ImGui_ImplGlfw_InitForVulkan(Window, true);
 
@@ -92,6 +92,7 @@ void RenderCore::InitializeImGuiContext(GLFWwindow* const Window)
             .Queue           = GetGraphicsQueue().second,
             .PipelineCache   = VK_NULL_HANDLE,
             .DescriptorPool  = g_ImGuiDescriptorPool,
+            .Subpass         = 0U,
             .MinImageCount   = g_MinImageCount,
             .ImageCount      = g_MinImageCount,
             .MSAASamples     = g_MSAASamples,
@@ -101,7 +102,16 @@ void RenderCore::InitializeImGuiContext(GLFWwindow* const Window)
             }};
 
     ImGui_ImplVulkan_Init(&ImGuiVulkanInitInfo, g_ImGuiRenderPass);
-    ImGui_ImplVulkan_CreateFontsTexture();
+
+    std::vector<VkCommandBuffer> CommandBuffer {VK_NULL_HANDLE};
+    VkCommandPool CommandPool = VK_NULL_HANDLE;
+    InitializeSingleCommandQueue(CommandPool, CommandBuffer, GetGraphicsQueue().first);
+    {
+        ImGui_ImplVulkan_CreateFontsTexture(CommandBuffer.back());
+    }
+    FinishSingleCommandQueue(GetGraphicsQueue().second, CommandPool, CommandBuffer);
+
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
 void RenderCore::CreateImGuiRenderPass(SurfaceProperties const& SurfaceProperties)

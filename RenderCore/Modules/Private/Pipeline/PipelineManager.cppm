@@ -62,12 +62,23 @@ void PipelineManager::CreateRenderPass(SurfaceProperties const& SurfacePropertie
             .pColorAttachments       = &ColorAttachmentReference,
             .pDepthStencilAttachment = &DepthAttachmentReference};
 
+    constexpr VkSubpassDependency SubpassDependency {
+            .srcSubpass      = VK_SUBPASS_EXTERNAL,
+            .dstSubpass      = 0U,
+            .srcStageMask    = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+            .dstStageMask    = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+            .srcAccessMask   = 0U,
+            .dstAccessMask   = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            .dependencyFlags = 0U};
+
     VkRenderPassCreateInfo const RenderPassCreateInfo {
             .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
             .attachmentCount = static_cast<std::uint32_t>(std::size(AttachmentDescriptions)),
             .pAttachments    = std::data(AttachmentDescriptions),
             .subpassCount    = 1U,
-            .pSubpasses      = &SubpassDescription};
+            .pSubpasses      = &SubpassDescription,
+            .dependencyCount = 1U,
+            .pDependencies   = &SubpassDependency};
 
     CheckVulkanResult(vkCreateRenderPass(volkGetLoadedDevice(), &RenderPassCreateInfo, nullptr, &OutRenderPass));
 }
