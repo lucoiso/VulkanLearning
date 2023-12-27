@@ -449,7 +449,7 @@ void BufferManager::CreateViewportResources(SurfaceProperties const& SurfaceProp
     constexpr VmaMemoryUsage MemoryUsage                   = VMA_MEMORY_USAGE_GPU_ONLY;
     constexpr VkImageAspectFlags AspectFlags               = VK_IMAGE_ASPECT_COLOR_BIT;
     constexpr VkImageTiling Tiling                         = VK_IMAGE_TILING_LINEAR;
-    constexpr VkImageUsageFlags UsageFlags                 = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    constexpr VkImageUsageFlags UsageFlags                 = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     constexpr VmaAllocationCreateFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
     for (auto& [Image, View, Allocation, Type]: m_ViewportImages)
@@ -1067,6 +1067,122 @@ void BufferManager::UpdateUniformBuffers(std::shared_ptr<Object> const& Object, 
 
         std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(UniformBufferObject));
     }
+}
+
+void BufferManager::SaveImageToFile(VkImage const& Image, std::string_view const& Path) const
+{
+    VkBuffer Buffer;
+    VmaAllocation Allocation;
+    VkSubresourceLayout Layout;
+
+    constexpr std::uint32_t ImageWidth{600U};
+    constexpr std::uint32_t ImageHeight{600U};
+    constexpr std::uint8_t Components{4U};
+
+    auto const& [FamilyIndex, Queue] = GetGraphicsQueue();
+
+    VkCommandPool CommandPool{VK_NULL_HANDLE};
+    std::vector<VkCommandBuffer> CommandBuffer{VK_NULL_HANDLE};
+    InitializeSingleCommandQueue(CommandPool, CommandBuffer, FamilyIndex); {
+        VkImageSubresource SubResource{
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .mipLevel = 0,
+                .arrayLayer = 0};
+
+        vkGetImageSubresourceLayout(volkGetLoadedDevice(), Image, &SubResource, &Layout);
+
+        VkBufferCreateInfo BufferInfo{
+                .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                .size = Layout.size,
+                .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                .sharingMode = VK_SHARING_MODE_EXCLUSIVE};
+
+        VmaAllocationCreateInfo AllocationInfo{
+                .usage = VMA_MEMORY_USAGE_CPU_ONLY};
+
+        vmaCreateBuffer(m_Allocator, &BufferInfo, &AllocationInfo, &Buffer, &Allocation, nullptr);
+
+        VkBufferImageCopy Region{
+                .bufferOffset = 0U,
+                .bufferRowLength = 0U,
+                .bufferImageHeight = 0U,
+                .imageSubresource = {
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .mipLevel = 0U,
+                        .baseArrayLayer = 0U,
+                        .layerCount = 1U
+                },
+                .imageOffset = {0U, 0U, 0U},
+                .imageExtent = {
+                        .width = ImageWidth,
+                        .height = ImageHeight,
+                        .depth = 1U
+                }
+        };
+
+        VkImageMemoryBarrier2 PreCopyBarrier{
+                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR,
+                .pNext = nullptr,
+                .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                .srcAccessMask = 0U,
+                .dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+                .dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
+                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .image = Image,
+                .subresourceRange = {
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .baseMipLevel = 0U,
+                        .levelCount = 1U,
+                        .baseArrayLayer = 0U,
+                        .layerCount = 1U
+                }
+        };
+
+        VkImageMemoryBarrier2 PostCopyBarrier{
+                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR,
+                .pNext = nullptr,
+                .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+                .srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
+                .dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                .dstAccessMask = 0U,
+                .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .image = Image,
+                .subresourceRange = {
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .baseMipLevel = 0U,
+                        .levelCount = 1U,
+                        .baseArrayLayer = 0U,
+                        .layerCount = 1U
+                }
+        };
+
+        VkDependencyInfo DependencyInfo{
+                .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR,
+                .imageMemoryBarrierCount = 1U,
+                .pImageMemoryBarriers = &PreCopyBarrier};
+
+        vkCmdPipelineBarrier2(CommandBuffer.back(), &DependencyInfo);
+        vkCmdCopyImageToBuffer(CommandBuffer.back(), Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Buffer, 1, &Region);
+
+        DependencyInfo.pImageMemoryBarriers = &PostCopyBarrier;
+        vkCmdPipelineBarrier2(CommandBuffer.back(), &DependencyInfo);
+    }
+    FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
+
+    void* ImageData;
+    vmaMapMemory(m_Allocator, Allocation, &ImageData);
+
+    auto const ImagePixels = static_cast<unsigned char*>(ImageData);
+    stbi_write_png(std::data(Path), ImageWidth, ImageHeight, Components, ImagePixels, ImageWidth * Components);
+
+    vmaUnmapMemory(m_Allocator, Allocation);
+    vmaDestroyBuffer(m_Allocator, Buffer, Allocation);
 }
 
 VmaAllocator const& BufferManager::GetAllocator() const

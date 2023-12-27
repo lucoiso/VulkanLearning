@@ -109,6 +109,8 @@ namespace RenderCore
 
         void UpdateUniformBuffers(std::shared_ptr<Object> const&, Camera const&, VkExtent2D const&) const;
 
+        void SaveImageToFile(VkImage const&, std::string_view const&) const;
+
         template<VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect> static constexpr void MoveImageLayout(VkCommandBuffer& CommandBuffer, VkImage const& Image, VkFormat const& Format)
         {
             VkImageMemoryBarrier2KHR Barrier{

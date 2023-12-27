@@ -101,7 +101,7 @@ bool CreateVulkanInstance()
     return g_Instance != VK_NULL_HANDLE;
 }
 
-void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera const& Camera, Control* const Owner)
+void Renderer::DrawFrame(GLFWwindow * const Window, float const DeltaTime, Camera const&Camera, Control * const Owner)
 {
     if (!IsInitialized())
     {
@@ -516,4 +516,9 @@ VkSampler Renderer::GetSampler() const
 bool Renderer::IsImGuiInitialized()
 {
     return RenderCore::IsImGuiInitialized();
+}
+
+void Renderer::SaveFrameToImageFile(std::string_view const& Path) const
+{
+    m_BufferManager.SaveImageToFile(m_BufferManager.GetViewportImages().at(GetImageIndex().value()).Image, Path);
 }
