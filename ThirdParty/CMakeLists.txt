@@ -3,4 +3,4 @@
 # Repo : https://github.com/lucoiso/VulkanRenderer
 
 # -------------- Directories ---------------
-ADD_SUBDIRECTORY(ImGui-Volk-Backend)
+ADD_SUBDIRECTORY(ImGui-Vulkan-Backend)

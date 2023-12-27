@@ -68,17 +68,18 @@ export namespace RenderCore
     constexpr std::uint64_t g_ImageBufferMemoryAllocationSize = 262144U;
 
     constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    constexpr VkFormat g_ViewportImageFormat      = VK_FORMAT_R8G8B8A8_UNORM;
 
     constexpr std::uint8_t g_MinImageCount = 3U;
 
     constexpr std::uint32_t g_Timeout = std::numeric_limits<std::uint32_t>::max();
 
-    constexpr std::array g_ClearValues {
-            VkClearValue {
+    constexpr std::array g_ClearValues{
+            VkClearValue{
                     .color = {
                             {0.F,
                              0.F,
                              0.F,
                              1.F}}},
-            VkClearValue {.depthStencil = {1.F, 0U}}};
+            VkClearValue{.depthStencil = {1.F, 0U}}};
 }// namespace RenderCore

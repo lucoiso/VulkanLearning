@@ -56,13 +56,13 @@ VmaAllocationInfo CreateBuffer(VmaAllocator const& Allocator, VkDeviceSize const
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
 
-    VmaAllocationCreateInfo const AllocationCreateInfo {
+    VmaAllocationCreateInfo const AllocationCreateInfo{
             .flags = Flags,
             .usage = VMA_MEMORY_USAGE_AUTO};
 
-    VkBufferCreateInfo const BufferCreateInfo {
+    VkBufferCreateInfo const BufferCreateInfo{
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .size  = std::clamp(Size, g_BufferMemoryAllocationSize, UINT64_MAX),
+            .size = std::clamp(Size, g_BufferMemoryAllocationSize, UINT64_MAX),
             .usage = Usage};
 
     VmaAllocationInfo MemoryAllocationInfo;
@@ -73,7 +73,7 @@ VmaAllocationInfo CreateBuffer(VmaAllocator const& Allocator, VkDeviceSize const
 
 void CopyBuffer(VkCommandBuffer const& CommandBuffer, VkBuffer const& Source, VkBuffer const& Destination, VkDeviceSize const& Size)
 {
-    VkBufferCopy const BufferCopy {
+    VkBufferCopy const BufferCopy{
             .size = Size,
     };
 
@@ -97,18 +97,18 @@ CommandBufferSet CreateVertexBuffers(VmaAllocator const& Allocator, ObjectAlloca
     constexpr VkBufferUsageFlags DestinationUsageFlags             = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = 0U;
 
-    CommandBufferSet Output {
-            .bVertexBuffer  = true,
+    CommandBufferSet Output{
+            .bVertexBuffer = true,
             .AllocationSize = BufferSize};
 
     VmaAllocationInfo const
             StagingInfo
-            = CreateBuffer(Allocator,
-                           BufferSize,
-                           SourceUsageFlags,
-                           SourceMemoryPropertyFlags,
-                           Output.StagingBuffer.first,
-                           Output.StagingBuffer.second);
+                    = CreateBuffer(Allocator,
+                                   BufferSize,
+                                   SourceUsageFlags,
+                                   SourceMemoryPropertyFlags,
+                                   Output.StagingBuffer.first,
+                                   Output.StagingBuffer.second);
 
     std::memcpy(StagingInfo.pMappedData, std::data(Vertices), BufferSize);
 
@@ -134,18 +134,18 @@ CommandBufferSet CreateIndexBuffers(VmaAllocator const& Allocator, ObjectAllocat
     constexpr VkBufferUsageFlags DestinationUsageFlags             = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = 0U;
 
-    CommandBufferSet Output {
-            .bVertexBuffer  = false,
+    CommandBufferSet Output{
+            .bVertexBuffer = false,
             .AllocationSize = BufferSize};
 
     VmaAllocationInfo const
             StagingInfo
-            = CreateBuffer(Allocator,
-                           BufferSize,
-                           SourceUsageFlags,
-                           SourceMemoryPropertyFlags,
-                           Output.StagingBuffer.first,
-                           Output.StagingBuffer.second);
+                    = CreateBuffer(Allocator,
+                                   BufferSize,
+                                   SourceUsageFlags,
+                                   SourceMemoryPropertyFlags,
+                                   Output.StagingBuffer.first,
+                                   Output.StagingBuffer.second);
 
     std::memcpy(StagingInfo.pMappedData, std::data(Indices), BufferSize);
     CheckVulkanResult(vmaFlushAllocation(Allocator, Output.StagingBuffer.second, 0U, BufferSize));
@@ -188,23 +188,23 @@ void CreateImage(VmaAllocator const& Allocator,
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
 
-    VkImageCreateInfo const ImageViewCreateInfo {
-            .sType     = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+    VkImageCreateInfo const ImageViewCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             .imageType = VK_IMAGE_TYPE_2D,
-            .format    = ImageFormat,
-            .extent    = {
-                       .width  = Extent.width,
-                       .height = Extent.height,
-                       .depth  = 1U},
-            .mipLevels     = 1U,
-            .arrayLayers   = 1U,
-            .samples       = g_MSAASamples,
-            .tiling        = Tiling,
-            .usage         = ImageUsage,
-            .sharingMode   = VK_SHARING_MODE_EXCLUSIVE,
+            .format = ImageFormat,
+            .extent = {
+                    .width = Extent.width,
+                    .height = Extent.height,
+                    .depth = 1U},
+            .mipLevels = 1U,
+            .arrayLayers = 1U,
+            .samples = g_MSAASamples,
+            .tiling = Tiling,
+            .usage = ImageUsage,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
 
-    VmaAllocationCreateInfo const ImageCreateInfo {
+    VmaAllocationCreateInfo const ImageCreateInfo{
             .flags = Flags,
             .usage = MemoryUsage};
 
@@ -222,22 +222,22 @@ void CreateTextureSampler(VmaAllocator const& Allocator, VkSampler& Sampler)
     VkPhysicalDeviceProperties SurfaceProperties;
     vkGetPhysicalDeviceProperties(Allocator->GetPhysicalDevice(), &SurfaceProperties);
 
-    VkSamplerCreateInfo const SamplerCreateInfo {
-            .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-            .magFilter               = VK_FILTER_LINEAR,
-            .minFilter               = VK_FILTER_LINEAR,
-            .mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-            .addressModeU            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeV            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeW            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .mipLodBias              = 0.F,
-            .anisotropyEnable        = VK_TRUE,
-            .maxAnisotropy           = SurfaceProperties.limits.maxSamplerAnisotropy,
-            .compareEnable           = VK_FALSE,
-            .compareOp               = VK_COMPARE_OP_ALWAYS,
-            .minLod                  = 0.F,
-            .maxLod                  = FLT_MAX,
-            .borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+    VkSamplerCreateInfo const SamplerCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            .magFilter = VK_FILTER_LINEAR,
+            .minFilter = VK_FILTER_LINEAR,
+            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .mipLodBias = 0.F,
+            .anisotropyEnable = VK_TRUE,
+            .maxAnisotropy = SurfaceProperties.limits.maxSamplerAnisotropy,
+            .compareEnable = VK_FALSE,
+            .compareOp = VK_COMPARE_OP_ALWAYS,
+            .minLod = 0.F,
+            .maxLod = FLT_MAX,
+            .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
             .unnormalizedCoordinates = VK_FALSE};
 
     CheckVulkanResult(vkCreateSampler(volkGetLoadedDevice(), &SamplerCreateInfo, nullptr, &Sampler));
@@ -245,17 +245,17 @@ void CreateTextureSampler(VmaAllocator const& Allocator, VkSampler& Sampler)
 
 void CreateImageView(VkImage const& Image, VkFormat const& Format, VkImageAspectFlags const& AspectFlags, VkImageView& ImageView)
 {
-    VkImageViewCreateInfo const ImageViewCreateInfo {
-            .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .image            = Image,
-            .viewType         = VK_IMAGE_VIEW_TYPE_2D,
-            .format           = Format,
+    VkImageViewCreateInfo const ImageViewCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image = Image,
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = Format,
             .subresourceRange = {
-                    .aspectMask     = AspectFlags,
-                    .baseMipLevel   = 0U,
-                    .levelCount     = 1U,
+                    .aspectMask = AspectFlags,
+                    .baseMipLevel = 0U,
+                    .levelCount = 1U,
                     .baseArrayLayer = 0U,
-                    .layerCount     = 1U}};
+                    .layerCount = 1U}};
 
     CheckVulkanResult(vkCreateImageView(volkGetLoadedDevice(), &ImageViewCreateInfo, nullptr, &ImageView));
 }
@@ -278,94 +278,24 @@ void CreateTextureImageView(ImageAllocation& Allocation)
 
 void CopyBufferToImage(VkCommandBuffer const& CommandBuffer, VkBuffer const& Source, VkImage const& Destination, VkExtent2D const& Extent)
 {
-    VkBufferImageCopy const BufferImageCopy {
-            .bufferOffset      = 0U,
-            .bufferRowLength   = 0U,
+    VkBufferImageCopy const BufferImageCopy{
+            .bufferOffset = 0U,
+            .bufferRowLength = 0U,
             .bufferImageHeight = 0U,
-            .imageSubresource  = {
-                     .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                     .mipLevel       = 0U,
-                     .baseArrayLayer = 0U,
-                     .layerCount     = 1U},
+            .imageSubresource = {
+                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .mipLevel = 0U,
+                    .baseArrayLayer = 0U,
+                    .layerCount = 1U},
             .imageOffset = {.x = 0U, .y = 0U, .z = 0U},
             .imageExtent = {.width = Extent.width, .height = Extent.height, .depth = 1U}};
 
     vkCmdCopyBufferToImage(CommandBuffer, Source, Destination, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1U, &BufferImageCopy);
 }
 
-template<VkImageLayout OldLayout, VkImageLayout NewLayout>
-constexpr void MoveImageLayout(VkCommandBuffer& CommandBuffer, VkImage const& Image, VkFormat const& Format)
-{
-    VkPipelineStageFlags SourceStage;
-    VkPipelineStageFlags DestinationStage;
-
-    VkImageMemoryBarrier Barrier = {
-            .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            .oldLayout           = OldLayout,
-            .newLayout           = NewLayout,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .image               = Image,
-            .subresourceRange    = {
-                       .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                       .baseMipLevel   = 0U,
-                       .levelCount     = 1U,
-                       .baseArrayLayer = 0U,
-                       .layerCount     = 1U}};
-
-    if constexpr (NewLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-    {
-        Barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-        if (Format == VK_FORMAT_D32_SFLOAT_S8_UINT || Format == VK_FORMAT_D24_UNORM_S8_UINT)
-        {
-            Barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-        }
-    }
-
-    if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-    {
-        Barrier.srcAccessMask = 0U;
-        Barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-        SourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        DestinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    }
-    else if constexpr (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-    {
-        Barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        Barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-        SourceStage      = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        DestinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    }
-    else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-    {
-        Barrier.srcAccessMask = 0U;
-        Barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-        SourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        DestinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    }
-    else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-    {
-        Barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        Barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-
-        SourceStage      = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        DestinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    }
-    else
-    {
-        throw std::invalid_argument("Vulkan image layout transition is invalid");
-    }
-
-    vkCmdPipelineBarrier(CommandBuffer, SourceStage, DestinationStage, 0U, 0U, nullptr, 0U, nullptr, 1U, &Barrier);
-}
-
 ImageCreationData AllocateTexture(VmaAllocator const& Allocator, unsigned char const* Data, std::uint32_t const Width, std::uint32_t const Height, std::size_t const AllocationSize)
 {
-    ImageAllocation ImageAllocation {};
+    ImageAllocation ImageAllocation{};
 
     constexpr VmaMemoryUsage MemoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
 
@@ -377,23 +307,23 @@ ImageCreationData AllocateTexture(VmaAllocator const& Allocator, unsigned char c
 
     constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
 
-    ImageCreationData Output {};
+    ImageCreationData Output{};
 
     VmaAllocationInfo const
             StagingInfo
-            = CreateBuffer(Allocator,
-                           std::clamp(AllocationSize, g_ImageBufferMemoryAllocationSize, UINT64_MAX),
-                           SourceUsageFlags,
-                           SourceMemoryPropertyFlags,
-                           Output.StagingBuffer.first,
-                           Output.StagingBuffer.second);
+                    = CreateBuffer(Allocator,
+                                   std::clamp(AllocationSize, g_ImageBufferMemoryAllocationSize, UINT64_MAX),
+                                   SourceUsageFlags,
+                                   SourceMemoryPropertyFlags,
+                                   Output.StagingBuffer.first,
+                                   Output.StagingBuffer.second);
 
     std::memcpy(StagingInfo.pMappedData, Data, AllocationSize);
 
     constexpr VkFormat ImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
 
-    VkExtent2D const Extent {
-            .width  = Width,
+    VkExtent2D const Extent{
+            .width = Width,
             .height = Height};
 
     CreateImage(Allocator, ImageFormat, Extent, Tiling, DestinationUsageFlags, DestinationMemoryPropertyFlags, MemoryUsage, ImageAllocation.Image, ImageAllocation.Allocation);
@@ -420,21 +350,21 @@ void BufferManager::CreateMemoryAllocator(VkPhysicalDevice const& PhysicalDevice
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan memory allocator";
 
-    VmaVulkanFunctions const VulkanFunctions {
+    VmaVulkanFunctions const VulkanFunctions{
             .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
-            .vkGetDeviceProcAddr   = vkGetDeviceProcAddr};
+            .vkGetDeviceProcAddr = vkGetDeviceProcAddr};
 
-    VmaAllocatorCreateInfo const AllocatorInfo {
-            .flags                          = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT,
-            .physicalDevice                 = PhysicalDevice,
-            .device                         = volkGetLoadedDevice(),
-            .preferredLargeHeapBlockSize    = 0U /*Default: 256 MiB*/,
-            .pAllocationCallbacks           = nullptr,
-            .pDeviceMemoryCallbacks         = nullptr,
-            .pHeapSizeLimit                 = nullptr,
-            .pVulkanFunctions               = &VulkanFunctions,
-            .instance                       = volkGetLoadedInstance(),
-            .vulkanApiVersion               = VK_API_VERSION_1_0,
+    VmaAllocatorCreateInfo const AllocatorInfo{
+            .flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT,
+            .physicalDevice = PhysicalDevice,
+            .device = volkGetLoadedDevice(),
+            .preferredLargeHeapBlockSize = 0U /*Default: 256 MiB*/,
+            .pAllocationCallbacks = nullptr,
+            .pDeviceMemoryCallbacks = nullptr,
+            .pHeapSizeLimit = nullptr,
+            .pVulkanFunctions = &VulkanFunctions,
+            .instance = volkGetLoadedInstance(),
+            .vulkanApiVersion = VK_API_VERSION_1_0,
             .pTypeExternalMemoryHandleTypes = nullptr};
 
     CheckVulkanResult(vmaCreateAllocator(&AllocatorInfo, &m_Allocator));
@@ -458,36 +388,27 @@ void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, 
     auto const QueueFamilyIndices      = GetUniqueQueueFamilyIndicesU32();
     auto const QueueFamilyIndicesCount = static_cast<std::uint32_t>(std::size(QueueFamilyIndices));
 
-    m_OldSwapChain    = m_SwapChain;
-    m_SwapChainExtent = SurfaceProperties.Extent;
+    m_OldSwapChain         = m_SwapChain;
+    m_SwapChainExtent      = SurfaceProperties.Extent;
+    m_SwapChainImageFormat = SurfaceProperties.Format.format;
 
-    VkSwapchainCreateInfoKHR SwapChainCreateInfo {
-            .sType                 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-            .surface               = GetSurface(),
-            .minImageCount         = g_MinImageCount,
-            .imageFormat           = SurfaceProperties.Format.format,
-            .imageColorSpace       = SurfaceProperties.Format.colorSpace,
-            .imageExtent           = m_SwapChainExtent,
-            .imageArrayLayers      = 1U,
-            .imageUsage            = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-            .imageSharingMode      = QueueFamilyIndicesCount > 1U ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+    VkSwapchainCreateInfoKHR const SwapChainCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+            .surface = GetSurface(),
+            .minImageCount = g_MinImageCount,
+            .imageFormat = m_SwapChainImageFormat,
+            .imageColorSpace = SurfaceProperties.Format.colorSpace,
+            .imageExtent = m_SwapChainExtent,
+            .imageArrayLayers = 1U,
+            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            .imageSharingMode = QueueFamilyIndicesCount > 1U ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
             .queueFamilyIndexCount = QueueFamilyIndicesCount,
-            .pQueueFamilyIndices   = std::data(QueueFamilyIndices),
-            .preTransform          = Capabilities.currentTransform,
-            .compositeAlpha        = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-            .presentMode           = SurfaceProperties.Mode,
-            .clipped               = VK_TRUE,
-            .oldSwapchain          = m_OldSwapChain};
-
-    if (Capabilities.supportedTransforms & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
-    {
-        SwapChainCreateInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    }
-
-    if (Capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
-    {
-        SwapChainCreateInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    }
+            .pQueueFamilyIndices = std::data(QueueFamilyIndices),
+            .preTransform = Capabilities.currentTransform,
+            .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            .presentMode = SurfaceProperties.Mode,
+            .clipped = VK_TRUE,
+            .oldSwapchain = m_OldSwapChain};
 
     CheckVulkanResult(vkCreateSwapchainKHR(volkGetLoadedDevice(), &SwapChainCreateInfo, nullptr, &m_SwapChain));
 
@@ -511,14 +432,6 @@ void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, 
     CreateSwapChainImageViews(m_SwapChainImages, SurfaceProperties.Format.format);
 }
 
-void BufferManager::CreateSwapChainFrameBuffers(VkRenderPass const& RenderPass)
-{
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain frame buffers";
-
-    m_SwapChainFrameBuffers = CreateFrameBuffers(RenderPass, m_SwapChainImages, true);
-}
-
 void BufferManager::CreateViewportResources(SurfaceProperties const& SurfaceProperties)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
@@ -539,66 +452,11 @@ void BufferManager::CreateViewportResources(SurfaceProperties const& SurfaceProp
     constexpr VkImageUsageFlags UsageFlags                 = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     constexpr VmaAllocationCreateFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-    VkCommandPool CommandPool {VK_NULL_HANDLE};
-    std::vector<VkCommandBuffer> CommandBuffers(std::size(m_SwapChainImages) * 2U, VK_NULL_HANDLE);
-    InitializeSingleCommandQueue(CommandPool, CommandBuffers, GetGraphicsQueue().first);
+    for (auto& [Image, View, Allocation, Type]: m_ViewportImages)
     {
-        std::uint8_t CmdCount {0U};
-        for (auto& [Image, View, Allocation, Type]: m_ViewportImages)
-        {
-            CreateImage(m_Allocator, SurfaceProperties.Format.format, SurfaceProperties.Extent, Tiling, UsageFlags, MemoryPropertyFlags, MemoryUsage, Image, Allocation);
-            CreateImageView(Image, SurfaceProperties.Format.format, AspectFlags, View);
-
-            MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED,
-                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL>(CommandBuffers.at(CmdCount),
-                                                                  Image,
-                                                                  SurfaceProperties.Format.format);
-            ++CmdCount;
-
-            MoveImageLayout<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>(CommandBuffers.at(CmdCount),
-                                                                      Image,
-                                                                      SurfaceProperties.Format.format);
-            ++CmdCount;
-        }
+        CreateImage(m_Allocator, g_ViewportImageFormat, SurfaceProperties.Extent, Tiling, UsageFlags, MemoryPropertyFlags, MemoryUsage, Image, Allocation);
+        CreateImageView(Image, g_ViewportImageFormat, AspectFlags, View);
     }
-    FinishSingleCommandQueue(GetGraphicsQueue().second, CommandPool, CommandBuffers);
-}
-
-void BufferManager::CreateViewportFrameBuffer(VkRenderPass const& RenderPass)
-{
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan viewport frame buffers";
-
-    m_ViewportFrameBuffers = CreateFrameBuffers(RenderPass, m_ViewportImages, true);
-}
-
-std::vector<VkFramebuffer> BufferManager::CreateFrameBuffers(VkRenderPass const& RenderPass, std::vector<ImageAllocation> const& RenderImages, bool const IncludeDepth) const
-{
-    std::vector<VkFramebuffer> Output {};
-    Output.resize(std::size(RenderImages), VK_NULL_HANDLE);
-
-    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(Output)); ++Iterator)
-    {
-        std::vector Attachments {RenderImages.at(Iterator).View};
-        if (IncludeDepth)
-        {
-            Attachments.push_back(m_DepthImage.View);
-        }
-
-        VkFramebufferCreateInfo const FrameBufferCreateInfo {
-                .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-                .renderPass      = RenderPass,
-                .attachmentCount = static_cast<std::uint32_t>(std::size(Attachments)),
-                .pAttachments    = std::data(Attachments),
-                .width           = m_SwapChainExtent.width,
-                .height          = m_SwapChainExtent.height,
-                .layers          = 1U};
-
-        CheckVulkanResult(vkCreateFramebuffer(volkGetLoadedDevice(), &FrameBufferCreateInfo, nullptr, &Output.at(Iterator)));
-    }
-
-    return Output;
 }
 
 void BufferManager::CreateDepthResources(SurfaceProperties const& SurfaceProperties)
@@ -615,16 +473,19 @@ void BufferManager::CreateDepthResources(SurfaceProperties const& SurfacePropert
     constexpr VmaAllocationCreateFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
     constexpr VkImageAspectFlagBits Aspect                 = VK_IMAGE_ASPECT_DEPTH_BIT;
     constexpr VkImageLayout InitialLayout                  = VK_IMAGE_LAYOUT_UNDEFINED;
-    constexpr VkImageLayout DestinationLayout              = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    constexpr VkImageLayout DestinationLayout              = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
 
-    CreateImage(m_Allocator, SurfaceProperties.DepthFormat, SurfaceProperties.Extent, Tiling, Usage, MemoryPropertyFlags, MemoryUsage, m_DepthImage.Image, m_DepthImage.Allocation);
-    CreateImageView(m_DepthImage.Image, SurfaceProperties.DepthFormat, Aspect, m_DepthImage.View);
+    m_DepthFormat = SurfaceProperties.DepthFormat;
 
-    VkCommandPool CommandPool {VK_NULL_HANDLE};
-    std::vector<VkCommandBuffer> CommandBuffer {VK_NULL_HANDLE};
-    InitializeSingleCommandQueue(CommandPool, CommandBuffer, FamilyIndex);
-    {
-        MoveImageLayout<InitialLayout, DestinationLayout>(CommandBuffer.back(), m_DepthImage.Image, SurfaceProperties.DepthFormat);
+    CreateImage(m_Allocator, m_DepthFormat, SurfaceProperties.Extent, Tiling, Usage, MemoryPropertyFlags, MemoryUsage, m_DepthImage.Image, m_DepthImage.Allocation);
+    CreateImageView(m_DepthImage.Image, m_DepthFormat, Aspect, m_DepthImage.View);
+
+    VkCommandPool CommandPool{VK_NULL_HANDLE};
+    std::vector<VkCommandBuffer> CommandBuffer{VK_NULL_HANDLE};
+    InitializeSingleCommandQueue(CommandPool, CommandBuffer, FamilyIndex); {
+        MoveImageLayout<InitialLayout,
+                        DestinationLayout,
+                        VK_IMAGE_ASPECT_DEPTH_BIT>(CommandBuffer.back(), m_DepthImage.Image, m_DepthFormat);
     }
     FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
 }
@@ -662,13 +523,11 @@ void AllocateModelTexture(ObjectAllocationData& ObjectCreationData, tinygltf::Mo
 
 std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPath)
 {
-    std::vector<ObjectAllocationData> AllocationData {};
-    tinygltf::Model Model {};
-
-    {
-        tinygltf::TinyGLTF ModelLoader {};
-        std::string Error {};
-        std::string Warning {};
+    std::vector<ObjectAllocationData> AllocationData{};
+    tinygltf::Model Model{}; {
+        tinygltf::TinyGLTF ModelLoader{};
+        std::string Error{};
+        std::string Warning{};
         std::filesystem::path const ModelFilepath(ModelPath);
         bool const LoadResult = ModelFilepath.extension() == ".gltf" ? ModelLoader.LoadASCIIFromFile(&Model, &Error, &Warning, std::data(ModelPath)) : ModelLoader.LoadBinaryFromFile(&Model, &Error, &Warning, std::data(ModelPath));
         if (!std::empty(Error))
@@ -706,13 +565,11 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
         {
             std::uint32_t const ObjectID = m_ObjectIDCounter.fetch_add(1U);
 
-            ObjectAllocationData NewObjectAllocation {
-                    .Object = {ObjectID, ModelPath, std::format("{}_{:03d}", Mesh.name, ObjectID)}};
-
-            {
-                const float* PositionData {nullptr};
-                const float* NormalData {nullptr};
-                const float* TexCoordData {nullptr};
+            ObjectAllocationData NewObjectAllocation{
+                    .Object = {ObjectID, ModelPath, std::format("{}_{:03d}", Mesh.name, ObjectID)}}; {
+                const float* PositionData{nullptr};
+                const float* NormalData{nullptr};
+                const float* TexCoordData{nullptr};
 
                 if (Primitive.attributes.contains("POSITION"))
                 {
@@ -811,9 +668,9 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
 
                 if (std::empty(NewObjectAllocation.ImageCreationDatas))
                 {
-                    constexpr std::uint8_t DefaultTextureHalfSize {2U};
-                    constexpr std::uint8_t DefaultTextureSize {DefaultTextureHalfSize * 2U};
-                    constexpr std::array<std::uint8_t, DefaultTextureSize> DefaultTextureData {};
+                    constexpr std::uint8_t DefaultTextureHalfSize{2U};
+                    constexpr std::uint8_t DefaultTextureSize{DefaultTextureHalfSize * 2U};
+                    constexpr std::array<std::uint8_t, DefaultTextureSize> DefaultTextureData{};
 
                     NewObjectAllocation.ImageCreationDatas.push_back(AllocateTexture(m_Allocator,
                                                                                      std::data(DefaultTextureData),
@@ -838,11 +695,11 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
 
     m_Objects.reserve(std::size(m_Objects) + std::size(AllocationData));
 
-    std::vector<BufferCopyOperationData> BufferCopyOperationDatas {};
+    std::vector<BufferCopyOperationData> BufferCopyOperationDatas{};
     BufferCopyOperationDatas.reserve(std::size(AllocationData));
 
-    std::vector<MoveOperationData> MoveOperation {};
-    std::vector<CopyOperationData> CopyOperation {};
+    std::vector<MoveOperationData> MoveOperation{};
+    std::vector<CopyOperationData> CopyOperation{};
 
     for (ObjectAllocationData const& AllocationDataIter: AllocationData)
     {
@@ -863,44 +720,43 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
 
         Output.push_back(AllocationDataIter.Object);
 
-        m_Objects.emplace(AllocationDataIter.Object.GetID(), ObjectAllocation {
-                                                                     .VertexBuffer  = AllocationDataIter.Allocation.VertexBuffer,
-                                                                     .IndexBuffer   = AllocationDataIter.Allocation.IndexBuffer,
-                                                                     .UniformBuffer = AllocationDataIter.Allocation.UniformBuffer,
-                                                                     .IndicesCount  = static_cast<std::uint32_t>(std::size(AllocationDataIter.Indices))});
+        m_Objects.emplace(AllocationDataIter.Object.GetID(), ObjectAllocation{
+                                  .VertexBuffer = AllocationDataIter.Allocation.VertexBuffer,
+                                  .IndexBuffer = AllocationDataIter.Allocation.IndexBuffer,
+                                  .UniformBuffer = AllocationDataIter.Allocation.UniformBuffer,
+                                  .IndicesCount = static_cast<std::uint32_t>(std::size(AllocationDataIter.Indices))});
 
         MoveOperation.reserve(std::size(MoveOperation) + std::size(AllocationDataIter.ImageCreationDatas));
         for (ImageCreationData const& ImageDataIter: AllocationDataIter.ImageCreationDatas)
         {
-            MoveOperation.push_back({.Image  = ImageDataIter.Allocation.Image,
+            MoveOperation.push_back({.Image = ImageDataIter.Allocation.Image,
                                      .Format = ImageDataIter.Format});
 
-            CopyOperation.push_back({.SourceBuffer     = ImageDataIter.StagingBuffer.first,
+            CopyOperation.push_back({.SourceBuffer = ImageDataIter.StagingBuffer.first,
                                      .SourceAllocation = ImageDataIter.StagingBuffer.second,
                                      .DestinationImage = ImageDataIter.Allocation.Image,
-                                     .Format           = ImageDataIter.Format,
-                                     .Extent           = ImageDataIter.Extent});
+                                     .Format = ImageDataIter.Format,
+                                     .Extent = ImageDataIter.Extent});
         }
     }
 
     auto const& [FamilyIndex, Queue] = GetGraphicsQueue();
 
-    VkCommandPool CopyCommandPool {VK_NULL_HANDLE};
-    std::vector<VkCommandBuffer> CommandBuffers {};
+    VkCommandPool CopyCommandPool{VK_NULL_HANDLE};
+    std::vector<VkCommandBuffer> CommandBuffers{};
     CommandBuffers.resize(std::size(AllocationData) + std::size(MoveOperation) + std::size(CopyOperation) + std::size(MoveOperation));
 
-    InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, FamilyIndex);
-    {
+    InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, FamilyIndex); {
         std::uint32_t Count = 0U;
 
         for (BufferCopyOperationData const& CopyOperationDataIter: BufferCopyOperationDatas)
         {
             VkCommandBuffer const& CommandBuffer = CommandBuffers.at(Count);
 
-            VkBufferCopy const VertexBufferCopy {
+            VkBufferCopy const VertexBufferCopy{
                     .size = CopyOperationDataIter.VertexData.AllocationSize};
 
-            VkBufferCopy const IndexBufferCopy {
+            VkBufferCopy const IndexBufferCopy{
                     .size = CopyOperationDataIter.IndexData.AllocationSize};
 
             vkCmdCopyBuffer(CommandBuffer, CopyOperationDataIter.VertexData.SourceBuffer, CopyOperationDataIter.VertexData.DestinationBuffer, 1U, &VertexBufferCopy);
@@ -911,9 +767,11 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
 
         for (MoveOperationData const& MoveOperationIter: MoveOperation)
         {
-            MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL>(CommandBuffers.at(Count),
-                                                                                             MoveOperationIter.Image,
-                                                                                             MoveOperationIter.Format);
+            MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED,
+                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                            VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffers.at(Count),
+                                                       MoveOperationIter.Image,
+                                                       MoveOperationIter.Format);
 
             ++Count;
         }
@@ -931,9 +789,10 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPa
         for (MoveOperationData const& MoveOperationIter: MoveOperation)
         {
             MoveImageLayout<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>(CommandBuffers.at(Count),
-                                                                      MoveOperationIter.Image,
-                                                                      MoveOperationIter.Format);
+                            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR,
+                            VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffers.at(Count),
+                                                       MoveOperationIter.Image,
+                                                       MoveOperationIter.Format);
 
             ++Count;
         }
@@ -1028,26 +887,6 @@ void BufferManager::DestroyBufferResources(bool const ClearScene)
     }
     m_ViewportImages.clear();
 
-    for (VkFramebuffer& FrameBufferIter: m_SwapChainFrameBuffers)
-    {
-        if (FrameBufferIter != VK_NULL_HANDLE)
-        {
-            vkDestroyFramebuffer(volkGetLoadedDevice(), FrameBufferIter, nullptr);
-            FrameBufferIter = VK_NULL_HANDLE;
-        }
-    }
-    m_SwapChainFrameBuffers.clear();
-
-    for (VkFramebuffer& FrameBufferIter: m_ViewportFrameBuffers)
-    {
-        if (FrameBufferIter != VK_NULL_HANDLE)
-        {
-            vkDestroyFramebuffer(volkGetLoadedDevice(), FrameBufferIter, nullptr);
-            FrameBufferIter = VK_NULL_HANDLE;
-        }
-    }
-    m_ViewportFrameBuffers.clear();
-
     m_DepthImage.DestroyResources(m_Allocator);
 
     if (ClearScene)
@@ -1075,6 +914,11 @@ VkExtent2D const& BufferManager::GetSwapChainExtent() const
     return m_SwapChainExtent;
 }
 
+VkFormat const& BufferManager::GetSwapChainImageFormat() const
+{
+    return m_SwapChainImageFormat;
+}
+
 std::vector<VkImageView> BufferManager::GetSwapChainImageViews() const
 {
     std::vector<VkImageView> Output;
@@ -1099,6 +943,11 @@ std::vector<VkImageView> BufferManager::GetViewportImageViews() const
     return Output;
 }
 
+VkImageView const& BufferManager::GetDepthImageView() const
+{
+    return m_DepthImage.View;
+}
+
 std::vector<ImageAllocation> const& BufferManager::GetSwapChainImages() const
 {
     return m_SwapChainImages;
@@ -1109,19 +958,19 @@ std::vector<ImageAllocation> const& BufferManager::GetViewportImages() const
     return m_ViewportImages;
 }
 
+ImageAllocation const& BufferManager::GetDepthImage() const
+{
+    return m_DepthImage;
+}
+
+VkFormat const& BufferManager::GetDepthFormat() const
+{
+    return m_DepthFormat;
+}
+
 VkSampler const& BufferManager::GetSampler() const
 {
     return m_Sampler;
-}
-
-std::vector<VkFramebuffer> const& BufferManager::GetSwapChainFrameBuffers() const
-{
-    return m_SwapChainFrameBuffers;
-}
-
-std::vector<VkFramebuffer> const& BufferManager::GetViewportFrameBuffers() const
-{
-    return m_ViewportFrameBuffers;
 }
 
 VkBuffer BufferManager::GetVertexBuffer(std::uint32_t const ObjectID) const
@@ -1179,8 +1028,8 @@ std::vector<MeshBufferData> BufferManager::GetAllocatedObjects() const
             continue;
         }
 
-        Output.push_back({.ID                = ID,
-                          .UniformBuffer     = Data.UniformBuffer.Buffer,
+        Output.push_back({.ID = ID,
+                          .UniformBuffer = Data.UniformBuffer.Buffer,
                           .UniformBufferData = Data.UniformBuffer.Allocation->GetMappedData()});
 
         for (auto const& ImageAllocation: Data.TextureImages)
@@ -1211,9 +1060,9 @@ void BufferManager::UpdateUniformBuffers(std::shared_ptr<Object> const& Object, 
 
     if (void* UniformBufferData = GetUniformData(Object->GetID()))
     {
-        UniformBufferObject const UpdatedUBO {
-                .Model      = Object->GetMatrix(),
-                .View       = Camera.GetViewMatrix(),
+        UniformBufferObject const UpdatedUBO{
+                .Model = Object->GetMatrix(),
+                .View = Camera.GetViewMatrix(),
                 .Projection = Camera.GetProjectionMatrix(Extent)};
 
         std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(UniformBufferObject));

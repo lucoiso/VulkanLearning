@@ -7,6 +7,7 @@ module;
 #include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
 #include <optional>
+#include <thread>
 #include <volk.h>
 
 module RenderCore.Management.DeviceManagement;
@@ -19,12 +20,12 @@ import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
-VkPhysicalDevice g_PhysicalDevice {VK_NULL_HANDLE};
-VkDevice g_Device {VK_NULL_HANDLE};
-std::pair<std::uint8_t, VkQueue> g_GraphicsQueue {};
-std::pair<std::uint8_t, VkQueue> g_PresentationQueue {};
-std::pair<std::uint8_t, VkQueue> g_TransferQueue {};
-std::vector<std::uint8_t> g_UniqueQueueFamilyIndices {};
+VkPhysicalDevice g_PhysicalDevice{VK_NULL_HANDLE};
+VkDevice g_Device{VK_NULL_HANDLE};
+std::pair<std::uint8_t, VkQueue> g_GraphicsQueue{};
+std::pair<std::uint8_t, VkQueue> g_PresentationQueue{};
+std::pair<std::uint8_t, VkQueue> g_TransferQueue{};
+std::vector<std::uint8_t> g_UniqueQueueFamilyIndices{};
 
 bool IsPhysicalDeviceSuitable(VkPhysicalDevice const& Device)
 {
@@ -117,9 +118,9 @@ void CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
-    std::optional<std::uint8_t> GraphicsQueueFamilyIndex {std::nullopt};
-    std::optional<std::uint8_t> PresentationQueueFamilyIndex {std::nullopt};
-    std::optional<std::uint8_t> TransferQueueFamilyIndex {std::nullopt};
+    std::optional<std::uint8_t> GraphicsQueueFamilyIndex{std::nullopt};
+    std::optional<std::uint8_t> PresentationQueueFamilyIndex{std::nullopt};
+    std::optional<std::uint8_t> TransferQueueFamilyIndex{std::nullopt};
 
     if (!GetQueueFamilyIndices(VulkanSurface, GraphicsQueueFamilyIndex, PresentationQueueFamilyIndex, TransferQueueFamilyIndex))
     {
@@ -145,7 +146,7 @@ void CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
     Extensions.insert(std::cend(Extensions), std::cbegin(g_DebugDeviceExtensions), std::cend(g_DebugDeviceExtensions));
 #endif
 
-    std::unordered_map<std::uint8_t, std::uint8_t> QueueFamilyIndices {{g_GraphicsQueue.first, 1U}};
+    std::unordered_map<std::uint8_t, std::uint8_t> QueueFamilyIndices{{g_GraphicsQueue.first, 1U}};
     if (!QueueFamilyIndices.contains(g_PresentationQueue.first))
     {
         QueueFamilyIndices.emplace(g_PresentationQueue.first, 1U);
@@ -170,7 +171,7 @@ void CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo;
     QueueCreateInfo.reserve(std::size(QueueFamilyIndices));
 
-    std::vector<std::vector<float>> PriorityHandles;
+    std::vector<std::vector<float> > PriorityHandles;
     PriorityHandles.reserve(std::size(QueueFamilyIndices));
 
     for (auto const& [Index, Count]: QueueFamilyIndices)
@@ -179,40 +180,61 @@ void CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
         PriorityHandles.emplace_back(Count, 1.F);
 
         QueueCreateInfo.push_back(
-                VkDeviceQueueCreateInfo {
-                        .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                VkDeviceQueueCreateInfo{
+                        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                         .queueFamilyIndex = Index,
-                        .queueCount       = Count,
+                        .queueCount = Count,
                         .pQueuePriorities = std::data(PriorityHandles.back())});
     }
 
-    VkPhysicalDeviceRobustness2FeaturesEXT RobustnessFeatures {
-            .sType          = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
+    VkPhysicalDeviceSynchronization2Features Synchronization2Features{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
+            .pNext = nullptr,
+            .synchronization2 = VK_TRUE};
+
+    VkPhysicalDeviceMaintenance4Features Maintenance4Features{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES,
+            .pNext = &Synchronization2Features,
+            .maintenance4 = VK_TRUE};
+
+    VkPhysicalDeviceDynamicRenderingFeatures DynamicRenderingFeatures{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
+            .pNext = &Maintenance4Features,
+            .dynamicRendering = VK_TRUE};
+
+    VkPhysicalDeviceRobustness2FeaturesEXT RobustnessFeatures{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
+            .pNext = &DynamicRenderingFeatures,
             .nullDescriptor = VK_TRUE};
 
-    VkPhysicalDeviceFeatures2 DeviceFeatures {
-            .sType    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-            .pNext    = &RobustnessFeatures,
-            .features = VkPhysicalDeviceFeatures {.samplerAnisotropy = VK_TRUE}};
+    VkPhysicalDeviceFeatures2 DeviceFeatures{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+            .pNext = &RobustnessFeatures,
+            .features = VkPhysicalDeviceFeatures{.samplerAnisotropy = VK_TRUE}};
 
-    VkDeviceCreateInfo const DeviceCreateInfo {
-            .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-            .pNext                   = &DeviceFeatures,
-            .queueCreateInfoCount    = static_cast<std::uint32_t>(std::size(QueueCreateInfo)),
-            .pQueueCreateInfos       = std::data(QueueCreateInfo),
-            .enabledLayerCount       = static_cast<std::uint32_t>(std::size(Layers)),
-            .ppEnabledLayerNames     = std::data(Layers),
-            .enabledExtensionCount   = static_cast<std::uint32_t>(std::size(Extensions)),
-            .ppEnabledExtensionNames = std::data(Extensions),
-            .pEnabledFeatures        = nullptr};
+    VkDeviceCreateInfo const DeviceCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext = &DeviceFeatures,
+            .queueCreateInfoCount = static_cast<std::uint32_t>(std::size(QueueCreateInfo)),
+            .pQueueCreateInfos = std::data(QueueCreateInfo),
+            .enabledLayerCount = static_cast<std::uint32_t>(std::size(Layers)),
+            .ppEnabledLayerNames = std::data(Layers),
+            .enabledExtensionCount = static_cast<std::uint32_t>(std::size(Extensions)),
+            .ppEnabledExtensionNames = std::data(Extensions)};
 
     CheckVulkanResult(vkCreateDevice(g_PhysicalDevice, &DeviceCreateInfo, nullptr, &g_Device));
+
+    if (g_Device == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("Failed to create logical device.");
+    }
 
     if (vkGetDeviceQueue(g_Device, g_GraphicsQueue.first, 0U, &g_GraphicsQueue.second);
         g_GraphicsQueue.second == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Failed to get graphics queue.");
     }
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: 1";
 
     if (vkGetDeviceQueue(g_Device, g_PresentationQueue.first, 0U, &g_PresentationQueue.second);
         g_PresentationQueue.second == VK_NULL_HANDLE)
@@ -269,7 +291,7 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow* const Window, VkS
         throw std::runtime_error("No supported presentation modes found.");
     }
 
-    SurfaceProperties Output {
+    SurfaceProperties Output{
             .Format = SupportedFormats.front(),
             .Extent = GetWindowExtent(Window, GetSurfaceCapabilities(VulkanSurface))};
 

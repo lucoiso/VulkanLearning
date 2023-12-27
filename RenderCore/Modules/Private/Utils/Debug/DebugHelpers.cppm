@@ -22,7 +22,7 @@ VKAPI_ATTR VkBool32
                                                  VkDebugUtilsMessengerCallbackDataEXT const* const CallbackData,
                                                  [[maybe_unused]] void* UserData)
 {
-    if (MessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+    if (MessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Message: " << CallbackData->pMessage;
     }

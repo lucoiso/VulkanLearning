@@ -36,30 +36,30 @@ import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
-std::atomic_uint8_t g_RenderersCount {0U};
-VkInstance g_Instance {VK_NULL_HANDLE};
-Timer::Manager g_RenderTimerManager {};
+std::atomic_uint8_t g_RenderersCount{0U};
+VkInstance g_Instance{VK_NULL_HANDLE};
+Timer::Manager g_RenderTimerManager{};
 
 #ifdef _DEBUG
-VkDebugUtilsMessengerEXT g_DebugMessenger {VK_NULL_HANDLE};
+VkDebugUtilsMessengerEXT g_DebugMessenger{VK_NULL_HANDLE};
 #endif
 
 bool CreateVulkanInstance()
 {
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan instance";
 
-    constexpr VkApplicationInfo AppInfo {
-            .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-            .pApplicationName   = "VulkanApp",
+    constexpr VkApplicationInfo AppInfo{
+            .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+            .pApplicationName = "VulkanApp",
             .applicationVersion = VK_MAKE_VERSION(1U, 0U, 0U),
-            .pEngineName        = "No Engine",
-            .engineVersion      = VK_MAKE_VERSION(1U, 0U, 0U),
-            .apiVersion         = VK_API_VERSION_1_3};
+            .pEngineName = "No Engine",
+            .engineVersion = VK_MAKE_VERSION(1U, 0U, 0U),
+            .apiVersion = VK_API_VERSION_1_3};
 
-    VkInstanceCreateInfo CreateInfo {
-            .sType             = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-            .pNext             = nullptr,
-            .pApplicationInfo  = &AppInfo,
+    VkInstanceCreateInfo CreateInfo{
+            .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+            .pNext = nullptr,
+            .pApplicationInfo = &AppInfo,
             .enabledLayerCount = 0U};
 
     std::vector Layers(std::cbegin(g_RequiredInstanceLayers), std::cend(g_RequiredInstanceLayers));
@@ -80,7 +80,7 @@ bool CreateVulkanInstance()
     Layers.insert(std::cend(Layers), std::cbegin(g_DebugInstanceLayers), std::cend(g_DebugInstanceLayers));
     Extensions.insert(std::cend(Extensions), std::cbegin(g_DebugInstanceExtensions), std::cend(g_DebugInstanceExtensions));
 
-    VkDebugUtilsMessengerCreateInfoEXT CreateDebugInfo {};
+    VkDebugUtilsMessengerCreateInfoEXT CreateDebugInfo{};
     PopulateDebugInfo(CreateDebugInfo, nullptr);
 #endif
 
@@ -155,11 +155,7 @@ void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera
         if (HasFlag(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH))
         {
             m_PipelineManager.CreateDescriptorSetLayout();
-            m_PipelineManager.CreatePipelines(m_BufferManager.GetSwapChainExtent());
-
-            m_BufferManager.CreateSwapChainFrameBuffers(m_PipelineManager.GetMainRenderPass());
-            m_BufferManager.CreateViewportFrameBuffer(m_PipelineManager.GetViewportRenderPass());
-            CreateImGuiFrameBuffers(m_BufferManager);
+            m_PipelineManager.CreatePipelines(m_BufferManager.GetSwapChainImageFormat(), m_BufferManager.GetDepthFormat(), m_BufferManager.GetSwapChainExtent());
 
             m_PipelineManager.CreateDescriptorPool(m_BufferManager.GetClampedNumAllocations());
             m_PipelineManager.CreateDescriptorSets(m_BufferManager.GetAllocatedObjects(), m_BufferManager.GetSampler());
@@ -256,7 +252,7 @@ void Renderer::RemoveInvalidObjects()
 
     if (m_ObjectsMutex.try_lock())
     {
-        std::vector<std::uint32_t> LoadedIDs {};
+        std::vector<std::uint32_t> LoadedIDs{};
         for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
         {
             if (ObjectIter && ObjectIter->IsPendingDestroy())
@@ -300,9 +296,7 @@ bool Renderer::Initialize(GLFWwindow* const Window)
     m_BufferManager.CreateImageSampler();
     auto const _                 = CompileDefaultShaders();
     auto const SurfaceProperties = GetSurfaceProperties(Window, m_BufferManager.GetSurface());
-    m_PipelineManager.CreateRenderPasses(SurfaceProperties);
-    CreateImGuiRenderPass(SurfaceProperties);
-    InitializeImGuiContext(Window);
+    InitializeImGuiContext(Window, SurfaceProperties);
 
     AddFlags(m_StateFlags, RendererStateFlags::INITIALIZED);
     AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
@@ -437,7 +431,7 @@ void Renderer::UnloadScene(std::vector<std::uint32_t> const& ObjectIDs)
 
 void Renderer::UnloadAllScenes()
 {
-    std::vector<std::uint32_t> LoadedIDs {};
+    std::vector<std::uint32_t> LoadedIDs{};
     for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
     {
         if (ObjectIter)
@@ -492,7 +486,7 @@ std::optional<std::int32_t> const& Renderer::GetImageIndex() const
     return m_ImageIndex;
 }
 
-std::vector<std::shared_ptr<Object>> const& Renderer::GetObjects() const
+std::vector<std::shared_ptr<Object> > const& Renderer::GetObjects() const
 {
     return m_Objects;
 }

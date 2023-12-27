@@ -6,7 +6,6 @@ module;
 
 #include <GLFW/glfw3.h>
 #include <functional>
-#include <volk.h>
 
 export module RenderCore.Management.ImGuiManagement;
 
@@ -16,20 +15,13 @@ import RenderCore.Types.SurfaceProperties;
 
 namespace RenderCore
 {
-    export void InitializeImGuiContext(GLFWwindow*);
-
-    export void CreateImGuiRenderPass(SurfaceProperties const&);
-    export void DestroyImGuiRenderPass();
-
-    export void CreateImGuiFrameBuffers(BufferManager const& BufferManager);
-    export void DestroyImGuiFrameBuffers();
+    export void InitializeImGuiContext(GLFWwindow*, SurfaceProperties const&);
 
     export void ReleaseImGuiResources();
+
     export void DrawImGuiFrame(std::function<void()>&&, std::function<void()>&&, std::function<void()>&&);
+
     export void DrawPostImGuiResources();
 
     export [[nodiscard]] bool IsImGuiInitialized();
-
-    export [[nodiscard]] VkRenderPass const& GetImGuiRenderPass();
-    export [[nodiscard]] std::vector<VkFramebuffer> const& GetImGuiFrameBuffers();
 }// namespace RenderCore
