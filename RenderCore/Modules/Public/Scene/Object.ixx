@@ -4,9 +4,9 @@
 
 module;
 
-#include "RenderCoreModule.hpp"
-#include <glm/ext.hpp>
 #include <string>
+#include <glm/ext.hpp>
+#include "RenderCoreModule.hpp"
 
 export module RenderCore.Types.Object;
 

@@ -4,14 +4,14 @@
 
 module;
 
-#include <glslang/Public/ShaderLang.h>
 #include <volk.h>
+#include <glslang/Public/ShaderLang.h>
 
 export module RenderCore.Management.ShaderManagement;
 
+#include <cstdint>
 #include <string>
 #include <vector>
-#include <cstdint>
 
 namespace RenderCore
 {

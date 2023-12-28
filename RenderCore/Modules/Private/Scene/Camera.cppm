@@ -122,7 +122,7 @@ void Camera::SetCameraMovementStateFlags(CameraMovementStateFlags const State)
 
 void Camera::UpdateCameraMovement(float const DeltaTime)
 {
-    float const CameraSpeed {GetSpeed() * 0.1F};
+    float const CameraSpeed {GetSpeed()};
     Vector const CameraFront {m_CameraRotation.GetFront()};
     Vector const CameraRight {m_CameraRotation.GetRight()};
 

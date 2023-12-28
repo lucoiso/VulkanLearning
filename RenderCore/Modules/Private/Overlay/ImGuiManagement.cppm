@@ -4,11 +4,13 @@
 
 module;
 
-#include <volk.h>
 #include <array>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
+#include <vector>
+#include <volk.h>
+#include <boost/log/trivial.hpp>
 
 module RenderCore.Management.ImGuiManagement;
 
@@ -23,11 +25,12 @@ import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
-VkDescriptorPool g_ImGuiDescriptorPool {VK_NULL_HANDLE};
+VkDescriptorPool g_ImGuiDescriptorPool{VK_NULL_HANDLE};
 
-void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& PipelineManager)
+void RenderCore::InitializeImGuiContext(GLFWwindow* const Window, SurfaceProperties const& SurfaceProperties)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating ImGui Context";
 
     IMGUI_CHECKVERSION();
 
@@ -38,102 +41,107 @@ void RenderCore::InitializeImGui(GLFWwindow* const Window, PipelineManager& Pipe
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
 
-    if (ImGui::GetIO().BackendPlatformUserData)
+    ImGuiIO& ImIO = ImGui::GetIO();
+    (void)ImIO;
+
+    if (ImIO.BackendPlatformUserData)
     {
         return;
     }
 
-    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_DockingEnable;
+    ImIO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
 
-    PipelineManager.SetIsBoundToImGui(true);
-    ImGui_ImplGlfw_InitForVulkan(Window, true);
+    ImGui_ImplGlfw_InitForVulkan(Window, false);
+    ImGui_ImplGlfw_SetCallbacksChainForAllWindows(true);
+    ImGui_ImplGlfw_InstallCallbacks(Window);
 
     constexpr std::uint32_t DescriptorCount = 100U;
 
-    constexpr std::array DescriptorPoolSizes {
-            VkDescriptorPoolSize {VK_DESCRIPTOR_TYPE_SAMPLER, DescriptorCount},
-            VkDescriptorPoolSize {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, DescriptorCount},
-            VkDescriptorPoolSize {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DescriptorCount},
-            VkDescriptorPoolSize {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, DescriptorCount},
-            VkDescriptorPoolSize {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, DescriptorCount},
-            VkDescriptorPoolSize {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, DescriptorCount},
-            VkDescriptorPoolSize {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, DescriptorCount},
-            VkDescriptorPoolSize {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, DescriptorCount},
-            VkDescriptorPoolSize {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, DescriptorCount},
-            VkDescriptorPoolSize {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, DescriptorCount},
-            VkDescriptorPoolSize {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, DescriptorCount}};
+    constexpr std::array DescriptorPoolSizes{
+            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_SAMPLER, DescriptorCount},
+            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, DescriptorCount},
+            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DescriptorCount},
+            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, DescriptorCount},
+            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, DescriptorCount},
+            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, DescriptorCount},
+            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, DescriptorCount},
+            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, DescriptorCount},
+            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, DescriptorCount},
+            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, DescriptorCount},
+            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, DescriptorCount}};
 
-    VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo {
-            .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-            .maxSets       = 1000U,
+    VkDescriptorPoolCreateInfo const DescriptorPoolCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+            .maxSets = static_cast<std::uint32_t>(std::size(DescriptorPoolSizes)),
             .poolSizeCount = std::size(DescriptorPoolSizes),
-            .pPoolSizes    = std::data(DescriptorPoolSizes)};
+            .pPoolSizes = std::data(DescriptorPoolSizes)};
 
     CheckVulkanResult(vkCreateDescriptorPool(GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &g_ImGuiDescriptorPool));
 
-    ImGui_ImplVulkan_InitInfo ImGuiVulkanInitInfo {
-            .Instance        = volkGetLoadedInstance(),
-            .PhysicalDevice  = GetPhysicalDevice(),
-            .Device          = GetLogicalDevice(),
-            .QueueFamily     = GetGraphicsQueue().first,
-            .Queue           = GetGraphicsQueue().second,
-            .PipelineCache   = PipelineManager.GetPipelineCache(),
-            .DescriptorPool  = g_ImGuiDescriptorPool,
-            .MinImageCount   = g_MinImageCount,
-            .ImageCount      = g_MinImageCount,
-            .MSAASamples     = g_MSAASamples,
-            .Allocator       = VK_NULL_HANDLE,
+    ImGui_ImplVulkan_InitInfo ImGuiVulkanInitInfo{
+            .Instance = volkGetLoadedInstance(),
+            .PhysicalDevice = GetPhysicalDevice(),
+            .Device = GetLogicalDevice(),
+            .QueueFamily = GetGraphicsQueue().first,
+            .Queue = GetGraphicsQueue().second,
+            .PipelineCache = VK_NULL_HANDLE,
+            .DescriptorPool = g_ImGuiDescriptorPool,
+            .Subpass = 0U,
+            .MinImageCount = g_MinImageCount,
+            .ImageCount = g_MinImageCount,
+            .MSAASamples = g_MSAASamples,
+            .UseDynamicRendering = true,
+            .ColorAttachmentFormat = SurfaceProperties.Format.format,
+            .Allocator = VK_NULL_HANDLE,
             .CheckVkResultFn = [](VkResult Result) {
                 CheckVulkanResult(Result);
             }};
 
-    ImGui_ImplVulkan_Init(&ImGuiVulkanInitInfo, PipelineManager.GetRenderPass());
-
-    std::vector<VkCommandBuffer> CommandBuffer {VK_NULL_HANDLE};
-    VkCommandPool CommandPool = VK_NULL_HANDLE;
-    InitializeSingleCommandQueue(CommandPool, CommandBuffer, GetGraphicsQueue().first);
-    {
-        ImGui_ImplVulkan_CreateFontsTexture(CommandBuffer.back());
-    }
-    FinishSingleCommandQueue(GetGraphicsQueue().second, CommandPool, CommandBuffer);
-
-    ImGui_ImplVulkan_DestroyFontUploadObjects();
+    ImGui_ImplVulkan_Init(&ImGuiVulkanInitInfo, VK_NULL_HANDLE);
+    ImGui_ImplVulkan_CreateFontsTexture();
 }
 
 void RenderCore::ReleaseImGuiResources()
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
     if (g_ImGuiDescriptorPool != VK_NULL_HANDLE)
     {
         vkDestroyDescriptorPool(volkGetLoadedDevice(), g_ImGuiDescriptorPool, nullptr);
         g_ImGuiDescriptorPool = VK_NULL_HANDLE;
     }
-
-    ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
 }
 
-void RenderCore::DrawImGuiFrame(std::function<void()>&& OverlayDrawFunction)
+void RenderCore::DrawImGuiFrame(std::function<void()>&& PreDraw, std::function<void()>&& Draw, std::function<void()>&& PostDraw)
 {
-    if (!ImGui::GetCurrentContext())
+    if (!ImGui::GetCurrentContext() || !IsImGuiInitialized())
     {
         return;
     }
 
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
+    PreDraw(); {
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame(); {
+            Draw();
+        }
+        ImGui::Render();
 
-    OverlayDrawFunction();
-
-    ImGui::Render();
-
-    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+        }
     }
+    PostDraw();
+}
+
+bool RenderCore::IsImGuiInitialized()
+{
+    return g_ImGuiDescriptorPool != VK_NULL_HANDLE;
 }

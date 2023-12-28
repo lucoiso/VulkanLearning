@@ -10,7 +10,7 @@ module;
 
 export module RenderCore.Types.MeshBufferData;
 
-import RenderCore.Types.TextureBufferData;
+import RenderCore.Types.TextureType;
 
 namespace RenderCore
 {
@@ -19,6 +19,6 @@ namespace RenderCore
         std::uint32_t ID {0U};
         VkBuffer UniformBuffer {VK_NULL_HANDLE};
         void* UniformBufferData {nullptr};
-        std::unordered_map<TextureType, TextureBufferData> Textures {};
+        std::unordered_map<TextureType, VkImageView> Textures {};
     };
 }// namespace RenderCore

@@ -4,12 +4,13 @@
 
 module;
 
-#include <GLFW/glfw3.h>
-#include <boost/log/trivial.hpp>
+#include <chrono>
 #include <imgui.h>
 #include <numeric>
 #include <string>
 #include <volk.h>
+#include <boost/log/trivial.hpp>
+#include <GLFW/glfw3.h>
 
 module RenderCore.Window;
 
@@ -39,7 +40,7 @@ Window::~Window()
     }
 }
 
-bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, InitializationFlags const Flags)
+bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const &Title, InitializationFlags const Flags)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -48,16 +49,21 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
         return false;
     }
 
-    m_Title  = Title;
-    m_Width  = Width;
+    m_Title = Title;
+    m_Width = Width;
     m_Height = Height;
-    m_Flags  = Flags;
+    m_Flags = Flags;
 
     try
     {
-        return m_GLFWHandler.Initialize(m_Width, m_Height, m_Title, m_Flags) && m_Renderer.Initialize(m_GLFWHandler.GetWindow());
+        if (m_GLFWHandler.Initialize(m_Width, m_Height, m_Title, m_Flags) && m_Renderer.Initialize(m_GLFWHandler.GetWindow()))
+        {
+            OnInitialized();
+            RefreshResources();
+            return true;
+        }
     }
-    catch (std::exception const& Ex)
+    catch (std::exception const &Ex)
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
         Shutdown();
@@ -69,6 +75,8 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
 void Window::Shutdown()
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+
+    DestroyChildren();
 
     if (IsInitialized())
     {
@@ -91,7 +99,7 @@ bool Window::IsOpen() const
     return m_GLFWHandler.IsOpen();
 }
 
-Renderer& Window::GetRenderer()
+Renderer &Window::GetRenderer()
 {
     return m_Renderer;
 }
@@ -106,10 +114,11 @@ void Window::PollEvents()
     try
     {
         glfwPollEvents();
+
         m_Renderer.Tick();
         RequestRender();
     }
-    catch (std::exception const& Ex)
+    catch (std::exception const &Ex)
     {
         BOOST_LOG_TRIVIAL(error) << "[Exception]: " << Ex.what();
     }
@@ -117,12 +126,27 @@ void Window::PollEvents()
 
 void Window::RequestRender()
 {
+    static std::uint64_t LastTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    std::uint64_t const CurrentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    double const DeltaTime = static_cast<double>(CurrentTime - LastTime) / 1000.0;
+
+    if (DeltaTime < GetRenderer().GetFrameRateCap())
+    {
+        return;
+    }
+
+    if (DeltaTime > 0.F)
+    {
+        LastTime = CurrentTime;
+    }
+
     if (IsInitialized() && IsOpen())
     {
-        DrawImGuiFrame([this] {
-            Update();
-        });
         m_Renderer.GetMutableCamera().UpdateCameraMovement(static_cast<float>(m_Renderer.GetDeltaTime()));
-        m_Renderer.DrawFrame(m_GLFWHandler.GetWindow(), m_Renderer.GetCamera());
+
+        m_Renderer.DrawFrame(m_GLFWHandler.GetWindow(),
+                             DeltaTime,
+                             m_Renderer.GetCamera(),
+                             this);
     }
 }

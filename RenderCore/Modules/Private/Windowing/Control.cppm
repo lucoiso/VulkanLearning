@@ -10,12 +10,17 @@ module RenderCore.Window.Control;
 
 using namespace RenderCore;
 
-Control::Control(Control* const Parent)
+Control::Control(Control * const Parent)
     : m_Parent(Parent)
 {
 }
 
 Control::~Control()
+{
+    DestroyChildren();
+}
+
+void Control::DestroyChildren()
 {
     while (!std::empty(m_Children))
     {
@@ -28,29 +33,57 @@ Control::~Control()
     }
 }
 
-Control* Control::GetParent() const
+Control *Control::GetParent() const
 {
     return m_Parent;
 }
 
-std::vector<std::shared_ptr<Control>> const& Control::GetChildren() const
+std::vector<std::shared_ptr<Control> > const &Control::GetChildren() const
 {
     return m_Children;
 }
 
-std::vector<std::shared_ptr<Control>> const& Control::GetIndependentChildren() const
+std::vector<std::shared_ptr<Control> > const &Control::GetIndependentChildren() const
 {
     return m_IndependentChildren;
 }
 
 void Control::Update()
 {
-    PrePaint();
-    {
+    PrePaint(); {
         Paint();
-        ProcessPaint(m_Children);
+
+        Process(m_Children, &Control::PrePaint);
+        Process(m_Children, &Control::Paint);
+        Process(m_Children, &Control::PostPaint);
     }
     PostPaint();
 
-    ProcessPaint(m_IndependentChildren);
+    Process(m_IndependentChildren, &Control::PrePaint);
+    Process(m_IndependentChildren, &Control::Paint);
+    Process(m_IndependentChildren, &Control::PostPaint);
+}
+
+void Control::RefreshResources()
+{
+    Refresh();
+    Process(m_Children, &Control::Refresh);
+    Process(m_IndependentChildren, &Control::Refresh);
+}
+
+void Control::PreUpdate()
+{
+    RemoveInvalid(m_Children);
+    RemoveInvalid(m_IndependentChildren);
+
+    PreRender();
+    Process(m_Children, &Control::PreRender);
+    Process(m_IndependentChildren, &Control::PreRender);
+}
+
+void Control::PostUpdate()
+{
+    PostRender();
+    Process(m_Children, &Control::PostRender);
+    Process(m_IndependentChildren, &Control::PostRender);
 }

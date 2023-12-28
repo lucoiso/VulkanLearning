@@ -4,11 +4,11 @@
 
 module;
 
-#include <GLFW/glfw3.h>
 #include <optional>
 #include <string>
 #include <vector>
 #include <volk.h>
+#include <GLFW/glfw3.h>
 
 export module RenderCore.Management.DeviceManagement;
 

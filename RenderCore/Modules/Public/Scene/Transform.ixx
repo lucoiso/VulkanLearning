@@ -6,21 +6,13 @@ module;
 
 #include "RenderCoreModule.hpp"
 
-#include <glm/ext.hpp>
 #include <string>
+#include <glm/ext.hpp>
 
 export module RenderCore.Types.Transform;
 
 namespace RenderCore
 {
-    export struct RENDERCOREMODULE_API ViewSize
-    {
-        float X {0.f};
-        float Y {0.f};
-        float W {0.f};
-        float H {0.f};
-    };
-
     export struct RENDERCOREMODULE_API Vector
     {
         float X {0.f};

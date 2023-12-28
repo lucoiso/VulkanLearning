@@ -4,10 +4,10 @@
 
 module;
 
-#include <volk.h>
 #include <array>
 #include <cstdint>
 #include <limits>
+#include <volk.h>
 
 export module RenderCore.Utils.Constants;
 
@@ -61,7 +61,8 @@ export namespace RenderCore
 
     constexpr std::array g_DynamicStates = {
             VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR};
+            VK_DYNAMIC_STATE_SCISSOR,
+            VK_DYNAMIC_STATE_LINE_WIDTH};
 
     constexpr std::uint64_t g_BufferMemoryAllocationSize      = 65536U;
     constexpr std::uint64_t g_ImageBufferMemoryAllocationSize = 262144U;
@@ -72,12 +73,12 @@ export namespace RenderCore
 
     constexpr std::uint32_t g_Timeout = std::numeric_limits<std::uint32_t>::max();
 
-    constexpr std::array g_ClearValues {
-            VkClearValue {
+    constexpr std::array g_ClearValues{
+            VkClearValue{
                     .color = {
-                            {0.25F,
-                             0.25F,
-                             0.5F,
+                            {0.F,
+                             0.F,
+                             0.F,
                              1.F}}},
-            VkClearValue {.depthStencil = {1.F, 0U}}};
+            VkClearValue{.depthStencil = {1.F, 0U}}};
 }// namespace RenderCore

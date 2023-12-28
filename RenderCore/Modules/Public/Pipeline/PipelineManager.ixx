@@ -11,39 +11,46 @@ module;
 export module RenderCore.Management.PipelineManagement;
 
 import RenderCore.Types.MeshBufferData;
+import RenderCore.Types.AllocationTypes;
 import RenderCore.Types.SurfaceProperties;
+import RenderCore.Utils.Constants;
 
 namespace RenderCore
 {
     export class PipelineManager
     {
-        VkRenderPass m_RenderPass {VK_NULL_HANDLE};
-        VkPipeline m_Pipeline {VK_NULL_HANDLE};
-        VkPipelineLayout m_PipelineLayout {VK_NULL_HANDLE};
-        VkPipelineCache m_PipelineCache {VK_NULL_HANDLE};
-        VkDescriptorPool m_DescriptorPool {VK_NULL_HANDLE};
-        VkDescriptorSetLayout m_DescriptorSetLayout {VK_NULL_HANDLE};
-        std::unordered_map<std::uint32_t, VkDescriptorSet> m_DescriptorSets {};
-        bool m_BoundToImGui {false};
+        VkPipeline m_MainPipeline{VK_NULL_HANDLE};
+        VkPipeline m_ViewportPipeline{VK_NULL_HANDLE};
+
+        VkPipelineLayout m_PipelineLayout{VK_NULL_HANDLE};
+        VkPipelineCache m_PipelineCache{VK_NULL_HANDLE};
+        VkDescriptorPool m_DescriptorPool{VK_NULL_HANDLE};
+        VkDescriptorSetLayout m_DescriptorSetLayout{VK_NULL_HANDLE};
+        std::unordered_map<std::uint32_t, VkDescriptorSet> m_DescriptorSets{};
 
     public:
-        void CreateRenderPass(SurfaceProperties const&);
-        void CreateGraphicsPipeline();
+        void CreatePipelines(VkFormat, VkFormat, VkExtent2D const&);
+
         void CreateDescriptorSetLayout();
+
         void CreateDescriptorPool(std::uint32_t);
-        void CreateDescriptorSets(std::vector<MeshBufferData> const&);
+
+        void CreateDescriptorSets(std::vector<MeshBufferData> const&, VkSampler const&);
+
         void ReleasePipelineResources();
+
         void ReleaseDynamicPipelineResources();
 
-        void SetIsBoundToImGui(bool);
-        [[nodiscard]] bool GetIsBoundToImGui() const;
+        [[nodiscard]] VkPipeline const& GetMainPipeline() const;
 
-        [[nodiscard]] VkRenderPass const& GetRenderPass() const;
-        [[nodiscard]] VkPipeline const& GetPipeline() const;
+        [[nodiscard]] VkPipeline const& GetViewportPipeline() const;
+
         [[nodiscard]] VkPipelineLayout const& GetPipelineLayout() const;
-        [[nodiscard]] VkPipelineCache const& GetPipelineCache() const;
+
         [[nodiscard]] VkDescriptorSetLayout const& GetDescriptorSetLayout() const;
+
         [[nodiscard]] VkDescriptorPool const& GetDescriptorPool() const;
+
         [[nodiscard]] VkDescriptorSet GetDescriptorSet(std::uint32_t) const;
     };
 }// namespace RenderCore

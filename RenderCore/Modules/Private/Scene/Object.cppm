@@ -4,8 +4,8 @@
 
 module;
 
-#include <glm/ext.hpp>
 #include <string>
+#include <glm/ext.hpp>
 
 module RenderCore.Types.Object;
 
