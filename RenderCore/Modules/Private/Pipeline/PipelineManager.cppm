@@ -70,7 +70,7 @@ void CreatePipeline(bool const IsViewport, VkFormat const RenderingFormat, VkFor
             .alphaToOneEnable = VK_FALSE};
 
     constexpr VkPipelineColorBlendAttachmentState RenderColorBlendAttachmentStates{
-            .blendEnable = VK_FALSE,
+            .blendEnable = VK_TRUE,
             .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
             .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
             .colorBlendOp = VK_BLEND_OP_ADD,
@@ -81,8 +81,8 @@ void CreatePipeline(bool const IsViewport, VkFormat const RenderingFormat, VkFor
 
     constexpr VkPipelineColorBlendAttachmentState ViewportColorBlendAttachmentStates{
             .blendEnable = VK_TRUE,
-            .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-            .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+            .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
             .colorBlendOp = VK_BLEND_OP_ADD,
             .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
             .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
@@ -189,7 +189,7 @@ void PipelineManager::CreatePipelines(VkFormat const SwapChainImageFormat, VkFor
     std::vector<VkPipelineShaderStageCreateInfo> const ShaderStages = GetStageInfos();
 
     CreatePipeline(false, SwapChainImageFormat, DepthFormat, m_PipelineLayout, ViewportExtent, VertexInputState, ShaderStages, m_PipelineCache, m_MainPipeline);
-    CreatePipeline(true, g_ViewportImageFormat, DepthFormat, m_PipelineLayout, ViewportExtent, VertexInputState, ShaderStages, m_PipelineCache, m_ViewportPipeline);
+    CreatePipeline(true, SwapChainImageFormat, DepthFormat, m_PipelineLayout, ViewportExtent, VertexInputState, ShaderStages, m_PipelineCache, m_ViewportPipeline);
 }
 
 void PipelineManager::CreateDescriptorSetLayout()

@@ -142,14 +142,14 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
     {
         glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-        Camera& Camera {Target->GetMutableCamera()};
+        Camera& Camera{Target->GetMutableCamera()};
 
-        float const Sensitivity {Camera.GetSensitivity() * 0.1F};
+        float const Sensitivity{Camera.GetSensitivity() * 0.1F};
 
-        float const OffsetX {static_cast<float>(NewCursorPosX - LastCursorPosX) * Sensitivity};
-        float const OffsetY {static_cast<float>(LastCursorPosY - NewCursorPosY) * Sensitivity};
+        float const OffsetX{static_cast<float>(NewCursorPosX - LastCursorPosX) * Sensitivity};
+        float const OffsetY{static_cast<float>(LastCursorPosY - NewCursorPosY) * Sensitivity};
 
-        Rotator Rotation {Camera.GetRotation()};
+        Rotator Rotation{Camera.GetRotation()};
         Rotation.Pitch += OffsetY;
         Rotation.Yaw += OffsetX;
 
@@ -157,12 +157,13 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
         {
             Rotation.Pitch = 89.F;
         }
-        else if (Rotation.Pitch < -89.F)
-        {
-            Rotation.Pitch = -89.F;
-        }
+        else if (Rotation.Pitch<-89.F)
+                                {
+                                        Rotation.Pitch = -89.F;
+                                }
 
-        Camera.SetRotation(Rotation);
+                                Camera.SetRotation(Rotation);
+
     }
     else
     {

@@ -101,7 +101,7 @@ bool CreateVulkanInstance()
     return g_Instance != VK_NULL_HANDLE;
 }
 
-void Renderer::DrawFrame(GLFWwindow * const Window, float const DeltaTime, Camera const&Camera, Control * const Owner)
+void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera const& Camera, Control* const Owner)
 {
     if (!IsInitialized())
     {
@@ -124,7 +124,7 @@ void Renderer::DrawFrame(GLFWwindow * const Window, float const DeltaTime, Camer
 
     if (HasAnyFlag(m_StateFlags, InvalidStatesToRender))
     {
-        if (HasFlag(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
+        if (!HasFlag(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION) && HasFlag(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
             DestroyCommandsSynchronizationObjects();
             m_BufferManager.DestroyBufferResources(false);
@@ -189,16 +189,24 @@ void Renderer::DrawFrame(GLFWwindow * const Window, float const DeltaTime, Camer
 
 std::optional<std::int32_t> Renderer::RequestImageIndex(GLFWwindow* const Window)
 {
-    std::optional<std::int32_t> const Output = RequestSwapChainImage(m_BufferManager.GetSwapChain());
+    std::optional<std::int32_t> Output{};
+
+    if (!HasFlag(m_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
+    {
+        Output = RequestSwapChainImage(m_BufferManager.GetSwapChain());
+    }
 
     if (!Output.has_value())
     {
         AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
 
-        if (!HasFlag(m_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE) && !GetSurfaceProperties(Window, m_BufferManager.GetSurface()).IsValid())
+        if (!GetSurfaceProperties(Window, m_BufferManager.GetSurface()).IsValid())
         {
-            AddFlags(m_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
-            AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+            if (!HasFlag(m_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE))
+            {
+                AddFlags(m_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+                AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+            }
         }
         else
         {
@@ -250,23 +258,20 @@ void Renderer::RemoveInvalidObjects()
         return;
     }
 
-    if (m_ObjectsMutex.try_lock())
+    std::unique_lock Lock(m_ObjectsMutex);
+
+    std::vector<std::uint32_t> LoadedIDs{};
+    for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
     {
-        std::vector<std::uint32_t> LoadedIDs{};
-        for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
+        if (ObjectIter && ObjectIter->IsPendingDestroy())
         {
-            if (ObjectIter && ObjectIter->IsPendingDestroy())
-            {
-                LoadedIDs.push_back(ObjectIter->GetID());
-            }
+            LoadedIDs.push_back(ObjectIter->GetID());
         }
+    }
 
-        m_ObjectsMutex.unlock();
-
-        if (!std::empty(LoadedIDs))
-        {
-            UnloadScene(LoadedIDs);
-        }
+    if (!std::empty(LoadedIDs))
+    {
+        UnloadScene(LoadedIDs);
     }
 }
 
@@ -311,7 +316,7 @@ void Renderer::Shutdown(GLFWwindow* const Window)
         return;
     }
 
-    RenderingSubsystem::Get().RegisterRenderer(Window, *this);
+    RenderingSubsystem::Get().UnregisterRenderer(Window);
 
     RemoveFlags(m_StateFlags, RendererStateFlags::INITIALIZED);
 

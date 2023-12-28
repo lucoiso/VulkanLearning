@@ -216,40 +216,46 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
 {
     constexpr std::array<VkDeviceSize, 1U> Offsets{0U};
 
+    constexpr VkImageLayout UndefinedLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+    constexpr VkImageAspectFlags ImageAspect = VK_IMAGE_ASPECT_COLOR_BIT;
+    constexpr VkImageAspectFlags DepthAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+    constexpr VkImageLayout ViewportTransferLayout  = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    constexpr VkImageLayout ViewportFinalLayout     = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR;
+    constexpr VkImageLayout SwapChainLayout         = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+    constexpr VkImageLayout SwapChainTransferLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    constexpr VkImageLayout SwapChainPresentLayout  = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    constexpr VkImageLayout DepthLayout             = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+
+    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
     AllocateCommandBuffer(GetGraphicsQueue().first, 3U);
     VkPipelineLayout const& PipelineLayout = PipelineManager.GetPipelineLayout();
 
+    const auto& [SwapChainImage, SwapChainView, SwapChainAllocation, SwapChainType] = BufferManager.GetSwapChainImages().at(ImageIndex);
+    VkFormat const SwapChainFormat                                                  = BufferManager.GetSwapChainImageFormat();
+
     // Scene rendering commands
     {
-        constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo{
-                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
         VkCommandBuffer& CommandBuffer = g_CommandBuffers.at(0U);
         CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
 
-        const auto& [Image, View, Allocation, Type] = BufferManager.GetSwapChainImages().at(ImageIndex);
-        VkFormat const ImageFormat                  = BufferManager.GetSwapChainImageFormat();
-        VkPipeline const Pipeline                   = PipelineManager.GetMainPipeline();
-        constexpr VkImageLayout ImageLayout         = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
-        constexpr VkImageLayout DepthLayout         = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+        VkPipeline const Pipeline = PipelineManager.GetMainPipeline();
 
-        BufferManager::MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED,
-                                       ImageLayout,
-                                       VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer,
-                                                                  Image,
-                                                                  ImageFormat);
+        BufferManager::MoveImageLayout<UndefinedLayout, SwapChainLayout, ImageAspect>(CommandBuffer,
+                                                                                      SwapChainImage,
+                                                                                      SwapChainFormat);
 
-        BufferManager::MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED,
-                                       DepthLayout,
-                                       VK_IMAGE_ASPECT_DEPTH_BIT>(CommandBuffer,
-                                                                  BufferManager.GetDepthImage().Image,
-                                                                  BufferManager.GetDepthFormat());
+        BufferManager::MoveImageLayout<UndefinedLayout, DepthLayout, DepthAspect>(CommandBuffer,
+                                                                                  BufferManager.GetDepthImage().Image,
+                                                                                  BufferManager.GetDepthFormat());
 
         VkRenderingAttachmentInfoKHR const ColorAttachmentInfo{
                 .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-                .imageView = View,
-                .imageLayout = ImageLayout,
+                .imageView = SwapChainView,
+                .imageLayout = SwapChainLayout,
                 .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                 .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
                 .clearValue = g_ClearValues.at(0U)};
@@ -347,52 +353,65 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
 
     // Viewport rendering commands
     {
-        constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo{
-                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
         VkCommandBuffer& CommandBuffer = g_CommandBuffers.at(1U);
         CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
 
         const auto& [Image, View, Allocation, Type] = BufferManager.GetViewportImages().at(ImageIndex);
-        VkPipeline const Pipeline                   = PipelineManager.GetViewportPipeline();
-        constexpr VkImageLayout ImageTransferLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        constexpr VkImageLayout ImageFinalLayout    = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR;
-        constexpr VkImageLayout DepthLayout         = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
 
-        BufferManager::MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED,
-                                       ImageTransferLayout,
-                                       VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer,
-                                                                  Image,
-                                                                  g_ViewportImageFormat);
+        VkPipeline const Pipeline           = PipelineManager.GetViewportPipeline();
+        VkFormat const SwapChainImageFormat = BufferManager.GetSwapChainImageFormat();
 
-        BufferManager::MoveImageLayout<ImageTransferLayout,
-                                       ImageFinalLayout,
-                                       VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer,
-                                                                  Image,
-                                                                  g_ViewportImageFormat);
+        BufferManager::MoveImageLayout<SwapChainLayout, SwapChainTransferLayout, ImageAspect>(CommandBuffer,
+                                                                                              SwapChainImage,
+                                                                                              SwapChainImageFormat);
 
-        BufferManager::MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED,
-                                       DepthLayout,
-                                       VK_IMAGE_ASPECT_DEPTH_BIT>(CommandBuffer,
-                                                                  BufferManager.GetDepthImage().Image,
-                                                                  BufferManager.GetDepthFormat());
+        BufferManager::MoveImageLayout<UndefinedLayout, ViewportTransferLayout, ImageAspect>(CommandBuffer,
+                                                                                             Image,
+                                                                                             SwapChainFormat);
+
+        VkImageCopy const ImageCopy{
+                .srcSubresource = {
+                        .aspectMask = ImageAspect,
+                        .mipLevel = 0U,
+                        .baseArrayLayer = 0U,
+                        .layerCount = 1U},
+                .srcOffset = {0, 0, 0},
+                .dstSubresource = {
+                        .aspectMask = ImageAspect,
+                        .mipLevel = 0U,
+                        .baseArrayLayer = 0U,
+                        .layerCount = 1U},
+                .dstOffset = {0, 0, 0},
+                .extent = {
+                        .width = SwapChainExtent.width,
+                        .height = SwapChainExtent.height,
+                        .depth = 1U}};
+
+        vkCmdCopyImage(CommandBuffer,
+                       SwapChainImage,
+                       SwapChainTransferLayout,
+                       Image,
+                       ViewportTransferLayout,
+                       1U,
+                       &ImageCopy);
+
+        BufferManager::MoveImageLayout<ViewportTransferLayout, ViewportFinalLayout, ImageAspect>(CommandBuffer,
+                                                                                                 Image,
+                                                                                                 SwapChainFormat);
 
         VkRenderingAttachmentInfoKHR const ColorAttachmentInfo{
                 .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
                 .imageView = View,
-                .imageLayout = ImageFinalLayout,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                .clearValue = g_ClearValues.at(0U)};
+                .imageLayout = ViewportFinalLayout,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE};
 
         VkRenderingAttachmentInfoKHR const DepthAttachmentInfo{
                 .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
                 .imageView = BufferManager.GetDepthImageView(),
                 .imageLayout = DepthLayout,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                .clearValue = g_ClearValues.at(1U)};
+                .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE};
 
         VkRenderingInfo const RenderingInfo{
                 .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
@@ -429,11 +448,6 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
     // ImGui rendering commands
     {
         VkCommandBuffer& CommandBuffer = g_CommandBuffers.at(2U);
-
-        constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo{
-                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
         CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
 
         if (IsImGuiInitialized())
@@ -442,11 +456,10 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
             {
                 VkRenderingAttachmentInfoKHR const ColorAttachmentInfo{
                         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-                        .imageView = BufferManager.GetSwapChainImages().at(ImageIndex).View,
+                        .imageView = SwapChainView,
                         .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
-                        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                        .clearValue = g_ClearValues.at(0U)};
+                        .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+                        .storeOp = VK_ATTACHMENT_STORE_OP_STORE};
 
                 VkRenderingInfo const RenderingInfo{
                         .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
@@ -463,11 +476,9 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
             }
         }
 
-        BufferManager::MoveImageLayout<VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
-                                       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                                       VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer,
-                                                                  BufferManager.GetSwapChainImages().at(ImageIndex).Image,
-                                                                  BufferManager.GetSwapChainImageFormat());
+        BufferManager::MoveImageLayout<SwapChainTransferLayout, SwapChainPresentLayout, ImageAspect>(CommandBuffer,
+                                                                                                     SwapChainImage,
+                                                                                                     SwapChainFormat);
 
         CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
     }

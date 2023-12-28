@@ -68,7 +68,6 @@ export namespace RenderCore
     constexpr std::uint64_t g_ImageBufferMemoryAllocationSize = 262144U;
 
     constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-    constexpr VkFormat g_ViewportImageFormat      = VK_FORMAT_R8G8B8A8_UNORM;
 
     constexpr std::uint8_t g_MinImageCount = 3U;
 

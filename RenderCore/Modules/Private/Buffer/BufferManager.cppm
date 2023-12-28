@@ -400,7 +400,7 @@ void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties, 
             .imageColorSpace = SurfaceProperties.Format.colorSpace,
             .imageExtent = m_SwapChainExtent,
             .imageArrayLayers = 1U,
-            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
             .imageSharingMode = QueueFamilyIndicesCount > 1U ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
             .queueFamilyIndexCount = QueueFamilyIndicesCount,
             .pQueueFamilyIndices = std::data(QueueFamilyIndices),
@@ -439,10 +439,7 @@ void BufferManager::CreateViewportResources(SurfaceProperties const& SurfaceProp
 
     for (ImageAllocation& ImageIter: m_ViewportImages)
     {
-        if (ImageIter.IsValid())
-        {
-            ImageIter.DestroyResources(m_Allocator);
-        }
+        ImageIter.DestroyResources(m_Allocator);
     }
     m_ViewportImages.resize(std::size(m_SwapChainImages));
 
@@ -454,8 +451,8 @@ void BufferManager::CreateViewportResources(SurfaceProperties const& SurfaceProp
 
     for (auto& [Image, View, Allocation, Type]: m_ViewportImages)
     {
-        CreateImage(m_Allocator, g_ViewportImageFormat, SurfaceProperties.Extent, Tiling, UsageFlags, MemoryPropertyFlags, MemoryUsage, Image, Allocation);
-        CreateImageView(Image, g_ViewportImageFormat, AspectFlags, View);
+        CreateImage(m_Allocator, SurfaceProperties.Format.format, SurfaceProperties.Extent, Tiling, UsageFlags, MemoryPropertyFlags, MemoryUsage, Image, Allocation);
+        CreateImageView(Image, SurfaceProperties.Format.format, AspectFlags, View);
     }
 }
 
@@ -465,29 +462,16 @@ void BufferManager::CreateDepthResources(SurfaceProperties const& SurfacePropert
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan depth resources";
 
-    auto const& [FamilyIndex, Queue] = GetGraphicsQueue();
-
     constexpr VmaMemoryUsage MemoryUsage                   = VMA_MEMORY_USAGE_GPU_ONLY;
     constexpr VkImageTiling Tiling                         = VK_IMAGE_TILING_OPTIMAL;
     constexpr VkImageUsageFlagBits Usage                   = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     constexpr VmaAllocationCreateFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
     constexpr VkImageAspectFlagBits Aspect                 = VK_IMAGE_ASPECT_DEPTH_BIT;
-    constexpr VkImageLayout InitialLayout                  = VK_IMAGE_LAYOUT_UNDEFINED;
-    constexpr VkImageLayout DestinationLayout              = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
 
     m_DepthFormat = SurfaceProperties.DepthFormat;
 
     CreateImage(m_Allocator, m_DepthFormat, SurfaceProperties.Extent, Tiling, Usage, MemoryPropertyFlags, MemoryUsage, m_DepthImage.Image, m_DepthImage.Allocation);
     CreateImageView(m_DepthImage.Image, m_DepthFormat, Aspect, m_DepthImage.View);
-
-    VkCommandPool CommandPool{VK_NULL_HANDLE};
-    std::vector<VkCommandBuffer> CommandBuffer{VK_NULL_HANDLE};
-    InitializeSingleCommandQueue(CommandPool, CommandBuffer, FamilyIndex); {
-        MoveImageLayout<InitialLayout,
-                        DestinationLayout,
-                        VK_IMAGE_ASPECT_DEPTH_BIT>(CommandBuffer.back(), m_DepthImage.Image, m_DepthFormat);
-    }
-    FinishSingleCommandQueue(Queue, CommandPool, CommandBuffer);
 }
 
 void TryResizeVertexContainer(std::vector<Vertex>& Vertices, std::uint32_t const NewSize)

@@ -129,60 +129,80 @@ namespace RenderCore
                             .baseArrayLayer = 0U,
                             .layerCount = 1U}};
 
-            if (NewLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+            if constexpr (NewLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
             {
                 Barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-                if (Format == VK_FORMAT_D32_SFLOAT_S8_UINT || Format == VK_FORMAT_D24_UNORM_S8_UINT)
+                if constexpr (Format == VK_FORMAT_D32_SFLOAT_S8_UINT || Format == VK_FORMAT_D24_UNORM_S8_UINT)
                 {
                     Barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
                 }
             }
 
-            if (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+            if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
             {
                 Barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
                 Barrier.srcStageMask  = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT_KHR;
                 Barrier.dstStageMask  = VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR;
             }
-            else if (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
+            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
             {
                 Barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT_KHR;
                 Barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT_KHR;
                 Barrier.srcStageMask  = VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR;
                 Barrier.dstStageMask  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT_KHR;
             }
-            else if (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR)
+            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR)
             {
                 Barrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT_KHR | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT_KHR;
                 Barrier.srcStageMask  = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT_KHR;
                 Barrier.dstStageMask  = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR;
             }
-            else if (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
+            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
             {
                 Barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT_KHR;
                 Barrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT_KHR;
                 Barrier.srcStageMask  = VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR;
                 Barrier.dstStageMask  = VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR;
             }
-            else if (OldLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
+            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
             {
                 Barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR;
                 Barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT_KHR;
                 Barrier.srcStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
                 Barrier.dstStageMask  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT_KHR;
             }
-            else if (OldLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR && NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR && NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
             {
                 Barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR;
                 Barrier.srcStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
                 Barrier.dstStageMask  = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT_KHR;
             }
-            else if (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
             {
                 Barrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT_KHR;
                 Barrier.srcStageMask  = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT_KHR;
                 Barrier.dstStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+            }
+            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+            {
+                Barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR;
+                Barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT_KHR;
+                Barrier.srcStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+                Barrier.dstStageMask  = VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR;
+            }
+            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR)
+            {
+                Barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT_KHR;
+                Barrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR;
+                Barrier.srcStageMask  = VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR;
+                Barrier.dstStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+            }
+            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+            {
+                Barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT_KHR;
+                Barrier.srcStageMask  = VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR;
+                Barrier.dstStageMask  = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT_KHR;
             }
             else
             {
