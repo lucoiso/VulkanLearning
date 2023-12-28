@@ -4,8 +4,6 @@
 
 module;
 
-#include "RenderCoreModule.hpp"
-#include <GLFW/glfw3.h>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -13,6 +11,8 @@ module;
 #include <string>
 #include <vector>
 #include <volk.h>
+#include <GLFW/glfw3.h>
+#include "RenderCoreModule.hpp"
 
 export module RenderCore.Renderer;
 

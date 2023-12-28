@@ -10,12 +10,17 @@ module RenderCore.Window.Control;
 
 using namespace RenderCore;
 
-Control::Control(Control* const Parent)
+Control::Control(Control * const Parent)
     : m_Parent(Parent)
 {
 }
 
 Control::~Control()
+{
+    DestroyChildren();
+}
+
+void Control::DestroyChildren()
 {
     while (!std::empty(m_Children))
     {
@@ -28,25 +33,24 @@ Control::~Control()
     }
 }
 
-Control* Control::GetParent() const
+Control *Control::GetParent() const
 {
     return m_Parent;
 }
 
-std::vector<std::shared_ptr<Control>> const& Control::GetChildren() const
+std::vector<std::shared_ptr<Control> > const &Control::GetChildren() const
 {
     return m_Children;
 }
 
-std::vector<std::shared_ptr<Control>> const& Control::GetIndependentChildren() const
+std::vector<std::shared_ptr<Control> > const &Control::GetIndependentChildren() const
 {
     return m_IndependentChildren;
 }
 
 void Control::Update()
 {
-    PrePaint();
-    {
+    PrePaint(); {
         Paint();
 
         Process(m_Children, &Control::PrePaint);

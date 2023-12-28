@@ -4,10 +4,11 @@
 
 module;
 
-#include <GLFW/glfw3.h>
-#include <boost/log/trivial.hpp>
-#include <glm/ext.hpp>
 #include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <boost/log/trivial.hpp>
+#include <GLFW/glfw3.h>
+#include <glm/ext.hpp>
 
 module RenderCore.Input.GLFWCallbacks;
 
@@ -27,9 +28,9 @@ void RenderCore::GLFWWindowCloseRequested(GLFWwindow* const Window)
     glfwSetWindowShouldClose(Window, GLFW_TRUE);
 }
 
-void RenderCore::GLFWWindowResized(GLFWwindow* const Window, [[maybe_unused]] std::int32_t const Width, [[maybe_unused]] std::int32_t const Height)
+void RenderCore::GLFWWindowResized([[maybe_unused]] GLFWwindow* const Window, [[maybe_unused]] std::int32_t const Width, [[maybe_unused]] std::int32_t const Height)
 {
-    Renderer* const Target = RenderingSubsystem::Get().GetRenderer(Window);
+    Renderer* const Target = RenderingSubsystem::Get().GetRenderer();
     if (!Target)
     {
         return;
@@ -52,7 +53,7 @@ void RenderCore::GLFWErrorCallback(std::int32_t const Error, char const* const D
 
 void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow* const Window, std::int32_t const Key, [[maybe_unused]] std::int32_t const Scancode, std::int32_t const Action, [[maybe_unused]] std::int32_t const Mods)
 {
-    Renderer* const Target = RenderingSubsystem::Get().GetRenderer(Window);
+    Renderer* const Target = RenderingSubsystem::Get().GetRenderer();
     if (!Target)
     {
         return;
@@ -127,7 +128,7 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow* const Window, std:
 
 void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double const NewCursorPosX, double const NewCursorPosY)
 {
-    Renderer* const Target = RenderingSubsystem::Get().GetRenderer(Window);
+    Renderer* const Target = RenderingSubsystem::Get().GetRenderer();
     if (!Target)
     {
         return;
@@ -144,7 +145,7 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
 
         Camera& Camera{Target->GetMutableCamera()};
 
-        float const Sensitivity{Camera.GetSensitivity() * 0.1F};
+        float const Sensitivity{Camera.GetSensitivity()};
 
         float const OffsetX{static_cast<float>(NewCursorPosX - LastCursorPosX) * Sensitivity};
         float const OffsetY{static_cast<float>(LastCursorPosY - NewCursorPosY) * Sensitivity};
@@ -157,13 +158,12 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
         {
             Rotation.Pitch = 89.F;
         }
-        else if (Rotation.Pitch<-89.F)
-                                {
-                                        Rotation.Pitch = -89.F;
-                                }
+        else if (Rotation.Pitch < -89.F)
+        {
+            Rotation.Pitch = -89.F;
+        }
 
-                                Camera.SetRotation(Rotation);
-
+        Camera.SetRotation(Rotation);
     }
     else
     {
@@ -176,7 +176,7 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
 
 void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow* const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)
 {
-    Renderer* const Target = RenderingSubsystem::Get().GetRenderer(Window);
+    Renderer* const Target = RenderingSubsystem::Get().GetRenderer();
     if (!Target)
     {
         return;
@@ -185,4 +185,17 @@ void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow* const Win
     Camera& Camera   = Target->GetMutableCamera();
     float const Zoom = static_cast<float>(OffsetY) * 0.1f;
     Camera.SetPosition(Camera.GetPosition() + Camera.GetRotation().GetFront() * Zoom);
+}
+
+void RenderCore::InstallGLFWCallbacks(GLFWwindow* const Window, bool const InstallClose)
+{
+    if (InstallClose)
+    {
+        glfwSetWindowCloseCallback(Window, &GLFWWindowCloseRequested);
+    }
+
+    glfwSetWindowSizeCallback(Window, &GLFWWindowResized);
+    glfwSetKeyCallback(Window, &GLFWKeyCallback);
+    glfwSetCursorPosCallback(Window, &GLFWCursorPositionCallback);
+    glfwSetScrollCallback(Window, &GLFWCursorScrollCallback);
 }

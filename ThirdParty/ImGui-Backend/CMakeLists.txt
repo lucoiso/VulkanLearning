@@ -3,7 +3,7 @@
 # Repo: https://github.com/lucoiso/cpp-submodules
 
 # ----------- Global Definitions -----------
-SET(LIBRARY_NAME ImGui-Volk-Backend)
+SET(LIBRARY_NAME ImGui-Backend)
 
 # ------------- Library Setup --------------
 SET(PRIVATE_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private)
@@ -11,10 +11,12 @@ SET(PUBLIC_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public)
 
 SET(PRIVATE_MODULES
         ${PRIVATE_MODULES_BASE_DIRECTORY}/imgui_impl_vulkan.cpp
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/imgui_impl_glfw.cpp
 )
 
 SET(PUBLIC_MODULES
         ${PUBLIC_MODULES_BASE_DIRECTORY}/imgui_impl_vulkan.h
+        ${PUBLIC_MODULES_BASE_DIRECTORY}/imgui_impl_glfw.h
 )
 
 ADD_LIBRARY(${LIBRARY_NAME} ${PRIVATE_MODULES})

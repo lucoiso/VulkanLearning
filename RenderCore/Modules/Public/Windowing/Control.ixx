@@ -4,9 +4,9 @@
 
 module;
 
-#include "RenderCoreModule.hpp"
 #include <memory>
 #include <vector>
+#include "RenderCoreModule.hpp"
 
 export module RenderCore.Window.Control;
 
@@ -16,73 +16,87 @@ namespace RenderCore
     {
         friend class Renderer;
 
-        Control* m_Parent {nullptr};
-        std::vector<std::shared_ptr<Control>> m_Children {};
-        std::vector<std::shared_ptr<Control>> m_IndependentChildren {};
+        Control *m_Parent{nullptr};
+        std::vector<std::shared_ptr<Control> > m_Children{};
+        std::vector<std::shared_ptr<Control> > m_IndependentChildren{};
 
     protected:
-        explicit Control(Control* Parent);
+        explicit Control(Control *Parent);
 
     public:
-        Control()                          = delete;
-        Control& operator=(Control const&) = delete;
+        Control() = delete;
+
+        Control &operator=(Control const &) = delete;
 
         virtual ~Control();
 
         template<typename ControlTy, typename... Args>
-        void AddChild(Args&&... Arguments)
+        void AddChild(Args &&... Arguments)
         {
             m_Children.emplace_back(std::make_shared<ControlTy>(this, std::forward<Args>(Arguments)...));
         }
 
         template<typename ControlTy, typename... Args>
-        void AddIndependentChild(Args&&... Arguments)
+        void AddIndependentChild(Args &&... Arguments)
         {
             m_IndependentChildren.emplace_back(std::make_shared<ControlTy>(this, std::forward<Args>(Arguments)...));
         }
 
-        [[nodiscard]] Control* GetParent() const;
-        [[nodiscard]] std::vector<std::shared_ptr<Control>> const& GetChildren() const;
-        [[nodiscard]] std::vector<std::shared_ptr<Control>> const& GetIndependentChildren() const;
+        void DestroyChildren();
+
+        [[nodiscard]] Control *GetParent() const;
+
+        [[nodiscard]] std::vector<std::shared_ptr<Control> > const &GetChildren() const;
+
+        [[nodiscard]] std::vector<std::shared_ptr<Control> > const &GetIndependentChildren() const;
 
         void Update();
 
     protected:
         void RefreshResources();
+
         void PreUpdate();
+
         void PostUpdate();
 
         virtual void Refresh()
         {
         }
+
         virtual void PreRender()
         {
         }
+
         virtual void PrePaint()
         {
         }
+
         virtual void Paint()
         {
         }
+
         virtual void PostPaint()
         {
         }
+
         virtual void PostRender()
         {
         }
 
     private:
-        static constexpr void RemoveInvalid(std::vector<std::shared_ptr<Control>>& Children)
+        static constexpr void RemoveInvalid(std::vector<std::shared_ptr<Control> > &Children)
         {
-            std::erase_if(Children, [](std::shared_ptr<Control> const& Child) {
-                return !Child;
-            });
+            std::erase_if(Children,
+                          [](std::shared_ptr<Control> const &Child)
+                          {
+                              return !Child;
+                          });
         }
 
         template<typename Functor>
-        static constexpr void Process(std::vector<std::shared_ptr<Control>>& Children, Functor&& Call)
+        static constexpr void Process(std::vector<std::shared_ptr<Control> > &Children, Functor &&Call)
         {
-            for (auto const& Child: Children)
+            for (auto const &Child: Children)
             {
                 if (Child)
                 {
@@ -91,4 +105,4 @@ namespace RenderCore
             }
         }
     };
-}// namespace RenderCore
+} // namespace RenderCore

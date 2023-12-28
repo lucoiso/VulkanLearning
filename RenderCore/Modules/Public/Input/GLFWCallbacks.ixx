@@ -4,8 +4,8 @@
 
 module;
 
-#include <GLFW/glfw3.h>
 #include <cstdint>
+#include <GLFW/glfw3.h>
 
 export module RenderCore.Input.GLFWCallbacks;
 
@@ -17,4 +17,5 @@ namespace RenderCore
     export void GLFWKeyCallback(GLFWwindow*, std::int32_t, std::int32_t, std::int32_t, std::int32_t);
     export void GLFWCursorPositionCallback(GLFWwindow*, double, double);
     export void GLFWCursorScrollCallback(GLFWwindow*, double, double);
+    export void InstallGLFWCallbacks(GLFWwindow*, bool);
 }// namespace RenderCore

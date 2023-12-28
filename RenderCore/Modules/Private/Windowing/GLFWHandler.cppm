@@ -23,7 +23,6 @@ import RenderCore.Utils.EnumHelpers;
 bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, InitializationFlags const Flags)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing GLFW Handler";
 
     if (glfwInit() == GLFW_FALSE)
@@ -57,11 +56,7 @@ bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Heig
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: GLFW Window created successfully. Setting up callbacks";
 
-    glfwSetWindowCloseCallback(m_Window, &GLFWWindowCloseRequested);
-    glfwSetWindowSizeCallback(m_Window, &GLFWWindowResized);
-    glfwSetKeyCallback(m_Window, &GLFWKeyCallback);
-    glfwSetCursorPosCallback(m_Window, &GLFWCursorPositionCallback);
-    glfwSetScrollCallback(m_Window, &GLFWCursorScrollCallback);
+    InstallGLFWCallbacks(m_Window, true);
 
     return m_Window != nullptr;
 }
@@ -69,7 +64,6 @@ bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Heig
 void GLFWHandler::Shutdown()
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down GLFW Handler";
 
     glfwSetWindowShouldClose(m_Window, GLFW_TRUE);

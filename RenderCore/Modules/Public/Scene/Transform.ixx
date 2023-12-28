@@ -6,8 +6,8 @@ module;
 
 #include "RenderCoreModule.hpp"
 
-#include <glm/ext.hpp>
 #include <string>
+#include <glm/ext.hpp>
 
 export module RenderCore.Types.Transform;
 

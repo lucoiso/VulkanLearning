@@ -5,8 +5,6 @@
 module;
 
 #include "RenderCoreModule.hpp"
-#include <GLFW/glfw3.h>
-#include <unordered_map>
 
 export module RenderCore.Subsystem.Rendering;
 
@@ -16,7 +14,7 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API RenderingSubsystem
     {
-        std::unordered_map<GLFWwindow*, Renderer*> m_RegisteredRenderers {};
+        Renderer* m_RegisteredRenderer {};
 
         RenderingSubsystem()  = default;
         ~RenderingSubsystem() = default;
@@ -24,9 +22,9 @@ namespace RenderCore
     public:
         static [[nodiscard]] RenderingSubsystem& Get();
 
-        void RegisterRenderer(GLFWwindow*, Renderer&);
-        void UnregisterRenderer(GLFWwindow*);
+        void RegisterRenderer(Renderer*);
+        void UnregisterRenderer();
 
-        [[nodiscard]] Renderer* GetRenderer(GLFWwindow*) const;
+        [[nodiscard]] Renderer* GetRenderer() const;
     };
 }// namespace RenderCore

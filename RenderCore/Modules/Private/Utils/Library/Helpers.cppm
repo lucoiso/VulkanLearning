@@ -4,12 +4,12 @@
 
 module;
 
-#include <GLFW/glfw3.h>
-#include <boost/log/trivial.hpp>
-#include <volk.h>
-#include <span>
 #include <array>
 #include <filesystem>
+#include <span>
+#include <volk.h>
+#include <boost/log/trivial.hpp>
+#include <GLFW/glfw3.h>
 
 #ifndef GLM_FORCE_RADIANS
 #define GLM_FORCE_RADIANS
@@ -45,7 +45,6 @@ VkExtent2D RenderCore::GetWindowExtent(GLFWwindow* const Window, VkSurfaceCapabi
 std::vector<std::string> RenderCore::GetGLFWExtensions()
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting GLFW extensions";
 
     std::uint32_t GLFWExtensionsCount = 0U;

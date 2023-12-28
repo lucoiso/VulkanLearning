@@ -4,14 +4,14 @@
 
 module;
 
+#include <filesystem>
+#include <fstream>
+#include <ranges>
+#include <volk.h>
 #include <boost/log/trivial.hpp>
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <spirv-tools/libspirv.hpp>
-#include <volk.h>
-#include <filesystem>
-#include <fstream>
-#include <ranges>
 
 module RenderCore.Management.ShaderManagement;
 
@@ -383,7 +383,6 @@ std::vector<VkPipelineShaderStageCreateInfo> RenderCore::GetStageInfos()
 void RenderCore::ReleaseShaderResources()
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan shader resources";
 
     for (auto const& ShaderModule: g_StageInfos | std::views::keys)
@@ -399,7 +398,6 @@ void RenderCore::ReleaseShaderResources()
 void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const& StagedModules)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
 
     for (VkPipelineShaderStageCreateInfo const& StageInfoIter: StagedModules)

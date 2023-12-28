@@ -4,11 +4,11 @@
 
 module;
 
-#include "RenderCoreModule.hpp"
 #include <cstdint>
-#include <glm/ext.hpp>
 #include <memory>
 #include <volk.h>
+#include <glm/ext.hpp>
+#include "RenderCoreModule.hpp"
 
 export module RenderCore.Types.Camera;
 
@@ -32,8 +32,8 @@ namespace RenderCore
         Vector m_CameraPosition {0.F, 0.F, 3.F};
         Rotator m_CameraRotation {0.F, -90.F, 0.F};
 
-        float m_CameraSpeed {1.F};
-        float m_CameraSensitivity {1.F};
+        float m_CameraSpeed {50.F};
+        float m_CameraSensitivity {0.15F};
 
         float m_FieldOfView {45.F};
         float m_NearPlane {0.001F};

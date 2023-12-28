@@ -4,11 +4,11 @@
 
 module;
 
-#include <GLFW/glfw3.h>
-#include <boost/log/trivial.hpp>
 #include <optional>
 #include <thread>
 #include <volk.h>
+#include <boost/log/trivial.hpp>
+#include <GLFW/glfw3.h>
 
 module RenderCore.Management.DeviceManagement;
 
@@ -49,7 +49,6 @@ bool GetQueueFamilyIndices(VkSurfaceKHR const& VulkanSurface,
                            std::optional<std::uint8_t>& TransferQueueFamilyIndex)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting queue family indices";
 
     if (g_PhysicalDevice == VK_NULL_HANDLE)
@@ -96,7 +95,6 @@ bool GetQueueFamilyIndices(VkSurfaceKHR const& VulkanSurface,
 void PickPhysicalDevice()
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Picking a physical device";
 
     for (VkPhysicalDevice const& DeviceIter: GetAvailablePhysicalDevices())
@@ -257,7 +255,6 @@ void RenderCore::InitializeDevice(VkSurfaceKHR const& VulkanSurface)
     }
 
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulkan devices";
 
     PickPhysicalDevice();
@@ -377,7 +374,6 @@ std::vector<std::uint32_t> RenderCore::GetUniqueQueueFamilyIndicesU32()
 void RenderCore::ReleaseDeviceResources()
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan device resources";
 
     vkDestroyDevice(g_Device, nullptr);

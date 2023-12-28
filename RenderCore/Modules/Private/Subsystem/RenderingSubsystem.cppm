@@ -2,10 +2,6 @@
 // Year : 2023
 // Repo : https://github.com/lucoiso/VulkanRenderer
 
-module;
-
-#include <GLFW/glfw3.h>
-
 module RenderCore.Subsystem.Rendering;
 
 using namespace RenderCore;
@@ -18,36 +14,17 @@ RenderingSubsystem& RenderingSubsystem::Get()
     return Instance;
 }
 
-void RenderingSubsystem::RegisterRenderer(GLFWwindow* Window, Renderer& Renderer)
+void RenderingSubsystem::RegisterRenderer(Renderer* const Renderer)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-
-    if (!Window)
-    {
-        return;
-    }
-
-    m_RegisteredRenderers.emplace(Window, &Renderer);
+    m_RegisteredRenderer = Renderer;
 }
 
-void RenderingSubsystem::UnregisterRenderer(GLFWwindow* const Window)
+void RenderingSubsystem::UnregisterRenderer()
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
-
-    if (!m_RegisteredRenderers.contains(Window))
-    {
-        return;
-    }
-
-    m_RegisteredRenderers.erase(Window);
+    m_RegisteredRenderer = nullptr;
 }
 
-Renderer* RenderingSubsystem::GetRenderer(GLFWwindow* const Window) const
+Renderer* RenderingSubsystem::GetRenderer() const
 {
-    if (!m_RegisteredRenderers.contains(Window))
-    {
-        return nullptr;
-    }
-
-    return m_RegisteredRenderers.at(Window);
+    return m_RegisteredRenderer;
 }

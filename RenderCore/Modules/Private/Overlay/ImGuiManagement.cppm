@@ -5,12 +5,12 @@
 module;
 
 #include <array>
-#include <boost/log/trivial.hpp>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <vector>
 #include <volk.h>
+#include <boost/log/trivial.hpp>
 
 module RenderCore.Management.ImGuiManagement;
 
@@ -51,7 +51,9 @@ void RenderCore::InitializeImGuiContext(GLFWwindow* const Window, SurfacePropert
 
     ImIO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
 
-    ImGui_ImplGlfw_InitForVulkan(Window, true);
+    ImGui_ImplGlfw_InitForVulkan(Window, false);
+    ImGui_ImplGlfw_SetCallbacksChainForAllWindows(true);
+    ImGui_ImplGlfw_InstallCallbacks(Window);
 
     constexpr std::uint32_t DescriptorCount = 100U;
 
