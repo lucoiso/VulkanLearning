@@ -57,6 +57,6 @@ namespace RenderCore
         }
 
     private:
-        void RequestRender();
+        void RequestRender(float);
     };
 } // namespace RenderCore

@@ -1194,8 +1194,8 @@ void BufferManager::SaveImageToFile(VkImage const &Image, std::string_view const
     VmaAllocation Allocation;
     VkSubresourceLayout Layout;
 
-    constexpr std::uint32_t ImageWidth{600U};
-    constexpr std::uint32_t ImageHeight{600U};
+    std::uint32_t const ImageWidth{m_SwapChainExtent.width};
+    std::uint32_t const ImageHeight{m_SwapChainExtent.height};
     constexpr std::uint8_t Components{4U};
 
     auto const &[FamilyIndex, Queue] = GetGraphicsQueue();
