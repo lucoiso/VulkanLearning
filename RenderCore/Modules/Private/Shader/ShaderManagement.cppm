@@ -21,12 +21,12 @@ import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
-constexpr char const* g_EntryPoint   = "main";
+constexpr char const *g_EntryPoint = "main";
 constexpr std::int32_t g_GlslVersion = 450;
 
-std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> g_StageInfos {};
+std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> g_StageInfos{};
 
-bool Compile(std::string_view const& Source, EShLanguage const Language, std::vector<std::uint32_t>& OutSPIRVCode)
+bool Compile(std::string_view const &Source, EShLanguage const Language, std::vector<std::uint32_t> &OutSPIRVCode)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -34,7 +34,7 @@ bool Compile(std::string_view const& Source, EShLanguage const Language, std::ve
 
     glslang::TShader Shader(Language);
 
-    char const* ShaderContent = std::data(Source);
+    char const *ShaderContent = std::data(Source);
     Shader.setStringsWithLengths(&ShaderContent, nullptr, 1);
 
     Shader.setEntryPoint(g_EntryPoint);
@@ -43,16 +43,15 @@ bool Compile(std::string_view const& Source, EShLanguage const Language, std::ve
     Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
     Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
 
-    TBuiltInResource const* Resources = GetDefaultResources();
-    constexpr auto MessageFlags       = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
+    TBuiltInResource const *Resources = GetDefaultResources();
+    constexpr auto MessageFlags = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
 
     if (!Shader.parse(Resources, g_GlslVersion, ECoreProfile, false, true, MessageFlags))
     {
         glslang::FinalizeProcess();
         std::string const InfoLog("Info Log: " + std::string(Shader.getInfoLog()));
         std::string const DebugLog("Debug Log: " + std::string(Shader.getInfoDebugLog()));
-        std::string const ErrMessage = std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog);
-        throw std::runtime_error(ErrMessage);
+        throw std::runtime_error(std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog));
     }
 
     glslang::TProgram Program;
@@ -63,8 +62,7 @@ bool Compile(std::string_view const& Source, EShLanguage const Language, std::ve
         glslang::FinalizeProcess();
         std::string const InfoLog("Info Log: " + std::string(Program.getInfoLog()));
         std::string const DebugLog("Debug Log: " + std::string(Program.getInfoDebugLog()));
-        std::string const ErrMessage = std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog);
-        throw std::runtime_error(ErrMessage);
+        throw std::runtime_error(std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog));
     }
 
     if constexpr (g_EnableCustomDebug)
@@ -77,7 +75,8 @@ bool Compile(std::string_view const& Source, EShLanguage const Language, std::ve
     GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
     glslang::FinalizeProcess();
 
-    if (std::string const GeneratedLogs = Logger.getAllMessages(); !std::empty(GeneratedLogs))
+    if (std::string const GeneratedLogs = Logger.getAllMessages();
+        !std::empty(GeneratedLogs))
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compilation result log:\n"
                                  << GeneratedLogs;
@@ -86,7 +85,7 @@ bool Compile(std::string_view const& Source, EShLanguage const Language, std::ve
     return !std::empty(OutSPIRVCode);
 }
 
-void StageInfo(VkShaderModule const& Module, EShLanguage const Language)
+void StageInfo(VkShaderModule const &Module, EShLanguage const Language)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -97,10 +96,11 @@ void StageInfo(VkShaderModule const& Module, EShLanguage const Language)
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Staging shader info...";
 
-    VkPipelineShaderStageCreateInfo StageInfo {
-            .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .module = Module,
-            .pName  = g_EntryPoint};
+    VkPipelineShaderStageCreateInfo StageInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .module = Module,
+        .pName = g_EntryPoint
+    };
 
     switch (Language)
     {
@@ -160,7 +160,7 @@ void StageInfo(VkShaderModule const& Module, EShLanguage const Language)
 }
 
 #ifdef _DEBUG
-bool ValidateSPIRV(const std::vector<std::uint32_t>& SPIRVData)
+bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
 {
     static spvtools::SpirvTools SPIRVToolsInstance(SPV_ENV_VULKAN_1_3);
     if (!SPIRVToolsInstance.IsValid())
@@ -182,7 +182,7 @@ bool ValidateSPIRV(const std::vector<std::uint32_t>& SPIRVData)
 }
 #endif
 
-bool RenderCore::Compile(std::string_view const& Source, std::vector<std::uint32_t>& OutSPIRVCode)
+bool RenderCore::Compile(std::string_view const &Source, std::vector<std::uint32_t> &OutSPIRVCode)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -236,14 +236,14 @@ bool RenderCore::Compile(std::string_view const& Source, std::vector<std::uint32
     }
     else if (Extension != ".vert")
     {
-        throw std::runtime_error("Unknown shader extension: " + Extension.string());
+        throw std::runtime_error(std::format("Unknown shader extension: {}", Extension.string()));
     }
 
     std::stringstream ShaderSource;
     std::ifstream File(Path);
     if (!File.is_open())
     {
-        throw std::runtime_error("Failed to open shader file: " + Path.string());
+        throw std::runtime_error(std::format("Failed to open shader file: {}", Path.string()));
     }
 
     ShaderSource << File.rdbuf();
@@ -263,10 +263,10 @@ bool RenderCore::Compile(std::string_view const& Source, std::vector<std::uint32
         std::ofstream SPIRVFile(SPIRVPath, std::ios::binary);
         if (!SPIRVFile.is_open())
         {
-            throw std::runtime_error("Failed to open SPIRV file: " + SPIRVPath);
+            throw std::runtime_error(std::format("Failed to open SPIRV file: {}", SPIRVPath));
         }
 
-        SPIRVFile << std::string(reinterpret_cast<char const*>(std::data(OutSPIRVCode)), std::size(OutSPIRVCode) * sizeof(std::uint32_t));
+        SPIRVFile << std::string(reinterpret_cast<char const *>(std::data(OutSPIRVCode)), std::size(OutSPIRVCode) * sizeof(std::uint32_t));
         SPIRVFile.close();
 
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compiled, generated SPIR-V shader file: " << SPIRVPath;
@@ -275,22 +275,20 @@ bool RenderCore::Compile(std::string_view const& Source, std::vector<std::uint32
     return Result;
 }
 
-bool RenderCore::Load(std::string_view const& Source, std::vector<std::uint32_t>& OutSPIRVCode)
+bool RenderCore::Load(std::string_view const &Source, std::vector<std::uint32_t> &OutSPIRVCode)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     std::filesystem::path const Path(Source);
     if (!exists(Path))
     {
-        std::string const ErrMessage = "Shader file does not exist" + std::string(Source);
-        throw std::runtime_error(ErrMessage);
+        throw std::runtime_error(std::format("Shader file does not exist {}", Source));
     }
 
     std::ifstream File(Path, std::ios::ate | std::ios::binary);
     if (!File.is_open())
     {
-        std::string const ErrMessage = "Failed to open shader file" + std::string(Source);
-        throw std::runtime_error(ErrMessage);
+        throw std::runtime_error(std::format("Failed to open shader file {}", Source));
     }
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading shader: " << Source;
@@ -304,13 +302,14 @@ bool RenderCore::Load(std::string_view const& Source, std::vector<std::uint32_t>
     OutSPIRVCode.resize(FileSize / sizeof(std::uint32_t), std::uint32_t());
 
     File.seekg(0);
-    std::istream const& ReadResult = File.read(reinterpret_cast<char*>(std::data(OutSPIRVCode)), static_cast<std::streamsize>(FileSize)); /* Flawfinder: ignore */
+    std::istream const &ReadResult = File.read(reinterpret_cast<char *>(std::data(OutSPIRVCode)), static_cast<std::streamsize>(FileSize));
+    /* Flawfinder: ignore */
     File.close();
 
     return !ReadResult.fail();
 }
 
-bool RenderCore::CompileOrLoadIfExists(std::string_view const& Source, std::vector<uint32_t>& OutSPIRVCode)
+bool RenderCore::CompileOrLoadIfExists(std::string_view const &Source, std::vector<uint32_t> &OutSPIRVCode)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -322,7 +321,7 @@ bool RenderCore::CompileOrLoadIfExists(std::string_view const& Source, std::vect
     return Compile(Source, OutSPIRVCode);
 }
 
-VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const& SPIRVCode, EShLanguage const Language)
+VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const &SPIRVCode, EShLanguage const Language)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -340,10 +339,11 @@ VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const& SPIRVC
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating shader module...";
 
-    VkShaderModuleCreateInfo const CreateInfo {
-            .sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-            .codeSize = std::size(SPIRVCode) * sizeof(std::uint32_t),
-            .pCode    = std::data(SPIRVCode)};
+    VkShaderModuleCreateInfo const CreateInfo{
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .codeSize = std::size(SPIRVCode) * sizeof(std::uint32_t),
+        .pCode = std::data(SPIRVCode)
+    };
 
     VkShaderModule Output = nullptr;
     CheckVulkanResult(vkCreateShaderModule(volkGetLoadedDevice(), &CreateInfo, nullptr, &Output));
@@ -353,7 +353,7 @@ VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const& SPIRVC
     return Output;
 }
 
-VkPipelineShaderStageCreateInfo RenderCore::GetStageInfo(VkShaderModule const& Module)
+VkPipelineShaderStageCreateInfo RenderCore::GetStageInfo(VkShaderModule const &Module)
 {
     return g_StageInfos.at(Module);
 }
@@ -361,7 +361,7 @@ VkPipelineShaderStageCreateInfo RenderCore::GetStageInfo(VkShaderModule const& M
 std::vector<VkShaderModule> RenderCore::GetShaderModules()
 {
     std::vector<VkShaderModule> Output;
-    for (auto const& ShaderModule: g_StageInfos | std::views::keys)
+    for (auto const &ShaderModule: g_StageInfos | std::views::keys)
     {
         Output.push_back(ShaderModule);
     }
@@ -372,7 +372,7 @@ std::vector<VkShaderModule> RenderCore::GetShaderModules()
 std::vector<VkPipelineShaderStageCreateInfo> RenderCore::GetStageInfos()
 {
     std::vector<VkPipelineShaderStageCreateInfo> Output;
-    for (auto const& StageInfo: g_StageInfos | std::views::values)
+    for (auto const &StageInfo: g_StageInfos | std::views::values)
     {
         Output.push_back(StageInfo);
     }
@@ -385,7 +385,7 @@ void RenderCore::ReleaseShaderResources()
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan shader resources";
 
-    for (auto const& ShaderModule: g_StageInfos | std::views::keys)
+    for (auto const &ShaderModule: g_StageInfos | std::views::keys)
     {
         if (ShaderModule != VK_NULL_HANDLE)
         {
@@ -395,12 +395,12 @@ void RenderCore::ReleaseShaderResources()
     g_StageInfos.clear();
 }
 
-void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const& StagedModules)
+void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const &StagedModules)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
 
-    for (VkPipelineShaderStageCreateInfo const& StageInfoIter: StagedModules)
+    for (VkPipelineShaderStageCreateInfo const &StageInfoIter: StagedModules)
     {
         if (StageInfoIter.module != VK_NULL_HANDLE)
         {
@@ -416,14 +416,16 @@ void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> 
 
 std::vector<VkPipelineShaderStageCreateInfo> RenderCore::CompileDefaultShaders()
 {
-    constexpr std::array FragmentShaders {
-            DEFAULT_SHADER_FRAG};
-    constexpr std::array VertexShaders {
-            DEFAULT_SHADER_VERT};
+    constexpr std::array FragmentShaders{
+        DEFAULT_SHADER_FRAG
+    };
+    constexpr std::array VertexShaders{
+        DEFAULT_SHADER_VERT
+    };
 
     std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
 
-    for (char const* const& FragmentShaderIter: FragmentShaders)
+    for (char const *const&FragmentShaderIter: FragmentShaders)
     {
         if (std::vector<std::uint32_t> FragmentShaderCode;
             CompileOrLoadIfExists(FragmentShaderIter, FragmentShaderCode))
@@ -433,7 +435,7 @@ std::vector<VkPipelineShaderStageCreateInfo> RenderCore::CompileDefaultShaders()
         }
     }
 
-    for (char const* const& VertexShaderIter: VertexShaders)
+    for (char const *const&VertexShaderIter: VertexShaders)
     {
         if (std::vector<std::uint32_t> VertexShaderCode;
             CompileOrLoadIfExists(VertexShaderIter, VertexShaderCode))

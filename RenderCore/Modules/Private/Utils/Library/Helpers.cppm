@@ -26,17 +26,18 @@ import Timer.ExecutionCounter;
 
 using namespace RenderCore;
 
-VkExtent2D RenderCore::GetWindowExtent(GLFWwindow* const Window, VkSurfaceCapabilitiesKHR const& Capabilities)
+VkExtent2D RenderCore::GetWindowExtent(GLFWwindow *const Window, VkSurfaceCapabilitiesKHR const &Capabilities)
 {
-    std::int32_t Width  = 0U;
+    std::int32_t Width = 0U;
     std::int32_t Height = 0U;
     glfwGetFramebufferSize(Window, &Width, &Height);
 
-    VkExtent2D ActualExtent {
-            .width  = static_cast<std::uint32_t>(Width),
-            .height = static_cast<std::uint32_t>(Height)};
+    VkExtent2D ActualExtent{
+        .width = static_cast<std::uint32_t>(Width),
+        .height = static_cast<std::uint32_t>(Height)
+    };
 
-    ActualExtent.width  = std::clamp(ActualExtent.width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
+    ActualExtent.width = std::clamp(ActualExtent.width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
     ActualExtent.height = std::clamp(ActualExtent.height, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
 
     return ActualExtent;
@@ -48,17 +49,17 @@ std::vector<std::string> RenderCore::GetGLFWExtensions()
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting GLFW extensions";
 
     std::uint32_t GLFWExtensionsCount = 0U;
-    char const** GLFWExtensions       = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
+    char const **GLFWExtensions = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
     std::span const GLFWExtensionsSpan(GLFWExtensions, GLFWExtensionsCount);
 
-    std::vector<std::string> Output {};
+    std::vector<std::string> Output{};
     Output.reserve(GLFWExtensionsCount);
 
     if (!std::empty(GLFWExtensionsSpan))
     {
         BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Found extensions:";
 
-        for (char const* const& ExtensionIter: GLFWExtensionsSpan)
+        for (char const *const&ExtensionIter: GLFWExtensionsSpan)
         {
             BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: " << ExtensionIter;
             Output.emplace_back(ExtensionIter);
@@ -107,7 +108,7 @@ std::vector<std::string> RenderCore::GetAvailableInstanceLayersNames()
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     std::vector<std::string> Output;
-    for (auto const& [LayerName, SpecVer, ImplVer, Descr]: GetAvailableInstanceLayers())
+    for (auto const &[LayerName, SpecVer, ImplVer, Descr]: GetAvailableInstanceLayers())
     {
         Output.emplace_back(LayerName);
     }
@@ -133,7 +134,7 @@ std::vector<std::string> RenderCore::GetAvailableInstanceExtensionsNames()
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     std::vector<std::string> Output;
-    for (auto const& [ExtName, SpecVer]: GetAvailableInstanceExtensions())
+    for (auto const &[ExtName, SpecVer]: GetAvailableInstanceExtensions())
     {
         Output.emplace_back(ExtName);
     }
@@ -144,38 +145,45 @@ std::vector<std::string> RenderCore::GetAvailableInstanceExtensionsNames()
 std::array<VkVertexInputBindingDescription, 1U> RenderCore::GetBindingDescriptors()
 {
     return {
-            VkVertexInputBindingDescription {
-                    .binding   = 0U,
-                    .stride    = sizeof(Vertex),
-                    .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
+        VkVertexInputBindingDescription{
+            .binding = 0U,
+            .stride = sizeof(Vertex),
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+        }
+    };
 }
 
 std::array<VkVertexInputAttributeDescription, 4U> RenderCore::GetAttributeDescriptions()
 {
     return {
-            VkVertexInputAttributeDescription {
-                    .location = 0U,
-                    .binding  = 0U,
-                    .format   = VK_FORMAT_R32G32B32_SFLOAT,
-                    .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Position))},
-            VkVertexInputAttributeDescription {
-                    .location = 1U,
-                    .binding  = 0U,
-                    .format   = VK_FORMAT_R32G32B32_SFLOAT,
-                    .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Normal))},
-            VkVertexInputAttributeDescription {
-                    .location = 2U,
-                    .binding  = 0U,
-                    .format   = VK_FORMAT_R32G32B32A32_SFLOAT,
-                    .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Color))},
-            VkVertexInputAttributeDescription {
-                    .location = 3U,
-                    .binding  = 0U,
-                    .format   = VK_FORMAT_R32G32_SFLOAT,
-                    .offset   = static_cast<std::uint32_t>(offsetof(Vertex, TextureCoordinate))}};
+        VkVertexInputAttributeDescription{
+            .location = 0U,
+            .binding = 0U,
+            .format = VK_FORMAT_R32G32B32_SFLOAT,
+            .offset = static_cast<std::uint32_t>(offsetof(Vertex, Position))
+        },
+        VkVertexInputAttributeDescription{
+            .location = 1U,
+            .binding = 0U,
+            .format = VK_FORMAT_R32G32B32_SFLOAT,
+            .offset = static_cast<std::uint32_t>(offsetof(Vertex, Normal))
+        },
+        VkVertexInputAttributeDescription{
+            .location = 2U,
+            .binding = 0U,
+            .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+            .offset = static_cast<std::uint32_t>(offsetof(Vertex, Color))
+        },
+        VkVertexInputAttributeDescription{
+            .location = 3U,
+            .binding = 0U,
+            .format = VK_FORMAT_R32G32_SFLOAT,
+            .offset = static_cast<std::uint32_t>(offsetof(Vertex, TextureCoordinate))
+        }
+    };
 }
 
-std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::string_view const& LayerName)
+std::vector<VkExtensionProperties> RenderCore::GetAvailableInstanceLayerExtensions(std::string_view const &LayerName)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -194,12 +202,12 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailableLayerExtensions(std::
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailableLayerExtensionsNames(std::string_view const& LayerName)
+std::vector<std::string> RenderCore::GetAvailableInstanceLayerExtensionsNames(std::string_view const &LayerName)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     std::vector<std::string> Output;
-    for (auto const& [ExtName, SpecVer]: GetAvailableLayerExtensions(LayerName))
+    for (auto const &[ExtName, SpecVer]: GetAvailableInstanceLayerExtensions(LayerName))
     {
         Output.emplace_back(ExtName);
     }

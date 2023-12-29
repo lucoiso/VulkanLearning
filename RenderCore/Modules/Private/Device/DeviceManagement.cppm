@@ -4,6 +4,7 @@
 
 module;
 
+#include <format>
 #include <optional>
 #include <thread>
 #include <volk.h>
@@ -27,7 +28,7 @@ std::pair<std::uint8_t, VkQueue> g_PresentationQueue{};
 std::pair<std::uint8_t, VkQueue> g_TransferQueue{};
 std::vector<std::uint8_t> g_UniqueQueueFamilyIndices{};
 
-bool IsPhysicalDeviceSuitable(VkPhysicalDevice const& Device)
+bool IsPhysicalDeviceSuitable(VkPhysicalDevice const &Device)
 {
     if (Device == VK_NULL_HANDLE)
     {
@@ -43,10 +44,10 @@ bool IsPhysicalDeviceSuitable(VkPhysicalDevice const& Device)
     return SurfaceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && SupportedFeatures.samplerAnisotropy != 0U;
 }
 
-bool GetQueueFamilyIndices(VkSurfaceKHR const& VulkanSurface,
-                           std::optional<std::uint8_t>& GraphicsQueueFamilyIndex,
-                           std::optional<std::uint8_t>& PresentationQueueFamilyIndex,
-                           std::optional<std::uint8_t>& TransferQueueFamilyIndex)
+bool GetQueueFamilyIndices(VkSurfaceKHR const &VulkanSurface,
+                           std::optional<std::uint8_t> &GraphicsQueueFamilyIndex,
+                           std::optional<std::uint8_t> &PresentationQueueFamilyIndex,
+                           std::optional<std::uint8_t> &TransferQueueFamilyIndex)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting queue family indices";
@@ -97,7 +98,7 @@ void PickPhysicalDevice()
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Picking a physical device";
 
-    for (VkPhysicalDevice const& DeviceIter: GetAvailablePhysicalDevices())
+    for (VkPhysicalDevice const &DeviceIter: GetAvailablePhysicalDevices())
     {
         if (g_PhysicalDevice == VK_NULL_HANDLE && IsPhysicalDeviceSuitable(DeviceIter))
         {
@@ -112,7 +113,7 @@ void PickPhysicalDevice()
     }
 }
 
-void CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
+void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -125,9 +126,9 @@ void CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
         throw std::runtime_error("Failed to get queue family indices.");
     }
 
-    g_GraphicsQueue.first     = GraphicsQueueFamilyIndex.value();
+    g_GraphicsQueue.first = GraphicsQueueFamilyIndex.value();
     g_PresentationQueue.first = PresentationQueueFamilyIndex.value();
-    g_TransferQueue.first     = TransferQueueFamilyIndex.value();
+    g_TransferQueue.first = TransferQueueFamilyIndex.value();
 
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan logical device";
 
@@ -143,6 +144,12 @@ void CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
     Layers.insert(std::cend(Layers), std::cbegin(g_DebugDeviceLayers), std::cend(g_DebugDeviceLayers));
     Extensions.insert(std::cend(Extensions), std::cbegin(g_DebugDeviceExtensions), std::cend(g_DebugDeviceExtensions));
 #endif
+
+    auto const AvailableLayers = GetAvailablePhysicalDeviceLayersNames(g_PhysicalDevice);
+    GetAvailableResources("device layers", Layers, g_OptionalDeviceLayers, AvailableLayers);
+
+    auto const AvailableExtensions = GetAvailablePhysicalDeviceExtensionsNames(g_PhysicalDevice);
+    GetAvailableResources("device extensions", Extensions, g_OptionalDeviceExtensions, AvailableExtensions);
 
     std::unordered_map<std::uint8_t, std::uint8_t> QueueFamilyIndices{{g_GraphicsQueue.first, 1U}};
     if (!QueueFamilyIndices.contains(g_PresentationQueue.first))
@@ -172,53 +179,60 @@ void CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
     std::vector<std::vector<float> > PriorityHandles;
     PriorityHandles.reserve(std::size(QueueFamilyIndices));
 
-    for (auto const& [Index, Count]: QueueFamilyIndices)
+    for (auto const &[Index, Count]: QueueFamilyIndices)
     {
         g_UniqueQueueFamilyIndices.push_back(Index);
         PriorityHandles.emplace_back(Count, 1.F);
 
         QueueCreateInfo.push_back(
-                VkDeviceQueueCreateInfo{
-                        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                        .queueFamilyIndex = Index,
-                        .queueCount = Count,
-                        .pQueuePriorities = std::data(PriorityHandles.back())});
+            VkDeviceQueueCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                .queueFamilyIndex = Index,
+                .queueCount = Count,
+                .pQueuePriorities = std::data(PriorityHandles.back())
+            });
     }
 
     VkPhysicalDeviceSynchronization2Features Synchronization2Features{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
-            .pNext = nullptr,
-            .synchronization2 = VK_TRUE};
-
-    VkPhysicalDeviceMaintenance4Features Maintenance4Features{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES,
-            .pNext = &Synchronization2Features,
-            .maintenance4 = VK_TRUE};
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
+        .pNext = nullptr,
+        .synchronization2 = Contains(AvailableExtensions, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME)
+    };
 
     VkPhysicalDeviceDynamicRenderingFeatures DynamicRenderingFeatures{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
-            .pNext = &Maintenance4Features,
-            .dynamicRendering = VK_TRUE};
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
+        .pNext = &Synchronization2Features,
+        .dynamicRendering = Contains(AvailableExtensions, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
+    };
 
     VkPhysicalDeviceRobustness2FeaturesEXT RobustnessFeatures{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
-            .pNext = &DynamicRenderingFeatures,
-            .nullDescriptor = VK_TRUE};
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
+        .pNext = &DynamicRenderingFeatures,
+        .nullDescriptor = Contains(AvailableExtensions, VK_EXT_PIPELINE_ROBUSTNESS_EXTENSION_NAME)
+    };
+
+    VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT UnusedAttachmentsFeatures{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT,
+        .pNext = &RobustnessFeatures,
+        .dynamicRenderingUnusedAttachments = Contains(AvailableExtensions, VK_EXT_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_EXTENSION_NAME)
+    };
 
     VkPhysicalDeviceFeatures2 DeviceFeatures{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-            .pNext = &RobustnessFeatures,
-            .features = VkPhysicalDeviceFeatures{.samplerAnisotropy = VK_TRUE}};
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+        .pNext = &UnusedAttachmentsFeatures,
+        .features = VkPhysicalDeviceFeatures{.samplerAnisotropy = VK_TRUE}
+    };
 
     VkDeviceCreateInfo const DeviceCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-            .pNext = &DeviceFeatures,
-            .queueCreateInfoCount = static_cast<std::uint32_t>(std::size(QueueCreateInfo)),
-            .pQueueCreateInfos = std::data(QueueCreateInfo),
-            .enabledLayerCount = static_cast<std::uint32_t>(std::size(Layers)),
-            .ppEnabledLayerNames = std::data(Layers),
-            .enabledExtensionCount = static_cast<std::uint32_t>(std::size(Extensions)),
-            .ppEnabledExtensionNames = std::data(Extensions)};
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .pNext = &DeviceFeatures,
+        .queueCreateInfoCount = static_cast<std::uint32_t>(std::size(QueueCreateInfo)),
+        .pQueueCreateInfos = std::data(QueueCreateInfo),
+        .enabledLayerCount = static_cast<std::uint32_t>(std::size(Layers)),
+        .ppEnabledLayerNames = std::data(Layers),
+        .enabledExtensionCount = static_cast<std::uint32_t>(std::size(Extensions)),
+        .ppEnabledExtensionNames = std::data(Extensions)
+    };
 
     CheckVulkanResult(vkCreateDevice(g_PhysicalDevice, &DeviceCreateInfo, nullptr, &g_Device));
 
@@ -247,7 +261,7 @@ void CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
     }
 }
 
-void RenderCore::InitializeDevice(VkSurfaceKHR const& VulkanSurface)
+void RenderCore::InitializeDevice(VkSurfaceKHR const &VulkanSurface)
 {
     if (g_PhysicalDevice != VK_NULL_HANDLE)
     {
@@ -261,7 +275,7 @@ void RenderCore::InitializeDevice(VkSurfaceKHR const& VulkanSurface)
     CreateLogicalDevice(VulkanSurface);
 }
 
-VkSurfaceCapabilitiesKHR RenderCore::GetSurfaceCapabilities(VkSurfaceKHR const& VulkanSurface)
+VkSurfaceCapabilitiesKHR RenderCore::GetSurfaceCapabilities(VkSurfaceKHR const &VulkanSurface)
 {
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -274,7 +288,7 @@ VkSurfaceCapabilitiesKHR RenderCore::GetSurfaceCapabilities(VkSurfaceKHR const& 
     return Output;
 }
 
-SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow* const Window, VkSurfaceKHR const& VulkanSurface)
+SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow *const Window, VkSurfaceKHR const &VulkanSurface)
 {
     std::vector<VkSurfaceFormatKHR> const SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats(g_PhysicalDevice, VulkanSurface);
     if (std::empty(SupportedFormats))
@@ -289,14 +303,16 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow* const Window, VkS
     }
 
     SurfaceProperties Output{
-            .Format = SupportedFormats.front(),
-            .Extent = GetWindowExtent(Window, GetSurfaceCapabilities(VulkanSurface))};
+        .Format = SupportedFormats.front(),
+        .Extent = GetWindowExtent(Window, GetSurfaceCapabilities(VulkanSurface))
+    };
 
     if (auto const MatchingFormat = std::ranges::find_if(
-                SupportedFormats,
-                [](VkSurfaceFormatKHR const& Iter) {
-                    return Iter.format == VK_FORMAT_B8G8R8A8_SRGB && Iter.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-                });
+            SupportedFormats,
+            [](VkSurfaceFormatKHR const &Iter)
+            {
+                return Iter.format == VK_FORMAT_B8G8R8A8_SRGB && Iter.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+            });
         MatchingFormat != std::cend(SupportedFormats))
     {
         Output.Format = *MatchingFormat;
@@ -304,20 +320,22 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow* const Window, VkS
 
     Output.Mode = VK_PRESENT_MODE_FIFO_KHR;
     if (auto const MatchingMode = std::ranges::find_if(
-                SupportedPresentationModes,
-                [](VkPresentModeKHR const& Iter) {
-                    return Iter == VK_PRESENT_MODE_MAILBOX_KHR;
-                });
+            SupportedPresentationModes,
+            [](VkPresentModeKHR const &Iter)
+            {
+                return Iter == VK_PRESENT_MODE_MAILBOX_KHR;
+            });
         MatchingMode != std::cend(SupportedPresentationModes))
     {
         Output.Mode = *MatchingMode;
     }
 
     for (std::vector const PreferredDepthFormats = {
-                 VK_FORMAT_D32_SFLOAT,
-                 VK_FORMAT_D32_SFLOAT_S8_UINT,
-                 VK_FORMAT_D24_UNORM_S8_UINT};
-         VkFormat const& FormatIter: PreferredDepthFormats)
+             VK_FORMAT_D32_SFLOAT,
+             VK_FORMAT_D32_SFLOAT_S8_UINT,
+             VK_FORMAT_D24_UNORM_S8_UINT
+         };
+         VkFormat const &FormatIter: PreferredDepthFormats)
     {
         VkFormatProperties FormatProperties;
         vkGetPhysicalDeviceFormatProperties(g_PhysicalDevice, FormatIter, &FormatProperties);
@@ -332,27 +350,27 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow* const Window, VkS
     return Output;
 }
 
-VkDevice& RenderCore::GetLogicalDevice()
+VkDevice &RenderCore::GetLogicalDevice()
 {
     return g_Device;
 }
 
-VkPhysicalDevice& RenderCore::GetPhysicalDevice()
+VkPhysicalDevice &RenderCore::GetPhysicalDevice()
 {
     return g_PhysicalDevice;
 }
 
-std::pair<std::uint8_t, VkQueue>& RenderCore::GetGraphicsQueue()
+std::pair<std::uint8_t, VkQueue> &RenderCore::GetGraphicsQueue()
 {
     return g_GraphicsQueue;
 }
 
-std::pair<std::uint8_t, VkQueue>& RenderCore::GetPresentationQueue()
+std::pair<std::uint8_t, VkQueue> &RenderCore::GetPresentationQueue()
 {
     return g_PresentationQueue;
 }
 
-std::pair<std::uint8_t, VkQueue>& RenderCore::GetTransferQueue()
+std::pair<std::uint8_t, VkQueue> &RenderCore::GetTransferQueue()
 {
     return g_TransferQueue;
 }
@@ -362,11 +380,12 @@ std::vector<std::uint32_t> RenderCore::GetUniqueQueueFamilyIndicesU32()
     std::vector<std::uint32_t> QueueFamilyIndicesU32(std::size(g_UniqueQueueFamilyIndices));
 
     std::ranges::transform(
-            g_UniqueQueueFamilyIndices,
-            std::begin(QueueFamilyIndicesU32),
-            [](std::uint8_t const& Index) {
-                return static_cast<std::uint32_t>(Index);
-            });
+        g_UniqueQueueFamilyIndices,
+        std::begin(QueueFamilyIndicesU32),
+        [](std::uint8_t const &Index)
+        {
+            return static_cast<std::uint32_t>(Index);
+        });
 
     return QueueFamilyIndicesU32;
 }
@@ -379,17 +398,17 @@ void RenderCore::ReleaseDeviceResources()
     vkDestroyDevice(g_Device, nullptr);
     g_Device = VK_NULL_HANDLE;
 
-    g_PhysicalDevice           = VK_NULL_HANDLE;
-    g_GraphicsQueue.second     = VK_NULL_HANDLE;
+    g_PhysicalDevice = VK_NULL_HANDLE;
+    g_GraphicsQueue.second = VK_NULL_HANDLE;
     g_PresentationQueue.second = VK_NULL_HANDLE;
-    g_TransferQueue.second     = VK_NULL_HANDLE;
+    g_TransferQueue.second = VK_NULL_HANDLE;
 }
 
 std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
-    VkInstance const& VulkanInstance = volkGetLoadedInstance();
+    VkInstance const &VulkanInstance = volkGetLoadedInstance();
 
     std::uint32_t DeviceCount = 0U;
     CheckVulkanResult(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, nullptr));
@@ -400,7 +419,7 @@ std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
     return Output;
 }
 
-std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceExtensions(VkPhysicalDevice const& PhysicalDevice)
+std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceExtensions(VkPhysicalDevice const &PhysicalDevice)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -418,7 +437,7 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceExtensi
     return Output;
 }
 
-std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers(VkPhysicalDevice const& PhysicalDevice)
+std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers(VkPhysicalDevice const &PhysicalDevice)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -436,7 +455,8 @@ std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers(VkPh
     return Output;
 }
 
-std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(VkPhysicalDevice const& PhysicalDevice, std::string_view const& LayerName)
+std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(VkPhysicalDevice const &PhysicalDevice,
+                                                                                         std::string_view const &LayerName)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
@@ -460,12 +480,12 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerEx
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames(VkPhysicalDevice const& PhysicalDevice)
+std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames(VkPhysicalDevice const &PhysicalDevice)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     std::vector<std::string> Output;
-    for (VkExtensionProperties const& ExtensionIter: GetAvailablePhysicalDeviceExtensions(PhysicalDevice))
+    for (VkExtensionProperties const &ExtensionIter: GetAvailablePhysicalDeviceExtensions(PhysicalDevice))
     {
         Output.emplace_back(ExtensionIter.extensionName);
     }
@@ -473,12 +493,12 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames(V
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(VkPhysicalDevice const& PhysicalDevice, std::string_view const& LayerName)
+std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(VkPhysicalDevice const &PhysicalDevice, std::string_view const &LayerName)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     std::vector<std::string> Output;
-    for (VkExtensionProperties const& ExtensionIter: GetAvailablePhysicalDeviceLayerExtensions(PhysicalDevice, LayerName))
+    for (VkExtensionProperties const &ExtensionIter: GetAvailablePhysicalDeviceLayerExtensions(PhysicalDevice, LayerName))
     {
         Output.emplace_back(ExtensionIter.extensionName);
     }
@@ -486,12 +506,12 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNa
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames(VkPhysicalDevice const& PhysicalDevice)
+std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames(VkPhysicalDevice const &PhysicalDevice)
 {
     Timer::ScopedTimer const ScopedExecutionTimer(__func__);
 
     std::vector<std::string> Output;
-    for (VkLayerProperties const& LayerIter: GetAvailablePhysicalDeviceLayers(PhysicalDevice))
+    for (VkLayerProperties const &LayerIter: GetAvailablePhysicalDeviceLayers(PhysicalDevice))
     {
         Output.emplace_back(LayerIter.layerName);
     }
@@ -499,7 +519,7 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames(VkPhy
     return Output;
 }
 
-std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFormats(VkPhysicalDevice const& PhysicalDevice, VkSurfaceKHR const& VulkanSurface)
+std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFormats(VkPhysicalDevice const &PhysicalDevice, VkSurfaceKHR const &VulkanSurface)
 {
     if (PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -515,7 +535,8 @@ std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFor
     return Output;
 }
 
-std::vector<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePresentationModes(VkPhysicalDevice const& PhysicalDevice, VkSurfaceKHR const& VulkanSurface)
+std::vector<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePresentationModes(VkPhysicalDevice const &PhysicalDevice,
+                                                                                             VkSurfaceKHR const &VulkanSurface)
 {
     if (PhysicalDevice == VK_NULL_HANDLE)
     {

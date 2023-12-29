@@ -85,6 +85,12 @@ bool CreateVulkanInstance()
     PopulateDebugInfo(CreateDebugInfo, nullptr);
 #endif
 
+    auto const AvailableLayers = GetAvailableInstanceLayersNames();
+    GetAvailableResources("instance layer", Layers, g_OptionalInstanceLayers, AvailableLayers);
+
+    auto const AvailableExtensions = GetAvailableInstanceExtensionsNames();
+    GetAvailableResources("instance extension", Extensions, g_OptionalInstanceExtensions, AvailableExtensions);
+
     CreateInfo.enabledLayerCount = static_cast<std::uint32_t>(std::size(Layers));
     CreateInfo.ppEnabledLayerNames = std::data(Layers);
 
@@ -102,7 +108,7 @@ bool CreateVulkanInstance()
     return g_Instance != VK_NULL_HANDLE;
 }
 
-void Renderer::DrawFrame(GLFWwindow * const Window, float const DeltaTime, Camera const &Camera, Control * const Owner)
+void Renderer::DrawFrame(GLFWwindow *const Window, float const DeltaTime, Camera const &Camera, Control *const Owner)
 {
     if (!IsInitialized())
     {
