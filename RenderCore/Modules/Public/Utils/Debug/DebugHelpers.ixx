@@ -15,18 +15,18 @@ namespace RenderCore
 #ifdef _DEBUG
     VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT,
                                                                 VkDebugUtilsMessageTypeFlagsEXT,
-                                                                VkDebugUtilsMessengerCallbackDataEXT const*,
-                                                                void*);
+                                                                VkDebugUtilsMessengerCallbackDataEXT const *,
+                                                                void *);
 
     export VkResult CreateDebugUtilsMessenger(VkInstance,
-                                              VkDebugUtilsMessengerCreateInfoEXT const*,
-                                              VkAllocationCallbacks const*,
-                                              VkDebugUtilsMessengerEXT*);
+                                              VkDebugUtilsMessengerCreateInfoEXT const *,
+                                              VkAllocationCallbacks const *,
+                                              VkDebugUtilsMessengerEXT *);
 
-    export void DestroyDebugUtilsMessenger(VkInstance, VkDebugUtilsMessengerEXT, VkAllocationCallbacks const*);
+    export void DestroyDebugUtilsMessenger(VkInstance, VkDebugUtilsMessengerEXT, VkAllocationCallbacks const *);
 
     export VkValidationFeaturesEXT GetInstanceValidationFeatures();
 
-    export void PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT&, void*);
+    export void PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT &, void *);
 #endif
-}// namespace RenderCore
+} // namespace RenderCore

@@ -8,7 +8,6 @@ module;
 #include <imgui.h>
 #include <numeric>
 #include <string>
-#include <volk.h>
 #include <boost/log/trivial.hpp>
 #include <GLFW/glfw3.h>
 

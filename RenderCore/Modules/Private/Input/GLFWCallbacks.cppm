@@ -5,7 +5,6 @@
 module;
 
 #include <imgui.h>
-#include <imgui_impl_glfw.h>
 #include <boost/log/trivial.hpp>
 #include <GLFW/glfw3.h>
 #include <glm/ext.hpp>

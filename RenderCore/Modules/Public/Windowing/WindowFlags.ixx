@@ -14,8 +14,8 @@ namespace RenderCore
 {
     export enum class InitializationFlags : std::uint8_t
     {
-        NONE        = 0,
-        MAXIMIZED   = 1 << 0,
-        HEADLESS    = 1 << 1,
+        NONE = 0,
+        MAXIMIZED = 1 << 0,
+        HEADLESS = 1 << 1,
     };
-}// namespace RenderCore
+} // namespace RenderCore
