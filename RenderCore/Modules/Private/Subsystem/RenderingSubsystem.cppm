@@ -6,7 +6,7 @@ module RenderCore.Subsystem.Rendering;
 
 using namespace RenderCore;
 
-import Timer.ExecutionCounter;
+import RuntimeInfo.Manager;
 
 RenderingSubsystem& RenderingSubsystem::Get()
 {

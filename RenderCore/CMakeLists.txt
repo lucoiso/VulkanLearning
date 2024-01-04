@@ -105,6 +105,7 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
         imgui::imgui
 
         Timer
+        RuntimeInfo
         Configuration
         Coroutine
 

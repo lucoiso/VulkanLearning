@@ -45,7 +45,7 @@ import RenderCore.Types.UniformBufferObject;
 import RenderCore.Types.Vertex;
 import RenderCore.Types.Camera;
 import RenderCore.Types.Object;
-import Timer.ExecutionCounter;
+import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 
@@ -321,7 +321,7 @@ void CreateImageView(VkImage const &Image,
 
 void CreateSwapChainImageViews(std::vector<ImageAllocation> &Images, VkFormat const &ImageFormat)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan swap chain image views";
     for (auto &[Image, View, Allocation, Type]: Images)
     {
@@ -420,7 +420,7 @@ ImageCreationData AllocateTexture(VmaAllocator const &Allocator,
 
 void BufferManager::CreateVulkanSurface(GLFWwindow *const Window)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan surface";
 
     CheckVulkanResult(glfwCreateWindowSurface(volkGetLoadedInstance(), Window, nullptr, &m_Surface));
@@ -428,7 +428,7 @@ void BufferManager::CreateVulkanSurface(GLFWwindow *const Window)
 
 void BufferManager::CreateMemoryAllocator(VkPhysicalDevice const &PhysicalDevice)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan memory allocator";
 
     VmaVulkanFunctions const VulkanFunctions{
@@ -455,7 +455,7 @@ void BufferManager::CreateMemoryAllocator(VkPhysicalDevice const &PhysicalDevice
 
 void BufferManager::CreateImageSampler()
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan image sampler";
 
     CreateTextureSampler(m_Allocator, m_Sampler);
@@ -464,7 +464,7 @@ void BufferManager::CreateImageSampler()
 void BufferManager::CreateSwapChain(SurfaceProperties const &SurfaceProperties,
                                     VkSurfaceCapabilitiesKHR const &Capabilities)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan swap chain";
 
     auto const QueueFamilyIndices = GetUniqueQueueFamilyIndicesU32();
@@ -517,7 +517,7 @@ void BufferManager::CreateSwapChain(SurfaceProperties const &SurfaceProperties,
 
 void BufferManager::CreateViewportResources(SurfaceProperties const &SurfaceProperties)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating Vulkan viewport resources";
 
     for (ImageAllocation &ImageIter: m_ViewportImages)
@@ -552,7 +552,7 @@ void BufferManager::CreateViewportResources(SurfaceProperties const &SurfaceProp
 
 void BufferManager::CreateDepthResources(SurfaceProperties const &SurfaceProperties)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan depth resources";
 
     if (m_DepthImage.IsValid())
@@ -962,7 +962,7 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const &ModelPa
 
 void BufferManager::ReleaseScene(std::vector<std::uint32_t> const &ObjectIDs)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
     for (std::uint32_t const ObjectIDIter: ObjectIDs)
     {
@@ -983,7 +983,7 @@ void BufferManager::ReleaseScene(std::vector<std::uint32_t> const &ObjectIDs)
 
 void BufferManager::ReleaseBufferResources()
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan buffer resources";
 
     if (m_SwapChain != VK_NULL_HANDLE)
@@ -1015,7 +1015,7 @@ void BufferManager::ReleaseBufferResources()
 
 void BufferManager::DestroyBufferResources(bool const ClearScene)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan buffer resources";
 
     for (ImageAllocation &ImageViewIter: m_SwapChainImages)

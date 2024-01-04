@@ -17,7 +17,7 @@ module RenderCore.Management.ShaderManagement;
 
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
-import Timer.ExecutionCounter;
+import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 
@@ -28,7 +28,7 @@ std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> g_StageInfos
 
 bool Compile(std::string_view const &Source, EShLanguage const Language, std::vector<std::uint32_t> &OutSPIRVCode)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
     glslang::InitializeProcess();
 
@@ -87,7 +87,7 @@ bool Compile(std::string_view const &Source, EShLanguage const Language, std::ve
 
 void StageInfo(VkShaderModule const &Module, EShLanguage const Language)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
     if (Module == VK_NULL_HANDLE)
     {
@@ -184,7 +184,7 @@ bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
 
 bool RenderCore::Compile(std::string_view const &Source, std::vector<std::uint32_t> &OutSPIRVCode)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
     EShLanguage Language = EShLangVertex;
     std::filesystem::path const Path(Source);
@@ -277,7 +277,7 @@ bool RenderCore::Compile(std::string_view const &Source, std::vector<std::uint32
 
 bool RenderCore::Load(std::string_view const &Source, std::vector<std::uint32_t> &OutSPIRVCode)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
     std::filesystem::path const Path(Source);
     if (!exists(Path))
@@ -311,7 +311,7 @@ bool RenderCore::Load(std::string_view const &Source, std::vector<std::uint32_t>
 
 bool RenderCore::CompileOrLoadIfExists(std::string_view const &Source, std::vector<uint32_t> &OutSPIRVCode)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
     if (std::string const CompiledShaderPath = std::format("{}.spv", Source);
         std::filesystem::exists(CompiledShaderPath))
@@ -323,7 +323,7 @@ bool RenderCore::CompileOrLoadIfExists(std::string_view const &Source, std::vect
 
 VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const &SPIRVCode, EShLanguage const Language)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
     if (std::empty(SPIRVCode))
     {
@@ -382,7 +382,7 @@ std::vector<VkPipelineShaderStageCreateInfo> RenderCore::GetStageInfos()
 
 void RenderCore::ReleaseShaderResources()
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan shader resources";
 
     for (auto const &ShaderModule: g_StageInfos | std::views::keys)
@@ -397,7 +397,7 @@ void RenderCore::ReleaseShaderResources()
 
 void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const &StagedModules)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
 
     for (VkPipelineShaderStageCreateInfo const &StageInfoIter: StagedModules)

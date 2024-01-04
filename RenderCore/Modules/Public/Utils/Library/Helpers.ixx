@@ -14,7 +14,7 @@ module;
 
 export module RenderCore.Utils.Helpers;
 
-import Timer.ExecutionCounter;
+import RuntimeInfo.Manager;
 
 namespace RenderCore
 {

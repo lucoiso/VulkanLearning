@@ -17,7 +17,7 @@ import RenderCore.Management.BufferManagement;
 import RenderCore.Types.UniformBufferObject;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
-import Timer.ExecutionCounter;
+import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 
@@ -194,7 +194,7 @@ void PipelineManager::CreatePipelines(VkFormat const SwapChainImageFormat,
                                       VkFormat const DepthFormat,
                                       VkExtent2D const &ViewportExtent)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan graphics pipelines";
 
     VkPipelineLayoutCreateInfo const PipelineLayoutCreateInfo{
@@ -252,7 +252,7 @@ void PipelineManager::CreatePipelines(VkFormat const SwapChainImageFormat,
 
 void PipelineManager::CreateDescriptorSetLayout()
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
 
     constexpr std::array LayoutBindings{
@@ -286,7 +286,7 @@ void PipelineManager::CreateDescriptorSetLayout()
 
 void PipelineManager::CreateDescriptorPool(std::uint32_t const NumAllocations)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan descriptor pool";
 
     std::array const DescriptorPoolSizes{
@@ -316,7 +316,7 @@ void PipelineManager::CreateDescriptorPool(std::uint32_t const NumAllocations)
 void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const &AllocatedObjects,
                                            VkSampler const &Sampler)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
     auto const NumAllocations{static_cast<std::uint32_t>(std::size(AllocatedObjects))};
 
@@ -407,7 +407,7 @@ void PipelineManager::CreateDescriptorSets(std::vector<MeshBufferData> const &Al
 
 void PipelineManager::ReleasePipelineResources()
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan pipeline resources";
 
     ReleaseDynamicPipelineResources();
@@ -415,7 +415,7 @@ void PipelineManager::ReleasePipelineResources()
 
 void PipelineManager::ReleaseDynamicPipelineResources()
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan pipeline resources";
 
     if (m_MainPipeline != VK_NULL_HANDLE)

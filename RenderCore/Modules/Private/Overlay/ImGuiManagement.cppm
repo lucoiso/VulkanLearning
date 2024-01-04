@@ -21,7 +21,7 @@ import RenderCore.Management.CommandsManagement;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Types.Camera;
-import Timer.ExecutionCounter;
+import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 
@@ -29,7 +29,7 @@ VkDescriptorPool g_ImGuiDescriptorPool{VK_NULL_HANDLE};
 
 void RenderCore::InitializeImGuiContext(GLFWwindow* const Window, SurfaceProperties const& SurfaceProperties)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating ImGui Context";
 
     IMGUI_CHECKVERSION();
@@ -104,7 +104,7 @@ void RenderCore::InitializeImGuiContext(GLFWwindow* const Window, SurfacePropert
 
 void RenderCore::ReleaseImGuiResources()
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();

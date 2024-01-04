@@ -16,13 +16,13 @@ module RenderCore.Window.GLFWHandler;
 
 using namespace RenderCore;
 
-import Timer.ExecutionCounter;
+import RuntimeInfo.Manager;
 import RenderCore.Input.GLFWCallbacks;
 import RenderCore.Utils.EnumHelpers;
 
 bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, InitializationFlags const Flags)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing GLFW Handler";
 
     if (glfwInit() == GLFW_FALSE)
@@ -63,7 +63,7 @@ bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Heig
 
 void GLFWHandler::Shutdown()
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down GLFW Handler";
 
     glfwSetWindowShouldClose(m_Window, GLFW_TRUE);

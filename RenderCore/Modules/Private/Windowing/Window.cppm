@@ -21,7 +21,7 @@ import RenderCore.Management.ImGuiManagement;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
-import Timer.ExecutionCounter;
+import RuntimeInfo.Manager;
 
 Window::Window()
     : Control(nullptr)
@@ -41,7 +41,7 @@ Window::~Window()
 
 bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const &Title, InitializationFlags const Flags)
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
     if (IsInitialized())
     {
@@ -73,7 +73,7 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
 
 void Window::Shutdown()
 {
-    Timer::ScopedTimer const ScopedExecutionTimer(__func__);
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
     DestroyChildren();
 

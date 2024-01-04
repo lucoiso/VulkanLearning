@@ -4,6 +4,8 @@
 
 module;
 
+#include "RenderCoreModule.hpp"
+#include <GLFW/glfw3.h>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -11,8 +13,6 @@ module;
 #include <string>
 #include <vector>
 #include <volk.h>
-#include <GLFW/glfw3.h>
-#include "RenderCoreModule.hpp"
 
 export module RenderCore.Renderer;
 
@@ -32,17 +32,17 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Renderer
     {
-        BufferManager m_BufferManager{};
-        PipelineManager m_PipelineManager{};
-        Camera m_Camera{};
+        BufferManager m_BufferManager {};
+        PipelineManager m_PipelineManager {};
+        Camera m_Camera {};
 
-        RendererStateFlags m_StateFlags{RendererStateFlags::NONE};
-        std::vector<std::shared_ptr<Object> > m_Objects{};
-        double m_DeltaTime{0.F};
-        double m_FrameTime{0.F};
-        double m_FrameRateCap{0.016667F};
-        std::optional<std::int32_t> m_ImageIndex{};
-        std::mutex m_ObjectsMutex{};
+        RendererStateFlags m_StateFlags {RendererStateFlags::NONE};
+        std::vector<std::shared_ptr<Object>> m_Objects {};
+        double m_DeltaTime {0.F};
+        double m_FrameTime {0.F};
+        double m_FrameRateCap {0.016667F};
+        std::optional<std::int32_t> m_ImageIndex {};
+        std::mutex m_RenderingMutex {};
 
         friend class Window;
 
@@ -93,7 +93,7 @@ namespace RenderCore
 
         [[nodiscard]] std::optional<std::int32_t> const& GetImageIndex() const;
 
-        [[nodiscard]] std::vector<std::shared_ptr<Object> > const& GetObjects() const;
+        [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;
 
         [[nodiscard]] std::shared_ptr<Object> GetObjectByID(std::uint32_t) const;
 
