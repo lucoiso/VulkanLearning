@@ -38,6 +38,8 @@ VkFence g_Fence {};
 
 void AllocateCommandBuffer(std::uint32_t const QueueFamily, std::uint8_t const NumberOfBuffers)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     if (!std::empty(g_CommandBuffers))
     {
         vkFreeCommandBuffers(volkGetLoadedDevice(),
@@ -69,6 +71,8 @@ void AllocateCommandBuffer(std::uint32_t const QueueFamily, std::uint8_t const N
 
 void WaitAndResetFences()
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     if (g_Fence == VK_NULL_HANDLE)
     {
         return;
@@ -80,6 +84,8 @@ void WaitAndResetFences()
 
 void FreeCommandBuffers()
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     if (!std::empty(g_CommandBuffers))
     {
         vkFreeCommandBuffers(volkGetLoadedDevice(),
@@ -98,13 +104,15 @@ void FreeCommandBuffers()
 void RenderCore::ReleaseCommandsResources()
 {
     auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan commands resources";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Releasing vulkan commands resources";
 
     DestroyCommandsSynchronizationObjects(true);
 }
 
 VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     VkCommandPoolCreateInfo const CommandPoolCreateInfo {
             .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
@@ -119,7 +127,7 @@ VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex)
 void RenderCore::CreateCommandsSynchronizationObjects()
 {
     auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan synchronization objects";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating vulkan synchronization objects";
 
     constexpr VkSemaphoreCreateInfo SemaphoreCreateInfo {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
@@ -144,7 +152,7 @@ void RenderCore::CreateCommandsSynchronizationObjects()
 void RenderCore::DestroyCommandsSynchronizationObjects(bool const ResetFences)
 {
     auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Destroying vulkan synchronization objects";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Destroying vulkan synchronization objects";
 
     vkDeviceWaitIdle(volkGetLoadedDevice());
 
@@ -182,6 +190,8 @@ void RenderCore::DestroyCommandsSynchronizationObjects(bool const ResetFences)
 
 std::optional<std::int32_t> RenderCore::RequestSwapChainImage(VkSwapchainKHR const& SwapChain)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     WaitAndResetFences();
 
     if (g_ImageAvailableSemaphore == VK_NULL_HANDLE)
@@ -227,6 +237,8 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
                                       std::vector<std::shared_ptr<Object>> const& Objects,
                                       VkExtent2D const& SwapChainExtent)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     constexpr std::array<VkDeviceSize, 1U> Offsets {0U};
 
     constexpr VkImageAspectFlags ImageAspect = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -461,6 +473,8 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
 
 void RenderCore::SubmitCommandBuffers()
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     WaitAndResetFences();
 
     VkSemaphoreSubmitInfoKHR WaitSemaphoreInfo = {
@@ -502,6 +516,8 @@ void RenderCore::SubmitCommandBuffers()
 
 void RenderCore::PresentFrame(std::uint32_t const ImageIndice, VkSwapchainKHR const& SwapChain)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     VkPresentInfoKHR const PresentInfo {
             .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .waitSemaphoreCount = 1U,
@@ -529,6 +545,8 @@ void RenderCore::InitializeSingleCommandQueue(VkCommandPool& CommandPool,
                                               std::vector<VkCommandBuffer>& CommandBuffers,
                                               std::uint8_t const QueueFamilyIndex)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     VkCommandPoolCreateInfo const CommandPoolCreateInfo {
             .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
@@ -561,6 +579,8 @@ void RenderCore::FinishSingleCommandQueue(VkQueue const& Queue,
                                           VkCommandPool const& CommandPool,
                                           std::vector<VkCommandBuffer>& CommandBuffers)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     if (CommandPool == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan command pool is invalid.");

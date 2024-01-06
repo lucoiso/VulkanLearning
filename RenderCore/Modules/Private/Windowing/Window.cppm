@@ -139,6 +139,8 @@ void Window::PollEvents()
 
 void Window::RequestRender(float const DeltaTime)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     if (!IsInitialized() || !IsOpen())
     {
         return;

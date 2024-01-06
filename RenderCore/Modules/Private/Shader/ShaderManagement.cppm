@@ -67,7 +67,7 @@ bool Compile(std::string_view const &Source, EShLanguage const Language, std::ve
 
     if constexpr (g_EnableCustomDebug)
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n"
+        BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Compiling shader:\n"
                                  << Source;
     }
 
@@ -78,7 +78,7 @@ bool Compile(std::string_view const &Source, EShLanguage const Language, std::ve
     if (std::string const GeneratedLogs = Logger.getAllMessages();
         !std::empty(GeneratedLogs))
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compilation result log:\n"
+        BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Shader compilation result log:\n"
                                  << GeneratedLogs;
     }
 
@@ -88,13 +88,12 @@ bool Compile(std::string_view const &Source, EShLanguage const Language, std::ve
 void StageInfo(VkShaderModule const &Module, EShLanguage const Language)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Staging shader info...";
 
     if (Module == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Invalid shader module");
     }
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Staging shader info...";
 
     VkPipelineShaderStageCreateInfo StageInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -173,7 +172,7 @@ bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
         if (std::string DisassemblySPIRVData;
             SPIRVToolsInstance.Disassemble(SPIRVData, &DisassemblySPIRVData))
         {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Generated SPIR-V shader disassembly:\n"
+            BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Generated SPIR-V shader disassembly:\n"
                                      << DisassemblySPIRVData;
         }
     }
@@ -269,7 +268,7 @@ bool RenderCore::Compile(std::string_view const &Source, std::vector<std::uint32
         SPIRVFile << std::string(reinterpret_cast<char const *>(std::data(OutSPIRVCode)), std::size(OutSPIRVCode) * sizeof(std::uint32_t));
         SPIRVFile.close();
 
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader compiled, generated SPIR-V shader file: " << SPIRVPath;
+        BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Shader compiled, generated SPIR-V shader file: " << SPIRVPath;
     }
 
     return Result;
@@ -278,6 +277,7 @@ bool RenderCore::Compile(std::string_view const &Source, std::vector<std::uint32
 bool RenderCore::Load(std::string_view const &Source, std::vector<std::uint32_t> &OutSPIRVCode)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Loading shader: " << Source;
 
     std::filesystem::path const Path(Source);
     if (!exists(Path))
@@ -290,8 +290,6 @@ bool RenderCore::Load(std::string_view const &Source, std::vector<std::uint32_t>
     {
         throw std::runtime_error(std::format("Failed to open shader file {}", Source));
     }
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading shader: " << Source;
 
     std::size_t const FileSize = File.tellg();
     if (FileSize == 0)
@@ -324,6 +322,7 @@ bool RenderCore::CompileOrLoadIfExists(std::string_view const &Source, std::vect
 VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const &SPIRVCode, EShLanguage const Language)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating shader module";
 
     if (std::empty(SPIRVCode))
     {
@@ -336,8 +335,6 @@ VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const &SPIRVC
         throw std::runtime_error("Failed to validate SPIR-V code");
     }
 #endif
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating shader module...";
 
     VkShaderModuleCreateInfo const CreateInfo{
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -383,7 +380,7 @@ std::vector<VkPipelineShaderStageCreateInfo> RenderCore::GetStageInfos()
 void RenderCore::ReleaseShaderResources()
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan shader resources";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Releasing vulkan shader resources";
 
     for (auto const &ShaderModule: g_StageInfos | std::views::keys)
     {
@@ -398,7 +395,7 @@ void RenderCore::ReleaseShaderResources()
 void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const &StagedModules)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing staged shader modules";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Freeing staged shader modules";
 
     for (VkPipelineShaderStageCreateInfo const &StageInfoIter: StagedModules)
     {

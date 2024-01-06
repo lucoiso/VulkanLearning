@@ -16,11 +16,13 @@ RenderingSubsystem& RenderingSubsystem::Get()
 
 void RenderingSubsystem::RegisterRenderer(Renderer* const Renderer)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
     m_RegisteredRenderer = Renderer;
 }
 
 void RenderingSubsystem::UnregisterRenderer()
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
     m_RegisteredRenderer = nullptr;
 }
 

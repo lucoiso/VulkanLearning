@@ -17,6 +17,7 @@ import RenderCore.Management.DeviceManagement;
 import RenderCore.Types.Camera;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
+import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 
@@ -24,11 +25,15 @@ bool g_CanMovementCamera = false;
 
 void RenderCore::GLFWWindowCloseRequested(GLFWwindow* const Window)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     glfwSetWindowShouldClose(Window, GLFW_TRUE);
 }
 
 void RenderCore::GLFWWindowResized([[maybe_unused]] GLFWwindow* const Window, [[maybe_unused]] std::int32_t const Width, [[maybe_unused]] std::int32_t const Height)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     Renderer* const Target = RenderingSubsystem::Get().GetRenderer();
     if (!Target)
     {
@@ -47,11 +52,14 @@ void RenderCore::GLFWWindowResized([[maybe_unused]] GLFWwindow* const Window, [[
 
 void RenderCore::GLFWErrorCallback(std::int32_t const Error, char const* const Description)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
     BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: GLFW Error: " << Error << " - " << Description;
 }
 
 void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow* const Window, std::int32_t const Key, [[maybe_unused]] std::int32_t const Scancode, std::int32_t const Action, [[maybe_unused]] std::int32_t const Mods)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     Renderer* const Target = RenderingSubsystem::Get().GetRenderer();
     if (!Target)
     {
@@ -127,6 +135,8 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow* const Window, std:
 
 void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double const NewCursorPosX, double const NewCursorPosY)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     Renderer* const Target = RenderingSubsystem::Get().GetRenderer();
     if (!Target)
     {
@@ -175,6 +185,8 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow* const Window, double con
 
 void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow* const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     Renderer* const Target = RenderingSubsystem::Get().GetRenderer();
     if (!Target)
     {
@@ -188,6 +200,8 @@ void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow* const Win
 
 void RenderCore::InstallGLFWCallbacks(GLFWwindow* const Window, bool const InstallClose)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     if (InstallClose)
     {
         glfwSetWindowCloseCallback(Window, &GLFWWindowCloseRequested);

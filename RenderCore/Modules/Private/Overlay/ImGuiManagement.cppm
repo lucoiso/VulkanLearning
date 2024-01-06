@@ -30,7 +30,7 @@ VkDescriptorPool g_ImGuiDescriptorPool{VK_NULL_HANDLE};
 void RenderCore::InitializeImGuiContext(GLFWwindow* const Window, SurfaceProperties const& SurfaceProperties)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating ImGui Context";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating ImGui Context";
 
     IMGUI_CHECKVERSION();
 

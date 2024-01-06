@@ -20,6 +20,7 @@ SET(PRIVATE_MODULES
         ${PRIVATE_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.cppm
         ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.cppm
         ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.cppm
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationRegister.cppm
         ${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.cppm
         ${PRIVATE_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.cppm
         ${PRIVATE_MODULES_BASE_DIRECTORY}/Input/GLFWCallbacks.cppm
@@ -59,6 +60,7 @@ SET(PUBLIC_MODULES
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/UniformBufferObject.ixx
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.ixx
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.ixx
+        ${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/AllocationRegister.ixx
 )
 
 ADD_LIBRARY(${LIBRARY_NAME} ${PRIVATE_MODULES})

@@ -30,6 +30,8 @@ std::vector<std::uint8_t> g_UniqueQueueFamilyIndices{};
 
 bool IsPhysicalDeviceSuitable(VkPhysicalDevice const &Device)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     if (Device == VK_NULL_HANDLE)
     {
         return false;
@@ -50,7 +52,7 @@ bool GetQueueFamilyIndices(VkSurfaceKHR const &VulkanSurface,
                            std::optional<std::uint8_t> &TransferQueueFamilyIndex)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Getting queue family indices";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Getting queue family indices";
 
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -96,7 +98,7 @@ bool GetQueueFamilyIndices(VkSurfaceKHR const &VulkanSurface,
 void PickPhysicalDevice()
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Picking a physical device";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Picking a physical device";
 
     for (VkPhysicalDevice const &DeviceIter: GetAvailablePhysicalDevices())
     {
@@ -130,7 +132,7 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
     g_PresentationQueue.first = PresentationQueueFamilyIndex.value();
     g_TransferQueue.first = TransferQueueFamilyIndex.value();
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan logical device";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating vulkan logical device";
 
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -246,7 +248,7 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
     {
         throw std::runtime_error("Failed to get graphics queue.");
     }
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: 1";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: 1";
 
     if (vkGetDeviceQueue(g_Device, g_PresentationQueue.first, 0U, &g_PresentationQueue.second);
         g_PresentationQueue.second == VK_NULL_HANDLE)
@@ -263,13 +265,13 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
 
 void RenderCore::InitializeDevice(VkSurfaceKHR const &VulkanSurface)
 {
+    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Initializing vulkan devices";
+
     if (g_PhysicalDevice != VK_NULL_HANDLE)
     {
         return;
     }
-
-    auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulkan devices";
 
     PickPhysicalDevice();
     CreateLogicalDevice(VulkanSurface);
@@ -393,7 +395,7 @@ std::vector<std::uint32_t> RenderCore::GetUniqueQueueFamilyIndicesU32()
 void RenderCore::ReleaseDeviceResources()
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Releasing vulkan device resources";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Releasing vulkan device resources";
 
     vkDestroyDevice(g_Device, nullptr);
     g_Device = VK_NULL_HANDLE;

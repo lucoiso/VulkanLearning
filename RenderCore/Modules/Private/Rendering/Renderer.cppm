@@ -50,7 +50,8 @@ VkDebugUtilsMessengerEXT g_DebugMessenger {VK_NULL_HANDLE};
 
 bool CreateVulkanInstance()
 {
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Creating vulkan instance";
+    RuntimeInfo::Manager::Get().PushCallstack();
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating vulkan instance";
 
     constexpr VkApplicationInfo AppInfo {
             .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -104,7 +105,7 @@ bool CreateVulkanInstance()
     volkLoadInstance(g_Instance);
 
 #ifdef _DEBUG
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Setting up debug messages";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Setting up debug messages";
     CheckVulkanResult(CreateDebugUtilsMessenger(g_Instance, &CreateDebugInfo, nullptr, &g_DebugMessenger));
 #endif
 
@@ -113,6 +114,8 @@ bool CreateVulkanInstance()
 
 void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera const& Camera, Control* const Owner)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     if (!IsInitialized())
     {
         return;
@@ -141,7 +144,7 @@ void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera
 
         if (!HasFlag(m_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE) && HasFlag(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION))
         {
-            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Refreshing resources...";
+            BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Refreshing resources...";
 
             auto const SurfaceProperties   = GetSurfaceProperties(Window, m_BufferManager.GetSurface());
             auto const SurfaceCapabilities = GetSurfaceCapabilities(m_BufferManager.GetSurface());
@@ -196,6 +199,8 @@ void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera
 
 std::optional<std::int32_t> Renderer::RequestImageIndex(GLFWwindow* const Window)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     std::optional<std::int32_t> Output {};
 
     if (!HasAnyFlag(m_StateFlags, g_InvalidStatesToRender))
@@ -222,6 +227,8 @@ std::optional<std::int32_t> Renderer::RequestImageIndex(GLFWwindow* const Window
 
 void Renderer::Tick()
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     if (!IsInitialized())
     {
         return;
@@ -252,6 +259,8 @@ void Renderer::Tick()
 
 void Renderer::RemoveInvalidObjects()
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     if (std::empty(m_Objects))
     {
         return;
@@ -276,14 +285,15 @@ void Renderer::RemoveInvalidObjects()
 
 bool Renderer::Initialize(GLFWwindow* const Window)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Initializing vulkan renderer";
+
     if (IsInitialized())
     {
         return false;
     }
 
     RenderingSubsystem::Get().RegisterRenderer(this);
-
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Initializing vulkan renderer";
 
     CheckVulkanResult(volkInitialize());
 
@@ -308,8 +318,10 @@ bool Renderer::Initialize(GLFWwindow* const Window)
     return SurfaceProperties.IsValid() && IsInitialized();
 }
 
-void Renderer::Shutdown(GLFWwindow* const Window)
+void Renderer::Shutdown([[maybe_unused]] GLFWwindow* const Window)
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
+
     if (!IsInitialized())
     {
         return;
@@ -326,12 +338,12 @@ void Renderer::Shutdown(GLFWwindow* const Window)
     m_PipelineManager.ReleasePipelineResources();
     ReleaseDeviceResources();
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan renderer";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Shutting down vulkan renderer";
 
 #ifdef _DEBUG
     if (g_DebugMessenger != VK_NULL_HANDLE)
     {
-        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shutting down vulkan debug messenger";
+        BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Shutting down vulkan debug messenger";
 
         DestroyDebugUtilsMessenger(g_Instance, g_DebugMessenger, nullptr);
         g_DebugMessenger = VK_NULL_HANDLE;
@@ -364,6 +376,11 @@ bool Renderer::HasStateFlag(RendererStateFlags const Flag) const
     return HasFlag(m_StateFlags, Flag);
 }
 
+RendererStateFlags Renderer::GetStateFlags() const
+{
+    return m_StateFlags;
+}
+
 std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const& ObjectPath)
 {
     auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
@@ -380,7 +397,7 @@ std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const& ObjectPat
 
     std::lock_guard Lock(m_RenderingMutex);
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Loading scene...";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Loading scene...";
 
     std::vector<Object> const LoadedObjects = m_BufferManager.AllocateScene(ObjectPath);
     std::vector<std::uint32_t> Output;
@@ -408,7 +425,7 @@ void Renderer::UnloadScene(std::vector<std::uint32_t> const& ObjectIDs)
 
     std::unique_lock Lock(m_RenderingMutex);
 
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Unloading scene...";
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Unloading scene...";
 
     m_BufferManager.ReleaseScene(ObjectIDs);
 
@@ -523,5 +540,6 @@ bool Renderer::IsImGuiInitialized()
 
 void Renderer::SaveFrameToImageFile(std::string_view const& Path) const
 {
+    RuntimeInfo::Manager::Get().PushCallstack();
     m_BufferManager.SaveImageToFile(m_BufferManager.GetViewportImages().at(GetImageIndex().value()).Image, Path);
 }
