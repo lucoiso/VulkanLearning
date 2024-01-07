@@ -1,0 +1,45 @@
+# Author: Lucas Vilas-Boas
+# Year: 2023
+# Repo: https://github.com/lucoiso/VulkanRenderer
+
+# ----------- Global Definitions -----------
+SET(LIBRARY_NAME RadeonManager)
+
+# ------------- Library Setup --------------
+SET(PRIVATE_MODULES_BASE_DIRECTORY Modules/Private)
+SET(PUBLIC_MODULES_BASE_DIRECTORY Modules/Public)
+
+SET(PRIVATE_MODULES
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Manager.cppm
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Profiler.cppm
+)
+
+SET(PUBLIC_MODULES
+        ${PUBLIC_MODULES_BASE_DIRECTORY}/Manager.ixx
+        ${PUBLIC_MODULES_BASE_DIRECTORY}/Profiler.ixx
+)
+
+ADD_LIBRARY(${LIBRARY_NAME} ${PRIVATE_MODULES})
+SET_TARGET_PROPERTIES(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+
+TARGET_SOURCES(${LIBRARY_NAME}
+        PUBLIC
+        FILE_SET cxx_public_modules
+        TYPE CXX_MODULES
+        BASE_DIRS ${PUBLIC_MODULES_BASE_DIRECTORY}
+        FILES ${PUBLIC_MODULES}
+)
+
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${PRIVATE_MODULES_BASE_DIRECTORY})
+TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE BUILD_DLL)
+
+INCLUDE(FetchContent)
+
+FetchContent_Declare(
+        adlx
+        GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/ADLX
+        GIT_TAG main
+)
+FetchContent_MakeAvailable(adlx)
+
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${adlx_SOURCE_DIR}/SDK/Include)

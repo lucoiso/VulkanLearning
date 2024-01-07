@@ -24,6 +24,7 @@ SET(BUILD_TESTS $ENV{BUILD_TESTS})
 
 # -------------- Directories ---------------
 ADD_SUBDIRECTORY(RenderCore)
+ADD_SUBDIRECTORY(RadeonManager)
 ADD_SUBDIRECTORY(cpp-submodules)
 ADD_SUBDIRECTORY(ThirdParty)
 
