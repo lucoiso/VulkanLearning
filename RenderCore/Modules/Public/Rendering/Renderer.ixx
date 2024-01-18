@@ -73,7 +73,7 @@ namespace RenderCore
 
         [[nodiscard]] RendererStateFlags GetStateFlags() const;
 
-        [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view const&);
+        [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view);
 
         void UnloadScene(std::vector<std::uint32_t> const&);
 
@@ -107,6 +107,6 @@ namespace RenderCore
 
         static [[nodiscard]] bool IsImGuiInitialized();
 
-        void SaveFrameToImageFile(std::string_view const&) const;
+        void SaveFrameToImageFile(std::string_view) const;
     };
 }// namespace RenderCore

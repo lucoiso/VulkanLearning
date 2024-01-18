@@ -15,6 +15,8 @@ import RenderCore.Renderer;
 import RenderCore.Subsystem.Rendering;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Types.Camera;
+import RenderCore.Types.Transform;
+import RenderCore.Utils.EngineStateFlags;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
 import RuntimeInfo.Manager;

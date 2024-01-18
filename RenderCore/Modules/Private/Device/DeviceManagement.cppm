@@ -458,7 +458,7 @@ std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers(VkPh
 }
 
 std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(VkPhysicalDevice const &PhysicalDevice,
-                                                                                         std::string_view const &LayerName)
+                                                                                         std::string_view const LayerName)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
@@ -487,22 +487,22 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames(V
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
     std::vector<std::string> Output;
-    for (VkExtensionProperties const &ExtensionIter: GetAvailablePhysicalDeviceExtensions(PhysicalDevice))
+    for (const auto & [Name, Version]: GetAvailablePhysicalDeviceExtensions(PhysicalDevice))
     {
-        Output.emplace_back(ExtensionIter.extensionName);
+        Output.emplace_back(Name);
     }
 
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(VkPhysicalDevice const &PhysicalDevice, std::string_view const &LayerName)
+std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(VkPhysicalDevice const &PhysicalDevice, std::string_view const LayerName)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
     std::vector<std::string> Output;
-    for (VkExtensionProperties const &ExtensionIter: GetAvailablePhysicalDeviceLayerExtensions(PhysicalDevice, LayerName))
+    for (const auto & [Name, Version]: GetAvailablePhysicalDeviceLayerExtensions(PhysicalDevice, LayerName))
     {
-        Output.emplace_back(ExtensionIter.extensionName);
+        Output.emplace_back(Name);
     }
 
     return Output;
@@ -513,9 +513,9 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames(VkPhy
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
     std::vector<std::string> Output;
-    for (VkLayerProperties const &LayerIter: GetAvailablePhysicalDeviceLayers(PhysicalDevice))
+    for (const auto & [Name, SpecVer, ImplVer, Description]: GetAvailablePhysicalDeviceLayers(PhysicalDevice))
     {
-        Output.emplace_back(LayerIter.layerName);
+        Output.emplace_back(Name);
     }
 
     return Output;

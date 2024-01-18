@@ -54,7 +54,7 @@ VmaAllocationInfo CreateBuffer(VmaAllocator const& Allocator,
                                VkDeviceSize const& Size,
                                VkBufferUsageFlags const Usage,
                                VkMemoryPropertyFlags const Flags,
-                               std::string_view const& Identifier,
+                               std::string_view const Identifier,
                                VkBuffer& Buffer,
                                VmaAllocation& Allocation)
 {
@@ -226,7 +226,7 @@ void CreateImage(VmaAllocator const& Allocator,
                  VkImageUsageFlags const ImageUsage,
                  VmaAllocationCreateFlags const Flags,
                  VmaMemoryUsage const MemoryUsage,
-                 std::string_view const& Identifier,
+                 std::string_view const Identifier,
                  VkImage& Image,
                  VmaAllocation& Allocation)
 {
@@ -633,7 +633,7 @@ void AllocateModelTexture(ObjectAllocationData& ObjectCreationData,
     }
 }
 
-std::vector<Object> BufferManager::AllocateScene(std::string_view const& ModelPath)
+std::vector<Object> BufferManager::AllocateScene(std::string_view const ModelPath)
 {
     RuntimeInfo::Manager::Get().PushCallstack();
 
@@ -1193,7 +1193,7 @@ void BufferManager::UpdateUniformBuffers(std::shared_ptr<Object> const& Object,
     }
 }
 
-void BufferManager::SaveImageToFile(VkImage const& Image, std::string_view const& Path) const
+void BufferManager::SaveImageToFile(VkImage const& Image, std::string_view const Path) const
 {
     RuntimeInfo::Manager::Get().PushCallstack();
 

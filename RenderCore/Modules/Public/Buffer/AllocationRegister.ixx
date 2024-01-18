@@ -6,7 +6,6 @@ module;
 
 #include "RenderCoreModule.hpp"
 #include <cstdint>
-#include <string>
 #include <vector>
 #include <vk_mem_alloc.h>
 

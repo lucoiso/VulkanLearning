@@ -20,7 +20,7 @@ import RuntimeInfo.Manager;
 import RenderCore.Input.GLFWCallbacks;
 import RenderCore.Utils.EnumHelpers;
 
-bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const& Title, InitializationFlags const Flags)
+bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, InitializationFlags const Flags)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Initializing GLFW Handler";

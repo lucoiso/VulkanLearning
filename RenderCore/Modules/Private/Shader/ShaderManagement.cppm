@@ -11,7 +11,10 @@ module;
 #include <boost/log/trivial.hpp>
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
+
+#ifdef _DEBUG
 #include <spirv-tools/libspirv.hpp>
+#endif
 
 module RenderCore.Management.ShaderManagement;
 
@@ -26,7 +29,7 @@ constexpr std::int32_t g_GlslVersion = 450;
 
 std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> g_StageInfos{};
 
-bool Compile(std::string_view const &Source, EShLanguage const Language, std::vector<std::uint32_t> &OutSPIRVCode)
+bool Compile(std::string_view const Source, EShLanguage const Language, std::vector<std::uint32_t> &OutSPIRVCode)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
@@ -181,7 +184,7 @@ bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
 }
 #endif
 
-bool RenderCore::Compile(std::string_view const &Source, std::vector<std::uint32_t> &OutSPIRVCode)
+bool RenderCore::Compile(std::string_view const Source, std::vector<std::uint32_t> &OutSPIRVCode)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
@@ -274,7 +277,7 @@ bool RenderCore::Compile(std::string_view const &Source, std::vector<std::uint32
     return Result;
 }
 
-bool RenderCore::Load(std::string_view const &Source, std::vector<std::uint32_t> &OutSPIRVCode)
+bool RenderCore::Load(std::string_view const Source, std::vector<std::uint32_t> &OutSPIRVCode)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Loading shader: " << Source;
@@ -307,7 +310,7 @@ bool RenderCore::Load(std::string_view const &Source, std::vector<std::uint32_t>
     return !ReadResult.fail();
 }
 
-bool RenderCore::CompileOrLoadIfExists(std::string_view const &Source, std::vector<uint32_t> &OutSPIRVCode)
+bool RenderCore::CompileOrLoadIfExists(std::string_view const Source, std::vector<uint32_t> &OutSPIRVCode)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
@@ -397,16 +400,16 @@ void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> 
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Freeing staged shader modules";
 
-    for (VkPipelineShaderStageCreateInfo const &StageInfoIter: StagedModules)
+    for (const auto & [Type, Next, Flags, Stage, Module, Name, Info]: StagedModules)
     {
-        if (StageInfoIter.module != VK_NULL_HANDLE)
+        if (Module != VK_NULL_HANDLE)
         {
-            vkDestroyShaderModule(volkGetLoadedDevice(), StageInfoIter.module, nullptr);
+            vkDestroyShaderModule(volkGetLoadedDevice(), Module, nullptr);
         }
 
-        if (g_StageInfos.contains(StageInfoIter.module))
+        if (g_StageInfos.contains(Module))
         {
-            g_StageInfos.erase(StageInfoIter.module);
+            g_StageInfos.erase(Module);
         }
     }
 }

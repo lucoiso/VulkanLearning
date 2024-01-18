@@ -20,7 +20,7 @@ ADLXInitializeWithCallerAdl_Fn g_InitializeWithCallerAdlFn {nullptr};
 ADLXInitialize_Fn g_InitializeFn {nullptr};
 ADLXTerminate_Fn g_TerminateFn {nullptr};
 
-adlx_handle ADLX_CDECL_CALL CrossPlatformLoadLibrary(std::string_view const& Filename)
+adlx_handle ADLX_CDECL_CALL CrossPlatformLoadLibrary(std::string_view const Filename)
 {
 #ifdef _WIN32
     return ::LoadLibraryEx(std::data(Filename), nullptr, LOAD_LIBRARY_SEARCH_USER_DIRS | LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -38,7 +38,7 @@ int ADLX_CDECL_CALL CrossPlatformFreeLibrary(adlx_handle ModuleHandle)
 #endif
 }
 
-void* ADLX_CDECL_CALL CrossPlatformGetProcAddress(adlx_handle ModuleHandle, std::string_view const& ProcName)
+void* ADLX_CDECL_CALL CrossPlatformGetProcAddress(adlx_handle ModuleHandle, std::string_view const ProcName)
 {
 #ifdef _WIN32
     return reinterpret_cast<void*>(::GetProcAddress(static_cast<HMODULE>(ModuleHandle), std::data(ProcName)));

@@ -39,7 +39,7 @@ Window::~Window()
     }
 }
 
-bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const &Title, InitializationFlags const Flags)
+bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, InitializationFlags const Flags)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 

@@ -57,7 +57,7 @@ namespace RenderCore
 
         void CreateDepthResources(SurfaceProperties const &);
 
-        std::vector<Object> AllocateScene(std::string_view const &);
+        std::vector<Object> AllocateScene(std::string_view);
 
         void ReleaseScene(std::vector<std::uint32_t> const &);
 
@@ -103,7 +103,7 @@ namespace RenderCore
 
         void UpdateUniformBuffers(std::shared_ptr<Object> const &, Camera const &, VkExtent2D const &) const;
 
-        void SaveImageToFile(VkImage const &, std::string_view const &) const;
+        void SaveImageToFile(VkImage const &, std::string_view) const;
 
         template<VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
         static constexpr void MoveImageLayout(VkCommandBuffer &CommandBuffer,

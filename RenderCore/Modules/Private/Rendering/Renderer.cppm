@@ -381,7 +381,7 @@ RendererStateFlags Renderer::GetStateFlags() const
     return m_StateFlags;
 }
 
-std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const& ObjectPath)
+std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const ObjectPath)
 {
     auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
 
@@ -538,7 +538,7 @@ bool Renderer::IsImGuiInitialized()
     return RenderCore::IsImGuiInitialized();
 }
 
-void Renderer::SaveFrameToImageFile(std::string_view const& Path) const
+void Renderer::SaveFrameToImageFile(std::string_view const Path) const
 {
     RuntimeInfo::Manager::Get().PushCallstack();
     m_BufferManager.SaveImageToFile(m_BufferManager.GetViewportImages().at(GetImageIndex().value()).Image, Path);

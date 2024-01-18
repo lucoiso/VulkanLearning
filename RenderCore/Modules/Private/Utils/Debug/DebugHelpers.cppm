@@ -4,8 +4,11 @@
 
 module;
 
+
+#ifdef _DEBUG
 #include <volk.h>
 #include <boost/log/trivial.hpp>
+#endif
 
 module RenderCore.Utils.DebugHelpers;
 

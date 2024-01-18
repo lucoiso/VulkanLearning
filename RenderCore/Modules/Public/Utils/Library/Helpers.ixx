@@ -4,13 +4,13 @@
 
 module;
 
+#include <GLFW/glfw3.h>
 #include <format>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include <volk.h>
-#include <GLFW/glfw3.h>
 
 export module RenderCore.Utils.Helpers;
 
@@ -18,7 +18,7 @@ import RuntimeInfo.Manager;
 
 namespace RenderCore
 {
-    export [[nodiscard]] VkExtent2D GetWindowExtent(GLFWwindow *, VkSurfaceCapabilitiesKHR const &);
+    export [[nodiscard]] VkExtent2D GetWindowExtent(GLFWwindow*, VkSurfaceCapabilitiesKHR const&);
 
     export [[nodiscard]] std::vector<std::string> GetGLFWExtensions();
 
@@ -30,24 +30,24 @@ namespace RenderCore
 
     export [[nodiscard]] std::vector<std::string> GetAvailableInstanceExtensionsNames();
 
-    export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceLayerExtensions(std::string_view const &);
+    export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceLayerExtensions(std::string_view);
 
-    export [[nodiscard]] std::vector<std::string> GetAvailableInstanceLayerExtensionsNames(std::string_view const &);
+    export [[nodiscard]] std::vector<std::string> GetAvailableInstanceLayerExtensionsNames(std::string_view);
 
     export [[nodiscard]] std::array<VkVertexInputBindingDescription, 1U> GetBindingDescriptors();
 
     export [[nodiscard]] std::array<VkVertexInputAttributeDescription, 4U> GetAttributeDescriptions();
 
     export template<typename ItemType, typename ContainerType>
-    constexpr bool Contains(ContainerType const &Container, ItemType const &Item)
+    constexpr bool Contains(ContainerType const& Container, ItemType const& Item)
     {
         return std::ranges::find(Container, Item) != std::cend(Container);
     }
 
     export template<typename Out, typename Opt, typename Avail>
-    constexpr void GetAvailableResources(std::string_view const &Identifier, Out &Resource, Opt const &Optional, Avail const &Available)
+    constexpr void GetAvailableResources(std::string_view const Identifier, Out& Resource, Opt const& Optional, Avail const& Available)
     {
-        for (auto const &ResIter: Resource)
+        for (auto const& ResIter: Resource)
         {
             if (std::ranges::find(Available, ResIter) == std::cend(Available))
             {
@@ -55,7 +55,7 @@ namespace RenderCore
             }
         }
 
-        for (auto const &LayerIter: Optional)
+        for (auto const& LayerIter: Optional)
         {
             if (std::ranges::find(Available, LayerIter) != std::cend(Available))
             {
@@ -65,16 +65,16 @@ namespace RenderCore
     }
 
     export template<typename T>
-        requires std::is_same_v<T, VkResult> || std::is_same_v<T, VkResult &>
-    constexpr bool CheckVulkanResult(T &&InputOperation)
+        requires std::is_same_v<T, VkResult> || std::is_same_v<T, VkResult&>
+    constexpr bool CheckVulkanResult(T&& InputOperation)
     {
         return InputOperation == VK_SUCCESS;
     }
 
     export template<typename T>
-        requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, VkResult> || std::is_same_v<std::invoke_result_t<T>, VkResult &>)
-    constexpr bool CheckVulkanResult(T &&InputOperation)
+        requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, VkResult> || std::is_same_v<std::invoke_result_t<T>, VkResult&>)
+    constexpr bool CheckVulkanResult(T&& InputOperation)
     {
         return CheckVulkanResult(InputOperation());
     }
-} // namespace RenderCore
+}// namespace RenderCore

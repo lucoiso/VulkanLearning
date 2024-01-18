@@ -38,7 +38,7 @@ namespace RenderCore
 
         bool Initialize(std::uint16_t,
                         std::uint16_t,
-                        std::string_view const &,
+                        std::string_view,
                         InitializationFlags Flags = InitializationFlags::NONE);
 
         void Shutdown();

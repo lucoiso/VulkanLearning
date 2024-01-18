@@ -4,8 +4,8 @@
 
 module;
 
-#include <cstdint>
 #include <GLFW/glfw3.h>
+#include <cstdint>
 
 export module RenderCore.Input.GLFWCallbacks;
 

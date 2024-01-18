@@ -183,7 +183,7 @@ std::array<VkVertexInputAttributeDescription, 4U> RenderCore::GetAttributeDescri
     };
 }
 
-std::vector<VkExtensionProperties> RenderCore::GetAvailableInstanceLayerExtensions(std::string_view const &LayerName)
+std::vector<VkExtensionProperties> RenderCore::GetAvailableInstanceLayerExtensions(std::string_view const LayerName)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
@@ -202,7 +202,7 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailableInstanceLayerExtensio
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailableInstanceLayerExtensionsNames(std::string_view const &LayerName)
+std::vector<std::string> RenderCore::GetAvailableInstanceLayerExtensionsNames(std::string_view const LayerName)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
 
