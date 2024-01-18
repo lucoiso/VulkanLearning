@@ -19,6 +19,6 @@ git submodule update --init --recursive
 
 # Example
 
-![image](https://github.com/lucoiso/VulkanRenderer/assets/77353979/d9aac4fe-3b0b-4862-a196-4dffda29763c)
+![image](https://github.com/lucoiso/VulkanRenderer/assets/77353979/5d868a45-e614-4eab-bb31-04f84a5e242f)
 
 - Renderer Application using this library: https://github.com/lucoiso/renderer-application
