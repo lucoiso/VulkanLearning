@@ -6,6 +6,7 @@ module;
 
 #include <vk_mem_alloc.h>
 #include <volk.h>
+#include <algorithm>
 
 module RenderCore.Types.AllocationTypes;
 
@@ -65,10 +66,9 @@ bool ObjectAllocation::IsValid() const
 
 void ObjectAllocation::DestroyResources(VmaAllocator const& Allocator)
 {
-    for (ImageAllocation& TextureImageIter: TextureImages)
-    {
+    std::ranges::for_each(TextureImages, [&](ImageAllocation& TextureImageIter) {
         TextureImageIter.DestroyResources(Allocator);
-    }
+    });
 
     VertexBuffer.DestroyResources(Allocator);
     IndexBuffer.DestroyResources(Allocator);

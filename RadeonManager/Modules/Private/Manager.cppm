@@ -11,14 +11,14 @@ module RadeonManager.Manager;
 
 using namespace RadeonManager;
 
-adlx_handle g_DLLHandle {nullptr};
-adlx::IADLXSystem* g_SystemServices {nullptr};
+adlx_handle g_DLLHandle{nullptr};
+adlx::IADLXSystem* g_SystemServices{nullptr};
 
-ADLXQueryFullVersion_Fn g_QueryFullVersionFn {nullptr};
-ADLXQueryVersion_Fn g_QueryVersionFn {nullptr};
-ADLXInitializeWithCallerAdl_Fn g_InitializeWithCallerAdlFn {nullptr};
-ADLXInitialize_Fn g_InitializeFn {nullptr};
-ADLXTerminate_Fn g_TerminateFn {nullptr};
+ADLXQueryFullVersion_Fn g_QueryFullVersionFn{nullptr};
+ADLXQueryVersion_Fn g_QueryVersionFn{nullptr};
+ADLXInitializeWithCallerAdl_Fn g_InitializeWithCallerAdlFn{nullptr};
+ADLXInitialize_Fn g_InitializeFn{nullptr};
+ADLXTerminate_Fn g_TerminateFn{nullptr};
 
 adlx_handle ADLX_CDECL_CALL CrossPlatformLoadLibrary(std::string_view const Filename)
 {

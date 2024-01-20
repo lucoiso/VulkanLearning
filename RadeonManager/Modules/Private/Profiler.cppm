@@ -13,17 +13,17 @@ import RadeonManager.Manager;
 
 using namespace RadeonProfiler;
 
-adlx::IADLXPerformanceMonitoringServicesPtr g_PerformanceMonitoringServices {nullptr};
-adlx::IADLXGPUListPtr g_GPUList {nullptr};
-adlx::IADLXGPUPtr g_GPU {nullptr};
+adlx::IADLXPerformanceMonitoringServicesPtr g_PerformanceMonitoringServices{nullptr};
+adlx::IADLXGPUListPtr g_GPUList{nullptr};
+adlx::IADLXGPUPtr g_GPU{nullptr};
 
-adlx::IADLXSystemMetricsSupportPtr g_SystemMetricsSupport {nullptr};
-adlx::IADLXGPUMetricsSupportPtr g_GPUMetricsSupport {nullptr};
+adlx::IADLXSystemMetricsSupportPtr g_SystemMetricsSupport{nullptr};
+adlx::IADLXGPUMetricsSupportPtr g_GPUMetricsSupport{nullptr};
 
-adlx::IADLXAllMetricsPtr g_AllMetrics {nullptr};
-adlx::IADLXSystemMetricsPtr g_SystemMetrics {nullptr};
-adlx::IADLXGPUMetricsPtr g_GPUMetrics {nullptr};
-adlx::IADLXFPSPtr g_FPSMetrics {nullptr};
+adlx::IADLXAllMetricsPtr g_AllMetrics{nullptr};
+adlx::IADLXSystemMetricsPtr g_SystemMetrics{nullptr};
+adlx::IADLXGPUMetricsPtr g_GPUMetrics{nullptr};
+adlx::IADLXFPSPtr g_FPSMetrics{nullptr};
 
 bool RadeonProfiler::IsRunning()
 {
@@ -81,7 +81,7 @@ void RadeonProfiler::Stop()
 
 ProfileData RadeonProfiler::GetProfileData()
 {
-    ProfileData Result {};
+    ProfileData Result{};
 
     if (!IsRunning())
     {

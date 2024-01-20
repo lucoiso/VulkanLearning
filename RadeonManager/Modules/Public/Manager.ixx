@@ -12,11 +12,13 @@ export module RadeonManager.Manager;
 
 export namespace RadeonManager
 {
-    [[nodiscard]] bool RADEONMANAGERMODULE_H IsRunning();
-    [[nodiscard]] bool RADEONMANAGERMODULE_H IsLoaded();
+    [[nodiscard]] bool IsRunning();
 
-    [[nodiscard]] bool RADEONMANAGERMODULE_H Start();
-    void RADEONMANAGERMODULE_H Stop();
+    [[nodiscard]] bool IsLoaded();
+
+    [[nodiscard]] bool Start();
+
+    void Stop();
 
     [[nodiscard]] adlx::IADLXSystem* GetADLXSystemServices();
 

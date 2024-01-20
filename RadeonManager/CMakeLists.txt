@@ -35,11 +35,11 @@ TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 
 INCLUDE(FetchContent)
 
-FetchContent_Declare(
+FETCHCONTENT_DECLARE(
         adlx
         GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/ADLX
         GIT_TAG main
 )
-FetchContent_MakeAvailable(adlx)
+FETCHCONTENT_MAKEAVAILABLE(adlx)
 
 TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${adlx_SOURCE_DIR}/SDK/Include)

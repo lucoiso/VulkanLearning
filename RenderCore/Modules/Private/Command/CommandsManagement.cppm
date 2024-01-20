@@ -30,11 +30,11 @@ import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 
-VkCommandPool g_CommandPool {};
-std::vector<VkCommandBuffer> g_CommandBuffers {};
-VkSemaphore g_ImageAvailableSemaphore {};
-VkSemaphore g_RenderFinishedSemaphore {};
-VkFence g_Fence {};
+VkCommandPool g_CommandPool{};
+std::vector<VkCommandBuffer> g_CommandBuffers{};
+VkSemaphore g_ImageAvailableSemaphore{};
+VkSemaphore g_RenderFinishedSemaphore{};
+VkFence g_Fence{};
 
 void AllocateCommandBuffer(std::uint32_t const QueueFamily, std::uint8_t const NumberOfBuffers)
 {
@@ -58,10 +58,10 @@ void AllocateCommandBuffer(std::uint32_t const QueueFamily, std::uint8_t const N
     g_CommandPool = CreateCommandPool(QueueFamily);
     g_CommandBuffers.resize(NumberOfBuffers);
 
-    VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
-            .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .commandPool        = g_CommandPool,
-            .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+    VkCommandBufferAllocateInfo const CommandBufferAllocateInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool = g_CommandPool,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
             .commandBufferCount = static_cast<std::uint32_t>(std::size(g_CommandBuffers))};
 
     CheckVulkanResult(vkAllocateCommandBuffers(volkGetLoadedDevice(),
@@ -93,17 +93,16 @@ void FreeCommandBuffers()
                              static_cast<std::uint32_t>(std::size(g_CommandBuffers)),
                              std::data(g_CommandBuffers));
 
-        for (VkCommandBuffer& CommandBufferIter: g_CommandBuffers)
-        {
+        std::ranges::for_each(g_CommandBuffers, [](VkCommandBuffer& CommandBufferIter) {
             CommandBufferIter = VK_NULL_HANDLE;
-        }
+        });
         g_CommandBuffers.clear();
     }
 }
 
 void RenderCore::ReleaseCommandsResources()
 {
-    auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
+    auto const _{RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Releasing vulkan commands resources";
 
     DestroyCommandsSynchronizationObjects(true);
@@ -113,9 +112,9 @@ VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex)
 {
     RuntimeInfo::Manager::Get().PushCallstack();
 
-    VkCommandPoolCreateInfo const CommandPoolCreateInfo {
-            .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+    VkCommandPoolCreateInfo const CommandPoolCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
             .queueFamilyIndex = static_cast<std::uint32_t>(FamilyQueueIndex)};
 
     VkCommandPool Output = VK_NULL_HANDLE;
@@ -126,13 +125,13 @@ VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex)
 
 void RenderCore::CreateCommandsSynchronizationObjects()
 {
-    auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
+    auto const _{RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating vulkan synchronization objects";
 
-    constexpr VkSemaphoreCreateInfo SemaphoreCreateInfo {
+    constexpr VkSemaphoreCreateInfo SemaphoreCreateInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
-    constexpr VkFenceCreateInfo FenceCreateInfo {
+    constexpr VkFenceCreateInfo FenceCreateInfo{
             .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
             .flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
@@ -151,7 +150,7 @@ void RenderCore::CreateCommandsSynchronizationObjects()
 
 void RenderCore::DestroyCommandsSynchronizationObjects(bool const ResetFences)
 {
-    auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
+    auto const _{RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Destroying vulkan synchronization objects";
 
     vkDeviceWaitIdle(volkGetLoadedDevice());
@@ -234,12 +233,12 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
                                       Camera const& Camera,
                                       BufferManager const& BufferManager,
                                       PipelineManager const& PipelineManager,
-                                      std::vector<std::shared_ptr<Object>> const& Objects,
+                                      std::vector<std::shared_ptr<Object> > const& Objects,
                                       VkExtent2D const& SwapChainExtent)
 {
     RuntimeInfo::Manager::Get().PushCallstack();
 
-    constexpr std::array<VkDeviceSize, 1U> Offsets {0U};
+    constexpr std::array<VkDeviceSize, 1U> Offsets{0U};
 
     constexpr VkImageAspectFlags ImageAspect = VK_IMAGE_ASPECT_COLOR_BIT;
     constexpr VkImageAspectFlags DepthAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -251,7 +250,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
     constexpr VkImageLayout SwapChainFinalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     constexpr VkImageLayout DepthLayout          = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
 
-    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
+    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo{
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
@@ -280,31 +279,31 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
                                                                                   DepthImage,
                                                                                   DepthFormat);
 
-        VkRenderingAttachmentInfoKHR const ColorAttachmentInfo {
-                .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-                .imageView   = SwapChainView,
+        VkRenderingAttachmentInfoKHR const ColorAttachmentInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+                .imageView = SwapChainView,
                 .imageLayout = SwapChainMidLayout,
-                .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-                .clearValue  = g_ClearValues.at(0U)};
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                .clearValue = g_ClearValues.at(0U)};
 
-        VkRenderingAttachmentInfoKHR const DepthAttachmentInfo {
-                .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-                .imageView   = DepthView,
+        VkRenderingAttachmentInfoKHR const DepthAttachmentInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+                .imageView = DepthView,
                 .imageLayout = DepthLayout,
-                .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-                .clearValue  = g_ClearValues.at(1U)};
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                .clearValue = g_ClearValues.at(1U)};
 
-        VkRenderingInfo const RenderingInfo {
-                .sType      = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+        VkRenderingInfo const RenderingInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
                 .renderArea = {
                         .offset = {0, 0},
                         .extent = SwapChainExtent},
-                .layerCount           = 1U,
+                .layerCount = 1U,
                 .colorAttachmentCount = 1U,
-                .pColorAttachments    = &ColorAttachmentInfo,
-                .pDepthAttachment     = &DepthAttachmentInfo};
+                .pColorAttachments = &ColorAttachmentInfo,
+                .pDepthAttachment = &DepthAttachmentInfo};
 
         vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
         vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
@@ -327,41 +326,41 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
                                                                                   DepthImage,
                                                                                   DepthFormat);
 
-        VkRenderingAttachmentInfoKHR const ColorAttachmentInfo {
-                .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-                .imageView   = ViewportView,
+        VkRenderingAttachmentInfoKHR const ColorAttachmentInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+                .imageView = ViewportView,
                 .imageLayout = ViewportFinalLayout,
-                .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-                .clearValue  = g_ClearValues.at(0U)};
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                .clearValue = g_ClearValues.at(0U)};
 
-        VkRenderingAttachmentInfoKHR const DepthAttachmentInfo {
-                .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-                .imageView   = DepthView,
+        VkRenderingAttachmentInfoKHR const DepthAttachmentInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+                .imageView = DepthView,
                 .imageLayout = DepthLayout,
-                .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-                .clearValue  = g_ClearValues.at(1U)};
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                .clearValue = g_ClearValues.at(1U)};
 
-        VkRenderingInfo const RenderingInfo {
-                .sType      = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+        VkRenderingInfo const RenderingInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
                 .renderArea = {
                         .offset = {0, 0},
                         .extent = SwapChainExtent},
-                .layerCount           = 1U,
+                .layerCount = 1U,
                 .colorAttachmentCount = 1U,
-                .pColorAttachments    = &ColorAttachmentInfo,
-                .pDepthAttachment     = &DepthAttachmentInfo};
+                .pColorAttachments = &ColorAttachmentInfo,
+                .pDepthAttachment = &DepthAttachmentInfo};
 
-        VkViewport const Viewport {
-                .x        = 0.F,
-                .y        = 0.F,
-                .width    = static_cast<float>(SwapChainExtent.width),
-                .height   = static_cast<float>(SwapChainExtent.height),
+        VkViewport const Viewport{
+                .x = 0.F,
+                .y = 0.F,
+                .width = static_cast<float>(SwapChainExtent.width),
+                .height = static_cast<float>(SwapChainExtent.height),
                 .minDepth = 0.F,
                 .maxDepth = 1.F};
 
-        VkRect2D const Scissor {
+        VkRect2D const Scissor{
                 .offset = {0, 0},
                 .extent = SwapChainExtent};
 
@@ -403,14 +402,14 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
 
             BufferManager.UpdateUniformBuffers(ObjectIter, Camera, SwapChainExtent);
 
-            bool ActiveVertexBinding {false};
+            bool ActiveVertexBinding{false};
             if (VertexBuffer != VK_NULL_HANDLE)
             {
                 vkCmdBindVertexBuffers(CommandBuffer, 0U, 1U, &VertexBuffer, std::data(Offsets));
                 ActiveVertexBinding = true;
             }
 
-            bool ActiveIndexBinding {false};
+            bool ActiveIndexBinding{false};
             if (IndexBuffer != VK_NULL_HANDLE)
             {
                 vkCmdBindIndexBuffer(CommandBuffer, IndexBuffer, 0U, VK_INDEX_TYPE_UINT32);
@@ -441,21 +440,21 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
         {
             if (ImDrawData* const ImGuiDrawData = ImGui::GetDrawData())
             {
-                VkRenderingAttachmentInfoKHR const ColorAttachmentInfo {
-                        .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-                        .imageView   = SwapChainView,
+                VkRenderingAttachmentInfoKHR const ColorAttachmentInfo{
+                        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+                        .imageView = SwapChainView,
                         .imageLayout = SwapChainMidLayout,
-                        .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                        .storeOp     = VK_ATTACHMENT_STORE_OP_STORE};
+                        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                        .storeOp = VK_ATTACHMENT_STORE_OP_STORE};
 
-                VkRenderingInfo const RenderingInfo {
-                        .sType      = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+                VkRenderingInfo const RenderingInfo{
+                        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
                         .renderArea = {
                                 .offset = {0, 0},
                                 .extent = SwapChainExtent},
-                        .layerCount           = 1U,
+                        .layerCount = 1U,
                         .colorAttachmentCount = 1U,
-                        .pColorAttachments    = &ColorAttachmentInfo};
+                        .pColorAttachments = &ColorAttachmentInfo};
 
                 vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
                 ImGui_ImplVulkan_RenderDrawData(ImGuiDrawData, CommandBuffer);
@@ -478,9 +477,9 @@ void RenderCore::SubmitCommandBuffers()
     WaitAndResetFences();
 
     VkSemaphoreSubmitInfoKHR WaitSemaphoreInfo = {
-            .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
             .semaphore = g_ImageAvailableSemaphore,
-            .value     = 1U,
+            .value = 1U,
             .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR};
 
     std::vector<VkCommandBufferSubmitInfoKHR> CommandBufferInfos;
@@ -488,23 +487,23 @@ void RenderCore::SubmitCommandBuffers()
 
     for (VkCommandBuffer const& CommandBufferIter: g_CommandBuffers)
     {
-        CommandBufferInfos.push_back({.sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR,
+        CommandBufferInfos.push_back({.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR,
                                       .commandBuffer = CommandBufferIter});
     }
 
     VkSemaphoreSubmitInfoKHR SignalSemaphoreInfo = {
-            .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
             .semaphore = g_RenderFinishedSemaphore,
-            .value     = 1U};
+            .value = 1U};
 
     VkSubmitInfo2KHR const SubmitInfo = {
-            .sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
-            .waitSemaphoreInfoCount   = 1U,
-            .pWaitSemaphoreInfos      = &WaitSemaphoreInfo,
-            .commandBufferInfoCount   = static_cast<std::uint32_t>(std::size(CommandBufferInfos)),
-            .pCommandBufferInfos      = std::data(CommandBufferInfos),
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
+            .waitSemaphoreInfoCount = 1U,
+            .pWaitSemaphoreInfos = &WaitSemaphoreInfo,
+            .commandBufferInfoCount = static_cast<std::uint32_t>(std::size(CommandBufferInfos)),
+            .pCommandBufferInfos = std::data(CommandBufferInfos),
             .signalSemaphoreInfoCount = 1U,
-            .pSignalSemaphoreInfos    = &SignalSemaphoreInfo};
+            .pSignalSemaphoreInfos = &SignalSemaphoreInfo};
 
     auto const& GraphicsQueue = GetGraphicsQueue().second;
 
@@ -518,14 +517,14 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice, VkSwapchainKHR co
 {
     RuntimeInfo::Manager::Get().PushCallstack();
 
-    VkPresentInfoKHR const PresentInfo {
-            .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+    VkPresentInfoKHR const PresentInfo{
+            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .waitSemaphoreCount = 1U,
-            .pWaitSemaphores    = &g_RenderFinishedSemaphore,
-            .swapchainCount     = 1U,
-            .pSwapchains        = &SwapChain,
-            .pImageIndices      = &ImageIndice,
-            .pResults           = nullptr};
+            .pWaitSemaphores = &g_RenderFinishedSemaphore,
+            .swapchainCount = 1U,
+            .pSwapchains = &SwapChain,
+            .pImageIndices = &ImageIndice,
+            .pResults = nullptr};
 
     auto const& Queue = GetGraphicsQueue().second;
 
@@ -547,22 +546,22 @@ void RenderCore::InitializeSingleCommandQueue(VkCommandPool& CommandPool,
 {
     RuntimeInfo::Manager::Get().PushCallstack();
 
-    VkCommandPoolCreateInfo const CommandPoolCreateInfo {
-            .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+    VkCommandPoolCreateInfo const CommandPoolCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
             .queueFamilyIndex = static_cast<std::uint32_t>(QueueFamilyIndex)};
 
     CheckVulkanResult(vkCreateCommandPool(volkGetLoadedDevice(), &CommandPoolCreateInfo, nullptr, &CommandPool));
 
-    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
+    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo{
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
 
-    VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
-            .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .commandPool        = CommandPool,
-            .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+    VkCommandBufferAllocateInfo const CommandBufferAllocateInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool = CommandPool,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
             .commandBufferCount = static_cast<std::uint32_t>(std::size(CommandBuffers)),
     };
 
@@ -601,10 +600,10 @@ void RenderCore::FinishSingleCommandQueue(VkQueue const& Queue,
         CheckVulkanResult(vkEndCommandBuffer(CommandBufferIter));
     }
 
-    VkSubmitInfo const SubmitInfo {
-            .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+    VkSubmitInfo const SubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
             .commandBufferCount = static_cast<std::uint32_t>(std::size(CommandBuffers)),
-            .pCommandBuffers    = std::data(CommandBuffers),
+            .pCommandBuffers = std::data(CommandBuffers),
     };
 
     CheckVulkanResult(vkQueueSubmit(Queue, 1U, &SubmitInfo, VK_NULL_HANDLE));

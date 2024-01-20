@@ -8,9 +8,9 @@ module;
 #include <format>
 #include <stdexcept>
 #include <string>
-#include <unordered_map>
 #include <vector>
 #include <volk.h>
+#include <algorithm>
 
 export module RenderCore.Utils.Helpers;
 
@@ -38,30 +38,26 @@ namespace RenderCore
 
     export [[nodiscard]] std::array<VkVertexInputAttributeDescription, 4U> GetAttributeDescriptions();
 
-    export template<typename ItemType, typename ContainerType>
-    constexpr bool Contains(ContainerType const& Container, ItemType const& Item)
+    export template<typename ItemType, typename ContainerType> constexpr bool Contains(ContainerType const& Container, ItemType const& Item)
     {
         return std::ranges::find(Container, Item) != std::cend(Container);
     }
 
-    export template<typename Out, typename Opt, typename Avail>
-    constexpr void GetAvailableResources(std::string_view const Identifier, Out& Resource, Opt const& Optional, Avail const& Available)
+    export template<typename Out, typename Opt, typename Avail> constexpr void GetAvailableResources(std::string_view const Identifier, Out& Resource, Opt const& Optional, Avail const& Available)
     {
-        for (auto const& ResIter: Resource)
-        {
+        std::ranges::for_each(Resource, [&Available, Identifier](auto const& ResIter) {
             if (std::ranges::find(Available, ResIter) == std::cend(Available))
             {
                 throw std::runtime_error(std::format("Required {} not available: {}", Identifier, ResIter));
             }
-        }
+        });
 
-        for (auto const& LayerIter: Optional)
-        {
-            if (std::ranges::find(Available, LayerIter) != std::cend(Available))
+        std::ranges::for_each(Optional, [&Available, &Resource](auto const& OptIter) {
+            if (std::ranges::find(Available, OptIter) != std::cend(Available))
             {
-                Resource.emplace_back(LayerIter);
+                Resource.emplace_back(OptIter);
             }
-        }
+        });
     }
 
     export template<typename T>

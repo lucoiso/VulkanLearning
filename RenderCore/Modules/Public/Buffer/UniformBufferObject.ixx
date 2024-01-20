@@ -16,4 +16,4 @@ namespace RenderCore
         glm::mat4 View{};
         glm::mat4 Projection{};
     };
-} // namespace RenderCore
+}// namespace RenderCore
