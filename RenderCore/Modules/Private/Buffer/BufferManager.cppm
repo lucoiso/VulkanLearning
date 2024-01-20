@@ -1292,10 +1292,8 @@ void BufferManager::SaveImageToFile(VkImage const& Image, std::string_view const
 
     auto ImagePixels = static_cast<unsigned char*>(ImageData);
 
-    std::ranges::for_each(std::views::iota(0U, ImageHeight), [&](std::uint32_t const Iterator) {
-        std::swap_ranges(ImagePixels + Iterator * ImageWidth * Components,
-                         ImagePixels + (Iterator + 1U) * ImageWidth * Components,
-                         ImagePixels + (ImageWidth * (ImageHeight - Iterator - 1U) * Components));
+    std::ranges::for_each(std::views::iota(0U, ImageWidth * ImageHeight), [&](std::uint32_t const Iterator) {
+        std::swap(ImagePixels[Iterator * Components], ImagePixels[Iterator * Components + 2U]);
     });
 
     stbi_write_png(std::data(Path), ImageWidth, ImageHeight, Components, ImagePixels, ImageWidth * Components);
