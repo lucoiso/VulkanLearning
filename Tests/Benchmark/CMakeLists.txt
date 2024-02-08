@@ -6,7 +6,7 @@
 SET(LIBRARY_NAME RenderCoreBenchmark)
 
 # ------------- Library Setup --------------
-SET(PRIVATE_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private)
+SET(PRIVATE_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Source/Private)
 
 SET(PRIVATE_MODULES
         ${PRIVATE_MODULES_BASE_DIRECTORY}/RenderCoreBenchmark.cpp

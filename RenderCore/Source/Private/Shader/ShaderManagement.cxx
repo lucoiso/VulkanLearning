@@ -4,17 +4,17 @@
 
 module;
 
+
+#include <SPIRV/GlslangToSpv.h>
+#include <boost/log/trivial.hpp>
 #include <filesystem>
 #include <fstream>
-#include <ranges>
-#include <volk.h>
-#include <boost/log/trivial.hpp>
+#include <glslang/Include/ResourceLimits.h>
 #include <glslang/Public/ResourceLimits.h>
-#include <glslang/SPIRV/GlslangToSpv.h>
-
-#ifdef _DEBUG
-#include <spirv-tools/libspirv.hpp>
-#endif
+#include <glslang/Public/ShaderLang.h>
+#include <ranges>
+#include <array>
+#include <volk.h>
 
 module RenderCore.Management.ShaderManagement;
 
@@ -161,29 +161,6 @@ void StageInfo(VkShaderModule const &Module, EShLanguage const Language)
     g_StageInfos.emplace(Module, StageInfo);
 }
 
-#ifdef _DEBUG
-bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
-{
-    static spvtools::SpirvTools SPIRVToolsInstance(SPV_ENV_VULKAN_1_3);
-    if (!SPIRVToolsInstance.IsValid())
-    {
-        throw std::runtime_error("Failed to initialize SPIRV-Tools");
-    }
-
-    if constexpr (g_EnableCustomDebug)
-    {
-        if (std::string DisassemblySPIRVData;
-            SPIRVToolsInstance.Disassemble(SPIRVData, &DisassemblySPIRVData))
-        {
-            BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Generated SPIR-V shader disassembly:\n"
-                                     << DisassemblySPIRVData;
-        }
-    }
-
-    return SPIRVToolsInstance.Validate(SPIRVData);
-}
-#endif
-
 bool RenderCore::Compile(std::string_view const Source, std::vector<std::uint32_t> &OutSPIRVCode)
 {
     auto const _ { RuntimeInfo::Manager::Get().PushCallstackWithCounter() };
@@ -254,13 +231,6 @@ bool RenderCore::Compile(std::string_view const Source, std::vector<std::uint32_
     bool const Result = Compile(ShaderSource.str(), Language, OutSPIRVCode);
     if (Result)
     {
-#ifdef _DEBUG
-        if (!ValidateSPIRV(OutSPIRVCode))
-        {
-            throw std::runtime_error("Failed to validate SPIR-V code");
-        }
-#endif
-
         std::string const SPIRVPath = std::format("{}.spv", Source);
         std::ofstream SPIRVFile(SPIRVPath, std::ios::binary);
         if (!SPIRVFile.is_open())
@@ -331,13 +301,6 @@ VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const &SPIRVC
     {
         throw std::runtime_error("Invalid SPIRV code");
     }
-
-#ifdef _DEBUG
-    if (!ValidateSPIRV(SPIRVCode))
-    {
-        throw std::runtime_error("Failed to validate SPIR-V code");
-    }
-#endif
 
     VkShaderModuleCreateInfo const CreateInfo{
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,

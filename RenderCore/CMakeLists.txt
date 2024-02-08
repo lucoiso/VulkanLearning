@@ -7,28 +7,28 @@ SET(LIBRARY_NAME RenderCore)
 SET(RENDERER_RESOURCES_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Resources)
 
 # ------------- Library Setup --------------
-SET(PRIVATE_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private)
-SET(PUBLIC_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public)
+SET(PRIVATE_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Source/Private)
+SET(PUBLIC_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Source/Public)
 
 SET(PRIVATE_MODULES
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/Window.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/Control.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/GLFWHandler.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Renderer.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationRegister.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Input/GLFWCallbacks.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Camera.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Object.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Debug/DebugHelpers.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Library/Helpers.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Subsystem/RenderingSubsystem.cppm
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/Window.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/Control.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/GLFWHandler.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Renderer.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationRegister.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Input/GLFWCallbacks.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Camera.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Object.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Debug/DebugHelpers.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Library/Helpers.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Subsystem/RenderingSubsystem.cxx
 )
 
 SET(PUBLIC_MODULES
@@ -80,27 +80,40 @@ TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 
 FIND_PACKAGE(Boost REQUIRED COMPONENTS log)
 FIND_PACKAGE(glm REQUIRED)
-FIND_PATH(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
 
 FIND_PACKAGE(volk CONFIG REQUIRED)
-FIND_PACKAGE(VulkanMemoryAllocator CONFIG REQUIRED)
-FIND_PACKAGE(SPIRV-Tools CONFIG REQUIRED)
+FIND_PACKAGE(vulkan-memory-allocator CONFIG REQUIRED)
 
-FIND_PACKAGE(glslang CONFIG REQUIRED)
+FIND_PACKAGE(SPIRV-Tools CONFIG REQUIRED)
+FIND_PACKAGE(tinygltf CONFIG REQUIRED)
 
 FIND_PACKAGE(glfw3 CONFIG REQUIRED)
 FIND_PACKAGE(imgui CONFIG REQUIRED)
+
+INCLUDE(FetchContent)
+
+SET(ALLOW_EXTERNAL_SPIRV_TOOLS ON)
+
+FETCHCONTENT_DECLARE(
+        glslang
+        GIT_REPOSITORY https://github.com/KhronosGroup/glslang
+        GIT_TAG main
+)
+FETCHCONTENT_MAKEAVAILABLE(glslang)
+
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${glslang_SOURCE_DIR})
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
         Boost::log
 
         volk::volk_headers
-        GPUOpen::VulkanMemoryAllocator
-        SPIRV-Tools-static
+        vulkan-memory-allocator::vulkan-memory-allocator
 
-        glslang::glslang
-        glslang::glslang-default-resource-limits
-        glslang::SPIRV
+        glslang
+        SPIRV
+        glslang-default-resource-limits
+
+        TinyGLTF::TinyGLTF
 
         glfw
         glm::glm
@@ -112,10 +125,6 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
         Coroutine
 
         ImGui-Backend
-)
-
-TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE
-        ${TINYGLTF_INCLUDE_DIRS}
 )
 
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE

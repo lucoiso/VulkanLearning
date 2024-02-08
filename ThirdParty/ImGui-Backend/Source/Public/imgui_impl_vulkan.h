@@ -47,7 +47,9 @@
 #if defined(IMGUI_IMPL_VULKAN_NO_PROTOTYPES) && !defined(VK_NO_PROTOTYPES)
 #define VK_NO_PROTOTYPES
 #endif
-#include <vulkan/vulkan.h>
+//~ Begin: Replace vulkan header with volk header
+#include <volk.h>
+//~ End: Replace vulkan header with volk header
 
 // Initialization data, for ImGui_ImplVulkan_Init()
 // [Please zero-clear before use!]
