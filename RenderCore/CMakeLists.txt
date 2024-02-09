@@ -92,6 +92,15 @@ FIND_PACKAGE(imgui CONFIG REQUIRED)
 # Remove when glslang 14.0 is available in conan center w/ support for SPIRV-Tools 1.3+
 INCLUDE(FetchContent)
 
+SET(GLSLANG_TESTS OFF CACHE BOOL "Enable glslang tests")
+SET(ENABLE_HLSL OFF CACHE BOOL "Enable HLSL support")
+SET(ENABLE_SPVREMAPPER OFF CACHE BOOL "Enable SPV remapper support")
+SET(ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Enable glslang binaries")
+SET(ENABLE_AMD_EXTENSIONS OFF CACHE BOOL "Enable AMD extensions")
+SET(ENABLE_NV_EXTENSIONS OFF CACHE BOOL "Enable NV extensions")
+SET(ENABLE_OPT OFF CACHE BOOL "Enable optimizer")
+SET(ENABLE_CTEST OFF CACHE BOOL "Enable CTest")
+
 FETCHCONTENT_DECLARE(
         glslang
         GIT_REPOSITORY https://github.com/KhronosGroup/glslang
