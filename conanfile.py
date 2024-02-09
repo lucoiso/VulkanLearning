@@ -19,7 +19,10 @@ class VulkanRendererRecipe(ConanFile):
         self.requires("imgui/1.90.1-docking")
 
         # https://conan.io/center/recipes/boost
-        self.requires("boost/[>=1.84]")
+        self.requires("boost/[>=1.84]",
+                      options={
+                          "without_cobalt": True
+                      })
 
         # https://conan.io/center/recipes/benchmark
         self.requires("benchmark/[>=1.8]")
