@@ -84,13 +84,22 @@ FIND_PACKAGE(glm REQUIRED)
 FIND_PACKAGE(volk CONFIG REQUIRED)
 FIND_PACKAGE(vulkan-memory-allocator CONFIG REQUIRED)
 
-FIND_PACKAGE(glslang CONFIG REQUIRED)
-
 FIND_PACKAGE(tinygltf CONFIG REQUIRED)
 
 FIND_PACKAGE(glfw3 CONFIG REQUIRED)
 FIND_PACKAGE(imgui CONFIG REQUIRED)
 
+# Remove when glslang 14.0 is available in conan center w/ support for SPIRV-Tools 1.3+
+INCLUDE(FetchContent)
+
+FETCHCONTENT_DECLARE(
+        glslang
+        GIT_REPOSITORY https://github.com/KhronosGroup/glslang
+        GIT_TAG main
+)
+FETCHCONTENT_MAKEAVAILABLE(glslang)
+
+EXECUTE_PROCESS(COMMAND python update_glslang_sources.py WORKING_DIRECTORY ${glslang_SOURCE_DIR})
 TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${glslang_SOURCE_DIR})
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
@@ -99,8 +108,9 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
         volk::volk_headers
         vulkan-memory-allocator::vulkan-memory-allocator
 
-        glslang::glslang
-        glslang::SPIRV
+        glslang
+        SPIRV
+        glslang-default-resource-limits
 
         TinyGLTF::TinyGLTF
 
