@@ -84,22 +84,12 @@ FIND_PACKAGE(glm REQUIRED)
 FIND_PACKAGE(volk CONFIG REQUIRED)
 FIND_PACKAGE(vulkan-memory-allocator CONFIG REQUIRED)
 
-FIND_PACKAGE(SPIRV-Tools CONFIG REQUIRED)
+FIND_PACKAGE(glslang CONFIG REQUIRED)
+
 FIND_PACKAGE(tinygltf CONFIG REQUIRED)
 
 FIND_PACKAGE(glfw3 CONFIG REQUIRED)
 FIND_PACKAGE(imgui CONFIG REQUIRED)
-
-INCLUDE(FetchContent)
-
-SET(ALLOW_EXTERNAL_SPIRV_TOOLS ON)
-
-FETCHCONTENT_DECLARE(
-        glslang
-        GIT_REPOSITORY https://github.com/KhronosGroup/glslang
-        GIT_TAG main
-)
-FETCHCONTENT_MAKEAVAILABLE(glslang)
 
 TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${glslang_SOURCE_DIR})
 
@@ -109,9 +99,8 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
         volk::volk_headers
         vulkan-memory-allocator::vulkan-memory-allocator
 
-        glslang
-        SPIRV
-        glslang-default-resource-limits
+        glslang::glslang
+        glslang::SPIRV
 
         TinyGLTF::TinyGLTF
 

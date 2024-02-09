@@ -1,7 +1,7 @@
 # Copyright Notices: [...]
 
 from conan import ConanFile
-from conan.tools.cmake import cmake_layout
+from conan.tools.cmake import cmake_layout, CMakeToolchain
 
 
 class VulkanRendererRecipe(ConanFile):
@@ -9,7 +9,7 @@ class VulkanRendererRecipe(ConanFile):
     version = "0.0.1"
 
     settings = "os", "compiler", "build_type", "arch"
-    generators = "CMakeToolchain", "CMakeDeps"
+    generators = "CMakeDeps"
 
     def requirements(self):
         # https://conan.io/center/recipes/glfw
@@ -19,7 +19,7 @@ class VulkanRendererRecipe(ConanFile):
         self.requires("imgui/1.90.1-docking")
 
         # https://conan.io/center/recipes/boost
-        self.requires("boost/[>=1.83]")
+        self.requires("boost/[>=1.84]")
 
         # https://conan.io/center/recipes/benchmark
         self.requires("benchmark/[>=1.8]")
@@ -33,6 +33,9 @@ class VulkanRendererRecipe(ConanFile):
         # https://conan.io/center/recipes/tinygltf
         self.requires("tinygltf/[>=2.8]")
 
+        # https://conan.io/center/recipes/glslang
+        self.requires("glslang/11.7.0")  # Update when glslang 14.0 is available
+
         # https://conan.io/center/recipes/volk
         self.requires("volk/[>=1.3]")
 
@@ -43,13 +46,14 @@ class VulkanRendererRecipe(ConanFile):
         self.requires("vulkan-headers/[>=1.3]", override=True)
 
         # https://conan.io/center/recipes/spirv-tools
-        self.requires("spirv-tools/[>=1.3]")
-
-        # https://conan.io/center/recipes/glslang
-        # self.requires("glslang/[>=11.7]")
+        self.requires("spirv-tools/2021.4", override=True)  # Update when glslang 14.0 is available
 
     def build_requirements(self):
         self.tool_requires("cmake/[>=3.28]")
 
     def layout(self):
         cmake_layout(self)
+
+    def generate(self):
+        tc = CMakeToolchain(self, generator="Ninja")
+        tc.generate()
