@@ -33,9 +33,6 @@ class VulkanRendererRecipe(ConanFile):
         # https://conan.io/center/recipes/tinygltf
         self.requires("tinygltf/[>=2.8]")
 
-        # https://conan.io/center/recipes/spirv-tools
-        self.requires("spirv-tools/[>=1.3]")
-
     def build_requirements(self):
         self.tool_requires("cmake/[>=3.28]")
 
