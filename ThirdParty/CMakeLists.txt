@@ -3,4 +3,6 @@
 # Repo : https://github.com/lucoiso/VulkanRenderer
 
 # -------------- Directories ---------------
-ADD_SUBDIRECTORY(ImGui-Backend)
+IF(LINK_IMGUI)
+    ADD_SUBDIRECTORY(ImGui-Backend)
+ENDIF()

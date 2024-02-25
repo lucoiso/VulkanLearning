@@ -6,13 +6,13 @@ module;
 
 #include "RenderCoreModule.hpp"
 #include <GLFW/glfw3.h>
+#include <Volk/volk.h>
 #include <cstdint>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
-#include <Volk/volk.h>
 
 export module RenderCore.Renderer;
 
@@ -101,12 +101,16 @@ namespace RenderCore
 
         [[nodiscard]] std::uint32_t GetNumObjects() const;
 
+#ifdef LINK_IMGUI
         [[nodiscard]] std::vector<VkImageView> GetViewportRenderImageViews() const;
+#endif
 
         [[nodiscard]] VkSampler GetSampler() const;
 
+#ifdef LINK_IMGUI
         static [[nodiscard]] bool IsImGuiInitialized();
 
         void SaveFrameToImageFile(std::string_view) const;
+#endif
     };
 }// namespace RenderCore

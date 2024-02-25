@@ -4,10 +4,13 @@
 
 module;
 
-#include <imgui.h>
 #include <boost/log/trivial.hpp>
 #include <GLFW/glfw3.h>
 #include <glm/ext.hpp>
+
+#ifdef LINK_IMGUI
+#include <imgui.h>
+#endif
 
 module RenderCore.Input.GLFWCallbacks;
 

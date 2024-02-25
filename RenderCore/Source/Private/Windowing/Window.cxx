@@ -5,11 +5,14 @@
 module;
 
 #include <chrono>
-#include <imgui.h>
 #include <numeric>
 #include <string>
 #include <boost/log/trivial.hpp>
 #include <GLFW/glfw3.h>
+
+#ifdef LINK_IMGUI
+#include <imgui.h>
+#endif
 
 module RenderCore.Window;
 

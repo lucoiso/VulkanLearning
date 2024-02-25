@@ -22,6 +22,9 @@ ENDIF (UNIX)
 SET(Boost_NO_WARN_NEW_VERSIONS ON)
 SET(BUILD_TESTS $ENV{BUILD_TESTS})
 
+# ---------------- OPTIONS -----------------
+OPTION(LINK_IMGUI "Link ImGui to the project, enabling support for custom viewport" ON)
+
 # -------------- Directories ---------------
 ADD_SUBDIRECTORY(RenderCore)
 ADD_SUBDIRECTORY(RadeonManager)

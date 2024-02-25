@@ -4,6 +4,7 @@
 
 module;
 
+#ifdef LINK_IMGUI
 #include <Volk/volk.h>
 #include <array>
 #include <boost/log/trivial.hpp>
@@ -11,9 +12,11 @@ module;
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <vector>
+#endif
 
 module RenderCore.Management.ImGuiManagement;
 
+#ifdef LINK_IMGUI
 import RenderCore.Renderer;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.PipelineManagement;
@@ -22,9 +25,11 @@ import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Types.Camera;
 import RuntimeInfo.Manager;
+#endif
 
 using namespace RenderCore;
 
+#ifdef LINK_IMGUI
 VkDescriptorPool g_ImGuiDescriptorPool {VK_NULL_HANDLE};
 
 void RenderCore::InitializeImGuiContext(GLFWwindow* const Window, SurfaceProperties const& SurfaceProperties)
@@ -155,3 +160,4 @@ bool RenderCore::IsImGuiInitialized()
 {
     return g_ImGuiDescriptorPool != VK_NULL_HANDLE;
 }
+#endif

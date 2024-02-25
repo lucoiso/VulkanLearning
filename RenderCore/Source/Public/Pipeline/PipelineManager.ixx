@@ -4,9 +4,9 @@
 
 module;
 
+#include <Volk/volk.h>
 #include <unordered_map>
 #include <vector>
-#include <Volk/volk.h>
 
 export module RenderCore.Management.PipelineManagement;
 
@@ -19,14 +19,17 @@ namespace RenderCore
 {
     export class PipelineManager
     {
-        VkPipeline m_MainPipeline{VK_NULL_HANDLE};
-        VkPipeline m_ViewportPipeline{VK_NULL_HANDLE};
+        VkPipeline m_MainPipeline {VK_NULL_HANDLE};
 
-        VkPipelineLayout m_PipelineLayout{VK_NULL_HANDLE};
-        VkPipelineCache m_PipelineCache{VK_NULL_HANDLE};
-        VkDescriptorPool m_DescriptorPool{VK_NULL_HANDLE};
-        VkDescriptorSetLayout m_DescriptorSetLayout{VK_NULL_HANDLE};
-        std::unordered_map<std::uint32_t, VkDescriptorSet> m_DescriptorSets{};
+#ifdef LINK_IMGUI
+        VkPipeline m_ViewportPipeline {VK_NULL_HANDLE};
+#endif
+
+        VkPipelineLayout m_PipelineLayout {VK_NULL_HANDLE};
+        VkPipelineCache m_PipelineCache {VK_NULL_HANDLE};
+        VkDescriptorPool m_DescriptorPool {VK_NULL_HANDLE};
+        VkDescriptorSetLayout m_DescriptorSetLayout {VK_NULL_HANDLE};
+        std::unordered_map<std::uint32_t, VkDescriptorSet> m_DescriptorSets {};
 
     public:
         void CreatePipelines(VkFormat, VkFormat, VkExtent2D const&);
@@ -43,7 +46,9 @@ namespace RenderCore
 
         [[nodiscard]] VkPipeline const& GetMainPipeline() const;
 
+#ifdef LINK_IMGUI
         [[nodiscard]] VkPipeline const& GetViewportPipeline() const;
+#endif
 
         [[nodiscard]] VkPipelineLayout const& GetPipelineLayout() const;
 

@@ -36,8 +36,8 @@ import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 
-VkInstance g_Instance{VK_NULL_HANDLE};
-Timer::Manager g_RenderTimerManager{};
+VkInstance g_Instance {VK_NULL_HANDLE};
+Timer::Manager g_RenderTimerManager {};
 
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE
                                                        | RendererStateFlags::PENDING_RESOURCES_DESTRUCTION
@@ -45,7 +45,7 @@ constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDI
                                                        | RendererStateFlags::PENDING_PIPELINE_REFRESH;
 
 #ifdef _DEBUG
-VkDebugUtilsMessengerEXT g_DebugMessenger{VK_NULL_HANDLE};
+VkDebugUtilsMessengerEXT g_DebugMessenger {VK_NULL_HANDLE};
 #endif
 
 bool CreateVulkanInstance()
@@ -53,18 +53,18 @@ bool CreateVulkanInstance()
     RuntimeInfo::Manager::Get().PushCallstack();
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating vulkan instance";
 
-    constexpr VkApplicationInfo AppInfo{
-            .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-            .pApplicationName = "VulkanApp",
+    constexpr VkApplicationInfo AppInfo {
+            .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+            .pApplicationName   = "VulkanApp",
             .applicationVersion = VK_MAKE_VERSION(1U, 0U, 0U),
-            .pEngineName = "No Engine",
-            .engineVersion = VK_MAKE_VERSION(1U, 0U, 0U),
-            .apiVersion = VK_API_VERSION_1_3};
+            .pEngineName        = "No Engine",
+            .engineVersion      = VK_MAKE_VERSION(1U, 0U, 0U),
+            .apiVersion         = VK_API_VERSION_1_3};
 
-    VkInstanceCreateInfo CreateInfo{
-            .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-            .pNext = nullptr,
-            .pApplicationInfo = &AppInfo,
+    VkInstanceCreateInfo CreateInfo {
+            .sType             = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+            .pNext             = nullptr,
+            .pApplicationInfo  = &AppInfo,
             .enabledLayerCount = 0U};
 
     std::vector Layers(std::cbegin(g_RequiredInstanceLayers), std::cend(g_RequiredInstanceLayers));
@@ -85,7 +85,7 @@ bool CreateVulkanInstance()
     Layers.insert(std::cend(Layers), std::cbegin(g_DebugInstanceLayers), std::cend(g_DebugInstanceLayers));
     Extensions.insert(std::cend(Extensions), std::cbegin(g_DebugInstanceExtensions), std::cend(g_DebugInstanceExtensions));
 
-    VkDebugUtilsMessengerCreateInfoEXT CreateDebugInfo{};
+    VkDebugUtilsMessengerCreateInfoEXT CreateDebugInfo {};
     PopulateDebugInfo(CreateDebugInfo, nullptr);
 #endif
 
@@ -149,7 +149,11 @@ void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera
             auto const SurfaceCapabilities = GetSurfaceCapabilities(m_BufferManager.GetSurface());
 
             m_BufferManager.CreateSwapChain(SurfaceProperties, SurfaceCapabilities);
+
+#ifdef LINK_IMGUI
             m_BufferManager.CreateViewportResources(SurfaceProperties);
+#endif
+
             m_BufferManager.CreateDepthResources(SurfaceProperties);
 
             Owner->RefreshResources();
@@ -173,6 +177,7 @@ void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera
     }
     else if (m_ImageIndex = RequestImageIndex(Window); m_ImageIndex.has_value())
     {
+#ifdef LINK_IMGUI
         DrawImGuiFrame(
                 [Owner] {
                     Owner->PreUpdate();
@@ -183,6 +188,7 @@ void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera
                 [Owner] {
                     Owner->PostUpdate();
                 });
+#endif
 
         if (!HasAnyFlag(m_StateFlags, g_InvalidStatesToRender) && m_ImageIndex.has_value())
         {
@@ -199,7 +205,7 @@ std::optional<std::int32_t> Renderer::RequestImageIndex(GLFWwindow* const Window
 {
     RuntimeInfo::Manager::Get().PushCallstack();
 
-    std::optional<std::int32_t> Output{};
+    std::optional<std::int32_t> Output {};
 
     if (!HasAnyFlag(m_StateFlags, g_InvalidStatesToRender))
     {
@@ -265,7 +271,7 @@ void Renderer::RemoveInvalidObjects()
 
     std::unique_lock Lock(m_RenderingMutex);
 
-    std::vector<std::uint32_t> LoadedIDs{};
+    std::vector<std::uint32_t> LoadedIDs {};
     for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
     {
         if (ObjectIter && ObjectIter->IsPendingDestroy())
@@ -307,7 +313,10 @@ bool Renderer::Initialize(GLFWwindow* const Window)
     m_BufferManager.CreateImageSampler();
     auto const _                 = CompileDefaultShaders();
     auto const SurfaceProperties = GetSurfaceProperties(Window, m_BufferManager.GetSurface());
+
+#ifdef LINK_IMGUI
     InitializeImGuiContext(Window, SurfaceProperties);
+#endif
 
     AddFlags(m_StateFlags, RendererStateFlags::INITIALIZED);
     AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
@@ -328,7 +337,10 @@ void Renderer::Shutdown([[maybe_unused]] GLFWwindow* const Window)
 
     RemoveFlags(m_StateFlags, RendererStateFlags::INITIALIZED);
 
+#ifdef LINK_IMGUI
     ReleaseImGuiResources();
+#endif
+
     ReleaseShaderResources();
     ReleaseCommandsResources();
     m_BufferManager.ReleaseBufferResources();
@@ -380,7 +392,7 @@ RendererStateFlags Renderer::GetStateFlags() const
 
 std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const ObjectPath)
 {
-    auto const _{RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
+    auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
 
     if (!IsInitialized())
     {
@@ -413,7 +425,7 @@ std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const ObjectPath
 
 void Renderer::UnloadScene(std::vector<std::uint32_t> const& ObjectIDs)
 {
-    auto const _{RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
+    auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
 
     if (!IsInitialized())
     {
@@ -438,7 +450,7 @@ void Renderer::UnloadScene(std::vector<std::uint32_t> const& ObjectIDs)
 
 void Renderer::UnloadAllScenes()
 {
-    std::vector<std::uint32_t> LoadedIDs{};
+    std::vector<std::uint32_t> LoadedIDs {};
     for (std::shared_ptr<Object> const& ObjectIter: m_Objects)
     {
         if (ObjectIter)
@@ -493,7 +505,7 @@ std::optional<std::int32_t> const& Renderer::GetImageIndex() const
     return m_ImageIndex;
 }
 
-std::vector<std::shared_ptr<Object> > const& Renderer::GetObjects() const
+std::vector<std::shared_ptr<Object>> const& Renderer::GetObjects() const
 {
     return m_Objects;
 }
@@ -511,6 +523,7 @@ std::uint32_t Renderer::GetNumObjects() const
     return std::size(m_Objects);
 }
 
+#ifdef LINK_IMGUI
 std::vector<VkImageView> Renderer::GetViewportRenderImageViews() const
 {
     std::vector<VkImageView> Output;
@@ -524,12 +537,14 @@ std::vector<VkImageView> Renderer::GetViewportRenderImageViews() const
 
     return Output;
 }
+#endif
 
 VkSampler Renderer::GetSampler() const
 {
     return m_BufferManager.GetSampler();
 }
 
+#ifdef LINK_IMGUI
 bool Renderer::IsImGuiInitialized()
 {
     return RenderCore::IsImGuiInitialized();
@@ -540,3 +555,4 @@ void Renderer::SaveFrameToImageFile(std::string_view const Path) const
     RuntimeInfo::Manager::Get().PushCallstack();
     m_BufferManager.SaveImageToFile(m_BufferManager.GetViewportImages().at(GetImageIndex().value()).Image, Path);
 }
+#endif

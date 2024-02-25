@@ -4,11 +4,11 @@
 
 module;
 
+#include <Volk/volk.h>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <vector>
-#include <Volk/volk.h>
 
 export module RenderCore.Management.CommandsManagement;
 
@@ -34,7 +34,7 @@ namespace RenderCore
                                      Camera const&,
                                      BufferManager const&,
                                      PipelineManager const&,
-                                     std::vector<std::shared_ptr<Object> > const&,
+                                     std::vector<std::shared_ptr<Object>> const&,
                                      VkExtent2D const&);
 
     export void SubmitCommandBuffers();
