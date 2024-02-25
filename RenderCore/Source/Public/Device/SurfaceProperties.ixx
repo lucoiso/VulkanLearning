@@ -14,10 +14,10 @@ namespace RenderCore
 {
     export struct SurfaceProperties
     {
-        VkSurfaceFormatKHR Format{};
-        VkFormat DepthFormat{};
-        VkPresentModeKHR Mode{};
-        VkExtent2D Extent{};
+        VkSurfaceFormatKHR Format {};
+        VkFormat DepthFormat {};
+        VkPresentModeKHR Mode {};
+        VkExtent2D Extent {};
 
         [[nodiscard]] bool IsValid() const
         {

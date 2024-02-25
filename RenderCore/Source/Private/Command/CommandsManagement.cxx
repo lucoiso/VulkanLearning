@@ -322,10 +322,6 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
                                                                                         ViewportImage,
                                                                                         SwapChainFormat);
 
-        BufferManager::MoveImageLayout<UndefinedLayout, DepthLayout, DepthAspect>(CommandBuffer,
-                                                                                  DepthImage,
-                                                                                  DepthFormat);
-
         VkRenderingAttachmentInfoKHR const ColorAttachmentInfo{
                 .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
                 .imageView = ViewportView,

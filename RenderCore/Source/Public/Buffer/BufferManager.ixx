@@ -110,7 +110,7 @@ namespace RenderCore
                                               VkImage const &Image,
                                               VkFormat const &Format)
         {
-            VkImageMemoryBarrier2KHR Barrier{
+            VkImageMemoryBarrier2KHR ImageBarrier{
                 .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR,
                 .srcAccessMask = 0U,
                 .dstAccessMask = 0U,
@@ -132,7 +132,7 @@ namespace RenderCore
             {
                 if (Format == VK_FORMAT_D32_SFLOAT_S8_UINT || Format == VK_FORMAT_D24_UNORM_S8_UINT)
                 {
-                    Barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+                    ImageBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
                 }
             }
 
@@ -140,55 +140,55 @@ namespace RenderCore
             {
                 if constexpr (Aspect == VK_IMAGE_ASPECT_DEPTH_BIT)
                 {
-                    Barrier.srcAccessMask = 0U;
-                    Barrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-                    Barrier.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                    ImageBarrier.srcAccessMask = 0U;
+                    ImageBarrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                    ImageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
                                            VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
-                    Barrier.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                    ImageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
                                            VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
                 }
                 else
                 {
-                    Barrier.srcAccessMask = 0U;
-                    Barrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-                    Barrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-                    Barrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+                    ImageBarrier.srcAccessMask = 0U;
+                    ImageBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+                    ImageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+                    ImageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
                 }
             }
             else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
             {
-                Barrier.srcAccessMask = 0U;
-                Barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-                Barrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-                Barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+                ImageBarrier.srcAccessMask = 0U;
+                ImageBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+                ImageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+                ImageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
             }
             else if constexpr (OldLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
             {
-                Barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-                Barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-                Barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-                Barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+                ImageBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+                ImageBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+                ImageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+                ImageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
             }
             else if constexpr (OldLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR && NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
             {
-                Barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-                Barrier.dstAccessMask = 0U;
-                Barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-                Barrier.dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+                ImageBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+                ImageBarrier.dstAccessMask = 0U;
+                ImageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+                ImageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
             }
             else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
             {
-                Barrier.srcAccessMask = 0U;
-                Barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-                Barrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-                Barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+                ImageBarrier.srcAccessMask = 0U;
+                ImageBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+                ImageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+                ImageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
             }
             else if constexpr (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
             {
-                Barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-                Barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-                Barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-                Barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+                ImageBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+                ImageBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+                ImageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+                ImageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
             }
             else
             {
@@ -198,7 +198,7 @@ namespace RenderCore
             VkDependencyInfoKHR const DependencyInfo{
                 .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR,
                 .imageMemoryBarrierCount = 1U,
-                .pImageMemoryBarriers = &Barrier
+                .pImageMemoryBarriers = &ImageBarrier
             };
 
             vkCmdPipelineBarrier2(CommandBuffer, &DependencyInfo);

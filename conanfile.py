@@ -16,7 +16,7 @@ class VulkanRendererRecipe(ConanFile):
         self.requires("glfw/[>=3.3]")
 
         # https://conan.io/center/recipes/imgui
-        self.requires("imgui/1.90.1-docking")
+        self.requires("imgui/1.90.4-docking")
 
         # https://conan.io/center/recipes/boost
         self.requires("boost/[>=1.84]",
