@@ -11,8 +11,8 @@ module;
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <vk_mem_alloc.h>
-#include <volk.h>
+#include <vma/vk_mem_alloc.h>
+#include <Volk/volk.h>
 #include <GLFW/glfw3.h>
 
 export module RenderCore.Management.BufferManagement;

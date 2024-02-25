@@ -6,7 +6,7 @@ module;
 
 #include <array>
 #include <ranges>
-#include <volk.h>
+#include <Volk/volk.h>
 #include <boost/log/trivial.hpp>
 
 module RenderCore.Management.PipelineManagement;

@@ -8,7 +8,7 @@ module;
 #include <charconv>
 #include <cstdint>
 #include <span>
-#include <volk.h>
+#include <Volk/volk.h>
 
 export module RenderCore.Utils.EnumConverter;
 

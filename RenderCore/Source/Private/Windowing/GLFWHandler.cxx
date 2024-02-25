@@ -7,7 +7,7 @@ module;
 #include <boost/log/trivial.hpp>
 
 // Include vulkan before glfw
-#include <volk.h>
+#include <Volk/volk.h>
 
 // Include glfw after vulkan
 #include <GLFW/glfw3.h>

@@ -6,7 +6,7 @@ module;
 
 #include <boost/log/trivial.hpp>
 #include <ranges>
-#include <vk_mem_alloc.h>
+#include <vma/vk_mem_alloc.h>
 
 module RenderCore.Management.AllocationRegister;
 

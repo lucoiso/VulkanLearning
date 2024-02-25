@@ -4,8 +4,8 @@
 
 module;
 
-#include <vk_mem_alloc.h>
-#include <volk.h>
+#include <vma/vk_mem_alloc.h>
+#include <Volk/volk.h>
 #include <algorithm>
 
 module RenderCore.Types.AllocationTypes;

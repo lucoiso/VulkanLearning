@@ -78,53 +78,21 @@ TARGET_SOURCES(${LIBRARY_NAME}
 TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${PRIVATE_MODULES_BASE_DIRECTORY})
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 
+
 FIND_PACKAGE(Boost REQUIRED COMPONENTS log)
-FIND_PACKAGE(glm REQUIRED)
-
-FIND_PACKAGE(volk CONFIG REQUIRED)
-FIND_PACKAGE(vulkan-memory-allocator CONFIG REQUIRED)
-
 FIND_PACKAGE(tinygltf CONFIG REQUIRED)
 
 FIND_PACKAGE(glfw3 CONFIG REQUIRED)
 FIND_PACKAGE(imgui CONFIG REQUIRED)
 
-# Remove when glslang 14.0 is available in conan center w/ support for SPIRV-Tools 1.3+
-INCLUDE(FetchContent)
-
-SET(GLSLANG_TESTS OFF CACHE BOOL "Enable glslang tests")
-SET(ENABLE_HLSL OFF CACHE BOOL "Enable HLSL support")
-SET(ENABLE_SPVREMAPPER OFF CACHE BOOL "Enable SPV remapper support")
-SET(ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Enable glslang binaries")
-SET(ENABLE_AMD_EXTENSIONS OFF CACHE BOOL "Enable AMD extensions")
-SET(ENABLE_NV_EXTENSIONS OFF CACHE BOOL "Enable NV extensions")
-SET(ENABLE_OPT OFF CACHE BOOL "Enable optimizer")
-SET(ENABLE_CTEST OFF CACHE BOOL "Enable CTest")
-
-FETCHCONTENT_DECLARE(
-        glslang
-        GIT_REPOSITORY https://github.com/KhronosGroup/glslang
-        GIT_TAG main
-)
-FETCHCONTENT_MAKEAVAILABLE(glslang)
-
-EXECUTE_PROCESS(COMMAND python update_glslang_sources.py WORKING_DIRECTORY ${glslang_SOURCE_DIR})
-TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${glslang_SOURCE_DIR})
+TARGET_LINK_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Libraries)
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
         Boost::log
 
-        volk::volk_headers
-        vulkan-memory-allocator::vulkan-memory-allocator
-
-        glslang
-        SPIRV
-        glslang-default-resource-limits
-
         TinyGLTF::TinyGLTF
 
         glfw
-        glm::glm
         imgui::imgui
 
         Timer
@@ -134,6 +102,28 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
 
         ImGui-Backend
 )
+
+SET(VULKAN_LIBS_TO_LINK
+        volk
+        SPIRV-Tools
+        SPIRV-Tools-opt
+        GenericCodeGen
+        glslang
+        glslang-default-resource-limits
+        MachineIndependent
+        OSDependent
+        SPIRV
+)
+
+FOREACH(VkLib ${VULKAN_LIBS_TO_LINK})
+    IF(CMAKE_BUILD_TYPE MATCHES "Debug")
+        TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE $ENV{VULKAN_SDK}/Lib/${VkLib}d.lib)
+    ELSE()
+        TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE $ENV{VULKAN_SDK}/Lib/${VkLib}.lib)
+    ENDIF(CMAKE_BUILD_TYPE MATCHES "Debug")
+ENDFOREACH()
+
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE $ENV{VULKAN_SDK}/Include)
 
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE
         # Assets directory (relative to binaries)
@@ -147,6 +137,8 @@ TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC
 )
 
 IF (WIN32)
+    SET(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
+
     TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC
             VK_USE_PLATFORM_WIN32_KHR
             WIN32_LEAN_AND_MEAN
@@ -154,10 +146,14 @@ IF (WIN32)
             _WIN32_WINNT=0x0601
     )
 ELSEIF (MACOS)
+    SET(VOLK_STATIC_DEFINES VK_USE_PLATFORM_MACOS_MVK)
+
     TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC
             VK_USE_PLATFORM_MACOS_MVK
     )
 ELSEIF (UNIX)
+    SET(VOLK_STATIC_DEFINES VK_USE_PLATFORM_XCB_KHR)
+
     TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC
             VK_USE_PLATFORM_XCB_KHR
     )

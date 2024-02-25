@@ -7,7 +7,7 @@ module;
 #include <array>
 #include <cstdint>
 #include <limits>
-#include <volk.h>
+#include <Volk/volk.h>
 
 export module RenderCore.Utils.Constants;
 

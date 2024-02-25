@@ -7,7 +7,7 @@ module;
 #include "RenderCoreModule.hpp"
 #include <cstdint>
 #include <vector>
-#include <vk_mem_alloc.h>
+#include <vma/vk_mem_alloc.h>
 
 export module RenderCore.Management.AllocationRegister;
 

@@ -4,7 +4,7 @@
 
 module;
 
-#include <volk.h>
+#include <Volk/volk.h>
 #include <glslang/Public/ShaderLang.h>
 
 export module RenderCore.Management.ShaderManagement;

@@ -2,10 +2,10 @@
 
 # Dependencies
 
-1. C++20
+1. C++23
 2. Python w/ conan and ninja
-3. CMake 3.28
-4. Vulkan SDK v1.3.268 (Does not need any modules except the SDK core)
+3. CMake 3.28+
+4. Vulkan SDK v1.3.275 w/ GLM, Volk and Vulkan Memory Allocation
 
 # Example
 

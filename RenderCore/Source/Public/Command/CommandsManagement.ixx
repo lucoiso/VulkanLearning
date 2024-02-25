@@ -8,7 +8,7 @@ module;
 #include <memory>
 #include <optional>
 #include <vector>
-#include <volk.h>
+#include <Volk/volk.h>
 
 export module RenderCore.Management.CommandsManagement;
 

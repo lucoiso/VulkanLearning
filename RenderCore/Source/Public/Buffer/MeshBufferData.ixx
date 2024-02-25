@@ -6,7 +6,7 @@ module;
 
 #include <cstdint>
 #include <unordered_map>
-#include <volk.h>
+#include <Volk/volk.h>
 
 export module RenderCore.Types.MeshBufferData;
 

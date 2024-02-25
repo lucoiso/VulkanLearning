@@ -10,10 +10,10 @@ module;
 #include <fstream>
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>
-#include <SPIRV/GlslangToSpv.h>
-#include <SPIRV/Logger.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
+#include <glslang/SPIRV/Logger.h>
 #include <ranges>
-#include <volk.h>
+#include <Volk/volk.h>
 
 #ifdef _DEBUG
 #include <spirv-tools/libspirv.hpp>

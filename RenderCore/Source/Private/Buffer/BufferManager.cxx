@@ -10,12 +10,12 @@ module;
 #include <glm/ext.hpp>
 #include <ranges>
 #include <span>
-#include <volk.h>
+#include <Volk/volk.h>
 
 #ifndef VMA_IMPLEMENTATION
 #define VMA_IMPLEMENTATION
 #endif
-#include <vk_mem_alloc.h>
+#include <vma/vk_mem_alloc.h>
 
 #ifndef TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_IMPLEMENTATION

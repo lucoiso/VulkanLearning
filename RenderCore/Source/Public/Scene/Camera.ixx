@@ -6,7 +6,7 @@ module;
 
 #include <cstdint>
 #include <memory>
-#include <volk.h>
+#include <Volk/volk.h>
 #include <glm/ext.hpp>
 #include "RenderCoreModule.hpp"
 
