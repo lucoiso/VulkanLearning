@@ -289,7 +289,7 @@ void CreateTextureSampler(VmaAllocator const& Allocator, VkSampler& Sampler)
             .addressModeV            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
             .addressModeW            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
             .mipLodBias              = 0.F,
-            .anisotropyEnable        = VK_TRUE,
+            .anisotropyEnable        = VK_FALSE,
             .maxAnisotropy           = SurfaceProperties.limits.maxSamplerAnisotropy,
             .compareEnable           = VK_FALSE,
             .compareOp               = VK_COMPARE_OP_ALWAYS,
@@ -370,6 +370,7 @@ ImageCreationData AllocateTexture(VmaAllocator const& Allocator,
                                   unsigned char const* Data,
                                   std::uint32_t const Width,
                                   std::uint32_t const Height,
+                                  VkFormat const ImageFormat,
                                   std::size_t const AllocationSize)
 {
     RuntimeInfo::Manager::Get().PushCallstack();
@@ -399,8 +400,6 @@ ImageCreationData AllocateTexture(VmaAllocator const& Allocator,
                            Output.StagingBuffer.second);
 
     std::memcpy(StagingInfo.pMappedData, Data, AllocationSize);
-
-    constexpr VkFormat ImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
 
     VkExtent2D const Extent {
             .width  = Width,
@@ -534,7 +533,7 @@ void BufferManager::CreateViewportResources(SurfaceProperties const& SurfaceProp
 
     constexpr VmaMemoryUsage MemoryUsage                   = VMA_MEMORY_USAGE_AUTO;
     constexpr VkImageAspectFlags AspectFlags               = VK_IMAGE_ASPECT_COLOR_BIT;
-    constexpr VkImageTiling Tiling                         = VK_IMAGE_TILING_LINEAR;
+    constexpr VkImageTiling Tiling                         = VK_IMAGE_TILING_OPTIMAL;
     constexpr VkImageUsageFlags UsageFlags                 = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     constexpr VmaAllocationCreateFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
@@ -613,6 +612,7 @@ void AllocateModelTexture(ObjectAllocationData& ObjectCreationData,
                           tinygltf::Model const& Model,
                           VmaAllocator const& Allocator,
                           std::int32_t const TextureIndex,
+                          VkFormat const ImageFormat,
                           TextureType const TextureType)
 {
     RuntimeInfo::Manager::Get().PushCallstack();
@@ -625,7 +625,7 @@ void AllocateModelTexture(ObjectAllocationData& ObjectCreationData,
             tinygltf::Image const& Image = Model.images.at(Texture.source);
 
             ObjectCreationData.ImageCreationDatas.push_back(
-                    AllocateTexture(Allocator, std::data(Image.image), Image.width, Image.height, std::size(Image.image)));
+                    AllocateTexture(Allocator, std::data(Image.image), Image.width, Image.height, ImageFormat, std::size(Image.image)));
             ObjectCreationData.ImageCreationDatas.back().Type = TextureType;
         }
     }
@@ -793,6 +793,7 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const ModelPat
                                      Model,
                                      m_Allocator,
                                      Material.pbrMetallicRoughness.baseColorTexture.index,
+                                     GetSwapChainImageFormat(),
                                      TextureType::BaseColor);
 
                 if (std::empty(NewObjectAllocation.ImageCreationDatas))
@@ -805,6 +806,7 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const ModelPat
                                                                                      std::data(DefaultTextureData),
                                                                                      DefaultTextureHalfSize,
                                                                                      DefaultTextureHalfSize,
+                                                                                     GetSwapChainImageFormat(),
                                                                                      DefaultTextureSize));
 
                     NewObjectAllocation.ImageCreationDatas.back().Type = TextureType::BaseColor;

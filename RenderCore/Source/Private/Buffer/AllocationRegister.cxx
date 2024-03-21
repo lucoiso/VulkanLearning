@@ -5,6 +5,7 @@
 module;
 
 #include <boost/log/trivial.hpp>
+#include <sstream>
 #include <ranges>
 #include <vma/vk_mem_alloc.h>
 
@@ -46,7 +47,11 @@ void AllocationRegister::AllocateDeviceMemoryCallback([[maybe_unused]] VmaAlloca
                                                       void* const UserData)
 {
     RuntimeInfo::Manager::Get().PushCallstack();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Allocating device memory " << std::hex << Memory << " with size " << AllocationSize << " bytes.";
+
+    std::stringstream MemAddress;
+    MemAddress << std::hex << Memory;
+
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Allocating device memory " << MemAddress.str() << " with size " << AllocationSize << " bytes.";
 
     AllocationRegisterData Data {MemoryType, Memory, AllocationSize, UserData};
     Get().RemoveElement(Data);

@@ -320,15 +320,6 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow* const Window, VkS
     }
 
     Output.Mode = VK_PRESENT_MODE_FIFO_KHR;
-    if (auto const MatchingMode = std::ranges::find_if(
-                SupportedPresentationModes,
-                [](VkPresentModeKHR const& Iter) {
-                    return Iter == VK_PRESENT_MODE_MAILBOX_KHR;
-                });
-        MatchingMode != std::cend(SupportedPresentationModes))
-    {
-        Output.Mode = *MatchingMode;
-    }
 
     for (constexpr std::array PreferredDepthFormats = {
                  VK_FORMAT_D32_SFLOAT,
