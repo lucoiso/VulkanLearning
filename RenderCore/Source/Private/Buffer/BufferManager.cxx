@@ -323,7 +323,7 @@ void CreateImageView(VkImage const& Image,
     CheckVulkanResult(vkCreateImageView(volkGetLoadedDevice(), &ImageViewCreateInfo, nullptr, &ImageView));
 }
 
-void CreateSwapChainImageViews(std::vector<ImageAllocation>& Images, VkFormat const& ImageFormat)
+void CreateSwapChainImageViews(std::vector<ImageAllocation>& Images, VkFormat const ImageFormat)
 {
     auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating vulkan swap chain image views";
@@ -333,10 +333,10 @@ void CreateSwapChainImageViews(std::vector<ImageAllocation>& Images, VkFormat co
     });
 }
 
-void CreateTextureImageView(ImageAllocation& Allocation)
+void CreateTextureImageView(ImageAllocation& Allocation, VkFormat const ImageFormat)
 {
     RuntimeInfo::Manager::Get().PushCallstack();
-    CreateImageView(Allocation.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, Allocation.View);
+    CreateImageView(Allocation.Image, ImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, Allocation.View);
 }
 
 void CopyBufferToImage(VkCommandBuffer const& CommandBuffer,
@@ -385,7 +385,7 @@ ImageCreationData AllocateTexture(VmaAllocator const& Allocator,
     constexpr VkImageUsageFlags DestinationUsageFlags                 = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     constexpr VmaAllocationCreateFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
-    constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
+    constexpr VkImageTiling Tiling = VK_IMAGE_TILING_LINEAR;
 
     ImageCreationData Output {};
 
@@ -533,7 +533,7 @@ void BufferManager::CreateViewportResources(SurfaceProperties const& SurfaceProp
 
     constexpr VmaMemoryUsage MemoryUsage                   = VMA_MEMORY_USAGE_AUTO;
     constexpr VkImageAspectFlags AspectFlags               = VK_IMAGE_ASPECT_COLOR_BIT;
-    constexpr VkImageTiling Tiling                         = VK_IMAGE_TILING_OPTIMAL;
+    constexpr VkImageTiling Tiling                         = VK_IMAGE_TILING_LINEAR;
     constexpr VkImageUsageFlags UsageFlags                 = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     constexpr VmaAllocationCreateFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
@@ -948,7 +948,7 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const ModelPat
         {
             if (m_Objects.contains(Object.GetID()))
             {
-                CreateTextureImageView(Allocation);
+                CreateTextureImageView(Allocation, GetSwapChainImageFormat());
                 m_Objects.at(Object.GetID()).TextureImages.push_back(Allocation);
             }
 

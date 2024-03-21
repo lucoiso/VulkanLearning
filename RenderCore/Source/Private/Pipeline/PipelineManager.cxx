@@ -128,8 +128,16 @@ void CreatePipeline(bool const IsViewport,
             .minDepthBounds        = 0.F,
             .maxDepthBounds        = 1.F};
 
+    VkAttachmentSampleCountInfoAMD const AttachmentCountInfo {
+            .sType                         = VK_STRUCTURE_TYPE_ATTACHMENT_SAMPLE_COUNT_INFO_AMD,
+            .pNext                         = nullptr,
+            .colorAttachmentCount          = 1U,
+            .pColorAttachmentSamples       = &g_MSAASamples,
+            .depthStencilAttachmentSamples = g_MSAASamples};
+
     VkPipelineRenderingCreateInfoKHR const RenderingCreateInfo {
             .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+            .pNext                   = &AttachmentCountInfo,
             .colorAttachmentCount    = 1U,
             .pColorAttachmentFormats = &RenderingFormat,
             .depthAttachmentFormat   = DepthFormat};

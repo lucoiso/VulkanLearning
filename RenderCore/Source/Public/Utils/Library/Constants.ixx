@@ -64,7 +64,9 @@ export namespace RenderCore
     constexpr std::array<char const*, 0U> g_OptionalInstanceExtensions = {};
 
     constexpr std::array g_OptionalDeviceExtensions = {
-            VK_EXT_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_EXTENSION_NAME};
+            VK_EXT_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_EXTENSION_NAME,
+            VK_AMD_MIXED_ATTACHMENT_SAMPLES_EXTENSION_NAME,
+            VK_NV_FRAMEBUFFER_MIXED_SAMPLES_EXTENSION_NAME};
 
     constexpr std::array g_DynamicStates = {
             VK_DYNAMIC_STATE_VIEWPORT,

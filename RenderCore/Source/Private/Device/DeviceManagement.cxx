@@ -312,7 +312,7 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow* const Window, VkS
     if (auto const MatchingFormat = std::ranges::find_if(
                 SupportedFormats,
                 [](VkSurfaceFormatKHR const& Iter) {
-                    return Iter.format == VK_FORMAT_B8G8R8A8_SRGB && Iter.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+                    return Iter.format == VK_FORMAT_R8G8B8A8_SRGB && Iter.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
                 });
         MatchingFormat != std::cend(SupportedFormats))
     {
