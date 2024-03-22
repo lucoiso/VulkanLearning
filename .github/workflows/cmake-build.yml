@@ -65,12 +65,8 @@ jobs:
           vulkan-components: Vulkan-Headers
           vulkan-use-cache: true
 
-      - name: Configure and Build Project
-        uses: lukka/run-cmake@v10
-        with:
-          cmakeListsTxtPath: '${{github.workspace}}/CMakeLists.txt'
-          configurePreset: ${{env.CONAN_PRESET}}
-          buildPreset: ${{env.CONAN_PRESET}}
+      - name: Build Project
+        run: cmake --build --preset ${{env.CONAN_PRESET}}
 
       # - name: Run Tests
       #   working-directory: ${{github.workspace}}/build
