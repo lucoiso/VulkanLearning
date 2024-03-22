@@ -94,7 +94,7 @@ void FreeCommandBuffers()
                              static_cast<std::uint32_t>(std::size(g_CommandBuffers)),
                              std::data(g_CommandBuffers));
 
-        std::ranges::for_each(g_CommandBuffers, [](VkCommandBuffer& CommandBufferIter) {
+        std::ranges::for_each(g_CommandBuffers, [ ](VkCommandBuffer& CommandBufferIter) {
             CommandBufferIter = VK_NULL_HANDLE;
         });
         g_CommandBuffers.clear();
@@ -609,7 +609,7 @@ void RenderCore::FinishSingleCommandQueue(VkQueue const& Queue,
     }
 
     std::erase_if(CommandBuffers,
-                  [](VkCommandBuffer const& CommandBufferIter) {
+                  [ ](VkCommandBuffer const& CommandBufferIter) {
                       return CommandBufferIter == VK_NULL_HANDLE;
                   });
 

@@ -2,9 +2,9 @@ name: CMake Build Workflow
 
 on:
   push:
-    branches: [ "main", "conan-exp" ]
+    branches: [ ] # Temporarily disabled
   pull_request:
-    branches: [ "main", "conan-exp" ]
+    branches: [ ] # Temporarily disabled
 
 env:
   BUILD_TYPE: Release

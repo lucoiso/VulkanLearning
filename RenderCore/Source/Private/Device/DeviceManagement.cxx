@@ -310,7 +310,7 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow* const Window, VkS
 
     if (auto const MatchingFormat = std::ranges::find_if(
                 SupportedFormats,
-                [](VkSurfaceFormatKHR const& Iter) {
+                [ ](VkSurfaceFormatKHR const& Iter) {
                     return Iter.format == VK_FORMAT_R8G8B8A8_SRGB && Iter.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
                 });
         MatchingFormat != std::cend(SupportedFormats))
@@ -370,7 +370,7 @@ std::vector<std::uint32_t> RenderCore::GetUniqueQueueFamilyIndicesU32()
     std::ranges::transform(
             g_UniqueQueueFamilyIndices,
             std::begin(QueueFamilyIndicesU32),
-            [](std::uint8_t const& Index) {
+            [ ](std::uint8_t const& Index) {
                 return static_cast<std::uint32_t>(Index);
             });
 

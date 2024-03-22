@@ -514,7 +514,7 @@ void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties,
     CheckVulkanResult(vkGetSwapchainImagesKHR(volkGetLoadedDevice(), m_SwapChain, &Count, std::data(SwapChainImages)));
 
     m_SwapChainImages.resize(Count, ImageAllocation());
-    std::ranges::transform(SwapChainImages, std::begin(m_SwapChainImages), [](VkImage const& Image) {
+    std::ranges::transform(SwapChainImages, std::begin(m_SwapChainImages), [ ](VkImage const& Image) {
         return ImageAllocation {.Image = Image};
     });
     CreateSwapChainImageViews(m_SwapChainImages, SurfaceProperties.Format.format);

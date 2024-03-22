@@ -39,7 +39,7 @@ void RenderCore::InitializeImGuiContext(GLFWwindow* const Window, SurfacePropert
 
     IMGUI_CHECKVERSION();
 
-    ImGui_ImplVulkan_LoadFunctions([](const char* FunctionName, void*) {
+    ImGui_ImplVulkan_LoadFunctions([ ](const char* FunctionName, void*) {
         return vkGetInstanceProcAddr(volkGetLoadedInstance(), FunctionName);
     });
 
@@ -107,7 +107,7 @@ void RenderCore::InitializeImGuiContext(GLFWwindow* const Window, SurfacePropert
                     .depthAttachmentFormat   = SurfaceProperties.DepthFormat,
                     .stencilAttachmentFormat = VK_FORMAT_UNDEFINED},
             .Allocator       = VK_NULL_HANDLE,
-            .CheckVkResultFn = [](VkResult Result) {
+            .CheckVkResultFn = [ ](VkResult Result) {
                 CheckVulkanResult(Result);
             }};
 

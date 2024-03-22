@@ -86,7 +86,7 @@ namespace RenderCore
         static constexpr void RemoveInvalid(std::vector<std::shared_ptr<Control> >& Children)
         {
             std::erase_if(Children,
-                          [](std::shared_ptr<Control> const& Child) {
+                          [ ](std::shared_ptr<Control> const& Child) {
                               return !Child;
                           });
         }
