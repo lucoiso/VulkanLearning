@@ -35,6 +35,11 @@ jobs:
           fetch-depth: 0
           submodules: 'recursive'
 
+      - name: Setup MSVC Dev Tools
+        uses: TheMrMilchmann/setup-msvc-dev@v3
+        with:
+          arch: x64
+
       - name: Get CMake and Ninja
         uses: lukka/get-cmake@latest
         with:
