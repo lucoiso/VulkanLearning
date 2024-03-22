@@ -2,9 +2,9 @@ name: CMake Build Workflow
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ ] # Temporarily disabled
   pull_request:
-    branches: [ "main" ]
+    branches: [ ] # Temporarily disabled
 
 env:
   BUILD_TYPE: Release
@@ -75,5 +75,5 @@ jobs:
       #   run: ctest -C ${{env.BUILD_TYPE}} --repeat until-pass:8 --output-on-failure --verbose
 
       # - name: Run Benchmark
-      #   working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/Binaries
+      #   working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}/${{env.BUILD_TYPE}}/bin
       #   run: ./RenderCoreBenchmark.exe

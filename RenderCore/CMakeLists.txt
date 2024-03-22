@@ -7,28 +7,28 @@ SET(LIBRARY_NAME RenderCore)
 SET(RENDERER_RESOURCES_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Resources)
 
 # ------------- Library Setup --------------
-SET(PRIVATE_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Private)
-SET(PUBLIC_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Modules/Public)
+SET(PRIVATE_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Source/Private)
+SET(PUBLIC_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Source/Public)
 
 SET(PRIVATE_MODULES
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/Window.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/Control.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/GLFWHandler.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Renderer.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationRegister.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Input/GLFWCallbacks.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Camera.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Object.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Debug/DebugHelpers.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Library/Helpers.cppm
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Subsystem/RenderingSubsystem.cppm
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/Window.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/Control.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/GLFWHandler.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Renderer.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationRegister.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Input/GLFWCallbacks.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Camera.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Object.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Debug/DebugHelpers.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Library/Helpers.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Subsystem/RenderingSubsystem.cxx
 )
 
 SET(PUBLIC_MODULES
@@ -79,44 +79,57 @@ TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${PRIVATE_MODULES_BASE_DIRECT
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 
 FIND_PACKAGE(Boost REQUIRED COMPONENTS log)
-FIND_PACKAGE(glm REQUIRED)
-FIND_PATH(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
-
-FIND_PACKAGE(volk CONFIG REQUIRED)
-FIND_PACKAGE(VulkanMemoryAllocator CONFIG REQUIRED)
-FIND_PACKAGE(SPIRV-Tools CONFIG REQUIRED)
-
-FIND_PACKAGE(glslang CONFIG REQUIRED)
+FIND_PACKAGE(tinygltf CONFIG REQUIRED)
 
 FIND_PACKAGE(glfw3 CONFIG REQUIRED)
-FIND_PACKAGE(imgui CONFIG REQUIRED)
+
+IF (LINK_IMGUI)
+    FIND_PACKAGE(imgui CONFIG REQUIRED)
+
+    TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
+            imgui::imgui
+            ImGui-Backend
+    )
+
+    TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE LINK_IMGUI)
+ENDIF ()
+
+TARGET_LINK_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Libraries)
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
         Boost::log
 
-        volk::volk_headers
-        GPUOpen::VulkanMemoryAllocator
-        SPIRV-Tools-static
-
-        glslang::glslang
-        glslang::glslang-default-resource-limits
-        glslang::SPIRV
+        TinyGLTF::TinyGLTF
 
         glfw
-        glm::glm
-        imgui::imgui
 
         Timer
         RuntimeInfo
         Configuration
         Coroutine
-
-        ImGui-Backend
 )
 
-TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE
-        ${TINYGLTF_INCLUDE_DIRS}
+SET(VULKAN_LIBS_TO_LINK
+        volk
+        SPIRV-Tools
+        SPIRV-Tools-opt
+        GenericCodeGen
+        glslang
+        glslang-default-resource-limits
+        MachineIndependent
+        OSDependent
+        SPIRV
 )
+
+FOREACH (VkLib ${VULKAN_LIBS_TO_LINK})
+    IF (CMAKE_BUILD_TYPE MATCHES "Debug")
+        TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE $ENV{VULKAN_SDK}/Lib/${VkLib}d.lib)
+    ELSE ()
+        TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE $ENV{VULKAN_SDK}/Lib/${VkLib}.lib)
+    ENDIF (CMAKE_BUILD_TYPE MATCHES "Debug")
+ENDFOREACH ()
+
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE $ENV{VULKAN_SDK}/Include)
 
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE
         # Assets directory (relative to binaries)
@@ -130,6 +143,8 @@ TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC
 )
 
 IF (WIN32)
+    SET(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
+
     TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC
             VK_USE_PLATFORM_WIN32_KHR
             WIN32_LEAN_AND_MEAN
@@ -137,10 +152,14 @@ IF (WIN32)
             _WIN32_WINNT=0x0601
     )
 ELSEIF (MACOS)
+    SET(VOLK_STATIC_DEFINES VK_USE_PLATFORM_MACOS_MVK)
+
     TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC
             VK_USE_PLATFORM_MACOS_MVK
     )
 ELSEIF (UNIX)
+    SET(VOLK_STATIC_DEFINES VK_USE_PLATFORM_XCB_KHR)
+
     TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC
             VK_USE_PLATFORM_XCB_KHR
     )
