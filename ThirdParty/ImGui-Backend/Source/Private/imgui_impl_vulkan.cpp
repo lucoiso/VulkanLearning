@@ -1698,9 +1698,7 @@ static void ImGui_ImplVulkan_CreateWindow(ImGuiViewport* viewport)
         requestSurfaceImageFormats.push_back(v->PipelineRenderingCreateInfo.pColorAttachmentFormats[n]);
 #endif
 
-    //~ Begin: Add VK_FORMAT_B8G8R8A8_SRGB to default formats container
-    const VkFormat defaultFormats[] = { VK_FORMAT_B8G8R8A8_SRGB, VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };
-    //~ End: Add VK_FORMAT_B8G8R8A8_SRGB to default formats container
+    const VkFormat defaultFormats[] = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };
 
     for (VkFormat format : defaultFormats)
         requestSurfaceImageFormats.push_back(format);
