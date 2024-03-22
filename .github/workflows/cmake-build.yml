@@ -45,10 +45,6 @@ jobs:
         id: conan
         uses: turtlebrowser/get-conan@main
 
-      - name: Install Conan
-        id: conan
-        uses: turtlebrowser/get-conan@main
-
       - name: Setup Conan Profile
         working-directory: ${{github.workspace}}
         run: conan profile detect --force
