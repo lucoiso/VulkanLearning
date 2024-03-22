@@ -497,24 +497,27 @@ void RenderCore::SubmitCommandBuffers()
     WaitAndResetFences();
 
     VkSemaphoreSubmitInfoKHR WaitSemaphoreInfo = {
+            .sType       = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
+            .semaphore   = g_ImageAvailableSemaphore,
+            .value       = 1U,
+            .stageMask   = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,
+            .deviceIndex = 0U};
+
+    VkSemaphoreSubmitInfoKHR SignalSemaphoreInfo = {
             .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-            .semaphore = g_ImageAvailableSemaphore,
-            .value     = 1U,
-            .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR};
+            .semaphore = g_RenderFinishedSemaphore,
+            .value     = 1U};
 
     std::vector<VkCommandBufferSubmitInfoKHR> CommandBufferInfos;
     CommandBufferInfos.reserve(std::size(g_CommandBuffers));
 
     for (VkCommandBuffer const& CommandBufferIter: g_CommandBuffers)
     {
-        CommandBufferInfos.push_back({.sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR,
-                                      .commandBuffer = CommandBufferIter});
+        CommandBufferInfos.push_back(VkCommandBufferSubmitInfo {
+                .sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR,
+                .commandBuffer = CommandBufferIter,
+                .deviceMask    = 0U});
     }
-
-    VkSemaphoreSubmitInfoKHR SignalSemaphoreInfo = {
-            .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-            .semaphore = g_RenderFinishedSemaphore,
-            .value     = 1U};
 
     VkSubmitInfo2KHR const SubmitInfo = {
             .sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
@@ -633,5 +636,6 @@ void RenderCore::FinishSingleCommandQueue(VkQueue const& Queue,
                          CommandPool,
                          static_cast<std::uint32_t>(std::size(CommandBuffers)),
                          std::data(CommandBuffers));
+
     vkDestroyCommandPool(volkGetLoadedDevice(), CommandPool, nullptr);
 }

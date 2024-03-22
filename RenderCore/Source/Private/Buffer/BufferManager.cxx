@@ -545,7 +545,7 @@ void BufferManager::CreateViewportResources(SurfaceProperties const& SurfaceProp
                     UsageFlags,
                     MemoryPropertyFlags,
                     MemoryUsage,
-                    "VIEWPORT",
+                    "VIEWPORT_IMAGE",
                     ImageIter.Image,
                     ImageIter.Allocation);
 
@@ -568,7 +568,7 @@ void BufferManager::CreateDepthResources(SurfaceProperties const& SurfacePropert
     constexpr VkImageTiling Tiling                         = VK_IMAGE_TILING_OPTIMAL;
     constexpr VkImageUsageFlagBits Usage                   = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     constexpr VmaAllocationCreateFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-    constexpr VkImageAspectFlagBits Aspect                 = VK_IMAGE_ASPECT_DEPTH_BIT;
+    constexpr VkImageAspectFlags Aspect                    = VK_IMAGE_ASPECT_DEPTH_BIT;
 
     m_DepthFormat = SurfaceProperties.DepthFormat;
 
@@ -593,7 +593,7 @@ void BufferManager::CreateDepthResources(SurfaceProperties const& SurfacePropert
                 Usage,
                 MemoryPropertyFlags,
                 MemoryUsage,
-                "DEPTH",
+                "VIEWPORT_DEPTH",
                 m_ViewportDepthImage.Image,
                 m_ViewportDepthImage.Allocation);
 
