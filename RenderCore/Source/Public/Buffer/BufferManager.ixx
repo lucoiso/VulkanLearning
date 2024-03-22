@@ -39,6 +39,7 @@ namespace RenderCore
 
 #ifdef LINK_IMGUI
         std::vector<ImageAllocation> m_ViewportImages {};
+        ImageAllocation m_ViewportDepthImage {};
 #endif
 
         VkSampler m_Sampler {VK_NULL_HANDLE};
@@ -82,6 +83,8 @@ namespace RenderCore
 
 #ifdef LINK_IMGUI
         [[nodiscard]] std::vector<ImageAllocation> const& GetViewportImages() const;
+
+        [[nodiscard]] ImageAllocation const& GetViewportDepthImage() const;
 #endif
 
         [[nodiscard]] ImageAllocation const& GetDepthImage() const;

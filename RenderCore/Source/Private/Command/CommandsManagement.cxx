@@ -265,6 +265,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
 
 #ifdef LINK_IMGUI
     auto const& [ViewportImage, ViewportView, ViewportAllocation, ViewportType] = BufferManager.GetViewportImages().at(ImageIndex);
+    auto const& [ViewportDepthImage, ViewportDepthView, ViewportDepthAllocation, ViewportDepthType]                 = BufferManager.GetViewportDepthImage();
 #endif
 
     auto const& [SwapChainImage, SwapChainView, SwapChainAllocation, SwapChainType] = BufferManager.GetSwapChainImages().at(ImageIndex);
@@ -332,6 +333,10 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
                                                                                         ViewportImage,
                                                                                         SwapChainFormat);
 
+        BufferManager::MoveImageLayout<UndefinedLayout, DepthLayout, DepthAspect>(CommandBuffer,
+                                                                                  ViewportDepthImage,
+                                                                                  DepthFormat);
+
         VkRenderingAttachmentInfoKHR const ColorAttachmentInfo {
                 .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
                 .imageView   = ViewportView,
@@ -342,7 +347,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
 
         VkRenderingAttachmentInfoKHR const DepthAttachmentInfo {
                 .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-                .imageView   = DepthView,
+                .imageView   = ViewportDepthView,
                 .imageLayout = DepthLayout,
                 .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
                 .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,

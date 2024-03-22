@@ -248,7 +248,6 @@ void CreateLogicalDevice(VkSurfaceKHR const& VulkanSurface)
     {
         throw std::runtime_error("Failed to get graphics queue.");
     }
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: 1";
 
     if (vkGetDeviceQueue(g_Device, g_PresentationQueue.first, 0U, &g_PresentationQueue.second);
         g_PresentationQueue.second == VK_NULL_HANDLE)
