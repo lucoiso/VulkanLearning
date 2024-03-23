@@ -13,7 +13,7 @@ class VulkanRendererRecipe(ConanFile):
 
     def requirements(self):
         # https://conan.io/center/recipes/glfw
-        self.requires("glfw/[>=3.3]")
+        self.requires("glfw/[>=3.4]")
 
         # https://conan.io/center/recipes/imgui
         self.requires("imgui/1.90.4-docking")
@@ -28,7 +28,7 @@ class VulkanRendererRecipe(ConanFile):
         self.requires("benchmark/[>=1.8]")
 
         # https://conan.io/center/recipes/catch2
-        self.requires("catch2/[>=3.4]")
+        self.requires("catch2/[>=3.5]")
 
         # https://conan.io/center/recipes/tinygltf
         self.requires("tinygltf/[>=2.8]")

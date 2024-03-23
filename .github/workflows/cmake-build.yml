@@ -7,10 +7,8 @@ on:
     branches: [ "main" ]
 
 env:
-  BUILD_TYPE: Release
-  BUILD_TESTS: false # The CI isn't supporting vulkan at the moment, will re-enable later
+  BUILD_TESTS: false # Currently with no access to VMs w/ GPU
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-  OUTPUT_DIRECTORY: build/bin
   CONAN_PRESET: conan-release
   CONAN_PROFILE: Profiles/WinRel
 
@@ -22,11 +20,33 @@ permissions:
   security-events: write
 
 jobs:
-  build_project:
+  build:
     runs-on: ${{ matrix.os }}
+
     strategy:
+      fail-fast: false
+
       matrix:
-        os: [ windows-latest ] # , ubuntu-latest, macos-latest
+        os: [ ubuntu-latest, windows-latest ]
+        build_type: [ Release ]
+        c_compiler: [ gcc, clang, cl ]
+        include:
+          - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
+          - os: ubuntu-latest
+            c_compiler: gcc
+            cpp_compiler: g++
+          - os: ubuntu-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+        exclude:
+          - os: windows-latest
+            c_compiler: gcc
+          - os: windows-latest
+            c_compiler: clang
+          - os: ubuntu-latest
+            c_compiler: cl
 
     steps:
       - name: Checkout & Init Submodules
@@ -35,10 +55,11 @@ jobs:
           fetch-depth: 0
           submodules: 'recursive'
 
-      - name: Setup MSVC Dev Tools
-        uses: TheMrMilchmann/setup-msvc-dev@v3
-        with:
-          arch: x64
+      - name: Set reusable strings
+        id: strings
+        shell: bash
+        run: |
+          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
       - name: Get CMake and Ninja
         uses: lukka/get-cmake@latest
@@ -46,7 +67,7 @@ jobs:
           cmakeVersion: latest
           ninjaVersion: latest
 
-      - name: Install Conan
+      - name: Get Conan
         id: conan
         uses: turtlebrowser/get-conan@main
 
@@ -65,13 +86,23 @@ jobs:
           vulkan-components: Vulkan-Headers
           vulkan-use-cache: true
 
+      - name: Configure CMake
+        run: >
+          cmake -B ${{ steps.strings.outputs.build-output-dir }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -S ${{ github.workspace }}
+          -G "Ninja"
+          --preset ${{env.CONAN_PRESET}}
+
       - name: Build Project
-        run: cmake --build --preset ${{env.CONAN_PRESET}}
+        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} --preset ${{env.CONAN_PRESET}}
 
       # - name: Run Tests
-      #   working-directory: ${{github.workspace}}/build
-      #   run: ctest -C ${{env.BUILD_TYPE}} --repeat until-pass:8 --output-on-failure --verbose
+      #   working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      #   run: ctest --build-config ${{ matrix.build_type }}
 
       # - name: Run Benchmark
-      #   working-directory: ${{github.workspace}}/${{env.OUTPUT_DIRECTORY}}
+      #   working-directory: ${{ steps.strings.outputs.build-output-dir }}/bin
       #   run: ./RenderCoreBenchmark.exe

@@ -84,7 +84,6 @@
 //  2016-08-27: Vulkan: Fix Vulkan example for use when a depth buffer is active.
 
 #include "imgui.h"
-
 #ifndef IMGUI_DISABLE
 #include "imgui_impl_vulkan.h"
 #include <stdio.h>
@@ -501,11 +500,10 @@ static void ImGui_ImplVulkan_SetupRenderState(ImDrawData* draw_data, VkPipeline 
         float translate[2];
         translate[0] = -1.0f - draw_data->DisplayPos.x * scale[0];
         translate[1] = -1.0f - draw_data->DisplayPos.y * scale[1];
-
         //~ Begin: Set flag to reset the entire pool to avoid performance warnings
-        std::vector<float> const push_constants { scale[0], scale[1], translate[0], translate[1] };
+        std::vector const push_constants { scale[0], scale[1], translate[0], translate[1] };
         vkCmdPushConstants(command_buffer, bd->PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * std::size(push_constants), std::data(push_constants));
-        //~ End: Set flag to reset the entire pool to avoid performance warnings
+        //~ End: Set flag to reset the entire pool to avoid performance warnings    }
     }
 }
 
@@ -1107,11 +1105,11 @@ bool    ImGui_ImplVulkan_LoadFunctions(PFN_vkVoidFunction(*loader_func)(const ch
 #undef IMGUI_VULKAN_FUNC_LOAD
 
 #ifdef IMGUI_IMPL_VULKAN_HAS_DYNAMIC_RENDERING
-    // Manually load those two (see #5446)
-    //~ Begin: Load vkCmdBeginRendering/vkCmdEndRendering instead of vkCmdBeginRenderingKHR/vkCmdEndRenderingKHR to avoid crashes due to volk loader. Removed 'KHR' from the function names.
-    ImGuiImplVulkanFuncs_vkCmdBeginRenderingKHR = reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(loader_func("vkCmdBeginRendering", user_data));
-    ImGuiImplVulkanFuncs_vkCmdEndRenderingKHR = reinterpret_cast<PFN_vkCmdEndRenderingKHR>(loader_func("vkCmdEndRendering", user_data));
-    //~ End: Load vkCmdBeginRendering/vkCmdEndRendering instead of vkCmdBeginRenderingKHR/vkCmdEndRenderingKHR to avoid crashes due to volk loader. Removed 'KHR' from the function names.
+        // Manually load those two (see #5446)
+        //~ Begin: Load vkCmdBeginRendering/vkCmdEndRendering instead of vkCmdBeginRenderingKHR/vkCmdEndRenderingKHR to avoid crashes due to volk loader. Removed 'KHR' from the function names.
+        ImGuiImplVulkanFuncs_vkCmdBeginRenderingKHR = reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(loader_func("vkCmdBeginRendering", user_data));
+        ImGuiImplVulkanFuncs_vkCmdEndRenderingKHR = reinterpret_cast<PFN_vkCmdEndRenderingKHR>(loader_func("vkCmdEndRendering", user_data));
+        //~ End: Load vkCmdBeginRendering/vkCmdEndRendering instead of vkCmdBeginRenderingKHR/vkCmdEndRenderingKHR to avoid crashes due to volk loader. Removed 'KHR' from the function names.
 #endif
 #else
     IM_UNUSED(loader_func);
@@ -1697,9 +1695,7 @@ static void ImGui_ImplVulkan_CreateWindow(ImGuiViewport* viewport)
     for (uint32_t n = 0; n < v->PipelineRenderingCreateInfo.colorAttachmentCount; n++)
         requestSurfaceImageFormats.push_back(v->PipelineRenderingCreateInfo.pColorAttachmentFormats[n]);
 #endif
-
     const VkFormat defaultFormats[] = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };
-
     for (VkFormat format : defaultFormats)
         requestSurfaceImageFormats.push_back(format);
 
