@@ -45,10 +45,6 @@ jobs:
 
         exclude:
           - os: windows-latest
-            c_compiler: gcc
-            cpp_compiler: g++
-
-          - os: windows-latest
             c_compiler: clang
             cpp_compiler: clang++
 
@@ -56,17 +52,9 @@ jobs:
             c_compiler: cl
             cpp_compiler: cl
 
-          - os: ubuntu-latest
-            c_compiler: gcc
-            cpp_compiler: g++
-
           - os: macos-latest
             c_compiler: cl
             cpp_compiler: cl
-
-          - os: macos-latest
-            c_compiler: gcc
-            cpp_compiler: g++
 
     steps:
       - name: Checkout & Init Submodules
