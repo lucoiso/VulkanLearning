@@ -78,13 +78,9 @@ jobs:
       - name: Install Ubuntu Dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get install -y libgl-dev
-          sudo apt-get install -y libgl1-mesa-dev
-          sudo apt-get install libc++-dev
-
-      - name: Install MacOS Dependencies
-        if: matrix.os == 'macos-latest'
-        run: xcode-select --install
+          sudo apt-get install libgl-dev
+          sudo apt-get install libgl1-mesa-dev
+          sudo apt-get install libx11-dev
 
       - name: Detect Conan Profile
         working-directory: ${{github.workspace}}
@@ -98,7 +94,7 @@ jobs:
       - name: Get Packages from Conan
         if: matrix.os != 'windows-latest'
         working-directory: ${{github.workspace}}
-        run: conan install . --build=missing -s build_type=Release -s compiler=clang -s compiler.cppstd=gnu23 -s compiler.version=16
+        run: conan install . --build=missing -s build_type=Release -s compiler=clang -s compiler.libcxx=libstdc++11 -s compiler.cppstd=gnu23 -s compiler.version=16
 
       - name: Install Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0
