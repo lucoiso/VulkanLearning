@@ -45,7 +45,7 @@ jobs:
 
         exclude:
           - os: windows-latest
-            c_compiler: clang
+            c_compiler: gcc
           - os: windows-latest
             c_compiler: clang
 
