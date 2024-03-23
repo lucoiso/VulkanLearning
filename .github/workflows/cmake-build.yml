@@ -77,7 +77,7 @@ jobs:
 
       - name: Install Ubuntu Dependencies
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get install -y libx11-dev libx11-xcb-dev libfontenc-dev libice-dev libsm-dev libxau-dev libxaw7-dev
+        run: sudo apt-get install -y libgl-dev libgl1-mesa-dev libx11-dev libx11-xcb-dev libfontenc-dev libice-dev libsm-dev libxau-dev libxaw7-dev
 
       - name: Detect Conan Profile
         working-directory: ${{github.workspace}}
@@ -89,7 +89,12 @@ jobs:
         run: conan install . --build=missing -s build_type=Release -s compiler.cppstd=23
 
       - name: Get Packages from Conan
-        if: matrix.os != 'windows-latest'
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: ${{github.workspace}}
+        run: conan install . --build=missing -s build_type=Release -s compiler=clang -s compiler.libcxx=libstdc++11 -s compiler.cppstd=gnu23 -s compiler.version=16
+
+      - name: Get Packages from Conan
+        if: matrix.os == 'macos-latest'
         working-directory: ${{github.workspace}}
         run: conan install . --build=missing -s build_type=Release -s compiler=clang -s compiler.libcxx=libc++ -s compiler.cppstd=gnu23 -s compiler.version=16
 
