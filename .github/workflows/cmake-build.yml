@@ -79,7 +79,6 @@ jobs:
           ninjaVersion: latest
 
       - name: Get Conan
-        if: matrix.os != 'ubuntu-latest'
         uses: turtlebrowser/get-conan@main
 
       - name: (Windows) Install Dependencies
@@ -91,9 +90,8 @@ jobs:
       - name: (Ubuntu) Install Dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get update
+          apt-get update
           sudo apt-get upgrade -y
-          sudo pip install conan
           sudo apt-get install -y libgl-dev libgl1-mesa-dev libx11-dev libx11-xcb-dev libfontenc-dev libice-dev libsm-dev libxau-dev libxaw7-dev
 
       - name: Detect Conan Profile
