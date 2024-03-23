@@ -73,8 +73,18 @@ jobs:
           ninjaVersion: latest
 
       - name: Get Conan
-        id: conan
         uses: turtlebrowser/get-conan@main
+
+      - name: Install Ubuntu Dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get install -y libgl-dev
+          sudo apt-get install -y libgl1-mesa-dev
+          sudo apt-get install libc++-dev
+
+      - name: Install MacOS Dependencies
+        if: matrix.os == 'macos-latest'
+        run: xcode-select --install
 
       - name: Detect Conan Profile
         working-directory: ${{github.workspace}}
