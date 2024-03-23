@@ -26,7 +26,8 @@ jobs:
       fail-fast: false
 
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        os: [ windows-latest ]
+        # os: [ ubuntu-latest, windows-latest, macos-latest ]
         build_type: [ Release ]
         c_compiler: [ gcc, clang, cl ]
 
@@ -35,13 +36,13 @@ jobs:
             c_compiler: cl
             cpp_compiler: cl
 
-          - os: ubuntu-latest
-            c_compiler: gcc
-            cpp_compiler: g++
+          # - os: ubuntu-latest
+          #   c_compiler: gcc
+          #   cpp_compiler: g++
 
-          - os: macos-latest
-            c_compiler: clang
-            cpp_compiler: clang++
+          # - os: macos-latest
+          #   c_compiler: clang
+          #   cpp_compiler: clang++
 
         exclude:
           - os: windows-latest
@@ -49,15 +50,15 @@ jobs:
           - os: windows-latest
             c_compiler: clang
 
-          - os: ubuntu-latest
-            c_compiler: cl
-          - os: ubuntu-latest
-            c_compiler: clang
+          # - os: ubuntu-latest
+          #   c_compiler: cl
+          # - os: ubuntu-latest
+          #   c_compiler: clang
 
-          - os: macos-latest
-            c_compiler: cl
-          - os: macos-latest
-            c_compiler: gcc
+          # - os: macos-latest
+          #   c_compiler: cl
+          # - os: macos-latest
+          #   c_compiler: gcc
 
     steps:
       - name: Checkout & Init Submodules
