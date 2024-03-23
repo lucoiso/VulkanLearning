@@ -77,10 +77,7 @@ jobs:
 
       - name: Install Ubuntu Dependencies
         if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get install libgl-dev
-          sudo apt-get install libgl1-mesa-dev
-          sudo apt-get install libx11-dev
+        run: sudo apt-get install -y libx11-dev libx11-xcb-dev libfontenc-dev libice-dev libsm-dev libxau-dev libxaw7-dev
 
       - name: Detect Conan Profile
         working-directory: ${{github.workspace}}
