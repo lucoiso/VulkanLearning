@@ -72,6 +72,10 @@ jobs:
         id: conan
         uses: turtlebrowser/get-conan@main
 
+      - name: Detect Conan Profile
+        working-directory: ${{github.workspace}}
+        run: conan profile detect --force
+
       - name: Get Packages from Conan
         if: matrix.os != 'windows-latest'
         working-directory: ${{github.workspace}}
