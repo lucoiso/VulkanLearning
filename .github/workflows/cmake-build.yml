@@ -46,8 +46,12 @@ jobs:
             c_compiler: clang
           - os: ubuntu-latest
             c_compiler: cl
+          - os: ubuntu-latest
+            c_compiler: clang
           - os: macos-latest
             c_compiler: cl
+          - os: macos-latest
+            c_compiler: gcc
 
     steps:
       - name: Checkout & Init Submodules
@@ -61,6 +65,11 @@ jobs:
         shell: bash
         run: |
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+
+      - name: Install Dev Tools
+        if: matrix.os != 'windows-latest'
+        working-directory: ${{github.workspace}}
+        run: sudo apt-get install build-essential
 
       - name: Get CMake and Ninja
         uses: lukka/get-cmake@latest
@@ -77,14 +86,19 @@ jobs:
         run: conan profile detect --force
 
       - name: Get Packages from Conan
-        if: matrix.os != 'windows-latest'
-        working-directory: ${{github.workspace}}
-        run: conan install . --build=missing -s build_type=Release -s compiler.cppstd=gnu23
-
-      - name: Get Packages from Conan
         if: matrix.os == 'windows-latest'
         working-directory: ${{github.workspace}}
         run: conan install . --build=missing -s build_type=Release -s compiler.cppstd=23
+
+      - name: Get Packages from Conan
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: ${{github.workspace}}
+        run: conan install . --build=missing -s build_type=Release -s compiler.cppstd=gnu23 -s compiler.version=14
+
+      - name: Get Packages from Conan
+        if: matrix.os == 'macos-latest'
+        working-directory: ${{github.workspace}}
+        run: conan install . --build=missing -s build_type=Release -s compiler.cppstd=gnu23 -s compiler.version=16
 
       - name: Install Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0
@@ -94,16 +108,10 @@ jobs:
           vulkan-use-cache: true
 
       - name: Configure CMake
-        run: >
-          cmake -B ${{ steps.strings.outputs.build-output-dir }}
-          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          -S ${{ github.workspace }}
-          --preset ${{env.CONAN_PRESET}}
+        run: cmake --preset ${{env.CONAN_PRESET}}
 
       - name: Build Project
-        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} --preset ${{env.CONAN_PRESET}}
+        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --preset ${{env.CONAN_PRESET}}
 
       # - name: Run Tests
       #   working-directory: ${{ steps.strings.outputs.build-output-dir }}
