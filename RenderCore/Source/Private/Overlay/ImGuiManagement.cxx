@@ -4,7 +4,7 @@
 
 module;
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 #include <Volk/volk.h>
 #include <array>
 #include <boost/log/trivial.hpp>
@@ -16,7 +16,7 @@ module;
 
 module RenderCore.Management.ImGuiManagement;
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 import RenderCore.Renderer;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.PipelineManagement;
@@ -29,7 +29,7 @@ import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 VkDescriptorPool g_ImGuiDescriptorPool {VK_NULL_HANDLE};
 
 void RenderCore::InitializeImGuiContext(GLFWwindow* const Window, SurfaceProperties const& SurfaceProperties)

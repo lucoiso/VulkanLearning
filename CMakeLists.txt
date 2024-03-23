@@ -23,7 +23,7 @@ SET(Boost_NO_WARN_NEW_VERSIONS ON)
 SET(BUILD_TESTS $ENV{BUILD_TESTS})
 
 # ---------------- OPTIONS -----------------
-OPTION(LINK_IMGUI "Link ImGui to the project, enabling support for custom viewport" ON)
+OPTION(VULKAN_RENDERER_ENABLE_IMGUI "Enable ImGui linkage, including support for custom viewport" OFF)
 
 # -------------- Directories ---------------
 ADD_SUBDIRECTORY(RenderCore)

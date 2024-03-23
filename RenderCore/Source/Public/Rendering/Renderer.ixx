@@ -65,6 +65,8 @@ namespace RenderCore
 
         [[nodiscard]] bool IsInitialized() const;
 
+        [[nodiscard]] bool IsReady() const;
+
         void AddStateFlag(RendererStateFlags);
 
         void RemoveStateFlag(RendererStateFlags);
@@ -101,13 +103,13 @@ namespace RenderCore
 
         [[nodiscard]] std::uint32_t GetNumObjects() const;
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
         [[nodiscard]] std::vector<VkImageView> GetViewportRenderImageViews() const;
 #endif
 
         [[nodiscard]] VkSampler GetSampler() const;
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
         static [[nodiscard]] bool IsImGuiInitialized();
 
         void SaveFrameToImageFile(std::string_view) const;

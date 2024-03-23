@@ -227,7 +227,7 @@ void PipelineManager::CreatePipelines(VkFormat const SwapChainImageFormat,
                    m_PipelineCache,
                    m_MainPipeline);
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
     CreatePipeline(true,
                    SwapChainImageFormat,
                    DepthFormat,
@@ -400,7 +400,7 @@ void PipelineManager::ReleaseDynamicPipelineResources()
         m_MainPipeline = VK_NULL_HANDLE;
     }
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
     if (m_ViewportPipeline != VK_NULL_HANDLE)
     {
         vkDestroyPipeline(volkGetLoadedDevice(), m_ViewportPipeline, nullptr);
@@ -440,7 +440,7 @@ VkPipeline const& PipelineManager::GetMainPipeline() const
     return m_MainPipeline;
 }
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 VkPipeline const& PipelineManager::GetViewportPipeline() const
 {
     return m_ViewportPipeline;

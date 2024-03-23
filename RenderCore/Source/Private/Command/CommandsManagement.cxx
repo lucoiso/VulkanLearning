@@ -9,7 +9,7 @@ module;
 #include <boost/log/trivial.hpp>
 #include <optional>
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
 #endif
@@ -255,7 +255,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
     AllocateCommandBuffer(GetGraphicsQueue().first, 3U);
 #else
     AllocateCommandBuffer(GetGraphicsQueue().first, 1U);
@@ -263,7 +263,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
 
     VkPipelineLayout const& PipelineLayout = PipelineManager.GetPipelineLayout();
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
     auto const& [ViewportImage, ViewportView, ViewportAllocation, ViewportType] = BufferManager.GetViewportImages().at(ImageIndex);
     auto const& [ViewportDepthImage, ViewportDepthView, ViewportDepthAllocation, ViewportDepthType]                 = BufferManager.GetViewportDepthImage();
 #endif
@@ -315,7 +315,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
                 .pColorAttachments    = &ColorAttachmentInfo,
                 .pDepthAttachment     = &DepthAttachmentInfo};
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
         vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
         vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
         vkCmdEndRendering(CommandBuffer);
@@ -436,7 +436,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex,
 
         vkCmdEndRendering(CommandBuffer);
 
-#ifndef LINK_IMGUI
+#ifndef VULKAN_RENDERER_ENABLE_IMGUI
         BufferManager::MoveImageLayout<SwapChainMidLayout, SwapChainFinalLayout, ImageAspect>(CommandBuffer,
                                                                                               SwapChainImage,
                                                                                               SwapChainFormat);

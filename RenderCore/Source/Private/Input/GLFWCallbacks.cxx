@@ -8,7 +8,7 @@ module;
 #include <GLFW/glfw3.h>
 #include <glm/ext.hpp>
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 #include <imgui.h>
 #endif
 

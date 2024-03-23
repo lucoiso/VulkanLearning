@@ -10,7 +10,7 @@ module;
 #include <boost/log/trivial.hpp>
 #include <GLFW/glfw3.h>
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 #include <imgui.h>
 #endif
 

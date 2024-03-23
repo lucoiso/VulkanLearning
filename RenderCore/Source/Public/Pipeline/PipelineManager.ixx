@@ -21,7 +21,7 @@ namespace RenderCore
     {
         VkPipeline m_MainPipeline {VK_NULL_HANDLE};
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
         VkPipeline m_ViewportPipeline {VK_NULL_HANDLE};
 #endif
 
@@ -46,7 +46,7 @@ namespace RenderCore
 
         [[nodiscard]] VkPipeline const& GetMainPipeline() const;
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
         [[nodiscard]] VkPipeline const& GetViewportPipeline() const;
 #endif
 

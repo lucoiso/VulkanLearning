@@ -37,7 +37,7 @@ namespace RenderCore
 
         std::vector<ImageAllocation> m_SwapChainImages {};
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
         std::vector<ImageAllocation> m_ViewportImages {};
         ImageAllocation m_ViewportDepthImage {};
 #endif
@@ -57,7 +57,7 @@ namespace RenderCore
 
         void CreateSwapChain(SurfaceProperties const&, VkSurfaceCapabilitiesKHR const&);
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
         void CreateViewportResources(SurfaceProperties const&);
 #endif
 
@@ -81,7 +81,7 @@ namespace RenderCore
 
         [[nodiscard]] std::vector<ImageAllocation> const& GetSwapChainImages() const;
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
         [[nodiscard]] std::vector<ImageAllocation> const& GetViewportImages() const;
 
         [[nodiscard]] ImageAllocation const& GetViewportDepthImage() const;

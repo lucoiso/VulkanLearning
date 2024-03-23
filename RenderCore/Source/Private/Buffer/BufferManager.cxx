@@ -520,7 +520,7 @@ void BufferManager::CreateSwapChain(SurfaceProperties const& SurfaceProperties,
     CreateSwapChainImageViews(m_SwapChainImages, SurfaceProperties.Format.format);
 }
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 void BufferManager::CreateViewportResources(SurfaceProperties const& SurfaceProperties)
 {
     auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
@@ -585,7 +585,7 @@ void BufferManager::CreateDepthResources(SurfaceProperties const& SurfacePropert
 
     CreateImageView(m_DepthImage.Image, m_DepthFormat, Aspect, m_DepthImage.View);
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
     CreateImage(m_Allocator,
                 m_DepthFormat,
                 SurfaceProperties.Extent,
@@ -1043,7 +1043,7 @@ void BufferManager::DestroyBufferResources(bool const ClearScene)
     });
     m_SwapChainImages.clear();
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
     std::ranges::for_each(m_ViewportImages, [&](ImageAllocation& ImageIter) {
         ImageIter.DestroyResources(m_Allocator);
     });
@@ -1089,7 +1089,7 @@ std::vector<ImageAllocation> const& BufferManager::GetSwapChainImages() const
     return m_SwapChainImages;
 }
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 std::vector<ImageAllocation> const& BufferManager::GetViewportImages() const
 {
     return m_ViewportImages;

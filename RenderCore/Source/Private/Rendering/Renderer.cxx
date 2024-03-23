@@ -150,7 +150,7 @@ void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera
 
             m_BufferManager.CreateSwapChain(SurfaceProperties, SurfaceCapabilities);
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
             m_BufferManager.CreateViewportResources(SurfaceProperties);
 #endif
 
@@ -177,7 +177,7 @@ void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera
     }
     else if (m_ImageIndex = RequestImageIndex(Window); m_ImageIndex.has_value())
     {
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
         DrawImGuiFrame(
                 [Owner] {
                     Owner->PreUpdate();
@@ -314,7 +314,7 @@ bool Renderer::Initialize(GLFWwindow* const Window)
     auto const _                 = CompileDefaultShaders();
     auto const SurfaceProperties = GetSurfaceProperties(Window, m_BufferManager.GetSurface());
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
     InitializeImGuiContext(Window, SurfaceProperties);
 #endif
 
@@ -337,7 +337,7 @@ void Renderer::Shutdown([[maybe_unused]] GLFWwindow* const Window)
 
     RemoveFlags(m_StateFlags, RendererStateFlags::INITIALIZED);
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
     ReleaseImGuiResources();
 #endif
 
@@ -368,6 +368,11 @@ void Renderer::Shutdown([[maybe_unused]] GLFWwindow* const Window)
 bool Renderer::IsInitialized() const
 {
     return HasFlag(m_StateFlags, RendererStateFlags::INITIALIZED);
+}
+
+bool Renderer::IsReady() const
+{
+    return m_BufferManager.GetSwapChain() != VK_NULL_HANDLE;
 }
 
 void Renderer::AddStateFlag(RendererStateFlags const Flag)
@@ -523,7 +528,7 @@ std::uint32_t Renderer::GetNumObjects() const
     return std::size(m_Objects);
 }
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 std::vector<VkImageView> Renderer::GetViewportRenderImageViews() const
 {
     std::vector<VkImageView> Output;
@@ -544,7 +549,7 @@ VkSampler Renderer::GetSampler() const
     return m_BufferManager.GetSampler();
 }
 
-#ifdef LINK_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 bool Renderer::IsImGuiInitialized()
 {
     return RenderCore::IsImGuiInitialized();
