@@ -10,7 +10,6 @@ env:
   BUILD_TESTS: false # Currently with no access to VMs w/ GPU
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   CONAN_PRESET: conan-release
-  CONAN_PROFILE: Profiles/WinRel
 
 permissions:
   actions: read
@@ -27,7 +26,7 @@ jobs:
       fail-fast: false
 
       matrix:
-        os: [ ubuntu-latest, windows-latest ]
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
         build_type: [ Release ]
         c_compiler: [ gcc, clang, cl ]
         include:
@@ -46,6 +45,8 @@ jobs:
           - os: windows-latest
             c_compiler: clang
           - os: ubuntu-latest
+            c_compiler: cl
+          - os: macos-latest
             c_compiler: cl
 
     steps:
@@ -71,13 +72,15 @@ jobs:
         id: conan
         uses: turtlebrowser/get-conan@main
 
-      - name: Setup Conan Profile
+      - name: Get Packages from Conan
+        if: matrix.os != 'windows-latest'
         working-directory: ${{github.workspace}}
-        run: conan profile detect --force
+        run: conan install . --build=missing -s build_type=Release -s compiler.cppstd=gnu23
 
       - name: Get Packages from Conan
+        if: matrix.os == 'windows-latest'
         working-directory: ${{github.workspace}}
-        run: conan install . --build=missing --profile=${{env.CONAN_PROFILE}}
+        run: conan install . --build=missing -s build_type=Release -s compiler.cppstd=23
 
       - name: Install Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0
