@@ -329,12 +329,14 @@ void RecordSceneCommands(VkCommandBuffer&                            CommandBuff
     BufferManager::MoveImageLayout<UndefinedLayout, SwapChainMidLayout, ImageAspect>(CommandBuffer, SwapChainImage, SwapChainFormat);
 
     ColorAttachments.push_back(VkRenderingAttachmentInfoKHR{.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+                                                            #ifdef VULKAN_RENDERER_ENABLE_IMGUI
                                                             .imageView = ViewportView,
                                                             .imageLayout = ViewportMidLayout,
-                                                            #ifdef VULKAN_RENDERER_ENABLE_IMGUI
                                                             .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
                                                             .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
                                                             #else
+                                                            .imageView = SwapChainView,
+                                                            .imageLayout = SwapChainMidLayout,
                                                             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                                                             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
                                                             .clearValue = g_ClearValues.at(0U)
