@@ -4,10 +4,10 @@
 
 module;
 
-#include "RenderCoreModule.hpp"
 #include <cstdint>
 #include <vector>
 #include <vma/vk_mem_alloc.h>
+#include "RenderCoreModule.hpp"
 
 export module RenderCore.Management.AllocationRegister;
 
@@ -15,12 +15,12 @@ namespace RenderCore
 {
     export struct AllocationRegisterData
     {
-        std::uint32_t MemoryType {0U};
+        std::uint32_t  MemoryType {0U};
         VkDeviceMemory Memory {VK_NULL_HANDLE};
-        VkDeviceSize AllocationSize {0U};
-        void* UserData {nullptr};
+        VkDeviceSize   AllocationSize {0U};
+        void          *UserData {nullptr};
 
-        [[nodiscard]] bool operator==(AllocationRegisterData const& Other) const
+        [[nodiscard]] bool operator==(AllocationRegisterData const &Other) const
         {
             return Memory == Other.Memory && AllocationSize == Other.AllocationSize;
         }
@@ -30,18 +30,18 @@ namespace RenderCore
     {
         std::vector<AllocationRegisterData> m_RegisterData {};
 
-        AllocationRegister()  = default;
+         AllocationRegister() = default;
         ~AllocationRegister() = default;
 
-        [[nodiscard]] std::vector<AllocationRegisterData>& GetRegisterData();
-        void RemoveElement(AllocationRegisterData const&);
+        [[nodiscard]] std::vector<AllocationRegisterData> &GetRegisterData();
+        void                                               RemoveElement(AllocationRegisterData const &);
 
     public:
-        static AllocationRegister& Get();
+        static AllocationRegister &Get();
 
-        [[nodiscard]] std::vector<AllocationRegisterData> const& GetRegister() const;
+        [[nodiscard]] std::vector<AllocationRegisterData> const &GetRegister() const;
 
-        static void AllocateDeviceMemoryCallback(VmaAllocator, std::uint32_t, VkDeviceMemory, VkDeviceSize, void*);
-        static void FreeDeviceMemoryCallback(VmaAllocator, std::uint32_t, VkDeviceMemory, VkDeviceSize, void*);
+        static void AllocateDeviceMemoryCallback(VmaAllocator, std::uint32_t, VkDeviceMemory, VkDeviceSize, void *);
+        static void FreeDeviceMemoryCallback(VmaAllocator, std::uint32_t, VkDeviceMemory, VkDeviceSize, void *);
     };
-}// namespace RenderCore
+} // namespace RenderCore

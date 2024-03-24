@@ -4,9 +4,9 @@
 
 module;
 
-#include <vma/vk_mem_alloc.h>
 #include <Volk/volk.h>
 #include <algorithm>
+#include <vma/vk_mem_alloc.h>
 
 module RenderCore.Types.AllocationTypes;
 
@@ -17,7 +17,7 @@ bool ImageAllocation::IsValid() const
     return Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE;
 }
 
-void ImageAllocation::DestroyResources(VmaAllocator const& Allocator)
+void ImageAllocation::DestroyResources(VmaAllocator const &Allocator)
 {
     if (Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
     {
@@ -43,7 +43,7 @@ bool BufferAllocation::IsValid() const
     return Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE;
 }
 
-void BufferAllocation::DestroyResources(VmaAllocator const& Allocator)
+void BufferAllocation::DestroyResources(VmaAllocator const &Allocator)
 {
     if (Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
     {
@@ -61,19 +61,22 @@ void BufferAllocation::DestroyResources(VmaAllocator const& Allocator)
 
 bool ObjectAllocation::IsValid() const
 {
-    return VertexBuffer.IsValid() && IndexBuffer.IsValid() && IndicesCount != 0U;
+    return VertexBufferAllocation.IsValid() && IndexBufferAllocation.IsValid() && IndicesCount != 0U;
 }
 
-void ObjectAllocation::DestroyResources(VmaAllocator const& Allocator)
+void ObjectAllocation::DestroyResources(VmaAllocator const &Allocator)
 {
-    std::ranges::for_each(TextureImages,
-                          [&](ImageAllocation& TextureImageIter)
+    std::ranges::for_each(TextureImageAllocations,
+                          [&](ImageAllocation &TextureImageIter)
                           {
                               TextureImageIter.DestroyResources(Allocator);
                           });
 
-    VertexBuffer.DestroyResources(Allocator);
-    IndexBuffer.DestroyResources(Allocator);
-    UniformBuffer.DestroyResources(Allocator);
+    VertexBufferAllocation.DestroyResources(Allocator);
+    IndexBufferAllocation.DestroyResources(Allocator);
+    UniformBufferAllocation.DestroyResources(Allocator);
+    ID           = 0U;
     IndicesCount = 0U;
+    ModelDescriptors.clear();
+    TextureDescriptors.clear();
 }

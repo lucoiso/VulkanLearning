@@ -55,7 +55,6 @@ SET(PUBLIC_MODULES
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Input/GLFWCallbacks.ixx
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.ixx
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Device/SurfaceProperties.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/MeshBufferData.ixx
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/TextureType.ixx
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/UniformBufferObject.ixx
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.ixx

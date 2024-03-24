@@ -10,7 +10,6 @@ module;
 
 export module RenderCore.Management.PipelineManagement;
 
-import RenderCore.Types.MeshBufferData;
 import RenderCore.Types.AllocationTypes;
 import RenderCore.Types.SurfaceProperties;
 import RenderCore.Utils.Constants;
@@ -19,47 +18,26 @@ namespace RenderCore
 {
     export class PipelineManager
     {
-        VkPipeline m_Pipeline{
-            VK_NULL_HANDLE
-        };
-        VkPipelineLayout m_PipelineLayout{
-            VK_NULL_HANDLE
-        };
-        VkPipelineCache m_PipelineCache{
-            VK_NULL_HANDLE
-        };
-        VkDescriptorPool m_DescriptorPool{
-            VK_NULL_HANDLE
-        };
-        VkDescriptorSetLayout m_DescriptorSetLayout{
-            VK_NULL_HANDLE
-        };
-        std::unordered_map<std::uint32_t, VkDescriptorSet> m_DescriptorSets{};
+        VkPipeline            m_Pipeline {VK_NULL_HANDLE};
+        VkPipelineLayout      m_PipelineLayout {VK_NULL_HANDLE};
+        VkPipelineCache       m_PipelineCache {VK_NULL_HANDLE};
+        VkDescriptorSetLayout m_DescriptorSetLayout {VK_NULL_HANDLE};
 
     public:
-        void CreatePipeline(VkFormat,
-                            VkFormat,
-                            VkExtent2D const&);
+        void CreatePipeline(VkFormat, VkFormat, VkExtent2D const &);
 
         void CreateDescriptorSetLayout();
 
-        void CreateDescriptorPool(std::uint32_t);
-
-        void CreateDescriptorSets(std::vector<MeshBufferData> const&,
-                                  VkSampler const&);
+        void CreateDescriptors(std::unordered_map<std::uint32_t, ObjectAllocation> &, VkSampler const &);
 
         void ReleasePipelineResources();
 
         void ReleaseDynamicPipelineResources();
 
-        [[nodiscard]] VkPipeline const& GetMainPipeline() const;
+        [[nodiscard]] VkPipeline const &GetMainPipeline() const;
 
-        [[nodiscard]] VkPipelineLayout const& GetPipelineLayout() const;
+        [[nodiscard]] VkPipelineLayout const &GetPipelineLayout() const;
 
-        [[nodiscard]] VkDescriptorSetLayout const& GetDescriptorSetLayout() const;
-
-        [[nodiscard]] VkDescriptorPool const& GetDescriptorPool() const;
-
-        [[nodiscard]] VkDescriptorSet GetDescriptorSet(std::uint32_t) const;
+        [[nodiscard]] VkDescriptorSetLayout const &GetDescriptorSetLayout() const;
     };
 } // namespace RenderCore
