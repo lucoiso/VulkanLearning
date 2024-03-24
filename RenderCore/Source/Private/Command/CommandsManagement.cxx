@@ -25,6 +25,7 @@ import RenderCore.Types.AllocationTypes;
 import RenderCore.Types.Camera;
 import RenderCore.Types.Object;
 import RenderCore.Utils.Helpers;
+import RenderCore.Utils.DebugHelpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.EnumConverter;
 import RuntimeInfo.Manager;
@@ -224,11 +225,17 @@ void BindDescriptorSets(VkCommandBuffer const                      &CommandBuffe
                         VkPipelineLayout const                     &PipelineLayout,
                         Camera const                               &Camera,
                         BufferManager const                        &BufferManager,
-                        PipelineManager const                      &PipelineManager,
                         std::vector<std::shared_ptr<Object>> const &Objects,
                         VkExtent2D const                           &SwapChainExtent)
 {
     RuntimeInfo::Manager::Get().PushCallstack();
+
+#ifdef _DEBUG
+    bool const IsAMDDebugAvailable    = IsDebugExtensionEnabled(VK_AMD_BUFFER_MARKER_EXTENSION_NAME);
+    bool const IsNVidiaDebugAvailable = IsDebugExtensionEnabled(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME);
+
+    std::uint32_t Marker {0U};
+#endif
 
     auto const &Allocations = BufferManager.GetAllocatedObjects();
 
@@ -305,6 +312,24 @@ void BindDescriptorSets(VkCommandBuffer const                      &CommandBuffe
         if (ActiveVertexBinding && ActiveIndexBinding)
         {
             vkCmdDrawIndexed(CommandBuffer, IndexCount, 1U, 0U, 0U, 0U);
+
+#ifdef _DEBUG
+            if constexpr (g_EnableCustomDebug)
+            {
+                if (IsAMDDebugAvailable)
+                {
+                    vkCmdWriteBufferMarker2AMD(CommandBuffer, VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VertexBuffer, 0U, ++Marker);
+                    vkCmdWriteBufferMarker2AMD(CommandBuffer, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VertexBuffer, 0U, ++Marker);
+
+                    vkCmdWriteBufferMarker2AMD(CommandBuffer, VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, IndexBuffer, 0U, ++Marker);
+                    vkCmdWriteBufferMarker2AMD(CommandBuffer, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, IndexBuffer, 0U, ++Marker);
+                }
+                else if (IsNVidiaDebugAvailable)
+                {
+                    vkCmdSetCheckpointNV(CommandBuffer, reinterpret_cast<void *>(&++Marker));
+                }
+            }
+#endif
         }
     }
 }
@@ -399,7 +424,7 @@ void RecordSceneCommands(VkCommandBuffer                            &CommandBuff
         VkPipelineLayout const &PipelineLayout = PipelineManager.GetPipelineLayout();
 
         vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
-        BindDescriptorSets(CommandBuffer, PipelineLayout, Camera, BufferManager, PipelineManager, Objects, SwapChainExtent);
+        BindDescriptorSets(CommandBuffer, PipelineLayout, Camera, BufferManager, Objects, SwapChainExtent);
     }
     vkCmdEndRendering(CommandBuffer);
 
@@ -503,9 +528,42 @@ void RenderCore::SubmitCommandBuffers()
     auto const &GraphicsQueue = GetGraphicsQueue().second;
 
     CheckVulkanResult(vkQueueSubmit2(GraphicsQueue, 1U, &SubmitInfo, g_Fence));
-    CheckVulkanResult(vkQueueWaitIdle(GraphicsQueue));
+    VkResult const QueueWaitResult = vkQueueWaitIdle(GraphicsQueue);
+
+#ifdef _DEBUG
+    if constexpr (g_EnableCustomDebug)
+    {
+        if (QueueWaitResult == VK_ERROR_DEVICE_LOST && IsDebugExtensionEnabled(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME))
+        {
+            std::uint32_t DebugMarkersCount {0U};
+            vkGetQueueCheckpointDataNV(GraphicsQueue, &DebugMarkersCount, nullptr);
+
+            if (DebugMarkersCount > 0U)
+            {
+                std::vector<VkCheckpointDataNV> DebugMarkers(DebugMarkersCount);
+                vkGetQueueCheckpointDataNV(GraphicsQueue, &DebugMarkersCount, std::data(DebugMarkers));
+
+                for (VkCheckpointDataNV const &DebugMarker : DebugMarkers)
+                {
+                    if (!DebugMarker.pCheckpointMarker)
+                    {
+                        continue;
+                    }
+
+                    std::uint32_t const Marker = *static_cast<std::uint32_t *>(DebugMarker.pCheckpointMarker);
+                    BOOST_LOG_TRIVIAL(debug) << "Debug marker: " << Marker;
+                }
+            }
+        }
+    }
+#endif
 
     FreeCommandBuffers();
+
+    if (QueueWaitResult == VK_ERROR_DEVICE_LOST)
+    {
+        throw std::runtime_error("Vulkan operation failed with result: VK_ERROR_DEVICE_LOST");
+    }
 }
 
 void RenderCore::PresentFrame(std::uint32_t const ImageIndice, VkSwapchainKHR const &SwapChain)

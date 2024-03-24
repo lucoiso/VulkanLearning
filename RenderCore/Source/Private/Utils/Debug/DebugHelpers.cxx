@@ -12,12 +12,23 @@ module;
 
 module RenderCore.Utils.DebugHelpers;
 
-import RenderCore.Utils.Constants;
 import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 
 #ifdef _DEBUG
+static std::vector<std::string> s_EnabledExtensions{};
+
+void RenderCore::SetDebugEnabledExtension(std::string_view const& Extension)
+{
+    s_EnabledExtensions.push_back(std::string{Extension});
+}
+
+bool RenderCore::IsDebugExtensionEnabled(std::string_view const& Extension)
+{
+    return std::ranges::find(s_EnabledExtensions, Extension) != s_EnabledExtensions.end();
+}
+
 VKAPI_ATTR VkBool32 VKAPI_CALL RenderCore::ValidationLayerDebugCallback([[maybe_unused]] VkDebugUtilsMessageSeverityFlagBitsEXT const MessageSeverity,
                                                                         [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT              MessageType,
                                                                         VkDebugUtilsMessengerCallbackDataEXT const *const             CallbackData,
@@ -64,8 +75,8 @@ VkValidationFeaturesEXT RenderCore::GetInstanceValidationFeatures()
 
     constexpr VkValidationFeaturesEXT InstanceValidationFeatures{
         .sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
-        .enabledValidationFeatureCount = static_cast<uint32_t>(std::size(g_EnabledInstanceValidationFeatures)),
-        .pEnabledValidationFeatures = std::data(g_EnabledInstanceValidationFeatures)
+        .enabledValidationFeatureCount = static_cast<uint32_t>(std::size(g_DebugInstanceValidationFeatures)),
+        .pEnabledValidationFeatures = std::data(g_DebugInstanceValidationFeatures)
     };
 
     return InstanceValidationFeatures;

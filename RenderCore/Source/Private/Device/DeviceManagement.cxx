@@ -15,6 +15,7 @@ module RenderCore.Management.DeviceManagement;
 
 import RenderCore.Management.BufferManagement;
 import RenderCore.Utils.Helpers;
+import RenderCore.Utils.DebugHelpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.EnumConverter;
 import RuntimeInfo.Manager;
@@ -191,6 +192,17 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
                                                            .queueCount       = Count,
                                                            .pQueuePriorities = std::data(PriorityHandles.back())});
     }
+
+#ifdef _DEBUG
+    if (Contains(AvailableExtensions, VK_AMD_BUFFER_MARKER_EXTENSION_NAME))
+    {
+        SetDebugEnabledExtension({VK_AMD_BUFFER_MARKER_EXTENSION_NAME});
+    }
+    else if (Contains(AvailableExtensions, VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME))
+    {
+        SetDebugEnabledExtension({VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME});
+    }
+#endif
 
     VkPhysicalDeviceSynchronization2Features Synchronization2Features {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
                                                                        .pNext = nullptr,

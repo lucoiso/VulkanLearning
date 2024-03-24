@@ -5,12 +5,12 @@
 module;
 
 #include <GLFW/glfw3.h>
+#include <Volk/volk.h>
+#include <algorithm>
 #include <format>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <Volk/volk.h>
-#include <algorithm>
 
 export module RenderCore.Utils.Helpers;
 
@@ -18,7 +18,7 @@ import RuntimeInfo.Manager;
 
 namespace RenderCore
 {
-    export [[nodiscard]] VkExtent2D GetWindowExtent(GLFWwindow*, VkSurfaceCapabilitiesKHR const&);
+    export [[nodiscard]] VkExtent2D GetWindowExtent(GLFWwindow *, VkSurfaceCapabilitiesKHR const &);
 
     export [[nodiscard]] std::vector<std::string> GetGLFWExtensions();
 
@@ -38,44 +38,45 @@ namespace RenderCore
 
     export [[nodiscard]] std::array<VkVertexInputAttributeDescription, 4U> GetAttributeDescriptions();
 
-    export template<typename ItemType, typename ContainerType> constexpr bool Contains(ContainerType const& Container, ItemType const& Item)
+    export template <typename ItemType, typename ContainerType>
+    constexpr bool Contains(ContainerType const &Container, ItemType const &Item)
     {
         return std::ranges::find(Container, Item) != std::cend(Container);
     }
 
-    export template<typename Out, typename Opt, typename Avail> constexpr void GetAvailableResources(std::string_view const Identifier, Out& Resource, Opt const& Optional, Avail const& Available)
+    export template <typename Out, typename Opt, typename Avail>
+    constexpr void GetAvailableResources(std::string_view const Identifier, Out &Resource, Opt const &Optional, Avail const &Available)
     {
-        std::ranges::for_each(Resource, [&Available, Identifier](auto const& ResIter) {
-            if (std::ranges::find(Available, ResIter) == std::cend(Available))
-            {
-                throw std::runtime_error(std::format("Required {} not available: {}", Identifier, ResIter));
-            }
-        });
+        std::ranges::for_each(Resource,
+                              [&Available, Identifier](auto const &ResIter)
+                              {
+                                  if (std::ranges::find(Available, ResIter) == std::cend(Available))
+                                  {
+                                      throw std::runtime_error(std::format("Required {} not available: {}", Identifier, ResIter));
+                                  }
+                              });
 
-        std::ranges::for_each(Optional, [&Available, &Resource](auto const& OptIter) {
-            if (std::ranges::find(Available, OptIter) != std::cend(Available))
-            {
-                Resource.emplace_back(OptIter);
-            }
-        });
+        std::ranges::for_each(Optional,
+                              [&Available, &Resource](auto const &OptIter)
+                              {
+                                  if (std::ranges::find(Available, OptIter) != std::cend(Available))
+                                  {
+                                      Resource.emplace_back(OptIter);
+                                  }
+                              });
     }
 
-    export template<typename T>
-        requires std::is_same_v<T, VkResult> || std::is_same_v<T, VkResult&>
-    constexpr bool CheckVulkanResult(T&& InputOperation)
+    export template <typename T>
+        requires std::is_same_v<T, VkResult> || std::is_same_v<T, VkResult &>
+    constexpr bool CheckVulkanResult(T &&InputOperation)
     {
-        if (InputOperation == VK_ERROR_DEVICE_LOST)
-        {
-            throw std::runtime_error("Vulkan Error: Device Lost");
-        }
-
         return InputOperation == VK_SUCCESS;
     }
 
-    export template<typename T>
-        requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, VkResult> || std::is_same_v<std::invoke_result_t<T>, VkResult&>)
-    constexpr bool CheckVulkanResult(T&& InputOperation)
+    export template <typename T>
+        requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, VkResult> || std::is_same_v<std::invoke_result_t<T>, VkResult &>)
+    constexpr bool CheckVulkanResult(T &&InputOperation)
     {
         return CheckVulkanResult(InputOperation());
     }
-}// namespace RenderCore
+} // namespace RenderCore
