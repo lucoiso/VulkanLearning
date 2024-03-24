@@ -165,9 +165,7 @@ void Renderer::DrawFrame(GLFWwindow* const Window, float const DeltaTime, Camera
         else if (HasFlag(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH))
         {
             m_PipelineManager.CreateDescriptorSetLayout();
-            m_PipelineManager.CreatePipelines(m_BufferManager.GetSwapChainImageFormat(),
-                                              m_BufferManager.GetDepthFormat(),
-                                              m_BufferManager.GetSwapChainExtent());
+            m_PipelineManager.CreatePipeline(m_BufferManager.GetSwapChainImageFormat(), m_BufferManager.GetDepthFormat(), m_BufferManager.GetSwapChainExtent());
 
             m_PipelineManager.CreateDescriptorPool(m_BufferManager.GetClampedNumAllocations());
             m_PipelineManager.CreateDescriptorSets(m_BufferManager.GetAllocatedObjects(), m_BufferManager.GetSampler());

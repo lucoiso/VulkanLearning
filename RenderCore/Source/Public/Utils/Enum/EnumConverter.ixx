@@ -16,14 +16,14 @@ namespace RenderCore
 {
     constexpr char const* ToChars(auto const Argument)
     {
-        std::array<char, 16U> Buffer {};
-        std::span const BufferSpan(std::data(Buffer), std::size(Buffer));
+        std::array<char, 16U> Buffer{};
+        std::span const       BufferSpan(std::data(Buffer), std::size(Buffer));
 
         if (auto Result = std::to_chars(std::data(BufferSpan), std::data(BufferSpan) + std::size(BufferSpan), Argument);
             Result.ec == std::errc())
         {
             *Result.ptr               = '\0';
-            auto* const DynamicBuffer = new char[std::size(Buffer)];
+            auto *const DynamicBuffer = new char[std::size(Buffer)];
             std::ranges::copy(Buffer, DynamicBuffer);
             return DynamicBuffer;
         }
@@ -798,4 +798,4 @@ namespace RenderCore
 
         return ToChars(static_cast<std::uint8_t>(Input));
     }
-}// namespace RenderCore
+} // namespace RenderCore

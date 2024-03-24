@@ -66,9 +66,11 @@ bool ObjectAllocation::IsValid() const
 
 void ObjectAllocation::DestroyResources(VmaAllocator const& Allocator)
 {
-    std::ranges::for_each(TextureImages, [&](ImageAllocation& TextureImageIter) {
-        TextureImageIter.DestroyResources(Allocator);
-    });
+    std::ranges::for_each(TextureImages,
+                          [&](ImageAllocation& TextureImageIter)
+                          {
+                              TextureImageIter.DestroyResources(Allocator);
+                          });
 
     VertexBuffer.DestroyResources(Allocator);
     IndexBuffer.DestroyResources(Allocator);

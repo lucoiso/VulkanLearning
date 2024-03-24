@@ -11,40 +11,58 @@ module RadeonManager.Manager;
 
 using namespace RadeonManager;
 
-adlx_handle g_DLLHandle{nullptr};
-adlx::IADLXSystem* g_SystemServices{nullptr};
+adlx_handle g_DLLHandle{
+    nullptr
+};
+adlx::IADLXSystem *g_SystemServices{
+    nullptr
+};
 
-ADLXQueryFullVersion_Fn g_QueryFullVersionFn{nullptr};
-ADLXQueryVersion_Fn g_QueryVersionFn{nullptr};
-ADLXInitializeWithCallerAdl_Fn g_InitializeWithCallerAdlFn{nullptr};
-ADLXInitialize_Fn g_InitializeFn{nullptr};
-ADLXTerminate_Fn g_TerminateFn{nullptr};
+ADLXQueryFullVersion_Fn g_QueryFullVersionFn{
+    nullptr
+};
+ADLXQueryVersion_Fn g_QueryVersionFn{
+    nullptr
+};
+ADLXInitializeWithCallerAdl_Fn g_InitializeWithCallerAdlFn{
+    nullptr
+};
+ADLXInitialize_Fn g_InitializeFn{
+    nullptr
+};
+ADLXTerminate_Fn g_TerminateFn{
+    nullptr
+};
 
 adlx_handle ADLX_CDECL_CALL CrossPlatformLoadLibrary(std::string_view const Filename)
 {
-#ifdef _WIN32
-    return ::LoadLibraryEx(std::data(Filename), nullptr, LOAD_LIBRARY_SEARCH_USER_DIRS | LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_SYSTEM32);
-#else
+    #ifdef _WIN32
+    return ::LoadLibraryEx(std::data(Filename),
+                           nullptr,
+                           LOAD_LIBRARY_SEARCH_USER_DIRS | LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS |
+                           LOAD_LIBRARY_SEARCH_SYSTEM32);
+    #else
     return ::dlopen(Filename, RTLD_LAZY);
-#endif
+    #endif
 }
 
 int ADLX_CDECL_CALL CrossPlatformFreeLibrary(adlx_handle ModuleHandle)
 {
-#ifdef _WIN32
+    #ifdef _WIN32
     return ::FreeLibrary(static_cast<HMODULE>(ModuleHandle)) == TRUE;
-#else
+    #else
     return ::dlclose(ModuleHandle) == 0;
-#endif
+    #endif
 }
 
-void* ADLX_CDECL_CALL CrossPlatformGetProcAddress(adlx_handle ModuleHandle, std::string_view const ProcName)
+void* ADLX_CDECL_CALL CrossPlatformGetProcAddress(adlx_handle            ModuleHandle,
+                                                  std::string_view const ProcName)
 {
-#ifdef _WIN32
+    #ifdef _WIN32
     return reinterpret_cast<void*>(::GetProcAddress(static_cast<HMODULE>(ModuleHandle), std::data(ProcName)));
-#else
+    #else
     return ::dlsym(ModuleHandle, std::data(ProcName));
-#endif
+    #endif
 }
 
 bool IsADLXLibraryLoaded()
@@ -54,12 +72,7 @@ bool IsADLXLibraryLoaded()
 
 bool IsADLXLoaded()
 {
-    return IsADLXLibraryLoaded()
-           && g_QueryFullVersionFn
-           && g_QueryVersionFn
-           && g_InitializeWithCallerAdlFn
-           && g_InitializeFn
-           && g_TerminateFn;
+    return IsADLXLibraryLoaded() && g_QueryFullVersionFn && g_QueryVersionFn && g_InitializeWithCallerAdlFn && g_InitializeFn && g_TerminateFn;
 }
 
 bool LoadADLXLibrary()
@@ -69,13 +82,16 @@ bool LoadADLXLibrary()
         return true;
     }
 
-    if (g_DLLHandle = CrossPlatformLoadLibrary(ADLX_DLL_NAME); g_DLLHandle)
+    if (g_DLLHandle = CrossPlatformLoadLibrary(ADLX_DLL_NAME);
+        g_DLLHandle)
     {
         g_QueryFullVersionFn        = static_cast<ADLXQueryFullVersion_Fn>(CrossPlatformGetProcAddress(g_DLLHandle, ADLX_QUERY_FULL_VERSION_FUNCTION_NAME));
         g_QueryVersionFn            = static_cast<ADLXQueryVersion_Fn>(CrossPlatformGetProcAddress(g_DLLHandle, ADLX_QUERY_VERSION_FUNCTION_NAME));
-        g_InitializeWithCallerAdlFn = static_cast<ADLXInitializeWithCallerAdl_Fn>(CrossPlatformGetProcAddress(g_DLLHandle, ADLX_INIT_WITH_CALLER_ADL_FUNCTION_NAME));
-        g_InitializeFn              = static_cast<ADLXInitialize_Fn>(CrossPlatformGetProcAddress(g_DLLHandle, ADLX_INIT_FUNCTION_NAME));
-        g_TerminateFn               = static_cast<ADLXTerminate_Fn>(CrossPlatformGetProcAddress(g_DLLHandle, ADLX_TERMINATE_FUNCTION_NAME));
+        g_InitializeWithCallerAdlFn = static_cast<ADLXInitializeWithCallerAdl_Fn>(CrossPlatformGetProcAddress(
+            g_DLLHandle,
+            ADLX_INIT_WITH_CALLER_ADL_FUNCTION_NAME));
+        g_InitializeFn = static_cast<ADLXInitialize_Fn>(CrossPlatformGetProcAddress(g_DLLHandle, ADLX_INIT_FUNCTION_NAME));
+        g_TerminateFn  = static_cast<ADLXTerminate_Fn>(CrossPlatformGetProcAddress(g_DLLHandle, ADLX_TERMINATE_FUNCTION_NAME));
     }
 
     return IsADLXLoaded();

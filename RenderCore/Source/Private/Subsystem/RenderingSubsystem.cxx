@@ -10,11 +10,11 @@ import RuntimeInfo.Manager;
 
 RenderingSubsystem& RenderingSubsystem::Get()
 {
-    static RenderingSubsystem Instance {};
+    static RenderingSubsystem Instance{};
     return Instance;
 }
 
-void RenderingSubsystem::RegisterRenderer(Renderer* const Renderer)
+void RenderingSubsystem::RegisterRenderer(Renderer *const Renderer)
 {
     RuntimeInfo::Manager::Get().PushCallstack();
     m_RegisteredRenderer = Renderer;

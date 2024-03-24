@@ -584,21 +584,6 @@ void BufferManager::CreateDepthResources(SurfaceProperties const& SurfacePropert
                 m_DepthImage.Allocation);
 
     CreateImageView(m_DepthImage.Image, m_DepthFormat, Aspect, m_DepthImage.View);
-
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
-    CreateImage(m_Allocator,
-                m_DepthFormat,
-                SurfaceProperties.Extent,
-                Tiling,
-                Usage,
-                MemoryPropertyFlags,
-                MemoryUsage,
-                "VIEWPORT_DEPTH",
-                m_ViewportDepthImage.Image,
-                m_ViewportDepthImage.Allocation);
-
-    CreateImageView(m_ViewportDepthImage.Image, m_DepthFormat, Aspect, m_ViewportDepthImage.View);
-#endif
 }
 
 void TryResizeVertexContainer(std::vector<Vertex>& Vertices, std::uint32_t const NewSize)
@@ -1048,8 +1033,6 @@ void BufferManager::DestroyBufferResources(bool const ClearScene)
         ImageIter.DestroyResources(m_Allocator);
     });
     m_ViewportImages.clear();
-
-    m_ViewportDepthImage.DestroyResources(m_Allocator);
 #endif
 
     m_DepthImage.DestroyResources(m_Allocator);
@@ -1093,11 +1076,6 @@ std::vector<ImageAllocation> const& BufferManager::GetSwapChainImages() const
 std::vector<ImageAllocation> const& BufferManager::GetViewportImages() const
 {
     return m_ViewportImages;
-}
-
-ImageAllocation const& BufferManager::GetViewportDepthImage() const
-{
-    return m_ViewportDepthImage;
 }
 #endif
 

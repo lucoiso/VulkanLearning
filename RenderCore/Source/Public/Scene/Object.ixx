@@ -16,12 +16,12 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Object
     {
-        std::uint32_t m_ID {};
-        std::string m_Path {};
-        std::string m_Name {};
-        std::uint32_t m_TrianglesCount {};
-        Transform m_Transform {};
-        bool m_IsPendingDestroy {false};
+        std::uint32_t m_ID{};
+        std::string   m_Path{};
+        std::string   m_Name{};
+        std::uint32_t m_TrianglesCount{};
+        Transform     m_Transform{};
+        bool          m_IsPendingDestroy{false};
 
         friend class BufferManager;
         void SetTrianglesCount(std::uint32_t);
@@ -30,26 +30,29 @@ namespace RenderCore
         Object()          = delete;
         virtual ~Object() = default;
 
-        Object(std::uint32_t, std::string_view);
-        Object(std::uint32_t, std::string_view, std::string_view);
+        Object(std::uint32_t,
+               std::string_view);
+        Object(std::uint32_t,
+               std::string_view,
+               std::string_view);
 
-        [[nodiscard]] std::uint32_t GetID() const;
+        [[nodiscard]] std::uint32_t      GetID() const;
         [[nodiscard]] std::string const& GetPath() const;
         [[nodiscard]] std::string const& GetName() const;
-        [[nodiscard]] std::uint32_t GetTrianglesCount() const;
+        [[nodiscard]] std::uint32_t      GetTrianglesCount() const;
 
         [[nodiscard]] Transform const& GetTransform() const;
-        [[nodiscard]] Transform& GetMutableTransform();
-        void SetTransform(Transform const& Value);
+        [[nodiscard]] Transform&       GetMutableTransform();
+        void                           SetTransform(Transform const& Value);
 
         [[nodiscard]] Vector GetPosition() const;
-        void SetPosition(Vector const& Position);
+        void                 SetPosition(Vector const& Position);
 
         [[nodiscard]] Rotator GetRotation() const;
-        void SetRotation(Rotator const& Rotation);
+        void                  SetRotation(Rotator const& Rotation);
 
         [[nodiscard]] Vector GetScale() const;
-        void SetScale(Vector const& Scale);
+        void                 SetScale(Vector const& Scale);
 
         [[nodiscard]] glm::mat4 GetMatrix() const;
 
@@ -58,6 +61,6 @@ namespace RenderCore
         }
 
         [[nodiscard]] bool IsPendingDestroy() const;
-        void Destroy();
+        void               Destroy();
     };
-}// namespace RenderCore
+} // namespace RenderCore

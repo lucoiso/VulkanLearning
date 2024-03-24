@@ -17,7 +17,7 @@ import RuntimeInfo.Manager;
 
 AllocationRegister& AllocationRegister::Get()
 {
-    static AllocationRegister Instance {};
+    static AllocationRegister Instance{};
     return Instance;
 }
 
@@ -41,10 +41,10 @@ std::vector<AllocationRegisterData> const& AllocationRegister::GetRegister() con
 }
 
 void AllocationRegister::AllocateDeviceMemoryCallback([[maybe_unused]] VmaAllocator const Allocator,
-                                                      uint32_t const MemoryType,
-                                                      VkDeviceMemory const Memory,
-                                                      VkDeviceSize const AllocationSize,
-                                                      void* const UserData)
+                                                      uint32_t const                      MemoryType,
+                                                      VkDeviceMemory const                Memory,
+                                                      VkDeviceSize const                  AllocationSize,
+                                                      void *const                         UserData)
 {
     RuntimeInfo::Manager::Get().PushCallstack();
 
@@ -53,20 +53,30 @@ void AllocationRegister::AllocateDeviceMemoryCallback([[maybe_unused]] VmaAlloca
 
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Allocating device memory " << MemAddress.str() << " with size " << AllocationSize << " bytes.";
 
-    AllocationRegisterData Data {MemoryType, Memory, AllocationSize, UserData};
+    AllocationRegisterData Data{
+        MemoryType,
+        Memory,
+        AllocationSize,
+        UserData
+    };
     Get().RemoveElement(Data);
     Get().GetRegisterData().push_back(std::move(Data));
 }
 
 void AllocationRegister::FreeDeviceMemoryCallback([[maybe_unused]] VmaAllocator const Allocator,
-                                                  [[maybe_unused]] uint32_t const MemoryType,
-                                                  VkDeviceMemory const Memory,
-                                                  VkDeviceSize const AllocationSize,
-                                                  [[maybe_unused]] void* const UserData)
+                                                  [[maybe_unused]] uint32_t const     MemoryType,
+                                                  VkDeviceMemory const                Memory,
+                                                  VkDeviceSize const                  AllocationSize,
+                                                  [[maybe_unused]] void *const        UserData)
 {
     RuntimeInfo::Manager::Get().PushCallstack();
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Freeing device memory " << std::hex << Memory << " with size " << AllocationSize << " bytes.";
 
-    AllocationRegisterData const Data {MemoryType, Memory, AllocationSize, UserData};
+    AllocationRegisterData const Data{
+        MemoryType,
+        Memory,
+        AllocationSize,
+        UserData
+    };
     Get().RemoveElement(Data);
 }

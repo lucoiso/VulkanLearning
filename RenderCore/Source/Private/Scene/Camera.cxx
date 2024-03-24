@@ -122,11 +122,19 @@ void Camera::SetCameraMovementStateFlags(CameraMovementStateFlags const State)
 
 void Camera::UpdateCameraMovement(float const DeltaTime)
 {
-    float const CameraSpeed {GetSpeed()};
-    Vector const CameraFront {m_CameraRotation.GetFront()};
-    Vector const CameraRight {m_CameraRotation.GetRight()};
+    float const CameraSpeed{
+        GetSpeed()
+    };
+    Vector const CameraFront{
+        m_CameraRotation.GetFront()
+    };
+    Vector const CameraRight{
+        m_CameraRotation.GetRight()
+    };
 
-    Vector NewPosition {GetPosition()};
+    Vector NewPosition{
+        GetPosition()
+    };
 
     if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::FORWARD))
     {
@@ -161,25 +169,28 @@ void Camera::UpdateCameraMovement(float const DeltaTime)
     SetPosition(NewPosition);
 }
 
-bool Camera::IsInsideCameraFrustum(Vector const& TestLocation, VkExtent2D const& Extent) const
+bool Camera::IsInsideCameraFrustum(Vector const& TestLocation,
+                                   VkExtent2D const& Extent) const
 {
     glm::mat4 const ViewProjectionMatrix = GetProjectionMatrix(Extent) * GetViewMatrix();
 
-    auto const HomogeneousTestLocation    = glm::vec4(TestLocation.ToGlmVec3(), 1.F);
+    auto const HomogeneousTestLocation = glm::vec4(TestLocation.ToGlmVec3(), 1.F);
     glm::vec4 const ClipSpaceTestLocation = ViewProjectionMatrix * HomogeneousTestLocation;
 
-    return std::abs(ClipSpaceTestLocation.x) <= std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.y) <= std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.z) <= std::abs(ClipSpaceTestLocation.w);
+    return std::abs(ClipSpaceTestLocation.x) <= std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.y) <= std::abs(ClipSpaceTestLocation.w) &&
+        std::abs(ClipSpaceTestLocation.z) <= std::abs(ClipSpaceTestLocation.w);
 }
 
 bool Camera::IsInAllowedDistance(Vector const& TestLocation) const
 {
-    Vector const CameraToTestLocation  = TestLocation - GetPosition();
+    Vector const CameraToTestLocation = TestLocation - GetPosition();
     float const DistanceToTestLocation = CameraToTestLocation.Length();
 
     return DistanceToTestLocation <= GetDrawDistance();
 }
 
-bool Camera::CanDrawObject(std::shared_ptr<Object> const& Object, VkExtent2D const& Extent) const
+bool Camera::CanDrawObject(std::shared_ptr<Object> const& Object,
+                           VkExtent2D const& Extent) const
 {
     if (!Object)
     {

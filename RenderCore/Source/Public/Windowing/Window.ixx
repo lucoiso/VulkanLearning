@@ -20,19 +20,19 @@ namespace RenderCore
     export class RENDERCOREMODULE_API Window : public Control
     {
         GLFWHandler m_GLFWHandler{};
-        Renderer m_Renderer{};
+        Renderer    m_Renderer{};
 
-        std::string m_Title{};
-        std::uint16_t m_Width{};
-        std::uint16_t m_Height{};
+        std::string         m_Title{};
+        std::uint16_t       m_Width{};
+        std::uint16_t       m_Height{};
         InitializationFlags m_Flags{};
 
     public:
         Window();
 
-        Window(Window const &) = delete;
+        Window(Window const&) = delete;
 
-        Window &operator=(Window const &) = delete;
+        Window& operator=(Window const&) = delete;
 
         ~Window() override;
 
@@ -47,7 +47,7 @@ namespace RenderCore
 
         [[nodiscard]] bool IsOpen() const;
 
-        [[nodiscard]] Renderer &GetRenderer();
+        [[nodiscard]] Renderer& GetRenderer();
 
         virtual void PollEvents();
 

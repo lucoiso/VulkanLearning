@@ -64,6 +64,11 @@ namespace RenderCore
         requires std::is_same_v<T, VkResult> || std::is_same_v<T, VkResult&>
     constexpr bool CheckVulkanResult(T&& InputOperation)
     {
+        if (InputOperation == VK_ERROR_DEVICE_LOST)
+        {
+            throw std::runtime_error("Vulkan Error: Device Lost");
+        }
+
         return InputOperation == VK_SUCCESS;
     }
 
