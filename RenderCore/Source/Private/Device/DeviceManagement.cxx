@@ -194,13 +194,13 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
     }
 
 #ifdef _DEBUG
-    if (Contains(AvailableExtensions, VK_AMD_BUFFER_MARKER_EXTENSION_NAME))
+    if (Contains(Extensions, std::string {VK_AMD_BUFFER_MARKER_EXTENSION_NAME}))
     {
-        SetDebugEnabledExtension({VK_AMD_BUFFER_MARKER_EXTENSION_NAME});
+        SetDebugEnabledExtension(std::string {VK_AMD_BUFFER_MARKER_EXTENSION_NAME});
     }
-    else if (Contains(AvailableExtensions, VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME))
+    else if (Contains(Extensions, std::string {VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME}))
     {
-        SetDebugEnabledExtension({VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME});
+        SetDebugEnabledExtension(std::string {VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME});
     }
 #endif
 

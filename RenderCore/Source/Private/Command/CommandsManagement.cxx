@@ -234,7 +234,9 @@ void BindDescriptorSets(VkCommandBuffer const                      &CommandBuffe
     bool const IsAMDDebugAvailable    = IsDebugExtensionEnabled(VK_AMD_BUFFER_MARKER_EXTENSION_NAME);
     bool const IsNVidiaDebugAvailable = IsDebugExtensionEnabled(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME);
 
-    std::uint32_t Marker {0U};
+    std::uint32_t                     Marker {0U};
+    static std::vector<std::uint32_t> s_Markers {};
+    s_Markers.clear();
 #endif
 
     auto const &Allocations = BufferManager.GetAllocatedObjects();
@@ -326,7 +328,8 @@ void BindDescriptorSets(VkCommandBuffer const                      &CommandBuffe
                 }
                 else if (IsNVidiaDebugAvailable)
                 {
-                    vkCmdSetCheckpointNV(CommandBuffer, reinterpret_cast<void *>(&++Marker));
+                    s_Markers.emplace_back(++Marker);
+                    vkCmdSetCheckpointNV(CommandBuffer, &s_Markers.back());
                 }
             }
 #endif
@@ -540,7 +543,9 @@ void RenderCore::SubmitCommandBuffers()
 
             if (DebugMarkersCount > 0U)
             {
-                std::vector<VkCheckpointDataNV> DebugMarkers(DebugMarkersCount);
+                constexpr VkCheckpointDataNV DefaultData {.sType = VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV, .pNext = nullptr, .pCheckpointMarker = nullptr};
+                std::vector                  DebugMarkers(DebugMarkersCount, DefaultData);
+
                 vkGetQueueCheckpointDataNV(GraphicsQueue, &DebugMarkersCount, std::data(DebugMarkers));
 
                 for (VkCheckpointDataNV const &DebugMarker : DebugMarkers)
@@ -550,8 +555,7 @@ void RenderCore::SubmitCommandBuffers()
                         continue;
                     }
 
-                    std::uint32_t const Marker = *static_cast<std::uint32_t *>(DebugMarker.pCheckpointMarker);
-                    BOOST_LOG_TRIVIAL(debug) << "Debug marker: " << Marker;
+                    BOOST_LOG_TRIVIAL(debug) << "Debug marker: " << *static_cast<std::uint32_t *>(DebugMarker.pCheckpointMarker);
                 }
             }
         }
