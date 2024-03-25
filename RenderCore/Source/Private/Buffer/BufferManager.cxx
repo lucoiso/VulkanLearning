@@ -45,6 +45,7 @@ import RenderCore.Types.UniformBufferObject;
 import RenderCore.Types.Vertex;
 import RenderCore.Types.Camera;
 import RenderCore.Types.Object;
+import RenderCore.Types.TextureType;
 import RuntimeInfo.Manager;
 
 using namespace RenderCore;
@@ -606,7 +607,6 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const ModelPat
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Loaded model from path: '" << ModelPath << "'";
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Loading scenes: " << std::size(Model.scenes);
 
-    //#pragma omp parallel for
     for (tinygltf::Node const &Node : Model.nodes)
     {
         std::int32_t const MeshIndex = Node.mesh;
@@ -618,7 +618,6 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const ModelPat
         tinygltf::Mesh const &Mesh = Model.meshes.at(MeshIndex);
         AllocationData.reserve(std::size(AllocationData) + std::size(Mesh.primitives));
 
-        //#pragma omp parallel for
         for (tinygltf::Primitive const &Primitive : Mesh.primitives)
         {
             std::uint32_t const ObjectID = m_ObjectIDCounter.fetch_add(1U);
