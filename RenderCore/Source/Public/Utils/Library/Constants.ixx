@@ -21,8 +21,9 @@ export namespace RenderCore
 
     constexpr std::array<char const *, 0U> g_RequiredInstanceExtensions = {};
 
-    constexpr std::array g_RequiredDeviceExtensions
-        = {VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_EXT_ROBUSTNESS_2_EXTENSION_NAME, VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME};
+    constexpr std::array g_RequiredDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+                                                       VK_EXT_ROBUSTNESS_2_EXTENSION_NAME,
+                                                       VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME};
 
     constexpr std::array<char const *, 0U> g_OptionalInstanceLayers = {};
 

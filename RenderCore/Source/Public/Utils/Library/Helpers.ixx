@@ -79,4 +79,9 @@ namespace RenderCore
     {
         return CheckVulkanResult(InputOperation());
     }
+
+    export constexpr bool DepthHasStencil(VkFormat const &Format)
+    {
+        return Format >= VK_FORMAT_D16_UNORM_S8_UINT && Format <= VK_FORMAT_D32_SFLOAT_S8_UINT;
+    }
 } // namespace RenderCore

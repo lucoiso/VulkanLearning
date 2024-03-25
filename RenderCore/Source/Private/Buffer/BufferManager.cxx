@@ -10,7 +10,6 @@ module;
 #include <filesystem>
 #include <glm/ext.hpp>
 #include <ranges>
-#include <span>
 
 #ifndef VMA_IMPLEMENTATION
     #define VMA_IMPLEMENTATION
@@ -529,7 +528,7 @@ void BufferManager::CreateDepthResources(SurfaceProperties const &SurfacePropert
                 m_DepthImage.Image,
                 m_DepthImage.Allocation);
 
-    CreateImageView(m_DepthImage.Image, m_DepthFormat, Aspect, m_DepthImage.View);
+    CreateImageView(m_DepthImage.Image, m_DepthFormat, DepthHasStencil(m_DepthFormat) ? Aspect | VK_IMAGE_ASPECT_STENCIL_BIT : Aspect, m_DepthImage.View);
 }
 
 void TryResizeVertexContainer(std::vector<Vertex> &Vertices, std::uint32_t const NewSize)
@@ -607,6 +606,7 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const ModelPat
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Loaded model from path: '" << ModelPath << "'";
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Loading scenes: " << std::size(Model.scenes);
 
+    //#pragma omp parallel for
     for (tinygltf::Node const &Node : Model.nodes)
     {
         std::int32_t const MeshIndex = Node.mesh;
@@ -618,6 +618,7 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const ModelPat
         tinygltf::Mesh const &Mesh = Model.meshes.at(MeshIndex);
         AllocationData.reserve(std::size(AllocationData) + std::size(Mesh.primitives));
 
+        //#pragma omp parallel for
         for (tinygltf::Primitive const &Primitive : Mesh.primitives)
         {
             std::uint32_t const ObjectID = m_ObjectIDCounter.fetch_add(1U);

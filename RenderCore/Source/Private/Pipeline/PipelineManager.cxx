@@ -94,7 +94,7 @@ void PipelineManager::CreatePipeline(VkFormat const SwapChainImageFormat, VkForm
     constexpr VkPipelineDepthStencilStateCreateInfo DepthStencilState {.sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
                                                                        .depthTestEnable       = VK_TRUE,
                                                                        .depthWriteEnable      = VK_TRUE,
-                                                                       .depthCompareOp        = VK_COMPARE_OP_LESS,
+                                                                       .depthCompareOp        = VK_COMPARE_OP_LESS_OR_EQUAL,
                                                                        .depthBoundsTestEnable = VK_FALSE,
                                                                        .stencilTestEnable     = VK_FALSE,
                                                                        .front                 = {},
@@ -148,7 +148,8 @@ void PipelineManager::CreatePipeline(VkFormat const SwapChainImageFormat, VkForm
                                                                 .pNext                   = &AttachmentCountInfo,
                                                                 .colorAttachmentCount    = static_cast<std::uint32_t>(std::size(ColorAttachments)),
                                                                 .pColorAttachmentFormats = std::data(ColorAttachments),
-                                                                .depthAttachmentFormat   = DepthFormat};
+                                                                .depthAttachmentFormat   = DepthFormat,
+                                                                .stencilAttachmentFormat = DepthFormat};
 
     VkPipelineColorBlendStateCreateInfo const ColorBlendState {.sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
                                                                .logicOpEnable   = VK_FALSE,

@@ -22,6 +22,8 @@ import RenderCore.Types.Camera;
 import RenderCore.Types.Transform;
 import RenderCore.Types.AllocationTypes;
 import RenderCore.Types.SurfaceProperties;
+import RenderCore.Utils.Helpers;
+import RenderCore.Utils.EnumHelpers;
 
 namespace RenderCore
 {
@@ -116,7 +118,7 @@ namespace RenderCore
         template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
         static constexpr void MoveImageLayout(VkCommandBuffer &CommandBuffer, VkImage const &Image, VkFormat const &Format)
         {
-            VkImageMemoryBarrier2KHR ImageBarrier {.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR,
+            VkImageMemoryBarrier2KHR ImageBarrier {.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                                                    .srcAccessMask       = 0U,
                                                    .dstAccessMask       = 0U,
                                                    .oldLayout           = OldLayout,
@@ -127,60 +129,60 @@ namespace RenderCore
                                                    .subresourceRange
                                                    = {.aspectMask = Aspect, .baseMipLevel = 0U, .levelCount = 1U, .baseArrayLayer = 0U, .layerCount = 1U}};
 
-            if constexpr (Aspect == VK_IMAGE_ASPECT_DEPTH_BIT)
+            if constexpr (HasFlag<VkImageAspectFlags>(Aspect, VK_IMAGE_ASPECT_DEPTH_BIT))
             {
-                if (Format == VK_FORMAT_D32_SFLOAT_S8_UINT || Format == VK_FORMAT_D24_UNORM_S8_UINT)
+                if (DepthHasStencil(Format))
                 {
                     ImageBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
                 }
             }
 
-            if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR)
+            if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL)
             {
-                if constexpr (Aspect == VK_IMAGE_ASPECT_DEPTH_BIT)
+                if constexpr (HasFlag<VkImageAspectFlags>(Aspect, VK_IMAGE_ASPECT_DEPTH_BIT))
                 {
-                    ImageBarrier.srcAccessMask = VK_ACCESS_2_NONE_KHR;
-                    ImageBarrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT_KHR | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT_KHR;
-                    ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_NONE_KHR;
-                    ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR;
+                    ImageBarrier.srcAccessMask = VK_ACCESS_2_NONE;
+                    ImageBarrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                    ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+                    ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
                 }
                 else
                 {
-                    ImageBarrier.srcAccessMask = VK_ACCESS_2_NONE_KHR;
+                    ImageBarrier.srcAccessMask = VK_ACCESS_2_NONE;
                     ImageBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-                    ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_NONE_KHR;
+                    ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_NONE;
                     ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
                 }
             }
-            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
+            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL)
             {
-                ImageBarrier.srcAccessMask = VK_ACCESS_2_NONE_KHR;
+                ImageBarrier.srcAccessMask = VK_ACCESS_2_NONE;
                 ImageBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-                ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_NONE_KHR;
+                ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_NONE;
                 ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
             }
-            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
+            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL)
             {
                 ImageBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
                 ImageBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
                 ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
                 ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
             }
-            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR && NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
             {
                 ImageBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-                ImageBarrier.dstAccessMask = VK_ACCESS_2_NONE_KHR;
+                ImageBarrier.dstAccessMask = VK_ACCESS_2_NONE;
                 ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-                ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_NONE_KHR;
+                ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_NONE;
             }
             else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
             {
-                ImageBarrier.srcAccessMask = VK_ACCESS_2_NONE_KHR;
+                ImageBarrier.srcAccessMask = VK_ACCESS_2_NONE;
                 ImageBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-                ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_NONE_KHR;
+                ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_NONE;
                 ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
             }
-            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
+            else if constexpr (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL)
             {
                 ImageBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
                 ImageBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
@@ -192,7 +194,7 @@ namespace RenderCore
                 throw std::runtime_error("Unsupported layout transition!");
             }
 
-            VkDependencyInfoKHR const DependencyInfo {.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR,
+            VkDependencyInfoKHR const DependencyInfo {.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
                                                       .imageMemoryBarrierCount = 1U,
                                                       .pImageMemoryBarriers    = &ImageBarrier};
 

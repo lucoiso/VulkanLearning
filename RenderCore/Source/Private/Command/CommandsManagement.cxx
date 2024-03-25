@@ -419,7 +419,8 @@ void RecordSceneCommands(VkCommandBuffer                            &CommandBuff
                                          .layerCount           = 1U,
                                          .colorAttachmentCount = static_cast<std::uint32_t>(std::size(ColorAttachments)),
                                          .pColorAttachments    = std::data(ColorAttachments),
-                                         .pDepthAttachment     = &DepthAttachmentInfo};
+                                         .pDepthAttachment     = &DepthAttachmentInfo,
+                                         .pStencilAttachment   = &DepthAttachmentInfo};
 
     vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
     {
