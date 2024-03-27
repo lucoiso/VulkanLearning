@@ -592,6 +592,7 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice, VkSwapchainKHR co
             throw std::runtime_error("Vulkan operation failed with result: " + std::string(ResultToString(OperationResult)));
         }
     }
+
     CheckVulkanResult(vkQueueWaitIdle(Queue));
 }
 
@@ -644,21 +645,24 @@ void RenderCore::FinishSingleCommandQueue(VkQueue const &Queue, VkCommandPool co
         throw std::runtime_error("Vulkan command buffer is invalid.");
     }
 
+    std::vector<VkCommandBufferSubmitInfoKHR> CommandBufferInfos;
+    CommandBufferInfos.reserve(std::size(g_CommandBuffers));
+
     for (VkCommandBuffer const &CommandBufferIter : CommandBuffers)
     {
         CheckVulkanResult(vkEndCommandBuffer(CommandBufferIter));
+
+        CommandBufferInfos.push_back(
+            VkCommandBufferSubmitInfo {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR, .commandBuffer = CommandBufferIter, .deviceMask = 0U});
     }
 
-    VkSubmitInfo const SubmitInfo {
-        .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .commandBufferCount = static_cast<std::uint32_t>(std::size(CommandBuffers)),
-        .pCommandBuffers    = std::data(CommandBuffers),
-    };
+    VkSubmitInfo2KHR const SubmitInfo = {.sType                  = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
+                                         .commandBufferInfoCount = static_cast<std::uint32_t>(std::size(CommandBufferInfos)),
+                                         .pCommandBufferInfos    = std::data(CommandBufferInfos)};
 
-    CheckVulkanResult(vkQueueSubmit(Queue, 1U, &SubmitInfo, VK_NULL_HANDLE));
+    CheckVulkanResult(vkQueueSubmit2(Queue, 1U, &SubmitInfo, g_Fence));
     CheckVulkanResult(vkQueueWaitIdle(Queue));
 
     vkFreeCommandBuffers(volkGetLoadedDevice(), CommandPool, static_cast<std::uint32_t>(std::size(CommandBuffers)), std::data(CommandBuffers));
-
     vkDestroyCommandPool(volkGetLoadedDevice(), CommandPool, nullptr);
 }
