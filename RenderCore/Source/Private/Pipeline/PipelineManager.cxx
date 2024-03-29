@@ -15,6 +15,7 @@ import RenderCore.Management.ShaderManagement;
 import RenderCore.Management.DeviceManagement;
 import RenderCore.Management.BufferManagement;
 import RenderCore.Types.UniformBufferObject;
+import RenderCore.Types.Vertex;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RuntimeInfo.Manager;
@@ -36,12 +37,18 @@ void PipelineManager::CreatePipeline(VkFormat const SwapChainImageFormat, VkForm
 
     CheckVulkanResult(vkCreatePipelineCache(volkGetLoadedDevice(), &PipelineCacheCreateInfo, nullptr, &m_PipelineCache));
 
-    auto const BindingDescription    = GetBindingDescriptors();
-    auto const AttributeDescriptions = GetAttributeDescriptions();
+    auto const BindingDescription    = GetBindingDescriptors(0U);
+    auto const AttributeDescriptions = GetAttributeDescriptions(0U,
+                                                                {
+                                                                    VertexAttributes::Position,
+                                                                    VertexAttributes::Normal,
+                                                                    VertexAttributes::TextureCoordinate,
+                                                                    VertexAttributes::Color,
+                                                                });
 
     VkPipelineVertexInputStateCreateInfo const VertexInputState {.sType                         = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-                                                                 .vertexBindingDescriptionCount = static_cast<std::uint32_t>(std::size(BindingDescription)),
-                                                                 .pVertexBindingDescriptions    = std::data(BindingDescription),
+                                                                 .vertexBindingDescriptionCount = 1U,
+                                                                 .pVertexBindingDescriptions    = &BindingDescription,
                                                                  .vertexAttributeDescriptionCount
                                                                  = static_cast<std::uint32_t>(std::size(AttributeDescriptions)),
                                                                  .pVertexAttributeDescriptions = std::data(AttributeDescriptions)};
@@ -201,6 +208,11 @@ void PipelineManager::CreateDescriptorSetLayout()
                                                                        .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
                                                                        .pImmutableSamplers = nullptr},
                                          VkDescriptorSetLayoutBinding {.binding            = 1U,
+                                                                       .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                                                       .descriptorCount    = 1U,
+                                                                       .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
+                                                                       .pImmutableSamplers = nullptr},
+                                         VkDescriptorSetLayoutBinding {.binding            = 2U,
                                                                        .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                                                        .descriptorCount    = 1U,
                                                                        .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -212,49 +224,6 @@ void PipelineManager::CreateDescriptorSetLayout()
                                                                    .pBindings    = std::data(LayoutBindings)};
 
     CheckVulkanResult(vkCreateDescriptorSetLayout(volkGetLoadedDevice(), &DescriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayout));
-}
-
-void PipelineManager::CreateDescriptors(std::unordered_map<std::uint32_t, ObjectAllocation> &AllocatedObjects, VkSampler const &Sampler)
-{
-    auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating vulkan descriptors";
-
-    for (auto Iterator = std::begin(AllocatedObjects); Iterator != std::end(AllocatedObjects); ++Iterator)
-    {
-        constexpr std::size_t UniformBufferSize = sizeof(UniformBufferObject);
-        auto const            Index             = static_cast<std::uint32_t>(std::distance(std::begin(AllocatedObjects), Iterator));
-
-        Iterator->second.ModelDescriptors.push_back(
-            VkDescriptorBufferInfo {.buffer = AllocatedObjects.at(Index).UniformBufferAllocation.Buffer, .offset = 0U, .range = UniformBufferSize});
-
-        for (const auto &[Image, View, Allocation, Type] : AllocatedObjects.at(Index).TextureImageAllocations)
-        {
-            Iterator->second.TextureDescriptors.push_back(
-                VkDescriptorImageInfo {.sampler = Sampler, .imageView = View, .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR});
-        }
-
-        // if (!std::empty(BufferInfos))
-        // {
-        //     WriteDescriptors.push_back(VkWriteDescriptorSet{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        //                                                     .dstSet = m_DescriptorSets.at(Iterator->ID),
-        //                                                     .dstBinding = 0U,
-        //                                                     .dstArrayElement = 0U,
-        //                                                     .descriptorCount = static_cast<std::uint32_t>(std::size(BufferInfos)),
-        //                                                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        //                                                     .pBufferInfo = std::data(BufferInfos)});
-        // }
-
-        // if (!std::empty(ImageInfos))
-        // {
-        //     WriteDescriptors.push_back(VkWriteDescriptorSet{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        //                                                     .dstSet = m_DescriptorSets.at(Iterator->ID),
-        //                                                     .dstBinding = 1U,
-        //                                                     .dstArrayElement = 0U,
-        //                                                     .descriptorCount = static_cast<std::uint32_t>(std::size(ImageInfos)),
-        //                                                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        //                                                     .pImageInfo = std::data(ImageInfos)});
-        // }
-    }
 }
 
 void PipelineManager::ReleasePipelineResources()

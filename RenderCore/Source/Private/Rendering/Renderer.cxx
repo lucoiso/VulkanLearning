@@ -160,10 +160,6 @@ void Renderer::DrawFrame(GLFWwindow *const Window, float const DeltaTime, Camera
         {
             m_PipelineManager.CreateDescriptorSetLayout();
             m_PipelineManager.CreatePipeline(m_BufferManager.GetSwapChainImageFormat(), m_BufferManager.GetDepthFormat(), m_BufferManager.GetSwapChainExtent());
-
-            auto &MutableAllocations = m_BufferManager.GetMutableAllocatedObjects();
-            m_PipelineManager.CreateDescriptors(MutableAllocations, m_BufferManager.GetSampler());
-
             RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
         }
     }
@@ -307,6 +303,7 @@ bool Renderer::Initialize(GLFWwindow *const Window)
     volkLoadDevice(GetLogicalDevice());
 
     m_BufferManager.CreateMemoryAllocator(GetPhysicalDevice());
+    m_BufferManager.CreateSceneUniformBuffers();
     m_BufferManager.CreateImageSampler();
     auto const _                 = CompileDefaultShaders();
     auto const SurfaceProperties = GetSurfaceProperties(Window, m_BufferManager.GetSurface());

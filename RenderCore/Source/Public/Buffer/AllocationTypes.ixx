@@ -22,12 +22,10 @@ namespace RenderCore
         VkImage       Image {VK_NULL_HANDLE};
         VkImageView   View {VK_NULL_HANDLE};
         VmaAllocation Allocation {VK_NULL_HANDLE};
-
-        TextureType Type {TextureType::BaseColor};
+        TextureType   Type {TextureType::BaseColor};
 
         [[nodiscard]] bool IsValid() const;
-
-        void DestroyResources(VmaAllocator const &);
+        void               DestroyResources(VmaAllocator const &);
     };
 
     export struct BufferAllocation
@@ -37,8 +35,7 @@ namespace RenderCore
         void         *MappedData {nullptr};
 
         [[nodiscard]] bool IsValid() const;
-
-        void DestroyResources(VmaAllocator const &);
+        void               DestroyResources(VmaAllocator const &);
     };
 
     export struct ImageCreationData
@@ -58,10 +55,8 @@ namespace RenderCore
         std::pair<VkBuffer, VmaAllocation> StagingBuffer {VK_NULL_HANDLE, VK_NULL_HANDLE};
     };
 
-    export struct ObjectAllocation
+    export struct ObjectAllocationData
     {
-        std::uint32_t                       ID {0U};
-        std::uint32_t                       IndicesCount {0U};
         BufferAllocation                    VertexBufferAllocation {};
         BufferAllocation                    IndexBufferAllocation {};
         BufferAllocation                    UniformBufferAllocation {};
@@ -70,14 +65,13 @@ namespace RenderCore
         std::vector<VkDescriptorImageInfo>  TextureDescriptors {};
 
         [[nodiscard]] bool IsValid() const;
-
-        void DestroyResources(VmaAllocator const &);
+        void               DestroyResources(VmaAllocator const &);
     };
 
-    export struct ObjectAllocationData
+    export struct ObjectData
     {
         Object                         Object {0U, ""};
-        ObjectAllocation               Allocation {};
+        ObjectAllocationData           Allocation {};
         std::vector<Vertex>            Vertices {};
         std::vector<std::uint32_t>     Indices {};
         std::vector<ImageCreationData> ImageCreationDatas {};

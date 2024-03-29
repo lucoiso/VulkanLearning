@@ -4,8 +4,8 @@
 
 module;
 
-#include <string>
 #include <glm/ext.hpp>
+#include <string>
 
 module RenderCore.Types.Object;
 
@@ -18,20 +18,14 @@ void Object::SetTrianglesCount(std::uint32_t const TrianglesCount)
     m_TrianglesCount = TrianglesCount;
 }
 
-Object::Object(std::uint32_t const ID,
-               std::string_view const Path)
+Object::Object(std::uint32_t const ID, std::string_view const Path)
     : m_ID(ID)
     , m_Path(Path)
     , m_Name(m_Path.substr(m_Path.find_last_of('/') + 1, m_Path.find_last_of('.') - m_Path.find_last_of('/') - 1))
 {
 }
 
-Object::Object(std::uint32_t const ID,
-               std::string_view const Path,
-               std::string_view const Name)
-    : m_ID(ID)
-    , m_Path(Path)
-    , m_Name(Name)
+Object::Object(std::uint32_t const ID, std::string_view const Path, std::string_view const Name) : m_ID(ID), m_Path(Path), m_Name(Name)
 {
 }
 
@@ -40,12 +34,12 @@ std::uint32_t Object::GetID() const
     return m_ID;
 }
 
-std::string const& Object::GetPath() const
+std::string const &Object::GetPath() const
 {
     return m_Path;
 }
 
-std::string const& Object::GetName() const
+std::string const &Object::GetName() const
 {
     return m_Name;
 }
@@ -55,17 +49,17 @@ std::uint32_t Object::GetTrianglesCount() const
     return m_TrianglesCount;
 }
 
-Transform& Object::GetMutableTransform()
+Transform &Object::GetMutableTransform()
 {
     return m_Transform;
 }
 
-Transform const& Object::GetTransform() const
+Transform const &Object::GetTransform() const
 {
     return m_Transform;
 }
 
-void Object::SetTransform(Transform const& Value)
+void Object::SetTransform(Transform const &Value)
 {
     m_Transform = Value;
 }
@@ -75,7 +69,7 @@ Vector Object::GetPosition() const
     return m_Transform.Position;
 }
 
-void Object::SetPosition(Vector const& Position)
+void Object::SetPosition(Vector const &Position)
 {
     m_Transform.Position = Position;
 }
@@ -85,7 +79,7 @@ Rotator Object::GetRotation() const
     return m_Transform.Rotation;
 }
 
-void Object::SetRotation(Rotator const& Rotation)
+void Object::SetRotation(Rotator const &Rotation)
 {
     m_Transform.Rotation = Rotation;
 }
@@ -95,7 +89,7 @@ Vector Object::GetScale() const
     return m_Transform.Scale;
 }
 
-void Object::SetScale(Vector const& Scale)
+void Object::SetScale(Vector const &Scale)
 {
     m_Transform.Scale = Scale;
 }

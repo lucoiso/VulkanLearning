@@ -239,6 +239,9 @@ void BindDescriptorSets(VkCommandBuffer const                      &CommandBuffe
     s_Markers.clear();
 #endif
 
+    BufferManager.UpdateSceneUniformBuffers(Camera, SwapChainExtent);
+    auto const &SceneBuffer = BufferManager.GetSceneUniformDescriptor();
+
     auto const &Allocations = BufferManager.GetAllocatedObjects();
 
     for (std::shared_ptr<Object> const &ObjectIter : Objects)
@@ -250,38 +253,39 @@ void BindDescriptorSets(VkCommandBuffer const                      &CommandBuffe
 
         std::uint32_t const ObjectID = ObjectIter->GetID();
 
-        if (!Allocations.contains(ObjectID))
+        if (!BufferManager.ContainsObject(ObjectID))
         {
             continue;
         }
 
-        const auto &[ID,
-                     IndicesCount,
-                     VertexBufferAllocation,
-                     IndexBufferAllocation,
-                     UniformBufferAllocation,
-                     TextureImageAllocations,
-                     ModelDescriptors,
-                     TextureDescriptors]
-            = Allocations.at(ObjectID);
+        const auto &[Object, Allocation, Vertices, Indices, ImageCreationDatas, CommandBufferSets] = Allocations.at(ObjectID);
 
         std::vector const WriteDescriptors {VkWriteDescriptorSet {
                                                 .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                                 .dstSet          = VK_NULL_HANDLE,
                                                 .dstBinding      = 0U,
                                                 .dstArrayElement = 0U,
-                                                .descriptorCount = static_cast<std::uint32_t>(std::size(ModelDescriptors)),
+                                                .descriptorCount = 1U,
                                                 .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                                .pBufferInfo     = std::data(ModelDescriptors),
+                                                .pBufferInfo     = &SceneBuffer,
                                             },
                                             VkWriteDescriptorSet {
                                                 .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                                 .dstSet          = VK_NULL_HANDLE,
                                                 .dstBinding      = 1U,
                                                 .dstArrayElement = 0U,
-                                                .descriptorCount = static_cast<std::uint32_t>(std::size(TextureDescriptors)),
+                                                .descriptorCount = static_cast<std::uint32_t>(std::size(Allocation.ModelDescriptors)),
+                                                .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                                .pBufferInfo     = std::data(Allocation.ModelDescriptors),
+                                            },
+                                            VkWriteDescriptorSet {
+                                                .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                                .dstSet          = VK_NULL_HANDLE,
+                                                .dstBinding      = 2U,
+                                                .dstArrayElement = 0U,
+                                                .descriptorCount = static_cast<std::uint32_t>(std::size(Allocation.TextureDescriptors)),
                                                 .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                                .pImageInfo      = std::data(TextureDescriptors),
+                                                .pImageInfo      = std::data(Allocation.TextureDescriptors),
                                             }};
 
         vkCmdPushDescriptorSetKHR(CommandBuffer,
@@ -295,7 +299,7 @@ void BindDescriptorSets(VkCommandBuffer const                      &CommandBuffe
         VkBuffer const     &IndexBuffer  = BufferManager.GetIndexBuffer(ObjectID);
         std::uint32_t const IndexCount   = BufferManager.GetIndicesCount(ObjectID);
 
-        BufferManager.UpdateUniformBuffers(ObjectIter, Camera, SwapChainExtent);
+        BufferManager.UpdateModelUniformBuffers(ObjectIter);
 
         bool ActiveVertexBinding = false;
         if (VertexBuffer != VK_NULL_HANDLE)

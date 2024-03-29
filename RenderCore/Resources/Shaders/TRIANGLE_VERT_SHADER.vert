@@ -1,22 +1,31 @@
 #version 450
-#extension GL_ARB_separate_shader_objects : enable
 
-layout(binding = 0) uniform UniformBufferObject {
-    mat4 Model;
-    mat4 View;
-    mat4 Projection;
-} VertexUBO;
+layout (location = 0) in vec3 inPos;
+layout (location = 1) in vec3 inNormal;
+layout (location = 2) in vec2 inUV;
+layout (location = 3) in vec3 inColor;
 
-layout(location = 0) in vec3 InVertPosition;
-layout(location = 1) in vec3 InVertNormal;
-layout(location = 2) in vec4 InVertColor;
-layout(location = 3) in vec2 InVertTexCoord;
+layout (set = 0, binding = 0) uniform UBOScene {
+    mat4 projection;
+    mat4 view;
+} uboCamera;
 
-layout(location = 0) out vec4 OutVertColor;
-layout(location = 1) out vec2 OutVertTexCoord;
+layout (set = 0, binding = 1) uniform UBOModel {
+    mat4 local;
+} uboModel;
 
-void main() {
-    gl_Position = VertexUBO.Projection * VertexUBO.View * VertexUBO.Model * vec4(InVertPosition, 1.0);
-    OutVertColor = InVertColor;
-    OutVertTexCoord = InVertTexCoord;
+layout (location = 0) out vec3 outNormal;
+layout (location = 1) out vec3 outColor;
+layout (location = 2) out vec2 outUV;
+
+out gl_PerVertex {
+    vec4 gl_Position;
+};
+
+void main()
+{
+    outNormal = inNormal;
+    outColor = inColor;
+    outUV = inUV;
+    gl_Position = uboCamera.projection * uboCamera.view * uboModel.local * vec4(inPos.xyz, 1.0);
 }

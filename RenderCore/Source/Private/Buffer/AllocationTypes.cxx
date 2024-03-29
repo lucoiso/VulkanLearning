@@ -59,12 +59,12 @@ void BufferAllocation::DestroyResources(VmaAllocator const &Allocator)
     }
 }
 
-bool ObjectAllocation::IsValid() const
+bool ObjectAllocationData::IsValid() const
 {
-    return VertexBufferAllocation.IsValid() && IndexBufferAllocation.IsValid() && IndicesCount != 0U;
+    return VertexBufferAllocation.IsValid() && IndexBufferAllocation.IsValid();
 }
 
-void ObjectAllocation::DestroyResources(VmaAllocator const &Allocator)
+void ObjectAllocationData::DestroyResources(VmaAllocator const &Allocator)
 {
     std::ranges::for_each(TextureImageAllocations,
                           [&](ImageAllocation &TextureImageIter)
@@ -75,8 +75,6 @@ void ObjectAllocation::DestroyResources(VmaAllocator const &Allocator)
     VertexBufferAllocation.DestroyResources(Allocator);
     IndexBufferAllocation.DestroyResources(Allocator);
     UniformBufferAllocation.DestroyResources(Allocator);
-    ID           = 0U;
-    IndicesCount = 0U;
     ModelDescriptors.clear();
     TextureDescriptors.clear();
 }

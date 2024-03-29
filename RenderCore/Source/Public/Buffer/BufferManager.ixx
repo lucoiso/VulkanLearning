@@ -11,7 +11,6 @@ module;
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include <unordered_map>
 #include <vector>
 #include <vma/vk_mem_alloc.h>
 
@@ -45,13 +44,16 @@ namespace RenderCore
         VkSampler                                           m_Sampler {VK_NULL_HANDLE};
         ImageAllocation                                     m_DepthImage {};
         VkFormat                                            m_DepthFormat {VK_FORMAT_UNDEFINED};
-        std::unordered_map<std::uint32_t, ObjectAllocation> m_Objects {};
+        std::vector<ObjectData>                             m_Objects {};
         std::atomic<std::uint32_t>                          m_ObjectIDCounter {0U};
+        std::pair<BufferAllocation, VkDescriptorBufferInfo> m_SceneUniformBufferAllocation {};
 
     public:
         void CreateVulkanSurface(GLFWwindow *);
 
         void CreateMemoryAllocator(VkPhysicalDevice const &);
+
+        void CreateSceneUniformBuffers();
 
         void CreateImageSampler();
 
@@ -64,6 +66,8 @@ namespace RenderCore
         void CreateDepthResources(SurfaceProperties const &);
 
         std::vector<Object> AllocateScene(std::string_view);
+
+        std::vector<Object> PrepareSceneAllocationResources(std::vector<ObjectData> &);
 
         void ReleaseScene(std::vector<std::uint32_t> const &);
 
@@ -97,13 +101,15 @@ namespace RenderCore
 
         [[nodiscard]] std::uint32_t GetIndicesCount(std::uint32_t) const;
 
-        [[nodiscard]] void *GetUniformData(std::uint32_t) const;
+        [[nodiscard]] void *GetSceneUniformData() const;
+
+        [[nodiscard]] VkDescriptorBufferInfo const &GetSceneUniformDescriptor() const;
+
+        [[nodiscard]] void *GetModelUniformData(std::uint32_t) const;
 
         [[nodiscard]] bool ContainsObject(std::uint32_t) const;
 
-        [[nodiscard]] std::unordered_map<std::uint32_t, ObjectAllocation> &GetMutableAllocatedObjects();
-
-        [[nodiscard]] const std::unordered_map<std::uint32_t, ObjectAllocation> &GetAllocatedObjects() const;
+        [[nodiscard]] std::vector<ObjectData> const &GetAllocatedObjects() const;
 
         [[nodiscard]] std::uint32_t GetNumAllocations() const;
 
@@ -111,23 +117,25 @@ namespace RenderCore
 
         [[nodiscard]] VmaAllocator const &GetAllocator() const;
 
-        void UpdateUniformBuffers(std::shared_ptr<Object> const &, Camera const &, VkExtent2D const &) const;
+        void UpdateSceneUniformBuffers(Camera const &, VkExtent2D const &) const;
+
+        void UpdateModelUniformBuffers(std::shared_ptr<Object> const &) const;
 
         void SaveImageToFile(VkImage const &, std::string_view) const;
 
         template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
         static constexpr void MoveImageLayout(VkCommandBuffer &CommandBuffer, VkImage const &Image, VkFormat const &Format)
         {
-            VkImageMemoryBarrier2KHR ImageBarrier {.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                                   .srcAccessMask       = 0U,
-                                                   .dstAccessMask       = 0U,
-                                                   .oldLayout           = OldLayout,
-                                                   .newLayout           = NewLayout,
-                                                   .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                                                   .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                                                   .image               = Image,
-                                                   .subresourceRange
-                                                   = {.aspectMask = Aspect, .baseMipLevel = 0U, .levelCount = 1U, .baseArrayLayer = 0U, .layerCount = 1U}};
+            VkImageMemoryBarrier2 ImageBarrier {.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                                .srcAccessMask       = 0U,
+                                                .dstAccessMask       = 0U,
+                                                .oldLayout           = OldLayout,
+                                                .newLayout           = NewLayout,
+                                                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                                .image               = Image,
+                                                .subresourceRange
+                                                = {.aspectMask = Aspect, .baseMipLevel = 0U, .levelCount = 1U, .baseArrayLayer = 0U, .layerCount = 1U}};
 
             if constexpr (HasFlag<VkImageAspectFlags>(Aspect, VK_IMAGE_ASPECT_DEPTH_BIT))
             {
@@ -194,9 +202,9 @@ namespace RenderCore
                 throw std::runtime_error("Unsupported layout transition!");
             }
 
-            VkDependencyInfoKHR const DependencyInfo {.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                                                      .imageMemoryBarrierCount = 1U,
-                                                      .pImageMemoryBarriers    = &ImageBarrier};
+            VkDependencyInfo const DependencyInfo {.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                                                   .imageMemoryBarrierCount = 1U,
+                                                   .pImageMemoryBarriers    = &ImageBarrier};
 
             vkCmdPipelineBarrier2(CommandBuffer, &DependencyInfo);
         }

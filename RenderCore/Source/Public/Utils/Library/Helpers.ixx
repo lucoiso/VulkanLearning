@@ -34,9 +34,10 @@ namespace RenderCore
 
     export [[nodiscard]] std::vector<std::string> GetAvailableInstanceLayerExtensionsNames(std::string_view);
 
-    export [[nodiscard]] std::array<VkVertexInputBindingDescription, 1U> GetBindingDescriptors();
+    export [[nodiscard]] VkVertexInputBindingDescription GetBindingDescriptors(std::uint32_t);
 
-    export [[nodiscard]] std::array<VkVertexInputAttributeDescription, 4U> GetAttributeDescriptions();
+    export [[nodiscard]] std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(std::uint32_t,
+                                                                                                 std::vector<VkVertexInputAttributeDescription> const &);
 
     export template <typename ItemType, typename ContainerType>
     constexpr bool Contains(ContainerType const &Container, ItemType const &Item)

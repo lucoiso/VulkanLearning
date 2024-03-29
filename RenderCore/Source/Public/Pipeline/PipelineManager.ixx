@@ -28,8 +28,6 @@ namespace RenderCore
 
         void CreateDescriptorSetLayout();
 
-        void CreateDescriptors(std::unordered_map<std::uint32_t, ObjectAllocation> &, VkSampler const &);
-
         void ReleasePipelineResources();
 
         void ReleaseDynamicPipelineResources();

@@ -90,7 +90,7 @@ void CopyBuffer(VkCommandBuffer const &CommandBuffer, VkBuffer const &Source, Vk
     vkCmdCopyBuffer(CommandBuffer, Source, Destination, 1U, &BufferCopy);
 }
 
-CommandBufferSet CreateVertexBuffers(VmaAllocator const &Allocator, ObjectAllocation &Object, std::vector<Vertex> const &Vertices)
+CommandBufferSet CreateVertexBuffers(VmaAllocator const &Allocator, ObjectAllocationData &Object, std::vector<Vertex> const &Vertices)
 {
     RuntimeInfo::Manager::Get().PushCallstack();
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating Vulkan vertex buffers";
@@ -130,7 +130,7 @@ CommandBufferSet CreateVertexBuffers(VmaAllocator const &Allocator, ObjectAlloca
     return Output;
 }
 
-CommandBufferSet CreateIndexBuffers(VmaAllocator const &Allocator, ObjectAllocation &Object, std::vector<std::uint32_t> const &Indices)
+CommandBufferSet CreateIndexBuffers(VmaAllocator const &Allocator, ObjectAllocationData &Object, std::vector<std::uint32_t> const &Indices)
 {
     RuntimeInfo::Manager::Get().PushCallstack();
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating Vulkan index buffers";
@@ -171,17 +171,12 @@ CommandBufferSet CreateIndexBuffers(VmaAllocator const &Allocator, ObjectAllocat
     return Output;
 }
 
-void CreateUniformBuffers(VmaAllocator const &Allocator, ObjectAllocation &Object)
+void CreateUniformBuffers(VmaAllocator const &Allocator, BufferAllocation &BufferAllocation, VkDeviceSize const BufferSize, std::string_view const Identifier)
 {
-    RuntimeInfo::Manager::Get().PushCallstack();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating Vulkan uniform buffers";
-
     if (Allocator == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan memory allocator is invalid.");
     }
-
-    constexpr VkDeviceSize BufferSize = sizeof(UniformBufferObject);
 
     constexpr VkBufferUsageFlags    DestinationUsageFlags          = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
@@ -190,10 +185,32 @@ void CreateUniformBuffers(VmaAllocator const &Allocator, ObjectAllocation &Objec
                  BufferSize,
                  DestinationUsageFlags,
                  DestinationMemoryPropertyFlags,
-                 "UNIFORM",
-                 Object.UniformBufferAllocation.Buffer,
-                 Object.UniformBufferAllocation.Allocation);
-    vmaMapMemory(Allocator, Object.UniformBufferAllocation.Allocation, &Object.UniformBufferAllocation.MappedData);
+                 Identifier,
+                 BufferAllocation.Buffer,
+                 BufferAllocation.Allocation);
+
+    vmaMapMemory(Allocator, BufferAllocation.Allocation, &BufferAllocation.MappedData);
+}
+
+void BufferManager::CreateSceneUniformBuffers()
+{
+    RuntimeInfo::Manager::Get().PushCallstack();
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating Vulkan scene uniform buffers";
+
+    constexpr VkDeviceSize BufferSize = sizeof(SceneUniformData);
+
+    CreateUniformBuffers(m_Allocator, m_SceneUniformBufferAllocation.first, BufferSize, "SCENE_UNIFORM");
+    m_SceneUniformBufferAllocation.second = {.buffer = m_SceneUniformBufferAllocation.first.Buffer, .offset = 0U, .range = BufferSize};
+}
+
+void CreateModelUniformBuffers(VmaAllocator const &Allocator, ObjectAllocationData &Object)
+{
+    RuntimeInfo::Manager::Get().PushCallstack();
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating Vulkan model uniform buffers";
+
+    constexpr VkDeviceSize BufferSize = sizeof(glm::mat4);
+    CreateUniformBuffers(Allocator, Object.UniformBufferAllocation, BufferSize, "MODEL_UNIFORM");
+    Object.ModelDescriptors.push_back(VkDescriptorBufferInfo {.buffer = Object.UniformBufferAllocation.Buffer, .offset = 0U, .range = BufferSize});
 }
 
 void CreateImage(VmaAllocator const            &Allocator,
@@ -552,7 +569,49 @@ void InsertIndiceInContainer(std::vector<std::uint32_t> &Indices, tinygltf::Acce
     }
 }
 
-void AllocateModelTexture(ObjectAllocationData  &ObjectCreationData,
+float const *GetPrimitiveData(ObjectData                &ObjectCreationData,
+                              std::string_view const    &ID,
+                              tinygltf::Model const     &Model,
+                              tinygltf::Primitive const &Primitive,
+                              std::uint32_t             *NumComponents = nullptr)
+{
+    RuntimeInfo::Manager::Get().PushCallstack();
+
+    if (Primitive.attributes.contains(std::data(ID)))
+    {
+        tinygltf::Accessor const   &Accessor   = Model.accessors.at(Primitive.attributes.at(std::data(ID)));
+        tinygltf::BufferView const &BufferView = Model.bufferViews.at(Accessor.bufferView);
+        tinygltf::Buffer const     &Buffer     = Model.buffers.at(BufferView.buffer);
+
+        if (NumComponents)
+        {
+            switch (Accessor.type)
+            {
+                case TINYGLTF_TYPE_SCALAR:
+                    *NumComponents = 1U;
+                    break;
+                case TINYGLTF_TYPE_VEC2:
+                    *NumComponents = 2U;
+                    break;
+                case TINYGLTF_TYPE_VEC3:
+                    *NumComponents = 3U;
+                    break;
+                case TINYGLTF_TYPE_VEC4:
+                    *NumComponents = 4U;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        TryResizeVertexContainer(ObjectCreationData.Vertices, Accessor.count);
+        return reinterpret_cast<float const *>(std::data(Buffer.data) + BufferView.byteOffset + Accessor.byteOffset);
+    }
+
+    return nullptr;
+}
+
+void AllocateModelTexture(ObjectData            &ObjectCreationData,
                           tinygltf::Model const &Model,
                           VmaAllocator const    &Allocator,
                           std::int32_t const     TextureIndex,
@@ -574,12 +633,321 @@ void AllocateModelTexture(ObjectAllocationData  &ObjectCreationData,
     }
 }
 
+void AllocateVertexAttributes(ObjectData &Allocation, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
+{
+    RuntimeInfo::Manager::Get().PushCallstack();
+
+    const float  *PositionData = GetPrimitiveData(Allocation, "POSITION", Model, Primitive);
+    const float  *NormalData   = GetPrimitiveData(Allocation, "NORMAL", Model, Primitive);
+    const float  *TexCoordData = GetPrimitiveData(Allocation, "TEXCOORD_0", Model, Primitive);
+    std::uint32_t NumColorComponents {};
+    const float  *ColorData   = GetPrimitiveData(Allocation, "COLOR_0", Model, Primitive, &NumColorComponents);
+    const float  *JointData   = GetPrimitiveData(Allocation, "JOINTS_0", Model, Primitive);
+    const float  *WeightData  = GetPrimitiveData(Allocation, "WEIGHTS_0", Model, Primitive);
+    const float  *TangentData = GetPrimitiveData(Allocation, "TANGENT", Model, Primitive);
+
+    bool const HasSkin = JointData && WeightData;
+
+    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(Allocation.Vertices)); ++Iterator)
+    {
+        if (PositionData)
+        {
+            Allocation.Vertices.at(Iterator).Position = glm::make_vec3(&PositionData[Iterator * 3]);
+        }
+
+        if (NormalData)
+        {
+            Allocation.Vertices.at(Iterator).Normal = glm::make_vec3(&NormalData[Iterator * 3]);
+        }
+
+        if (TexCoordData)
+        {
+            Allocation.Vertices.at(Iterator).TextureCoordinate = glm::make_vec2(&TexCoordData[Iterator * 2]);
+        }
+
+        if (ColorData)
+        {
+            switch (NumColorComponents)
+            {
+                case 3U:
+                    Allocation.Vertices.at(Iterator).Color = glm::vec4(glm::make_vec3(&ColorData[Iterator * 3]), 1.F);
+                    break;
+                case 4U:
+                    Allocation.Vertices.at(Iterator).Color = glm::make_vec4(&ColorData[Iterator * 4]);
+                    break;
+                default:
+                    break;
+            }
+        }
+        else
+        {
+            Allocation.Vertices.at(Iterator).Color = glm::vec4(1.F);
+        }
+
+        if (HasSkin)
+        {
+            Allocation.Vertices.at(Iterator).Joint  = glm::make_vec4(&JointData[Iterator * 4]);
+            Allocation.Vertices.at(Iterator).Weight = glm::make_vec4(&WeightData[Iterator * 4]);
+        }
+
+        if (TangentData)
+        {
+            Allocation.Vertices.at(Iterator).Tangent = glm::make_vec4(&TangentData[Iterator * 4]);
+        }
+    }
+}
+
+std::uint32_t AllocatePrimitiveIndices(ObjectData &ObjectCreationData, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
+{
+    RuntimeInfo::Manager::Get().PushCallstack();
+
+    if (Primitive.indices >= 0)
+    {
+        tinygltf::Accessor const   &IndexAccessor   = Model.accessors.at(Primitive.indices);
+        tinygltf::BufferView const &IndexBufferView = Model.bufferViews.at(IndexAccessor.bufferView);
+        tinygltf::Buffer const     &IndexBuffer     = Model.buffers.at(IndexBufferView.buffer);
+        unsigned char const *const  IndicesData     = std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset;
+
+        ObjectCreationData.Indices.reserve(IndexAccessor.count);
+
+        switch (IndexAccessor.componentType)
+        {
+            case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
+            {
+                InsertIndiceInContainer(ObjectCreationData.Indices, IndexAccessor, reinterpret_cast<const uint32_t *>(IndicesData));
+                break;
+            }
+            case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT:
+            {
+                InsertIndiceInContainer(ObjectCreationData.Indices, IndexAccessor, reinterpret_cast<const uint16_t *>(IndicesData));
+                break;
+            }
+            case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE:
+            {
+                InsertIndiceInContainer(ObjectCreationData.Indices, IndexAccessor, IndicesData);
+                break;
+            }
+            default:
+                break;
+        }
+
+        return IndexAccessor.count / 3U;
+    }
+
+    return 0U;
+}
+
+void SetPrimitiveTransform(Object &Object, tinygltf::Node const &Node)
+{
+    RuntimeInfo::Manager::Get().PushCallstack();
+
+    if (!std::empty(Node.translation))
+    {
+        Object.SetPosition(Vector(glm::make_vec3(std::data(Node.translation))));
+    }
+
+    if (!std::empty(Node.scale))
+    {
+        Object.SetScale(Vector(glm::make_vec3(std::data(Node.scale))));
+    }
+
+    if (!std::empty(Node.rotation))
+    {
+        Object.SetRotation(Rotator(glm::make_quat(std::data(Node.rotation))));
+    }
+}
+
+void AllocatePrimitiveMaterials(ObjectData                &ObjectCreationData,
+                                tinygltf::Model const     &Model,
+                                tinygltf::Primitive const &Primitive,
+                                VmaAllocator const        &Allocator,
+                                VkFormat const             SwapChainImageFormat)
+{
+    RuntimeInfo::Manager::Get().PushCallstack();
+
+    if (Primitive.material >= 0)
+    {
+        tinygltf::Material const &Material = Model.materials.at(Primitive.material);
+
+        if (Material.pbrMetallicRoughness.baseColorTexture.index >= 0)
+        {
+            AllocateModelTexture(ObjectCreationData,
+                                 Model,
+                                 Allocator,
+                                 Material.pbrMetallicRoughness.baseColorTexture.index,
+                                 SwapChainImageFormat,
+                                 TextureType::BaseColor);
+        }
+
+        // if (Material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
+        // {
+        //     AllocateModelTexture(ObjectCreationData,
+        //                          Model,
+        //                          Allocator,
+        //                          Material.pbrMetallicRoughness.metallicRoughnessTexture.index,
+        //                          SwapChainImageFormat,
+        //                          TextureType::MetallicRoughness);
+        // }
+
+        // if (Material.normalTexture.index >= 0)
+        // {
+        //     AllocateModelTexture(ObjectCreationData, Model, Allocator, Material.normalTexture.index, SwapChainImageFormat, TextureType::Normal);
+        // }
+
+        // if (Material.occlusionTexture.index >= 0)
+        // {
+        //     AllocateModelTexture(ObjectCreationData, Model, Allocator, Material.occlusionTexture.index, SwapChainImageFormat, TextureType::Occlusion);
+        // }
+
+        // if (Material.emissiveTexture.index >= 0)
+        // {
+        //     AllocateModelTexture(ObjectCreationData, Model, Allocator, Material.emissiveTexture.index, SwapChainImageFormat, TextureType::Emissive);
+        // }
+    }
+
+    if (std::empty(ObjectCreationData.ImageCreationDatas))
+    {
+        constexpr std::uint8_t                                 DefaultTextureHalfSize {2U};
+        constexpr std::uint8_t                                 DefaultTextureSize {DefaultTextureHalfSize * 2U};
+        constexpr std::array<std::uint8_t, DefaultTextureSize> DefaultTextureData {};
+
+        ObjectCreationData.ImageCreationDatas.push_back(AllocateTexture(Allocator,
+                                                                        std::data(DefaultTextureData),
+                                                                        DefaultTextureHalfSize,
+                                                                        DefaultTextureHalfSize,
+                                                                        SwapChainImageFormat,
+                                                                        DefaultTextureSize));
+
+        ObjectCreationData.ImageCreationDatas.back().Type = TextureType::BaseColor;
+    }
+}
+
+std::vector<Object> BufferManager::PrepareSceneAllocationResources(std::vector<ObjectData> &AllocationData)
+{
+    RuntimeInfo::Manager::Get().PushCallstack();
+
+    m_Objects.reserve(std::size(m_Objects) + std::size(AllocationData));
+
+    std::vector<Object> Output;
+    Output.reserve(std::size(AllocationData));
+
+    std::vector<BufferCopyOperationData> BufferCopyOperationDatas {};
+    BufferCopyOperationDatas.reserve(std::size(AllocationData));
+
+    std::vector<MoveOperationData> MoveOperation {};
+    std::vector<CopyOperationData> CopyOperation {};
+
+    for (ObjectData const &ObjectIter : AllocationData)
+    {
+        auto &[VertexData, IndexData] = BufferCopyOperationDatas.emplace_back();
+
+        VertexData.SourceBuffer          = ObjectIter.CommandBufferSets.at(0U).StagingBuffer.first;
+        VertexData.SourceAllocation      = ObjectIter.CommandBufferSets.at(0U).StagingBuffer.second;
+        VertexData.DestinationBuffer     = ObjectIter.Allocation.VertexBufferAllocation.Buffer;
+        VertexData.DestinationAllocation = ObjectIter.Allocation.VertexBufferAllocation.Allocation;
+        VertexData.AllocationSize        = ObjectIter.CommandBufferSets.at(0U).AllocationSize;
+
+        IndexData.SourceBuffer          = ObjectIter.CommandBufferSets.at(1U).StagingBuffer.first;
+        IndexData.SourceAllocation      = ObjectIter.CommandBufferSets.at(1U).StagingBuffer.second;
+        IndexData.DestinationBuffer     = ObjectIter.Allocation.IndexBufferAllocation.Buffer;
+        IndexData.DestinationAllocation = ObjectIter.Allocation.IndexBufferAllocation.Allocation;
+        IndexData.AllocationSize        = ObjectIter.CommandBufferSets.at(1U).AllocationSize;
+
+        MoveOperation.reserve(std::size(MoveOperation) + std::size(ObjectIter.ImageCreationDatas));
+        for (ImageCreationData const &ImageCreationDataIter : ObjectIter.ImageCreationDatas)
+        {
+            MoveOperation.push_back({.Image = ImageCreationDataIter.Allocation.Image, .Format = ImageCreationDataIter.Format});
+
+            CopyOperation.push_back({.SourceBuffer     = ImageCreationDataIter.StagingBuffer.first,
+                                     .SourceAllocation = ImageCreationDataIter.StagingBuffer.second,
+                                     .DestinationImage = ImageCreationDataIter.Allocation.Image,
+                                     .Format           = ImageCreationDataIter.Format,
+                                     .Extent           = ImageCreationDataIter.Extent});
+        }
+
+        Output.push_back(ObjectIter.Object);
+    }
+
+    auto const &[FamilyIndex, Queue] = GetGraphicsQueue();
+
+    VkCommandPool                CopyCommandPool {VK_NULL_HANDLE};
+    std::vector<VkCommandBuffer> CommandBuffers {};
+    CommandBuffers.resize(std::size(AllocationData) + std::size(MoveOperation) + std::size(CopyOperation) + std::size(MoveOperation));
+
+    InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, FamilyIndex);
+    {
+        std::uint32_t Count = 0U;
+
+        for (auto const &[VertexData, IndexData] : BufferCopyOperationDatas)
+        {
+            VkCommandBuffer const &CommandBuffer = CommandBuffers.at(Count);
+
+            VkBufferCopy const VertexBufferCopy {.size = VertexData.AllocationSize};
+            vkCmdCopyBuffer(CommandBuffer, VertexData.SourceBuffer, VertexData.DestinationBuffer, 1U, &VertexBufferCopy);
+
+            VkBufferCopy const IndexBufferCopy {.size = IndexData.AllocationSize};
+            vkCmdCopyBuffer(CommandBuffer, IndexData.SourceBuffer, IndexData.DestinationBuffer, 1U, &IndexBufferCopy);
+
+            ++Count;
+        }
+
+        for (auto const &[Image, Format] : MoveOperation)
+        {
+            MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffers.at(Count),
+                                                                                                                        Image,
+                                                                                                                        Format);
+            ++Count;
+        }
+
+        for (auto const &[SourceBuffer, SourceAllocation, DestinationImage, Format, Extent] : CopyOperation)
+        {
+            CopyBufferToImage(CommandBuffers.at(Count), SourceBuffer, DestinationImage, Extent);
+            ++Count;
+        }
+
+        for (auto const &[Image, Format] : MoveOperation)
+        {
+            MoveImageLayout<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffers.at(Count),
+                                                                                                                                    Image,
+                                                                                                                                    Format);
+            ++Count;
+        }
+    }
+    FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);
+
+    for (ObjectData &ObjectIter : AllocationData)
+    {
+        for (ImageCreationData &ImageCreationDataIter : ObjectIter.ImageCreationDatas)
+        {
+            CreateTextureImageView(ImageCreationDataIter.Allocation, GetSwapChainImageFormat());
+
+            ObjectIter.Allocation.TextureImageAllocations.push_back(ImageCreationDataIter.Allocation);
+            ObjectIter.Allocation.TextureDescriptors.push_back(VkDescriptorImageInfo {.sampler     = m_Sampler,
+                                                                                      .imageView   = ImageCreationDataIter.Allocation.View,
+                                                                                      .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR});
+
+            vmaDestroyBuffer(m_Allocator, ImageCreationDataIter.StagingBuffer.first, ImageCreationDataIter.StagingBuffer.second);
+        }
+        ObjectIter.ImageCreationDatas.clear();
+
+        for (CommandBufferSet &CommandBufferSetIter : ObjectIter.CommandBufferSets)
+        {
+            vmaDestroyBuffer(m_Allocator, CommandBufferSetIter.StagingBuffer.first, CommandBufferSetIter.StagingBuffer.second);
+        }
+        ObjectIter.CommandBufferSets.clear();
+    }
+
+    std::ranges::move(AllocationData, std::back_inserter(m_Objects));
+
+    return Output;
+}
+
 std::vector<Object> BufferManager::AllocateScene(std::string_view const ModelPath)
 {
     RuntimeInfo::Manager::Get().PushCallstack();
 
-    std::vector<ObjectAllocationData> AllocationData {};
-    tinygltf::Model                   Model {};
+    std::vector<ObjectData> AllocationData {};
+    tinygltf::Model         Model {};
     {
         tinygltf::TinyGLTF          ModelLoader {};
         std::string                 Error {};
@@ -622,265 +990,21 @@ std::vector<Object> BufferManager::AllocateScene(std::string_view const ModelPat
         {
             std::uint32_t const ObjectID = m_ObjectIDCounter.fetch_add(1U);
 
-            ObjectAllocationData NewObjectAllocation {.Object = {ObjectID, ModelPath, std::format("{}_{:03d}", Mesh.name, ObjectID)}};
-            {
-                const float *PositionData {nullptr};
-                const float *NormalData {nullptr};
-                const float *TexCoordData {nullptr};
+            ObjectData &NewObjectAllocation
+                = AllocationData.emplace_back(ObjectData {.Object {ObjectID, ModelPath, std::format("{}_{:03d}", Mesh.name, ObjectID)}});
 
-                if (Primitive.attributes.contains("POSITION"))
-                {
-                    tinygltf::Accessor const   &PositionAccessor   = Model.accessors.at(Primitive.attributes.at("POSITION"));
-                    tinygltf::BufferView const &PositionBufferView = Model.bufferViews.at(PositionAccessor.bufferView);
-                    tinygltf::Buffer const     &PositionBuffer     = Model.buffers.at(PositionBufferView.buffer);
-                    PositionData
-                        = reinterpret_cast<const float *>(std::data(PositionBuffer.data) + PositionBufferView.byteOffset + PositionAccessor.byteOffset);
-                    TryResizeVertexContainer(NewObjectAllocation.Vertices, PositionAccessor.count);
-                }
-
-                if (Primitive.attributes.contains("NORMAL"))
-                {
-                    tinygltf::Accessor const   &NormalAccessor   = Model.accessors.at(Primitive.attributes.at("NORMAL"));
-                    tinygltf::BufferView const &NormalBufferView = Model.bufferViews.at(NormalAccessor.bufferView);
-                    tinygltf::Buffer const     &NormalBuffer     = Model.buffers.at(NormalBufferView.buffer);
-                    NormalData = reinterpret_cast<const float *>(std::data(NormalBuffer.data) + NormalBufferView.byteOffset + NormalAccessor.byteOffset);
-                    TryResizeVertexContainer(NewObjectAllocation.Vertices, NormalAccessor.count);
-                }
-
-                if (Primitive.attributes.contains("TEXCOORD_0"))
-                {
-                    tinygltf::Accessor const   &TexCoordAccessor   = Model.accessors.at(Primitive.attributes.at("TEXCOORD_0"));
-                    tinygltf::BufferView const &TexCoordBufferView = Model.bufferViews.at(TexCoordAccessor.bufferView);
-                    tinygltf::Buffer const     &TexCoordBuffer     = Model.buffers.at(TexCoordBufferView.buffer);
-                    TexCoordData
-                        = reinterpret_cast<const float *>(std::data(TexCoordBuffer.data) + TexCoordBufferView.byteOffset + TexCoordAccessor.byteOffset);
-                    TryResizeVertexContainer(NewObjectAllocation.Vertices, TexCoordAccessor.count);
-                }
-
-                for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(NewObjectAllocation.Vertices)); ++Iterator)
-                {
-                    if (PositionData)
-                    {
-                        NewObjectAllocation.Vertices.at(Iterator).Position = glm::make_vec3(&PositionData[Iterator * 3]);
-                    }
-
-                    if (NormalData)
-                    {
-                        NewObjectAllocation.Vertices.at(Iterator).Normal = glm::make_vec3(&NormalData[Iterator * 3]);
-                    }
-
-                    if (TexCoordData)
-                    {
-                        NewObjectAllocation.Vertices.at(Iterator).TextureCoordinate = glm::make_vec2(&TexCoordData[Iterator * 2]);
-                    }
-                }
-            }
-
-            if (Primitive.indices >= 0)
-            {
-                tinygltf::Accessor const   &IndexAccessor   = Model.accessors.at(Primitive.indices);
-                tinygltf::BufferView const &IndexBufferView = Model.bufferViews.at(IndexAccessor.bufferView);
-                tinygltf::Buffer const     &IndexBuffer     = Model.buffers.at(IndexBufferView.buffer);
-                unsigned char const *const  IndicesData     = std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset;
-
-                NewObjectAllocation.Indices.reserve(IndexAccessor.count);
-                NewObjectAllocation.Object.SetTrianglesCount(IndexAccessor.count / 3U);
-
-                switch (IndexAccessor.componentType)
-                {
-                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
-                    {
-                        InsertIndiceInContainer(NewObjectAllocation.Indices, IndexAccessor, reinterpret_cast<const uint32_t *>(IndicesData));
-                        break;
-                    }
-                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT:
-                    {
-                        InsertIndiceInContainer(NewObjectAllocation.Indices, IndexAccessor, reinterpret_cast<const uint16_t *>(IndicesData));
-                        break;
-                    }
-                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE:
-                    {
-                        InsertIndiceInContainer(NewObjectAllocation.Indices, IndexAccessor, IndicesData);
-                        break;
-                    }
-                    default:
-                        break;
-                }
-            }
-
-            if (!std::empty(Node.translation))
-            {
-                NewObjectAllocation.Object.SetPosition(Vector(glm::make_vec3(std::data(Node.translation))));
-            }
-
-            if (!std::empty(Node.scale))
-            {
-                NewObjectAllocation.Object.SetScale(Vector(glm::make_vec3(std::data(Node.scale))));
-            }
-
-            if (!std::empty(Node.rotation))
-            {
-                NewObjectAllocation.Object.SetRotation(Rotator(glm::make_quat(std::data(Node.rotation))));
-            }
-
-            if (Primitive.material >= 0)
-            {
-                tinygltf::Material const &Material = Model.materials.at(Primitive.material);
-                AllocateModelTexture(NewObjectAllocation,
-                                     Model,
-                                     m_Allocator,
-                                     Material.pbrMetallicRoughness.baseColorTexture.index,
-                                     GetSwapChainImageFormat(),
-                                     TextureType::BaseColor);
-
-                if (std::empty(NewObjectAllocation.ImageCreationDatas))
-                {
-                    constexpr std::uint8_t                                 DefaultTextureHalfSize {2U};
-                    constexpr std::uint8_t                                 DefaultTextureSize {DefaultTextureHalfSize * 2U};
-                    constexpr std::array<std::uint8_t, DefaultTextureSize> DefaultTextureData {};
-
-                    NewObjectAllocation.ImageCreationDatas.push_back(AllocateTexture(m_Allocator,
-                                                                                     std::data(DefaultTextureData),
-                                                                                     DefaultTextureHalfSize,
-                                                                                     DefaultTextureHalfSize,
-                                                                                     GetSwapChainImageFormat(),
-                                                                                     DefaultTextureSize));
-
-                    NewObjectAllocation.ImageCreationDatas.back().Type = TextureType::BaseColor;
-                }
-            }
+            AllocateVertexAttributes(NewObjectAllocation, Model, Primitive);
+            NewObjectAllocation.Object.SetTrianglesCount(AllocatePrimitiveIndices(NewObjectAllocation, Model, Primitive));
+            SetPrimitiveTransform(NewObjectAllocation.Object, Node);
+            AllocatePrimitiveMaterials(NewObjectAllocation, Model, Primitive, m_Allocator, GetSwapChainImageFormat());
 
             NewObjectAllocation.CommandBufferSets.push_back(CreateVertexBuffers(m_Allocator, NewObjectAllocation.Allocation, NewObjectAllocation.Vertices));
-
             NewObjectAllocation.CommandBufferSets.push_back(CreateIndexBuffers(m_Allocator, NewObjectAllocation.Allocation, NewObjectAllocation.Indices));
-
-            CreateUniformBuffers(m_Allocator, NewObjectAllocation.Allocation);
-
-            AllocationData.push_back(NewObjectAllocation);
+            CreateModelUniformBuffers(m_Allocator, NewObjectAllocation.Allocation);
         }
     }
 
-    std::vector<Object> Output;
-    Output.reserve(std::size(AllocationData));
-
-    m_Objects.reserve(std::size(m_Objects) + std::size(AllocationData));
-
-    std::vector<BufferCopyOperationData> BufferCopyOperationDatas {};
-    BufferCopyOperationDatas.reserve(std::size(AllocationData));
-
-    std::vector<MoveOperationData> MoveOperation {};
-    std::vector<CopyOperationData> CopyOperation {};
-
-    for (auto const &[Object, Allocation, Vertices, Indices, ImageCreationDatas, CommandBufferSets] : AllocationData)
-    {
-        BufferCopyOperationDatas.emplace_back();
-        auto &[VertexData, IndexData] = BufferCopyOperationDatas.back();
-
-        VertexData.SourceBuffer          = CommandBufferSets.at(0U).StagingBuffer.first;
-        VertexData.SourceAllocation      = CommandBufferSets.at(0U).StagingBuffer.second;
-        VertexData.DestinationBuffer     = Allocation.VertexBufferAllocation.Buffer;
-        VertexData.DestinationAllocation = Allocation.VertexBufferAllocation.Allocation;
-        VertexData.AllocationSize        = CommandBufferSets.at(0U).AllocationSize;
-
-        IndexData.SourceBuffer          = CommandBufferSets.at(1U).StagingBuffer.first;
-        IndexData.SourceAllocation      = CommandBufferSets.at(1U).StagingBuffer.second;
-        IndexData.DestinationBuffer     = Allocation.IndexBufferAllocation.Buffer;
-        IndexData.DestinationAllocation = Allocation.IndexBufferAllocation.Allocation;
-        IndexData.AllocationSize        = CommandBufferSets.at(1U).AllocationSize;
-
-        Output.push_back(Object);
-
-        m_Objects.emplace(Object.GetID(),
-                          ObjectAllocation {.IndicesCount            = static_cast<std::uint32_t>(std::size(Indices)),
-                                            .VertexBufferAllocation  = Allocation.VertexBufferAllocation,
-                                            .IndexBufferAllocation   = Allocation.IndexBufferAllocation,
-                                            .UniformBufferAllocation = Allocation.UniformBufferAllocation});
-
-        MoveOperation.reserve(std::size(MoveOperation) + std::size(ImageCreationDatas));
-        for (auto const &[Allocation, StagingBuffer, Format, Extent, Type] : ImageCreationDatas)
-        {
-            MoveOperation.push_back({.Image = Allocation.Image, .Format = Format});
-
-            CopyOperation.push_back({.SourceBuffer     = StagingBuffer.first,
-                                     .SourceAllocation = StagingBuffer.second,
-                                     .DestinationImage = Allocation.Image,
-                                     .Format           = Format,
-                                     .Extent           = Extent});
-        }
-    }
-
-    auto const &[FamilyIndex, Queue] = GetGraphicsQueue();
-
-    VkCommandPool                CopyCommandPool {VK_NULL_HANDLE};
-    std::vector<VkCommandBuffer> CommandBuffers {};
-    CommandBuffers.resize(std::size(AllocationData) + std::size(MoveOperation) + std::size(CopyOperation) + std::size(MoveOperation));
-
-    InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, FamilyIndex);
-    {
-        std::uint32_t Count = 0U;
-
-        for (auto const &[VertexData, IndexData] : BufferCopyOperationDatas)
-        {
-            VkCommandBuffer const &CommandBuffer = CommandBuffers.at(Count);
-
-            VkBufferCopy const VertexBufferCopy {.size = VertexData.AllocationSize};
-
-            VkBufferCopy const IndexBufferCopy {.size = IndexData.AllocationSize};
-
-            vkCmdCopyBuffer(CommandBuffer, VertexData.SourceBuffer, VertexData.DestinationBuffer, 1U, &VertexBufferCopy);
-
-            vkCmdCopyBuffer(CommandBuffer, IndexData.SourceBuffer, IndexData.DestinationBuffer, 1U, &IndexBufferCopy);
-
-            ++Count;
-        }
-
-        for (auto const &[Image, Format] : MoveOperation)
-        {
-            MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffers.at(Count),
-                                                                                                                        Image,
-                                                                                                                        Format);
-
-            ++Count;
-        }
-
-        for (auto const &[SourceBuffer, SourceAllocation, DestinationImage, Format, Extent] : CopyOperation)
-        {
-            CopyBufferToImage(CommandBuffers.at(Count), SourceBuffer, DestinationImage, Extent);
-
-            ++Count;
-        }
-
-        for (auto const &[Image, Format] : MoveOperation)
-        {
-            MoveImageLayout<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffers.at(Count),
-                                                                                                                                    Image,
-                                                                                                                                    Format);
-
-            ++Count;
-        }
-    }
-    FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);
-
-    for (auto &[Object, Allocation, Vertices, Indices, ImageCreationDatas, CommandBufferSets] : AllocationData)
-    {
-        for (auto &[Allocation, StagingBuffer, Format, Extent, Type] : ImageCreationDatas)
-        {
-            if (m_Objects.contains(Object.GetID()))
-            {
-                CreateTextureImageView(Allocation, GetSwapChainImageFormat());
-                m_Objects.at(Object.GetID()).TextureImageAllocations.push_back(Allocation);
-            }
-
-            vmaDestroyBuffer(m_Allocator, StagingBuffer.first, StagingBuffer.second);
-        }
-
-        for (auto &[bVertexBuffer, CommandBuffer, AllocationSize, StagingBuffer] : CommandBufferSets)
-        {
-            vmaDestroyBuffer(m_Allocator, StagingBuffer.first, StagingBuffer.second);
-        }
-    }
-
-    return Output;
+    return PrepareSceneAllocationResources(AllocationData);
 }
 
 void BufferManager::ReleaseScene(std::vector<std::uint32_t> const &ObjectIDs)
@@ -890,13 +1014,16 @@ void BufferManager::ReleaseScene(std::vector<std::uint32_t> const &ObjectIDs)
     std::ranges::for_each(ObjectIDs,
                           [&](std::uint32_t const ObjectIDIter)
                           {
-                              if (!m_Objects.contains(ObjectIDIter))
+                              if (auto const MatchingIter = std::ranges::find_if(m_Objects,
+                                                                                 [ObjectIDIter](ObjectData const &ObjectIter)
+                                                                                 {
+                                                                                     return ObjectIter.Object.GetID() == ObjectIDIter;
+                                                                                 });
+                                  MatchingIter != std::end(m_Objects))
                               {
-                                  return;
+                                  MatchingIter->Allocation.DestroyResources(m_Allocator);
+                                  m_Objects.erase(MatchingIter);
                               }
-
-                              m_Objects.at(ObjectIDIter).DestroyResources(m_Allocator);
-                              m_Objects.erase(ObjectIDIter);
                           });
 
     if (std::empty(m_Objects))
@@ -930,6 +1057,11 @@ void BufferManager::ReleaseBufferResources()
 
     DestroyBufferResources(true);
 
+    if (m_SceneUniformBufferAllocation.first.IsValid())
+    {
+        m_SceneUniformBufferAllocation.first.DestroyResources(m_Allocator);
+    }
+
     vkDestroySurfaceKHR(volkGetLoadedInstance(), m_Surface, nullptr);
     m_Surface = VK_NULL_HANDLE;
 
@@ -962,9 +1094,9 @@ void BufferManager::DestroyBufferResources(bool const ClearScene)
 
     if (ClearScene)
     {
-        for (auto &ObjectIter : m_Objects | std::views::values)
+        for (auto &[Object, Allocation, Vertices, Indices, ImageCreationDatas, CommandBufferSets] : m_Objects)
         {
-            ObjectIter.DestroyResources(m_Allocator);
+            Allocation.DestroyResources(m_Allocator);
         }
         m_Objects.clear();
     }
@@ -1019,55 +1151,85 @@ VkSampler const &BufferManager::GetSampler() const
 
 VkBuffer BufferManager::GetVertexBuffer(std::uint32_t const ObjectID) const
 {
-    if (!m_Objects.contains(ObjectID))
+    if (auto const MatchingIter = std::ranges::find_if(m_Objects,
+                                                       [ObjectID](ObjectData const &ObjectIter)
+                                                       {
+                                                           return ObjectIter.Object.GetID() == ObjectID;
+                                                       });
+        MatchingIter != std::end(m_Objects))
     {
-        return VK_NULL_HANDLE;
+        return MatchingIter->Allocation.VertexBufferAllocation.Buffer;
     }
 
-    return m_Objects.at(ObjectID).VertexBufferAllocation.Buffer;
+    return VK_NULL_HANDLE;
 }
 
 VkBuffer BufferManager::GetIndexBuffer(std::uint32_t const ObjectID) const
 {
-    if (!m_Objects.contains(ObjectID))
+    if (auto const MatchingIter = std::ranges::find_if(m_Objects,
+                                                       [ObjectID](ObjectData const &ObjectIter)
+                                                       {
+                                                           return ObjectIter.Object.GetID() == ObjectID;
+                                                       });
+        MatchingIter != std::end(m_Objects))
     {
-        return VK_NULL_HANDLE;
+        return MatchingIter->Allocation.IndexBufferAllocation.Buffer;
     }
 
-    return m_Objects.at(ObjectID).IndexBufferAllocation.Buffer;
+    return VK_NULL_HANDLE;
 }
 
 std::uint32_t BufferManager::GetIndicesCount(std::uint32_t const ObjectID) const
 {
-    if (!m_Objects.contains(ObjectID))
+    if (auto const MatchingIter = std::ranges::find_if(m_Objects,
+                                                       [ObjectID](ObjectData const &ObjectIter)
+                                                       {
+                                                           return ObjectIter.Object.GetID() == ObjectID;
+                                                       });
+        MatchingIter != std::end(m_Objects))
     {
-        return 0U;
+        return static_cast<std::uint32_t>(std::size(MatchingIter->Indices));
     }
 
-    return m_Objects.at(ObjectID).IndicesCount;
+    return 0U;
 }
 
-void *BufferManager::GetUniformData(std::uint32_t const ObjectID) const
+void *BufferManager::GetSceneUniformData() const
 {
-    if (!m_Objects.contains(ObjectID))
+    return m_SceneUniformBufferAllocation.first.MappedData;
+}
+
+VkDescriptorBufferInfo const &BufferManager::GetSceneUniformDescriptor() const
+{
+    return m_SceneUniformBufferAllocation.second;
+}
+
+void *BufferManager::GetModelUniformData(std::uint32_t const ObjectID) const
+{
+    if (auto const MatchingIter = std::ranges::find_if(m_Objects,
+                                                       [ObjectID](ObjectData const &ObjectIter)
+                                                       {
+                                                           return ObjectIter.Object.GetID() == ObjectID;
+                                                       });
+        MatchingIter != std::end(m_Objects))
     {
-        return nullptr;
+        return MatchingIter->Allocation.UniformBufferAllocation.MappedData;
     }
 
-    return m_Objects.at(ObjectID).UniformBufferAllocation.MappedData;
+    return nullptr;
 }
 
 bool BufferManager::ContainsObject(std::uint32_t const ID) const
 {
-    return m_Objects.contains(ID);
+    return std::ranges::find_if(m_Objects,
+                                [ID](auto const &Object)
+                                {
+                                    return Object.Object.GetID() == ID;
+                                })
+        != std::end(m_Objects);
 }
 
-std::unordered_map<std::uint32_t, ObjectAllocation> &BufferManager::GetMutableAllocatedObjects()
-{
-    return m_Objects;
-}
-
-const std::unordered_map<std::uint32_t, ObjectAllocation> &BufferManager::GetAllocatedObjects() const
+std::vector<ObjectData> const &BufferManager::GetAllocatedObjects() const
 {
     return m_Objects;
 }
@@ -1082,7 +1244,18 @@ std::uint32_t BufferManager::GetClampedNumAllocations() const
     return std::clamp(static_cast<std::uint32_t>(std::size(m_Objects)), 1U, UINT32_MAX);
 }
 
-void BufferManager::UpdateUniformBuffers(std::shared_ptr<Object> const &Object, Camera const &Camera, VkExtent2D const &Extent) const
+void BufferManager::UpdateSceneUniformBuffers(Camera const &Camera, VkExtent2D const &Extent) const
+{
+    RuntimeInfo::Manager::Get().PushCallstack();
+
+    if (void *UniformBufferData = GetSceneUniformData())
+    {
+        SceneUniformData const UpdatedUBO {.Projection = Camera.GetProjectionMatrix(Extent), .View = Camera.GetViewMatrix()};
+        std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(SceneUniformData));
+    }
+}
+
+void BufferManager::UpdateModelUniformBuffers(std::shared_ptr<Object> const &Object) const
 {
     RuntimeInfo::Manager::Get().PushCallstack();
 
@@ -1091,11 +1264,10 @@ void BufferManager::UpdateUniformBuffers(std::shared_ptr<Object> const &Object, 
         return;
     }
 
-    if (void *UniformBufferData = GetUniformData(Object->GetID()))
+    if (void *UniformBufferData = GetModelUniformData(Object->GetID()))
     {
-        UniformBufferObject const UpdatedUBO {.Model = Object->GetMatrix(), .View = Camera.GetViewMatrix(), .Projection = Camera.GetProjectionMatrix(Extent)};
-
-        std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(UniformBufferObject));
+        glm::mat4 const UpdatedUBO {Object->GetMatrix()};
+        std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(glm::mat4));
     }
 }
 
