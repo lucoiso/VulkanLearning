@@ -14,5 +14,7 @@ namespace RenderCore
     {
         glm::mat4 Projection {};
         glm::mat4 View {};
+        glm::vec4 LightPosition {};
+        glm::vec4 LightColor {};
     };
 } // namespace RenderCore

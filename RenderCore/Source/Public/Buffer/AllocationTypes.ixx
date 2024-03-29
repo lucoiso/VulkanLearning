@@ -4,6 +4,7 @@
 
 module;
 
+#include <unordered_map>
 #include <vector>
 #include <vma/vk_mem_alloc.h>
 
@@ -57,12 +58,12 @@ namespace RenderCore
 
     export struct ObjectAllocationData
     {
-        BufferAllocation                    VertexBufferAllocation {};
-        BufferAllocation                    IndexBufferAllocation {};
-        BufferAllocation                    UniformBufferAllocation {};
-        std::vector<ImageAllocation>        TextureImageAllocations {};
-        std::vector<VkDescriptorBufferInfo> ModelDescriptors {};
-        std::vector<VkDescriptorImageInfo>  TextureDescriptors {};
+        BufferAllocation                                       VertexBufferAllocation {};
+        BufferAllocation                                       IndexBufferAllocation {};
+        BufferAllocation                                       UniformBufferAllocation {};
+        std::vector<ImageAllocation>                           TextureImageAllocations {};
+        std::vector<VkDescriptorBufferInfo>                    ModelDescriptors {};
+        std::unordered_map<TextureType, VkDescriptorImageInfo> TextureDescriptors {};
 
         [[nodiscard]] bool IsValid() const;
         void               DestroyResources(VmaAllocator const &);

@@ -4,7 +4,6 @@
 
 module;
 
-#include "RenderCoreModule.hpp"
 #include <GLFW/glfw3.h>
 #include <Volk/volk.h>
 #include <cstdint>
@@ -13,10 +12,12 @@ module;
 #include <optional>
 #include <string>
 #include <vector>
+#include "RenderCoreModule.hpp"
 
 export module RenderCore.Renderer;
 
 import RenderCore.Types.Camera;
+import RenderCore.Types.Illumination;
 import RenderCore.Types.Transform;
 import RenderCore.Types.Object;
 import Timer.Manager;
@@ -32,31 +33,32 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Renderer
     {
-        BufferManager m_BufferManager {};
+        BufferManager   m_BufferManager {};
         PipelineManager m_PipelineManager {};
-        Camera m_Camera {};
+        Camera          m_Camera {};
+        Illumination    m_Illumination {};
 
-        RendererStateFlags m_StateFlags {RendererStateFlags::NONE};
+        RendererStateFlags                   m_StateFlags {RendererStateFlags::NONE};
         std::vector<std::shared_ptr<Object>> m_Objects {};
-        double m_DeltaTime {0.F};
-        double m_FrameTime {0.F};
-        double m_FrameRateCap {0.016667F};
-        std::optional<std::int32_t> m_ImageIndex {};
-        std::mutex m_RenderingMutex {};
+        double                               m_DeltaTime {0.F};
+        double                               m_FrameTime {0.F};
+        double                               m_FrameRateCap {0.016667F};
+        std::optional<std::int32_t>          m_ImageIndex {};
+        std::mutex                           m_RenderingMutex {};
 
         friend class Window;
 
-        void DrawFrame(GLFWwindow*, float, Camera const&, Control*);
+        void DrawFrame(GLFWwindow *, float, Camera const &, Control *);
 
-        std::optional<std::int32_t> RequestImageIndex(GLFWwindow*);
+        std::optional<std::int32_t> RequestImageIndex(GLFWwindow *);
 
         void Tick();
 
         void RemoveInvalidObjects();
 
-        bool Initialize(GLFWwindow*);
+        bool Initialize(GLFWwindow *);
 
-        void Shutdown(GLFWwindow*);
+        void Shutdown(GLFWwindow *);
 
     public:
         Renderer() = default;
@@ -77,11 +79,11 @@ namespace RenderCore
 
         [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view);
 
-        void UnloadScene(std::vector<std::uint32_t> const&);
+        void UnloadScene(std::vector<std::uint32_t> const &);
 
         void UnloadAllScenes();
 
-        static [[nodiscard]] Timer::Manager& GetRenderTimerManager();
+        static [[nodiscard]] Timer::Manager &GetRenderTimerManager();
 
         [[nodiscard]] double GetDeltaTime() const;
 
@@ -91,13 +93,17 @@ namespace RenderCore
 
         [[nodiscard]] double GetFrameRateCap() const;
 
-        [[nodiscard]] Camera const& GetCamera() const;
+        [[nodiscard]] Camera const &GetCamera() const;
 
-        [[nodiscard]] Camera& GetMutableCamera();
+        [[nodiscard]] Camera &GetMutableCamera();
 
-        [[nodiscard]] std::optional<std::int32_t> const& GetImageIndex() const;
+        [[nodiscard]] Illumination const &GetIllumination() const;
 
-        [[nodiscard]] std::vector<std::shared_ptr<Object>> const& GetObjects() const;
+        [[nodiscard]] Illumination &GetMutableIllumination();
+
+        [[nodiscard]] std::optional<std::int32_t> const &GetImageIndex() const;
+
+        [[nodiscard]] std::vector<std::shared_ptr<Object>> const &GetObjects() const;
 
         [[nodiscard]] std::shared_ptr<Object> GetObjectByID(std::uint32_t) const;
 
@@ -115,4 +121,4 @@ namespace RenderCore
         void SaveFrameToImageFile(std::string_view) const;
 #endif
     };
-}// namespace RenderCore
+} // namespace RenderCore

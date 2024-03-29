@@ -18,6 +18,7 @@ export module RenderCore.Management.BufferManagement;
 
 import RenderCore.Types.Object;
 import RenderCore.Types.Camera;
+import RenderCore.Types.Illumination;
 import RenderCore.Types.Transform;
 import RenderCore.Types.AllocationTypes;
 import RenderCore.Types.SurfaceProperties;
@@ -43,6 +44,7 @@ namespace RenderCore
 
         VkSampler                                           m_Sampler {VK_NULL_HANDLE};
         ImageAllocation                                     m_DepthImage {};
+        ImageAllocation                                     m_EmptyImage {};
         VkFormat                                            m_DepthFormat {VK_FORMAT_UNDEFINED};
         std::vector<ObjectData>                             m_Objects {};
         std::atomic<std::uint32_t>                          m_ObjectIDCounter {0U};
@@ -64,6 +66,8 @@ namespace RenderCore
 #endif
 
         void CreateDepthResources(SurfaceProperties const &);
+
+        void AllocateEmptyTexture(VkFormat);
 
         std::vector<Object> AllocateScene(std::string_view);
 
@@ -117,7 +121,7 @@ namespace RenderCore
 
         [[nodiscard]] VmaAllocator const &GetAllocator() const;
 
-        void UpdateSceneUniformBuffers(Camera const &, VkExtent2D const &) const;
+        void UpdateSceneUniformBuffers(Camera const &, Illumination const &) const;
 
         void UpdateModelUniformBuffers(std::shared_ptr<Object> const &) const;
 

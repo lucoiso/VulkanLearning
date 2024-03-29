@@ -185,6 +185,7 @@ void Renderer::DrawFrame(GLFWwindow *const Window, float const DeltaTime, Camera
         {
             std::unique_lock Lock(m_RenderingMutex);
 
+            m_BufferManager.UpdateSceneUniformBuffers(Camera, m_Illumination);
             RecordCommandBuffers(m_ImageIndex.value(), Camera, m_BufferManager, m_PipelineManager, m_Objects, m_BufferManager.GetSwapChainExtent());
             SubmitCommandBuffers();
             PresentFrame(m_ImageIndex.value(), m_BufferManager.GetSwapChain());
@@ -307,6 +308,7 @@ bool Renderer::Initialize(GLFWwindow *const Window)
     m_BufferManager.CreateImageSampler();
     auto const _                 = CompileDefaultShaders();
     auto const SurfaceProperties = GetSurfaceProperties(Window, m_BufferManager.GetSurface());
+    m_BufferManager.AllocateEmptyTexture(SurfaceProperties.Format.format);
 
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
     InitializeImGuiContext(Window, SurfaceProperties);
@@ -500,6 +502,16 @@ Camera const &Renderer::GetCamera() const
 Camera &Renderer::GetMutableCamera()
 {
     return m_Camera;
+}
+
+Illumination const &Renderer::GetIllumination() const
+{
+    return m_Illumination;
+}
+
+Illumination &Renderer::GetMutableIllumination()
+{
+    return m_Illumination;
 }
 
 std::optional<std::int32_t> const &Renderer::GetImageIndex() const

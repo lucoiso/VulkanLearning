@@ -25,6 +25,7 @@ SET(PRIVATE_MODULES
         ${PRIVATE_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.cxx
         ${PRIVATE_MODULES_BASE_DIRECTORY}/Input/GLFWCallbacks.cxx
         ${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Camera.cxx
+        ${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Illumination.cxx
         ${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Object.cxx
         ${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Debug/DebugHelpers.cxx
         ${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Library/Helpers.cxx
@@ -42,6 +43,7 @@ SET(PUBLIC_MODULES
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.ixx
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.ixx
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Camera.ixx
+        ${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Illumination.ixx
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Object.ixx
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Transform.ixx
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Vertex.ixx

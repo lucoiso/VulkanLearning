@@ -169,12 +169,12 @@ namespace RenderCore
 
         [[nodiscard]] glm::vec3 ToGlmVec3() const
         {
-            return {X, Y, Z};
+            return glm::vec3{X, Y, Z};
         }
 
         [[nodiscard]] glm::vec4 ToGlmVec4() const
         {
-            return {X, Y, Z, 1.F};
+            return glm::vec4{X, Y, Z, 1.F};
         }
 
         void Normalize()
@@ -405,12 +405,12 @@ namespace RenderCore
 
         [[nodiscard]] glm::vec3 ToGlmVec3() const
         {
-            return {Pitch, Yaw, Roll};
+            return glm::vec3{Pitch, Yaw, Roll};
         }
 
         [[nodiscard]] glm::vec4 ToGlmVec4() const
         {
-            return {Pitch, Yaw, Roll, 1.F};
+            return glm::vec4{Pitch, Yaw, Roll, 1.F};
         }
 
         [[nodiscard]] Vector GetFront() const

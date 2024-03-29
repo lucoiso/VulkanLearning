@@ -30,6 +30,10 @@ import RenderCore.Utils.Constants;
 import RenderCore.Utils.EnumConverter;
 import RuntimeInfo.Manager;
 
+namespace RenderCore
+{
+    enum class TextureType : std::uint8_t;
+}
 using namespace RenderCore;
 
 VkCommandPool                g_CommandPool {};
@@ -239,7 +243,6 @@ void BindDescriptorSets(VkCommandBuffer const                      &CommandBuffe
     s_Markers.clear();
 #endif
 
-    BufferManager.UpdateSceneUniformBuffers(Camera, SwapChainExtent);
     auto const &SceneBuffer = BufferManager.GetSceneUniformDescriptor();
 
     auto const &Allocations = BufferManager.GetAllocatedObjects();
@@ -260,33 +263,37 @@ void BindDescriptorSets(VkCommandBuffer const                      &CommandBuffe
 
         const auto &[Object, Allocation, Vertices, Indices, ImageCreationDatas, CommandBufferSets] = Allocations.at(ObjectID);
 
-        std::vector const WriteDescriptors {VkWriteDescriptorSet {
-                                                .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                                .dstSet          = VK_NULL_HANDLE,
-                                                .dstBinding      = 0U,
-                                                .dstArrayElement = 0U,
-                                                .descriptorCount = 1U,
-                                                .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                                .pBufferInfo     = &SceneBuffer,
-                                            },
-                                            VkWriteDescriptorSet {
-                                                .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                                .dstSet          = VK_NULL_HANDLE,
-                                                .dstBinding      = 1U,
-                                                .dstArrayElement = 0U,
-                                                .descriptorCount = static_cast<std::uint32_t>(std::size(Allocation.ModelDescriptors)),
-                                                .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                                .pBufferInfo     = std::data(Allocation.ModelDescriptors),
-                                            },
-                                            VkWriteDescriptorSet {
-                                                .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                                .dstSet          = VK_NULL_HANDLE,
-                                                .dstBinding      = 2U,
-                                                .dstArrayElement = 0U,
-                                                .descriptorCount = static_cast<std::uint32_t>(std::size(Allocation.TextureDescriptors)),
-                                                .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                                .pImageInfo      = std::data(Allocation.TextureDescriptors),
-                                            }};
+        std::vector WriteDescriptors {VkWriteDescriptorSet {
+                                          .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                          .dstSet          = VK_NULL_HANDLE,
+                                          .dstBinding      = 0U,
+                                          .dstArrayElement = 0U,
+                                          .descriptorCount = 1U,
+                                          .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                          .pBufferInfo     = &SceneBuffer,
+                                      },
+                                      VkWriteDescriptorSet {
+                                          .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                          .dstSet          = VK_NULL_HANDLE,
+                                          .dstBinding      = 1U,
+                                          .dstArrayElement = 0U,
+                                          .descriptorCount = static_cast<std::uint32_t>(std::size(Allocation.ModelDescriptors)),
+                                          .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                          .pBufferInfo     = std::data(Allocation.ModelDescriptors),
+                                      }};
+
+        for (auto &TextureDescriptorIter : Allocation.TextureDescriptors)
+        {
+            WriteDescriptors.push_back(VkWriteDescriptorSet {
+                .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet          = VK_NULL_HANDLE,
+                .dstBinding      = 2U + static_cast<std::uint32_t>(TextureDescriptorIter.first),
+                .dstArrayElement = 0U,
+                .descriptorCount = 1U,
+                .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .pImageInfo      = &TextureDescriptorIter.second,
+            });
+        }
 
         vkCmdPushDescriptorSetKHR(CommandBuffer,
                                   VK_PIPELINE_BIND_POINT_GRAPHICS,

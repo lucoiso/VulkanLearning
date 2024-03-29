@@ -11,11 +11,10 @@ export module RenderCore.Types.TextureType;
 namespace RenderCore
 {
     export enum class TextureType : std::uint8_t {
-        Undefined,
         BaseColor,
-        MetallicRoughness,
         Normal,
         Occlusion,
         Emissive,
+        MetallicRoughness,
     };
 } // namespace RenderCore

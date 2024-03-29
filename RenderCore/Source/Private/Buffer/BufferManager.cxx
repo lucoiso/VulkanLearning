@@ -757,6 +757,42 @@ void SetPrimitiveTransform(Object &Object, tinygltf::Node const &Node)
     }
 }
 
+void BufferManager::AllocateEmptyTexture(VkFormat const TextureFormat)
+{
+    RuntimeInfo::Manager::Get().PushCallstack();
+
+    constexpr std::uint8_t                                 DefaultTextureHalfSize {2U};
+    constexpr std::uint8_t                                 DefaultTextureSize {DefaultTextureHalfSize * 2U};
+    constexpr std::array<std::uint8_t, DefaultTextureSize> DefaultTextureData {};
+
+    ImageCreationData CreationData
+        = AllocateTexture(m_Allocator, std::data(DefaultTextureData), DefaultTextureHalfSize, DefaultTextureHalfSize, TextureFormat, DefaultTextureSize);
+
+    VkCommandPool                CopyCommandPool {VK_NULL_HANDLE};
+    std::vector<VkCommandBuffer> CommandBuffers(1U, VK_NULL_HANDLE);
+
+    auto const &[FamilyIndex, Queue] = GetGraphicsQueue();
+
+    InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, FamilyIndex);
+    {
+        MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffers.at(0U),
+                                                                                                                    CreationData.Allocation.Image,
+                                                                                                                    CreationData.Format);
+
+        CopyBufferToImage(CommandBuffers.at(0U), CreationData.StagingBuffer.first, CreationData.Allocation.Image, CreationData.Extent);
+
+        MoveImageLayout<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffers.at(0U),
+                                                                                                                                CreationData.Allocation.Image,
+                                                                                                                                CreationData.Format);
+    }
+    FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);
+
+    CreateImageView(CreationData.Allocation.Image, CreationData.Format, VK_IMAGE_ASPECT_COLOR_BIT, CreationData.Allocation.View);
+
+    vmaDestroyBuffer(m_Allocator, CreationData.StagingBuffer.first, CreationData.StagingBuffer.second);
+    m_EmptyImage = std::move(CreationData.Allocation);
+}
+
 void AllocatePrimitiveMaterials(ObjectData                &ObjectCreationData,
                                 tinygltf::Model const     &Model,
                                 tinygltf::Primitive const &Primitive,
@@ -779,46 +815,30 @@ void AllocatePrimitiveMaterials(ObjectData                &ObjectCreationData,
                                  TextureType::BaseColor);
         }
 
-        // if (Material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
-        // {
-        //     AllocateModelTexture(ObjectCreationData,
-        //                          Model,
-        //                          Allocator,
-        //                          Material.pbrMetallicRoughness.metallicRoughnessTexture.index,
-        //                          SwapChainImageFormat,
-        //                          TextureType::MetallicRoughness);
-        // }
+        if (Material.normalTexture.index >= 0)
+        {
+            AllocateModelTexture(ObjectCreationData, Model, Allocator, Material.normalTexture.index, SwapChainImageFormat, TextureType::Normal);
+        }
 
-        // if (Material.normalTexture.index >= 0)
-        // {
-        //     AllocateModelTexture(ObjectCreationData, Model, Allocator, Material.normalTexture.index, SwapChainImageFormat, TextureType::Normal);
-        // }
+        if (Material.occlusionTexture.index >= 0)
+        {
+            AllocateModelTexture(ObjectCreationData, Model, Allocator, Material.occlusionTexture.index, SwapChainImageFormat, TextureType::Occlusion);
+        }
 
-        // if (Material.occlusionTexture.index >= 0)
-        // {
-        //     AllocateModelTexture(ObjectCreationData, Model, Allocator, Material.occlusionTexture.index, SwapChainImageFormat, TextureType::Occlusion);
-        // }
+        if (Material.emissiveTexture.index >= 0)
+        {
+            AllocateModelTexture(ObjectCreationData, Model, Allocator, Material.emissiveTexture.index, SwapChainImageFormat, TextureType::Emissive);
+        }
 
-        // if (Material.emissiveTexture.index >= 0)
-        // {
-        //     AllocateModelTexture(ObjectCreationData, Model, Allocator, Material.emissiveTexture.index, SwapChainImageFormat, TextureType::Emissive);
-        // }
-    }
-
-    if (std::empty(ObjectCreationData.ImageCreationDatas))
-    {
-        constexpr std::uint8_t                                 DefaultTextureHalfSize {2U};
-        constexpr std::uint8_t                                 DefaultTextureSize {DefaultTextureHalfSize * 2U};
-        constexpr std::array<std::uint8_t, DefaultTextureSize> DefaultTextureData {};
-
-        ObjectCreationData.ImageCreationDatas.push_back(AllocateTexture(Allocator,
-                                                                        std::data(DefaultTextureData),
-                                                                        DefaultTextureHalfSize,
-                                                                        DefaultTextureHalfSize,
-                                                                        SwapChainImageFormat,
-                                                                        DefaultTextureSize));
-
-        ObjectCreationData.ImageCreationDatas.back().Type = TextureType::BaseColor;
+        if (Material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
+        {
+            AllocateModelTexture(ObjectCreationData,
+                                 Model,
+                                 Allocator,
+                                 Material.pbrMetallicRoughness.metallicRoughnessTexture.index,
+                                 SwapChainImageFormat,
+                                 TextureType::MetallicRoughness);
+        }
     }
 }
 
@@ -922,13 +942,24 @@ std::vector<Object> BufferManager::PrepareSceneAllocationResources(std::vector<O
             CreateTextureImageView(ImageCreationDataIter.Allocation, GetSwapChainImageFormat());
 
             ObjectIter.Allocation.TextureImageAllocations.push_back(ImageCreationDataIter.Allocation);
-            ObjectIter.Allocation.TextureDescriptors.push_back(VkDescriptorImageInfo {.sampler     = m_Sampler,
-                                                                                      .imageView   = ImageCreationDataIter.Allocation.View,
-                                                                                      .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR});
+            ObjectIter.Allocation.TextureDescriptors.emplace(ImageCreationDataIter.Type,
+                                                             VkDescriptorImageInfo {.sampler     = m_Sampler,
+                                                                                    .imageView   = ImageCreationDataIter.Allocation.View,
+                                                                                    .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR});
 
             vmaDestroyBuffer(m_Allocator, ImageCreationDataIter.StagingBuffer.first, ImageCreationDataIter.StagingBuffer.second);
         }
         ObjectIter.ImageCreationDatas.clear();
+
+        for (std::uint8_t TextTypeIter = 0U; TextTypeIter <= static_cast<std::uint8_t>(TextureType::MetallicRoughness); ++TextTypeIter)
+        {
+            if (!ObjectIter.Allocation.TextureDescriptors.contains(static_cast<TextureType>(TextTypeIter)))
+            {
+                ObjectIter.Allocation.TextureDescriptors.emplace(
+                    static_cast<TextureType>(TextTypeIter),
+                    VkDescriptorImageInfo {.sampler = m_Sampler, .imageView = m_EmptyImage.View, .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR});
+            }
+        }
 
         for (CommandBufferSet &CommandBufferSetIter : ObjectIter.CommandBufferSets)
         {
@@ -1053,6 +1084,11 @@ void BufferManager::ReleaseBufferResources()
     {
         vkDestroySampler(volkGetLoadedDevice(), m_Sampler, nullptr);
         m_Sampler = VK_NULL_HANDLE;
+    }
+
+    if (m_EmptyImage.IsValid())
+    {
+        m_EmptyImage.DestroyResources(m_Allocator);
     }
 
     DestroyBufferResources(true);
@@ -1244,13 +1280,19 @@ std::uint32_t BufferManager::GetClampedNumAllocations() const
     return std::clamp(static_cast<std::uint32_t>(std::size(m_Objects)), 1U, UINT32_MAX);
 }
 
-void BufferManager::UpdateSceneUniformBuffers(Camera const &Camera, VkExtent2D const &Extent) const
+void BufferManager::UpdateSceneUniformBuffers(Camera const &Camera, Illumination const &Illumination) const
 {
     RuntimeInfo::Manager::Get().PushCallstack();
 
     if (void *UniformBufferData = GetSceneUniformData())
     {
-        SceneUniformData const UpdatedUBO {.Projection = Camera.GetProjectionMatrix(Extent), .View = Camera.GetViewMatrix()};
+        SceneUniformData const UpdatedUBO {
+            .Projection    = Camera.GetProjectionMatrix(GetSwapChainExtent()),
+            .View          = Camera.GetViewMatrix(),
+            .LightPosition = Illumination.GetPosition().ToGlmVec4(),
+            .LightColor    = Illumination.GetColor().ToGlmVec4() * Illumination.GetIntensity(),
+        };
+
         std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(SceneUniformData));
     }
 }
