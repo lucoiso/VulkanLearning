@@ -2,12 +2,12 @@
 // Year : 2024
 // Repo : https://github.com/lucoiso/VulkanRenderer
 
-#ifndef RADEONMANAGERMODULE_H
-#define RADEONMANAGERMODULE_H
+#ifndef RENDERGRAPHRPSMODULE_H
+#define RENDERGRAPHRPSMODULE_H
 
 #ifdef BUILD_DLL
-    #define RADEONMANAGERMODULE_API _declspec(dllexport)
+    #define RENDERGRAPHRPSMODULE_API _declspec(dllexport)
 #else
-    #define RADEONMANAGERMODULE_API _declspec(dllimport)
+    #define RENDERGRAPHRPSMODULE_API _declspec(dllimport)
 #endif
 #endif

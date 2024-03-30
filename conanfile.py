@@ -1,9 +1,9 @@
 # Copyright Notices: [...]
 
+import os
 from conan import ConanFile
 from conan.tools.cmake import cmake_layout, CMakeToolchain
 from conan.tools.files import copy
-import os
 
 
 class VulkanRendererRecipe(ConanFile):
@@ -49,6 +49,9 @@ class VulkanRendererRecipe(ConanFile):
 
         for dep in self.dependencies.values():
             if dep.cpp_info.bindirs:
-                copy(pattern="*.dll", dst=os.path.join(self.build_folder, "bin"), src=dep.cpp_info.bindirs[0], conanfile=self)
-                copy(pattern="*.dylib", dst=os.path.join(self.build_folder, "bin"), src=dep.cpp_info.bindirs[0], conanfile=self)
-                copy(pattern="*.so", dst=os.path.join(self.build_folder, "bin"), src=dep.cpp_info.bindirs[0], conanfile=self)
+                copy(pattern="*.dll", dst=os.path.join(self.build_folder, "bin"), src=dep.cpp_info.bindirs[0],
+                     conanfile=self)
+                copy(pattern="*.dylib", dst=os.path.join(self.build_folder, "bin"), src=dep.cpp_info.bindirs[0],
+                     conanfile=self)
+                copy(pattern="*.so", dst=os.path.join(self.build_folder, "bin"), src=dep.cpp_info.bindirs[0],
+                     conanfile=self)

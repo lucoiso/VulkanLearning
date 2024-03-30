@@ -4,10 +4,12 @@
 
 module;
 
+#include <Volk/volk.h>
 #include "RenderGraphRPSModule.hpp"
 
 export module RenderGraphRPS.Manager;
 
-export namespace RenderGraphRPS
+namespace RenderGraphRPS
 {
+    export RENDERGRAPHRPSMODULE_API bool CreateRPSDevice(VkDevice const &, VkPhysicalDevice const &);
 } // namespace RenderGraphRPS

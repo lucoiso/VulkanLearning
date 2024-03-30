@@ -19,12 +19,12 @@ using namespace RenderCore;
 #ifdef _DEBUG
 static std::vector<std::string> s_EnabledExtensions{};
 
-void RenderCore::SetDebugEnabledExtension(std::string_view const& Extension)
+void RenderCore::SetDebugEnabledExtension(std::string_view const Extension)
 {
     s_EnabledExtensions.push_back(std::string{Extension});
 }
 
-bool RenderCore::IsDebugExtensionEnabled(std::string_view const& Extension)
+bool RenderCore::IsDebugExtensionEnabled(std::string_view const Extension)
 {
     return std::ranges::find(s_EnabledExtensions, Extension) != s_EnabledExtensions.end();
 }

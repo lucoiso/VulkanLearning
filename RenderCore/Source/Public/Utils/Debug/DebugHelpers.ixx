@@ -17,8 +17,8 @@ namespace RenderCore
 #ifdef _DEBUG
     export constexpr bool g_EnableCustomDebug = false;
 
-    export void SetDebugEnabledExtension(std::string_view const &);
-    export bool IsDebugExtensionEnabled(std::string_view const &);
+    export void SetDebugEnabledExtension(std::string_view);
+    export bool IsDebugExtensionEnabled(std::string_view);
 
     #if defined(GPU_API_DUMP) && GPU_API_DUMP
     export constexpr std::array g_DebugInstanceLayers = {"VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_api_dump"};

@@ -85,4 +85,10 @@ namespace RenderCore
     {
         return Format >= VK_FORMAT_D16_UNORM_S8_UINT && Format <= VK_FORMAT_D32_SFLOAT_S8_UINT;
     }
+
+    export template <typename T>
+    constexpr T LoadVulkanProcedure(std::string_view const ProcedureName)
+    {
+        return reinterpret_cast<T>(vkGetInstanceProcAddr(volkGetLoadedInstance(), ProcedureName.data()));
+    }
 } // namespace RenderCore

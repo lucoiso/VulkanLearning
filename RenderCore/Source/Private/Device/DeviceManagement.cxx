@@ -237,6 +237,7 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
                                                .ppEnabledExtensionNames = std::data(Extensions)};
 
     CheckVulkanResult(vkCreateDevice(g_PhysicalDevice, &DeviceCreateInfo, nullptr, &g_Device));
+    volkLoadDevice(g_Device);
 
     if (g_Device == VK_NULL_HANDLE)
     {

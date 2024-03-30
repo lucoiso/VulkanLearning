@@ -33,6 +33,7 @@ import RenderCore.Utils.DebugHelpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Subsystem.Rendering;
 import RuntimeInfo.Manager;
+import RenderGraphRPS.Manager;
 
 using namespace RenderCore;
 
@@ -302,6 +303,8 @@ bool Renderer::Initialize(GLFWwindow *const Window)
     m_BufferManager.CreateVulkanSurface(Window);
     InitializeDevice(m_BufferManager.GetSurface());
     volkLoadDevice(GetLogicalDevice());
+
+    RenderGraphRPS::CreateRPSDevice(GetLogicalDevice(), GetPhysicalDevice());
 
     m_BufferManager.CreateMemoryAllocator(GetPhysicalDevice());
     m_BufferManager.CreateSceneUniformBuffers();

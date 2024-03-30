@@ -15,6 +15,7 @@ SET(PRIVATE_MODULES
 
 SET(PUBLIC_MODULES
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Manager.ixx
+        ${PUBLIC_MODULES_BASE_DIRECTORY}/Utils.ixx
 )
 
 ADD_LIBRARY(${LIBRARY_NAME} SHARED ${PRIVATE_MODULES})
@@ -31,6 +32,23 @@ TARGET_SOURCES(${LIBRARY_NAME}
 TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${PRIVATE_MODULES_BASE_DIRECTORY})
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 
+IF (CMAKE_BUILD_TYPE MATCHES "Debug")
+    TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE $ENV{VULKAN_SDK}/Lib/volkd.lib)
+ELSE ()
+    TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE $ENV{VULKAN_SDK}/Lib/volk.lib)
+ENDIF ()
+
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE $ENV{VULKAN_SDK}/Include)
+
+OPTION(RpsEnableVulkan "Enable Vulkan backend" ON)
+OPTION(RpsEnableImGui "Enable ImGui" OFF)
+OPTION(RpsBuildTests "Enable unit test targets" OFF)
+OPTION(RpsBuildTools "Enable tool targets" OFF)
+OPTION(RpsBuildExamples "Enable example targets" OFF)
+OPTION(RpsEnableDXAgilitySDK "Enable DX12 Agility SDK" OFF)
+OPTION(RpsPackagingIncludeStaticLibs "Include prebuilt static libs during packaging" OFF)
+OPTION(RpsEnableDefaultDeviceImpl "Enable default allocator & printer support" OFF)
+
 INCLUDE(FetchContent)
 
 FETCHCONTENT_DECLARE(
@@ -41,3 +59,4 @@ FETCHCONTENT_DECLARE(
 FETCHCONTENT_MAKEAVAILABLE(renderpipelineshaders)
 
 TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${renderpipelineshaders_SOURCE_DIR}/include)
+TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE rps_core rps_runtime rps_runtime_vk rps_runtime_vkdyn)

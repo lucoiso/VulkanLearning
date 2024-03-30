@@ -5,8 +5,8 @@
 module;
 
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-#include <functional>
-#include <GLFW/glfw3.h>
+    #include <GLFW/glfw3.h>
+    #include <functional>
 #endif
 
 export module RenderCore.Management.ImGuiManagement;
@@ -20,9 +20,9 @@ import RenderCore.Types.SurfaceProperties;
 namespace RenderCore
 {
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-    export void InitializeImGuiContext(GLFWwindow*, SurfaceProperties const&);
-    export void ReleaseImGuiResources();
-    export void DrawImGuiFrame(std::function<void()>&&, std::function<void()>&&, std::function<void()>&&);
+    export void               InitializeImGuiContext(GLFWwindow *, SurfaceProperties const &);
+    export void               ReleaseImGuiResources();
+    export void               DrawImGuiFrame(std::function<void()> &&, std::function<void()> &&, std::function<void()> &&);
     export [[nodiscard]] bool IsImGuiInitialized();
 #endif
-}// namespace RenderCore
+} // namespace RenderCore
