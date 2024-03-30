@@ -304,8 +304,6 @@ bool Renderer::Initialize(GLFWwindow *const Window)
     InitializeDevice(m_BufferManager.GetSurface());
     volkLoadDevice(GetLogicalDevice());
 
-    RenderGraphRPS::CreateRPSDevice(GetLogicalDevice(), GetPhysicalDevice());
-
     m_BufferManager.CreateMemoryAllocator(GetPhysicalDevice());
     m_BufferManager.CreateSceneUniformBuffers();
     m_BufferManager.CreateImageSampler();
