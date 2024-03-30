@@ -3,7 +3,7 @@
 # Repo: https://github.com/lucoiso/VulkanRenderer
 
 # ----------- Global Definitions -----------
-SET(LIBRARY_NAME RadeonManager)
+SET(LIBRARY_NAME RenderGraphRPS)
 
 # ------------- Library Setup --------------
 SET(PRIVATE_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Source/Private)
@@ -11,12 +11,10 @@ SET(PUBLIC_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Source/Public)
 
 SET(PRIVATE_MODULES
         ${PRIVATE_MODULES_BASE_DIRECTORY}/Manager.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Profiler.cxx
 )
 
 SET(PUBLIC_MODULES
         ${PUBLIC_MODULES_BASE_DIRECTORY}/Manager.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Profiler.ixx
 )
 
 ADD_LIBRARY(${LIBRARY_NAME} SHARED ${PRIVATE_MODULES})
@@ -36,10 +34,10 @@ TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 INCLUDE(FetchContent)
 
 FETCHCONTENT_DECLARE(
-        adlx
-        GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/ADLX
+        renderpipelineshaders
+        GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/RenderPipelineShaders
         GIT_TAG main
 )
-FETCHCONTENT_MAKEAVAILABLE(adlx)
+FETCHCONTENT_MAKEAVAILABLE(renderpipelineshaders)
 
-TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${adlx_SOURCE_DIR}/SDK/Include)
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${renderpipelineshaders_SOURCE_DIR}/include)

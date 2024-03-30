@@ -1,5 +1,5 @@
 # Author: Lucas Vilas-Boas
-# Year: 2023
+# Year: 2024
 # Repo: https://github.com/lucoiso/VulkanRenderer
 
 # ----------- Global Definitions -----------

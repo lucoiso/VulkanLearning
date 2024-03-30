@@ -1,5 +1,5 @@
 # Author: Lucas Vilas-Boas
-# Year: 2023
+# Year: 2024
 # Repo: https://github.com/lucoiso/VulkanRenderer
 
 # ----------- Global Definitions -----------
@@ -20,6 +20,11 @@ IF (UNIX)
 ENDIF (UNIX)
 
 SET(Boost_NO_WARN_NEW_VERSIONS ON)
+IF (WIN32)
+    ADD_DEFINITIONS(-DBOOST_USE_WINAPI_VERSION=0x0A00)
+    ADD_DEFINITIONS(-D_WIN32_WINNT=0x0A00)
+ENDIF (WIN32)
+
 SET(BUILD_TESTS $ENV{BUILD_TESTS})
 
 # ---------------- OPTIONS -----------------
