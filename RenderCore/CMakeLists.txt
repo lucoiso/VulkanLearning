@@ -108,7 +108,7 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
         RuntimeInfo
         Configuration
         Coroutine
-        RenderGraphRPS
+        # RenderGraphRPS
 )
 
 SET(VULKAN_LIBS_TO_LINK
@@ -135,8 +135,8 @@ TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE $ENV{VULKAN_SDK}/Include)
 
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE
         # Assets directory (relative to binaries)
-        DEFAULT_SHADER_VERT="Resources/Shaders/DEFAULT_VERTEX_SHADER.vert"
-        DEFAULT_SHADER_FRAG="Resources/Shaders/DEFAULT_FRAGMENT_SHADER.frag"
+        DEFAULT_VERTEX_SHADER="Resources/Shaders/DEFAULT_SHADER.vert"
+        DEFAULT_FRAGMENT_SHADER="Resources/Shaders/DEFAULT_SHADER.frag"
 )
 
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC

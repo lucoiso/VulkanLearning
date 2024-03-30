@@ -59,4 +59,4 @@ FETCHCONTENT_DECLARE(
 FETCHCONTENT_MAKEAVAILABLE(renderpipelineshaders)
 
 TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${renderpipelineshaders_SOURCE_DIR}/include)
-TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE rps_core rps_runtime rps_runtime_vk rps_runtime_vkdyn)
+TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC rps_core rps_runtime rps_runtime_vk rps_runtime_vkdyn)

@@ -15,17 +15,23 @@ export module RenderCore.Management.ShaderManagement;
 
 namespace RenderCore
 {
-    export [[nodiscard]] bool Compile(std::string_view, std::vector<uint32_t>&);
-    export [[nodiscard]] bool Load(std::string_view, std::vector<uint32_t>&);
-    export [[nodiscard]] bool CompileOrLoadIfExists(std::string_view, std::vector<uint32_t>&);
-    export [[nodiscard]] VkShaderModule CreateModule(std::vector<uint32_t> const&, EShLanguage);
+    export enum class ShaderType {
+        GLSL,
+        HLSL,
+        // RPSL
+    };
 
-    export [[nodiscard]] VkPipelineShaderStageCreateInfo GetStageInfo(VkShaderModule const& Module);
-    export [[nodiscard]] std::vector<VkShaderModule> GetShaderModules();
+    export [[nodiscard]] bool Compile(std::string_view, ShaderType, std::string_view, std::int32_t, EShLanguage, std::vector<uint32_t> &);
+    export [[nodiscard]] bool Load(std::string_view, std::vector<uint32_t> &);
+    export [[nodiscard]] bool CompileOrLoadIfExists(std::string_view, ShaderType, std::string_view, std::int32_t, EShLanguage, std::vector<uint32_t> &);
+    export [[nodiscard]] VkShaderModule CreateModule(std::vector<uint32_t> const &, EShLanguage, std::string_view);
+
+    export [[nodiscard]] VkPipelineShaderStageCreateInfo              GetStageInfo(VkShaderModule const &Module);
+    export [[nodiscard]] std::vector<VkShaderModule>                  GetShaderModules();
     export [[nodiscard]] std::vector<VkPipelineShaderStageCreateInfo> GetStageInfos();
 
     export void ReleaseShaderResources();
-    export void FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const&);
+    export void FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const &);
 
     export [[nodiscard]] std::vector<VkPipelineShaderStageCreateInfo> CompileDefaultShaders();
-}// namespace RenderCore
+} // namespace RenderCore

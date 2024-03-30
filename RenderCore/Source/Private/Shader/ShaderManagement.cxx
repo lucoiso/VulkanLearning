@@ -27,12 +27,14 @@ import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 
-constexpr char const  *g_EntryPoint  = "main";
-constexpr std::int32_t g_GlslVersion = 450;
-
 std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> g_StageInfos {};
 
-bool Compile(std::string_view const Source, EShLanguage const Language, std::vector<std::uint32_t> &OutSPIRVCode)
+bool CompileInternal(ShaderType const            ShaderType,
+                     std::string_view const      Source,
+                     EShLanguage const           Language,
+                     std::string_view const      EntryPoint,
+                     std::int32_t const          Version,
+                     std::vector<std::uint32_t> &OutSPIRVCode)
 {
     auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
 
@@ -43,16 +45,16 @@ bool Compile(std::string_view const Source, EShLanguage const Language, std::vec
     char const *ShaderContent = std::data(Source);
     Shader.setStringsWithLengths(&ShaderContent, nullptr, 1);
 
-    Shader.setEntryPoint(g_EntryPoint);
-    Shader.setSourceEntryPoint(g_EntryPoint);
-    Shader.setEnvInput(glslang::EShSourceGlsl, Language, glslang::EShClientVulkan, 1);
+    Shader.setEntryPoint(std::data(EntryPoint));
+    Shader.setSourceEntryPoint(std::data(EntryPoint));
+    Shader.setEnvInput(ShaderType == ShaderType::GLSL ? glslang::EShSourceGlsl : glslang::EShSourceHlsl, Language, glslang::EShClientVulkan, 1);
     Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
     Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
 
     TBuiltInResource const *Resources    = GetDefaultResources();
     constexpr auto          MessageFlags = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
 
-    if (!Shader.parse(Resources, g_GlslVersion, ECoreProfile, false, true, MessageFlags))
+    if (!Shader.parse(Resources, Version, ECoreProfile, false, true, MessageFlags))
     {
         glslang::FinalizeProcess();
         std::string const InfoLog("Info Log: " + std::string(Shader.getInfoLog()));
@@ -90,7 +92,7 @@ bool Compile(std::string_view const Source, EShLanguage const Language, std::vec
     return !std::empty(OutSPIRVCode);
 }
 
-void StageInfo(VkShaderModule const &Module, EShLanguage const Language)
+void StageInfo(VkShaderModule const &Module, EShLanguage const Language, std::string_view const EntryPoint)
 {
     auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Staging shader info...";
@@ -100,7 +102,7 @@ void StageInfo(VkShaderModule const &Module, EShLanguage const Language)
         throw std::runtime_error("Invalid shader module");
     }
 
-    VkPipelineShaderStageCreateInfo StageInfo {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, .module = Module, .pName = g_EntryPoint};
+    VkPipelineShaderStageCreateInfo StageInfo {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, .module = Module, .pName = std::data(EntryPoint)};
 
     switch (Language)
     {
@@ -180,64 +182,19 @@ bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
 }
 #endif
 
-bool RenderCore::Compile(std::string_view const Source, std::vector<std::uint32_t> &OutSPIRVCode)
+bool RenderCore::Compile(std::string_view const      Source,
+                         ShaderType const            ShaderType,
+                         std::string_view const      EntryPoint,
+                         std::int32_t const          Version,
+                         EShLanguage const           Language,
+                         std::vector<std::uint32_t> &OutSPIRVCode)
 {
     auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
 
-    EShLanguage                 Language = EShLangVertex;
     std::filesystem::path const Path(Source);
+    std::stringstream           ShaderSource;
+    std::ifstream               File(Path);
 
-    if (std::filesystem::path const Extension = Path.extension(); Extension == ".frag")
-    {
-        Language = EShLangFragment;
-    }
-    else if (Extension == ".comp")
-    {
-        Language = EShLangCompute;
-    }
-    else if (Extension == ".geom")
-    {
-        Language = EShLangGeometry;
-    }
-    else if (Extension == ".tesc")
-    {
-        Language = EShLangTessControl;
-    }
-    else if (Extension == ".tese")
-    {
-        Language = EShLangTessEvaluation;
-    }
-    else if (Extension == ".rgen")
-    {
-        Language = EShLangRayGen;
-    }
-    else if (Extension == ".rint")
-    {
-        Language = EShLangIntersect;
-    }
-    else if (Extension == ".rahit")
-    {
-        Language = EShLangAnyHit;
-    }
-    else if (Extension == ".rchit")
-    {
-        Language = EShLangClosestHit;
-    }
-    else if (Extension == ".rmiss")
-    {
-        Language = EShLangMiss;
-    }
-    else if (Extension == ".rcall")
-    {
-        Language = EShLangCallable;
-    }
-    else if (Extension != ".vert")
-    {
-        throw std::runtime_error(std::format("Unknown shader extension: {}", Extension.string()));
-    }
-
-    std::stringstream ShaderSource;
-    std::ifstream     File(Path);
     if (!File.is_open())
     {
         throw std::runtime_error(std::format("Failed to open shader file: {}", Path.string()));
@@ -246,7 +203,8 @@ bool RenderCore::Compile(std::string_view const Source, std::vector<std::uint32_
     ShaderSource << File.rdbuf();
     File.close();
 
-    bool const Result = Compile(ShaderSource.str(), Language, OutSPIRVCode);
+    bool const Result = CompileInternal(ShaderType, ShaderSource.str(), Language, EntryPoint, Version, OutSPIRVCode);
+
     if (Result)
     {
 #ifdef _DEBUG
@@ -256,7 +214,7 @@ bool RenderCore::Compile(std::string_view const Source, std::vector<std::uint32_
         }
 #endif
 
-        std::string const SPIRVPath = std::format("{}.spv", Source);
+        std::string const SPIRVPath = std::format("{}_{}.spv", Source, static_cast<std::uint8_t>(Language));
         std::ofstream     SPIRVFile(SPIRVPath, std::ios::binary);
         if (!SPIRVFile.is_open())
         {
@@ -299,24 +257,30 @@ bool RenderCore::Load(std::string_view const Source, std::vector<std::uint32_t> 
 
     File.seekg(0);
     std::istream const &ReadResult = File.read(reinterpret_cast<char *>(std::data(OutSPIRVCode)), static_cast<std::streamsize>(FileSize));
-    /* Flawfinder: ignore */
     File.close();
 
     return !ReadResult.fail();
 }
 
-bool RenderCore::CompileOrLoadIfExists(std::string_view const Source, std::vector<uint32_t> &OutSPIRVCode)
+bool RenderCore::CompileOrLoadIfExists(std::string_view const      Source,
+                                       ShaderType const            ShaderType,
+                                       std::string_view const      EntryPoint,
+                                       std::int32_t const          Version,
+                                       EShLanguage const           Language,
+                                       std::vector<std::uint32_t> &OutSPIRVCode)
 {
     auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
 
-    if (std::string const CompiledShaderPath = std::format("{}.spv", Source); std::filesystem::exists(CompiledShaderPath))
+    if (std::string const CompiledShaderPath = std::format("{}_{}.spv", Source, static_cast<std::uint8_t>(Language));
+        std::filesystem::exists(CompiledShaderPath))
     {
         return Load(CompiledShaderPath, OutSPIRVCode);
     }
-    return Compile(Source, OutSPIRVCode);
+
+    return Compile(Source, ShaderType, EntryPoint, Version, Language, OutSPIRVCode);
 }
 
-VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const &SPIRVCode, EShLanguage const Language)
+VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const &SPIRVCode, EShLanguage const Language, std::string_view const EntryPoint)
 {
     auto const _ {RuntimeInfo::Manager::Get().PushCallstackWithCounter()};
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating shader module";
@@ -340,7 +304,7 @@ VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const &SPIRVC
     VkShaderModule Output = nullptr;
     CheckVulkanResult(vkCreateShaderModule(volkGetLoadedDevice(), &CreateInfo, nullptr, &Output));
 
-    StageInfo(Output, Language);
+    StageInfo(Output, Language, EntryPoint);
 
     return Output;
 }
@@ -408,27 +372,24 @@ void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> 
 
 std::vector<VkPipelineShaderStageCreateInfo> RenderCore::CompileDefaultShaders()
 {
-    constexpr std::array FragmentShaders {DEFAULT_SHADER_FRAG};
-    constexpr std::array VertexShaders {DEFAULT_SHADER_VERT};
+    constexpr auto GlslVersion = 450;
+    constexpr auto EntryPoint  = "main";
+    constexpr auto VertexHlslShader {DEFAULT_VERTEX_SHADER};
+    constexpr auto FragmentHlslShader {DEFAULT_FRAGMENT_SHADER};
 
     std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
 
-    for (char const *const &FragmentShaderIter : FragmentShaders)
+    if (std::vector<std::uint32_t> ShaderCode; CompileOrLoadIfExists(VertexHlslShader, ShaderType::GLSL, EntryPoint, GlslVersion, EShLangVertex, ShaderCode))
     {
-        if (std::vector<std::uint32_t> FragmentShaderCode; CompileOrLoadIfExists(FragmentShaderIter, FragmentShaderCode))
-        {
-            auto const FragmentModule = CreateModule(FragmentShaderCode, EShLangFragment);
-            ShaderStages.push_back(GetStageInfo(FragmentModule));
-        }
+        auto const VertexModule = CreateModule(ShaderCode, EShLangVertex, EntryPoint);
+        ShaderStages.push_back(GetStageInfo(VertexModule));
     }
 
-    for (char const *const &VertexShaderIter : VertexShaders)
+    if (std::vector<std::uint32_t> ShaderCode;
+        CompileOrLoadIfExists(FragmentHlslShader, ShaderType::GLSL, EntryPoint, GlslVersion, EShLangFragment, ShaderCode))
     {
-        if (std::vector<std::uint32_t> VertexShaderCode; CompileOrLoadIfExists(VertexShaderIter, VertexShaderCode))
-        {
-            auto const VertexModule = CreateModule(VertexShaderCode, EShLangVertex);
-            ShaderStages.push_back(GetStageInfo(VertexModule));
-        }
+        auto const FragmentModule = CreateModule(ShaderCode, EShLangFragment, EntryPoint);
+        ShaderStages.push_back(GetStageInfo(FragmentModule));
     }
 
     return ShaderStages;
