@@ -18,18 +18,6 @@ import RuntimeInfo.Manager;
 using namespace RenderCore;
 
 #ifdef _DEBUG
-static std::vector<std::string> s_EnabledExtensions {};
-
-void RenderCore::SetDebugEnabledExtension(std::string_view const Extension)
-{
-    s_EnabledExtensions.push_back(std::string {Extension});
-}
-
-bool RenderCore::IsDebugExtensionEnabled(std::string_view const Extension)
-{
-    return std::ranges::find(s_EnabledExtensions, Extension) != s_EnabledExtensions.end();
-}
-
 VKAPI_ATTR VkBool32 VKAPI_CALL RenderCore::ValidationLayerDebugCallback([[maybe_unused]] VkDebugUtilsMessageSeverityFlagBitsEXT const MessageSeverity,
                                                                         [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT              MessageType,
                                                                         VkDebugUtilsMessengerCallbackDataEXT const *const             CallbackData,

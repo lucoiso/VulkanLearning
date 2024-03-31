@@ -9,6 +9,8 @@ module;
 #include <boost/log/trivial.hpp>
 #include <format>
 #include <optional>
+#include <ranges>
+
 #include "Utils/Library/Macros.h"
 
 module RenderCore.Runtime.Device;
@@ -69,22 +71,21 @@ bool GetQueueFamilyIndices(VkSurfaceKHR const          &VulkanSurface,
         if (!GraphicsQueueFamilyIndex.has_value() && (QueueFamilies.at(Iterator).queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0U)
         {
             GraphicsQueueFamilyIndex.emplace(static_cast<std::uint8_t>(Iterator));
-        }
 
-        if (!ComputeQueueFamilyIndex.has_value() && (QueueFamilies.at(Iterator).queueFlags & VK_QUEUE_COMPUTE_BIT) != 0U)
+            if (!PresentationQueueFamilyIndex.has_value())
+            {
+                VkBool32 PresentationSupport = 0U;
+                CheckVulkanResult(vkGetPhysicalDeviceSurfaceSupportKHR(g_PhysicalDevice, Iterator, VulkanSurface, &PresentationSupport));
+
+                if (PresentationSupport != 0U)
+                {
+                    PresentationQueueFamilyIndex.emplace(static_cast<std::uint8_t>(Iterator));
+                }
+            }
+        }
+        else if (!ComputeQueueFamilyIndex.has_value() && (QueueFamilies.at(Iterator).queueFlags & VK_QUEUE_COMPUTE_BIT) != 0U)
         {
             ComputeQueueFamilyIndex.emplace(static_cast<std::uint8_t>(Iterator));
-        }
-
-        if (!PresentationQueueFamilyIndex.has_value())
-        {
-            VkBool32 PresentationSupport = 0U;
-            CheckVulkanResult(vkGetPhysicalDeviceSurfaceSupportKHR(g_PhysicalDevice, Iterator, VulkanSurface, &PresentationSupport));
-
-            if (PresentationSupport != 0U)
-            {
-                PresentationQueueFamilyIndex.emplace(static_cast<std::uint8_t>(Iterator));
-            }
         }
 
         if (GraphicsQueueFamilyIndex.has_value() && PresentationQueueFamilyIndex.has_value() && ComputeQueueFamilyIndex.has_value())
@@ -155,14 +156,6 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
     GetAvailableResources("device extensions", Extensions, g_OptionalDeviceExtensions, AvailableExtensions);
 
     std::unordered_map<std::uint8_t, std::uint8_t> QueueFamilyIndices {{g_GraphicsQueue.first, 1U}};
-    if (!QueueFamilyIndices.contains(g_PresentationQueue.first))
-    {
-        QueueFamilyIndices.emplace(g_PresentationQueue.first, 1U);
-    }
-    else
-    {
-        ++QueueFamilyIndices.at(g_PresentationQueue.first);
-    }
 
     if (!QueueFamilyIndices.contains(g_ComputeQueue.first))
     {
@@ -173,45 +166,22 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
         ++QueueFamilyIndices.at(g_ComputeQueue.first);
     }
 
-    if (!QueueFamilyIndices.contains(g_PresentationQueue.first))
-    {
-        QueueFamilyIndices.emplace(g_PresentationQueue.first, 1U);
-    }
-    else
-    {
-        ++QueueFamilyIndices.at(g_PresentationQueue.first);
-    }
-
     g_UniqueQueueFamilyIndices.clear();
     g_UniqueQueueFamilyIndices.reserve(std::size(QueueFamilyIndices));
 
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfo;
     QueueCreateInfo.reserve(std::size(QueueFamilyIndices));
 
-    std::vector<std::vector<float>> PriorityHandles;
-    PriorityHandles.reserve(std::size(QueueFamilyIndices));
-
-    for (auto const &[Index, Count] : QueueFamilyIndices)
+    std::vector Priorities {0.F};
+    for (const auto &Index : QueueFamilyIndices | std::views::keys)
     {
         g_UniqueQueueFamilyIndices.push_back(Index);
-        PriorityHandles.emplace_back(Count, 1.F);
 
         QueueCreateInfo.push_back(VkDeviceQueueCreateInfo {.sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                                                            .queueFamilyIndex = Index,
-                                                           .queueCount       = Count,
-                                                           .pQueuePriorities = std::data(PriorityHandles.back())});
+                                                           .queueCount       = 1U,
+                                                           .pQueuePriorities = std::data(Priorities)});
     }
-
-#ifdef _DEBUG
-    if (Contains(Extensions, std::string {VK_AMD_BUFFER_MARKER_EXTENSION_NAME}))
-    {
-        SetDebugEnabledExtension(std::string {VK_AMD_BUFFER_MARKER_EXTENSION_NAME});
-    }
-    else if (Contains(Extensions, std::string {VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME}))
-    {
-        SetDebugEnabledExtension(std::string {VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME});
-    }
-#endif
 
     VkPhysicalDeviceSynchronization2Features Synchronization2Features {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
                                                                        .pNext = nullptr,
@@ -334,8 +304,8 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow *const Window, VkS
 
     Output.Mode = VK_PRESENT_MODE_FIFO_KHR;
 
-    for (constexpr std::array<VkFormat, 3U> PreferredDepthFormats = {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT};
-         VkFormat const                    &FormatIter : PreferredDepthFormats)
+    for (constexpr std::array PreferredDepthFormats = {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT};
+         VkFormat const      &FormatIter : PreferredDepthFormats)
     {
         VkFormatProperties FormatProperties;
         vkGetPhysicalDeviceFormatProperties(g_PhysicalDevice, FormatIter, &FormatProperties);

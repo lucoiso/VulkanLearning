@@ -438,8 +438,9 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const                       
             VkRenderingAttachmentInfoKHR const ColorAttachmentInfo {.sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
                                                                     .imageView   = SwapChainView,
                                                                     .imageLayout = SwapChainMidLayout,
-                                                                    .loadOp      = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                                                                    .storeOp     = VK_ATTACHMENT_STORE_OP_STORE};
+                                                                    .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                                                    .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
+                                                                    .clearValue  = g_ClearValues.at(0U)};
 
             VkRenderingInfo const RenderingInfo {.sType                = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
                                                  .renderArea           = {.offset = {0, 0}, .extent = SwapChainExtent},
@@ -507,7 +508,7 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice, VkSwapchainKHR co
                                         .pImageIndices      = &ImageIndice,
                                         .pResults           = nullptr};
 
-    auto const &Queue = GetGraphicsQueue().second;
+    auto const &Queue = GetPresentationQueue().second;
 
     if (VkResult const OperationResult = vkQueuePresentKHR(Queue, &PresentInfo); OperationResult != VK_SUCCESS)
     {
