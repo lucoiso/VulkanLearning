@@ -4,12 +4,12 @@
 
 module;
 
-#include "Utils/Library/Macros.h"
 #include <GLFW/glfw3.h>
 #include <Volk/volk.h>
 #include <boost/log/trivial.hpp>
 #include <format>
 #include <optional>
+#include "Utils/Library/Macros.h"
 
 module RenderCore.Runtime.Device;
 
@@ -24,7 +24,7 @@ VkPhysicalDevice                 g_PhysicalDevice {VK_NULL_HANDLE};
 VkDevice                         g_Device {VK_NULL_HANDLE};
 std::pair<std::uint8_t, VkQueue> g_GraphicsQueue {};
 std::pair<std::uint8_t, VkQueue> g_PresentationQueue {};
-std::pair<std::uint8_t, VkQueue> g_TransferQueue {};
+std::pair<std::uint8_t, VkQueue> g_ComputeQueue {};
 std::vector<std::uint8_t>        g_UniqueQueueFamilyIndices {};
 
 bool IsPhysicalDeviceSuitable(VkPhysicalDevice const &Device)
@@ -48,7 +48,7 @@ bool IsPhysicalDeviceSuitable(VkPhysicalDevice const &Device)
 bool GetQueueFamilyIndices(VkSurfaceKHR const          &VulkanSurface,
                            std::optional<std::uint8_t> &GraphicsQueueFamilyIndex,
                            std::optional<std::uint8_t> &PresentationQueueFamilyIndex,
-                           std::optional<std::uint8_t> &TransferQueueFamilyIndex)
+                           std::optional<std::uint8_t> &ComputeQueueFamilyIndex)
 {
     PUSH_CALLSTACK_WITH_COUNTER();
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Getting queue family indices";
@@ -68,11 +68,11 @@ bool GetQueueFamilyIndices(VkSurfaceKHR const          &VulkanSurface,
     {
         if (!GraphicsQueueFamilyIndex.has_value() && (QueueFamilies.at(Iterator).queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0U)
         {
-            GraphicsQueueFamilyIndex = static_cast<std::uint8_t>(Iterator);
+            GraphicsQueueFamilyIndex.emplace(static_cast<std::uint8_t>(Iterator));
         }
-        else if (!TransferQueueFamilyIndex.has_value() && (QueueFamilies.at(Iterator).queueFlags & VK_QUEUE_TRANSFER_BIT) != 0U)
+        else if (!ComputeQueueFamilyIndex.has_value() && (QueueFamilies.at(Iterator).queueFlags & VK_QUEUE_COMPUTE_BIT) != 0U)
         {
-            TransferQueueFamilyIndex = static_cast<std::uint8_t>(Iterator);
+            ComputeQueueFamilyIndex.emplace(static_cast<std::uint8_t>(Iterator));
         }
         else if (!PresentationQueueFamilyIndex.has_value())
         {
@@ -81,17 +81,17 @@ bool GetQueueFamilyIndices(VkSurfaceKHR const          &VulkanSurface,
 
             if (PresentationSupport != 0U)
             {
-                PresentationQueueFamilyIndex = static_cast<std::uint8_t>(Iterator);
+                PresentationQueueFamilyIndex.emplace(static_cast<std::uint8_t>(Iterator));
             }
         }
 
-        if (GraphicsQueueFamilyIndex.has_value() && PresentationQueueFamilyIndex.has_value() && TransferQueueFamilyIndex.has_value())
+        if (GraphicsQueueFamilyIndex.has_value() && PresentationQueueFamilyIndex.has_value() && ComputeQueueFamilyIndex.has_value())
         {
             break;
         }
     }
 
-    return GraphicsQueueFamilyIndex.has_value() && PresentationQueueFamilyIndex.has_value() && TransferQueueFamilyIndex.has_value();
+    return GraphicsQueueFamilyIndex.has_value() && PresentationQueueFamilyIndex.has_value() && ComputeQueueFamilyIndex.has_value();
 }
 
 void PickPhysicalDevice()
@@ -119,17 +119,17 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
     PUSH_CALLSTACK_WITH_COUNTER();
 
     std::optional<std::uint8_t> GraphicsQueueFamilyIndex {std::nullopt};
+    std::optional<std::uint8_t> ComputeQueueFamilyIndex {std::nullopt};
     std::optional<std::uint8_t> PresentationQueueFamilyIndex {std::nullopt};
-    std::optional<std::uint8_t> TransferQueueFamilyIndex {std::nullopt};
 
-    if (!GetQueueFamilyIndices(VulkanSurface, GraphicsQueueFamilyIndex, PresentationQueueFamilyIndex, TransferQueueFamilyIndex))
+    if (!GetQueueFamilyIndices(VulkanSurface, GraphicsQueueFamilyIndex, PresentationQueueFamilyIndex, ComputeQueueFamilyIndex))
     {
         throw std::runtime_error("Failed to get queue family indices.");
     }
 
     g_GraphicsQueue.first     = GraphicsQueueFamilyIndex.value();
     g_PresentationQueue.first = PresentationQueueFamilyIndex.value();
-    g_TransferQueue.first     = TransferQueueFamilyIndex.value();
+    g_ComputeQueue.first      = ComputeQueueFamilyIndex.value();
 
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating vulkan logical device";
 
@@ -162,13 +162,22 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
         ++QueueFamilyIndices.at(g_PresentationQueue.first);
     }
 
-    if (!QueueFamilyIndices.contains(g_TransferQueue.first))
+    if (!QueueFamilyIndices.contains(g_ComputeQueue.first))
     {
-        QueueFamilyIndices.emplace(g_TransferQueue.first, 1U);
+        QueueFamilyIndices.emplace(g_ComputeQueue.first, 1U);
     }
     else
     {
-        ++QueueFamilyIndices.at(g_TransferQueue.first);
+        ++QueueFamilyIndices.at(g_ComputeQueue.first);
+    }
+
+    if (!QueueFamilyIndices.contains(g_PresentationQueue.first))
+    {
+        QueueFamilyIndices.emplace(g_PresentationQueue.first, 1U);
+    }
+    else
+    {
+        ++QueueFamilyIndices.at(g_PresentationQueue.first);
     }
 
     g_UniqueQueueFamilyIndices.clear();
@@ -223,7 +232,16 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
 
     VkPhysicalDeviceFeatures2 DeviceFeatures {.sType    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
                                               .pNext    = &UnusedAttachmentsFeatures,
-                                              .features = VkPhysicalDeviceFeatures {.independentBlend = VK_TRUE, .samplerAnisotropy = VK_TRUE}};
+                                              .features = VkPhysicalDeviceFeatures {.independentBlend               = VK_TRUE,
+                                                                                    .drawIndirectFirstInstance      = true,
+                                                                                    .fillModeNonSolid               = true,
+                                                                                    .wideLines                      = true,
+                                                                                    .samplerAnisotropy              = VK_TRUE,
+                                                                                    .pipelineStatisticsQuery        = true,
+                                                                                    .vertexPipelineStoresAndAtomics = true,
+                                                                                    .fragmentStoresAndAtomics       = true,
+                                                                                    .shaderImageGatherExtended      = true,
+                                                                                    .shaderInt16                    = false}};
 
     VkDeviceCreateInfo const DeviceCreateInfo {.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
                                                .pNext                   = &DeviceFeatures,
@@ -252,9 +270,9 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
         throw std::runtime_error("Failed to get presentation queue.");
     }
 
-    if (vkGetDeviceQueue(g_Device, g_TransferQueue.first, 0U, &g_TransferQueue.second); g_TransferQueue.second == VK_NULL_HANDLE)
+    if (vkGetDeviceQueue(g_Device, g_ComputeQueue.first, 0U, &g_ComputeQueue.second); g_ComputeQueue.second == VK_NULL_HANDLE)
     {
-        throw std::runtime_error("Failed to get transfer queue.");
+        throw std::runtime_error("Failed to get compute queue.");
     }
 }
 
@@ -314,8 +332,8 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow *const Window, VkS
 
     Output.Mode = VK_PRESENT_MODE_FIFO_KHR;
 
-    for (constexpr std::array PreferredDepthFormats = {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT};
-         VkFormat const      &FormatIter : PreferredDepthFormats)
+    for (constexpr std::array<VkFormat, 3U> PreferredDepthFormats = {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT};
+         VkFormat const                    &FormatIter : PreferredDepthFormats)
     {
         VkFormatProperties FormatProperties;
         vkGetPhysicalDeviceFormatProperties(g_PhysicalDevice, FormatIter, &FormatProperties);
@@ -345,14 +363,14 @@ std::pair<std::uint8_t, VkQueue> &RenderCore::GetGraphicsQueue()
     return g_GraphicsQueue;
 }
 
+std::pair<std::uint8_t, VkQueue> &RenderCore::GetComputeQueue()
+{
+    return g_ComputeQueue;
+}
+
 std::pair<std::uint8_t, VkQueue> &RenderCore::GetPresentationQueue()
 {
     return g_PresentationQueue;
-}
-
-std::pair<std::uint8_t, VkQueue> &RenderCore::GetTransferQueue()
-{
-    return g_TransferQueue;
 }
 
 std::vector<std::uint32_t> RenderCore::GetUniqueQueueFamilyIndicesU32()
@@ -380,7 +398,6 @@ void RenderCore::ReleaseDeviceResources()
     g_PhysicalDevice           = VK_NULL_HANDLE;
     g_GraphicsQueue.second     = VK_NULL_HANDLE;
     g_PresentationQueue.second = VK_NULL_HANDLE;
-    g_TransferQueue.second     = VK_NULL_HANDLE;
 }
 
 std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()

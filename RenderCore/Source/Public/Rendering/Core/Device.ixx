@@ -29,9 +29,9 @@ export namespace RenderCore
 
     [[nodiscard]] std::pair<std::uint8_t, VkQueue> &GetGraphicsQueue();
 
-    [[nodiscard]] std::pair<std::uint8_t, VkQueue> &GetPresentationQueue();
+    [[nodiscard]] std::pair<std::uint8_t, VkQueue> &GetComputeQueue();
 
-    [[nodiscard]] std::pair<std::uint8_t, VkQueue> &GetTransferQueue();
+    [[nodiscard]] std::pair<std::uint8_t, VkQueue> &GetPresentationQueue();
 
     [[nodiscard]] std::vector<std::uint32_t> GetUniqueQueueFamilyIndicesU32();
 

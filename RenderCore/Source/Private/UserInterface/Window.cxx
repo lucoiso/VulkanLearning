@@ -4,10 +4,10 @@
 
 module;
 
-#include "Utils/Library/Macros.h"
 #include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
 #include <chrono>
+#include "Utils/Library/Macros.h"
 
 module RenderCore.UserInterface.Window;
 

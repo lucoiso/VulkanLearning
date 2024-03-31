@@ -87,11 +87,13 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, SurfacePropert
 
     std::vector const ColorAttachmentFormat {SurfaceProperties.Format.format};
 
+    auto const &[QueueFamilyIndex, Queue] = GetGraphicsQueue();
+
     ImGui_ImplVulkan_InitInfo ImGuiVulkanInitInfo {.Instance            = volkGetLoadedInstance(),
                                                    .PhysicalDevice      = GetPhysicalDevice(),
                                                    .Device              = GetLogicalDevice(),
-                                                   .QueueFamily         = GetGraphicsQueue().first,
-                                                   .Queue               = GetGraphicsQueue().second,
+                                                   .QueueFamily         = QueueFamilyIndex,
+                                                   .Queue               = Queue,
                                                    .DescriptorPool      = g_ImGuiDescriptorPool,
                                                    .RenderPass          = VK_NULL_HANDLE,
                                                    .MinImageCount       = g_MinImageCount,

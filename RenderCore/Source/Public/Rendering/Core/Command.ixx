@@ -23,7 +23,7 @@ export namespace RenderCore
 
     void CreateCommandsSynchronizationObjects();
 
-    void DestroyCommandsSynchronizationObjects(bool);
+    void DestroyCommandsSynchronizationObjects();
 
     [[nodiscard]] std::optional<std::int32_t> RequestSwapChainImage(VkSwapchainKHR const &);
 

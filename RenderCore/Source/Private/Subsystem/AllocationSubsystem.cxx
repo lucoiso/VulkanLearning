@@ -4,11 +4,11 @@
 
 module;
 
-#include "Utils/Library/Macros.h"
 #include <boost/log/trivial.hpp>
 #include <ranges>
 #include <sstream>
 #include <vma/vk_mem_alloc.h>
+#include "Utils/Library/Macros.h"
 
 module RenderCore.Subsystem.Allocation;
 
@@ -41,17 +41,18 @@ std::vector<AllocationSubsystemData> const &AllocationSubsystem::GetRegister() c
 }
 
 void AllocationSubsystem::AllocateDeviceMemoryCallback([[maybe_unused]] VmaAllocator const Allocator,
-                                                      uint32_t const                      MemoryType,
-                                                      VkDeviceMemory const                Memory,
-                                                      VkDeviceSize const                  AllocationSize,
-                                                      void *const                         UserData)
+                                                       uint32_t const                      MemoryType,
+                                                       VkDeviceMemory const                Memory,
+                                                       VkDeviceSize const                  AllocationSize,
+                                                       void *const                         UserData)
 {
     PUSH_CALLSTACK();
 
+#ifdef _DEBUG
     std::stringstream MemAddress;
     MemAddress << std::hex << Memory;
-
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Allocating device memory " << MemAddress.str() << " with size " << AllocationSize << " bytes.";
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Allocating device memory " << MemAddress.str() << " with size " << AllocationSize << " bytes.";
+#endif
 
     AllocationSubsystemData Data {MemoryType, Memory, AllocationSize, UserData};
     Get().RemoveElement(Data);
@@ -59,13 +60,16 @@ void AllocationSubsystem::AllocateDeviceMemoryCallback([[maybe_unused]] VmaAlloc
 }
 
 void AllocationSubsystem::FreeDeviceMemoryCallback([[maybe_unused]] VmaAllocator const Allocator,
-                                                  [[maybe_unused]] uint32_t const     MemoryType,
-                                                  VkDeviceMemory const                Memory,
-                                                  VkDeviceSize const                  AllocationSize,
-                                                  [[maybe_unused]] void *const        UserData)
+                                                   [[maybe_unused]] uint32_t const     MemoryType,
+                                                   VkDeviceMemory const                Memory,
+                                                   VkDeviceSize const                  AllocationSize,
+                                                   [[maybe_unused]] void *const        UserData)
 {
     PUSH_CALLSTACK();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Freeing device memory " << std::hex << Memory << " with size " << AllocationSize << " bytes.";
+
+#ifdef _DEBUG
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing device memory " << std::hex << Memory << " with size " << AllocationSize << " bytes.";
+#endif
 
     AllocationSubsystemData const Data {MemoryType, Memory, AllocationSize, UserData};
     Get().RemoveElement(Data);

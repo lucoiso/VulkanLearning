@@ -56,15 +56,19 @@ export namespace RenderCore
     ImageCreationData AllocateTexture(VmaAllocator const &, unsigned char const *, std::uint32_t, std::uint32_t, VkFormat, std::size_t);
 
     template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
-    constexpr void MoveImageLayout(VkCommandBuffer &CommandBuffer, VkImage const &Image, VkFormat const &Format)
+    constexpr void MoveImageLayout(VkCommandBuffer    &CommandBuffer,
+                                   VkImage const      &Image,
+                                   VkFormat const     &Format,
+                                   std::uint32_t const FromQueueIndex = VK_QUEUE_FAMILY_IGNORED,
+                                   std::uint32_t const ToQueueIndex   = VK_QUEUE_FAMILY_IGNORED)
     {
         VkImageMemoryBarrier2 ImageBarrier {.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                                             .srcAccessMask       = 0U,
                                             .dstAccessMask       = 0U,
                                             .oldLayout           = OldLayout,
                                             .newLayout           = NewLayout,
-                                            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                                            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                            .srcQueueFamilyIndex = FromQueueIndex,
+                                            .dstQueueFamilyIndex = ToQueueIndex,
                                             .image               = Image,
                                             .subresourceRange
                                             = {.aspectMask = Aspect, .baseMipLevel = 0U, .levelCount = 1U, .baseArrayLayer = 0U, .layerCount = 1U}};

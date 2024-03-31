@@ -128,7 +128,7 @@ void Renderer::DrawFrame(GLFWwindow *const Window, float const DeltaTime, Camera
     {
         if (!HasFlag(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION) && HasFlag(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
-            DestroyCommandsSynchronizationObjects(m_ImageIndex.has_value());
+            DestroyCommandsSynchronizationObjects();
             DestroyBufferResources(false);
             ReleaseDynamicPipelineResources();
 

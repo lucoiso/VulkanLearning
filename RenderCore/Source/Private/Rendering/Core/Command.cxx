@@ -4,11 +4,11 @@
 
 module;
 
-#include "Utils/Library/Macros.h"
 #include <Volk/volk.h>
 #include <array>
 #include <boost/log/trivial.hpp>
 #include <optional>
+#include "Utils/Library/Macros.h"
 
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
     #include <imgui.h>
@@ -36,7 +36,7 @@ VkSemaphore                  g_ImageAvailableSemaphore {};
 VkSemaphore                  g_RenderFinishedSemaphore {};
 VkFence                      g_Fence {};
 
-void AllocateCommandBuffer(std::uint32_t const QueueFamily, std::uint8_t const NumberOfBuffers)
+void AllocateCommandBuffers(std::uint32_t const QueueFamily, std::uint8_t const NumberOfBuffers)
 {
     PUSH_CALLSTACK();
 
@@ -98,7 +98,7 @@ void RenderCore::ReleaseCommandsResources()
     PUSH_CALLSTACK_WITH_COUNTER();
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Releasing vulkan commands resources";
 
-    DestroyCommandsSynchronizationObjects(true);
+    DestroyCommandsSynchronizationObjects();
 }
 
 VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex)
@@ -125,24 +125,18 @@ void RenderCore::CreateCommandsSynchronizationObjects()
     constexpr VkFenceCreateInfo FenceCreateInfo {.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
     CheckVulkanResult(vkCreateSemaphore(volkGetLoadedDevice(), &SemaphoreCreateInfo, nullptr, &g_ImageAvailableSemaphore));
-
     CheckVulkanResult(vkCreateSemaphore(volkGetLoadedDevice(), &SemaphoreCreateInfo, nullptr, &g_RenderFinishedSemaphore));
 
     CheckVulkanResult(vkCreateFence(volkGetLoadedDevice(), &FenceCreateInfo, nullptr, &g_Fence));
+    CheckVulkanResult(vkResetFences(volkGetLoadedDevice(), 1U, &g_Fence));
 }
 
-void RenderCore::DestroyCommandsSynchronizationObjects(bool const ResetFences)
+void RenderCore::DestroyCommandsSynchronizationObjects()
 {
     PUSH_CALLSTACK_WITH_COUNTER();
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Destroying vulkan synchronization objects";
 
     vkDeviceWaitIdle(volkGetLoadedDevice());
-
-    if (ResetFences)
-    {
-        WaitAndResetFences();
-    }
-
     FreeCommandBuffers();
 
     if (g_CommandPool != VK_NULL_HANDLE)
@@ -174,8 +168,6 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage(VkSwapchainKHR con
 {
     PUSH_CALLSTACK();
 
-    WaitAndResetFences();
-
     if (g_ImageAvailableSemaphore == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Vulkan semaphore: ImageAllocation Available is invalid.");
@@ -186,24 +178,21 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage(VkSwapchainKHR con
         throw std::runtime_error("Vulkan fence is invalid.");
     }
 
-    std::uint32_t Output = 0U;
-    if (VkResult const OperationResult = vkAcquireNextImageKHR(volkGetLoadedDevice(), SwapChain, g_Timeout, g_ImageAvailableSemaphore, g_Fence, &Output);
-        OperationResult != VK_SUCCESS)
-    {
-        if (OperationResult == VK_ERROR_OUT_OF_DATE_KHR || OperationResult == VK_SUBOPTIMAL_KHR)
-        {
-            if (OperationResult == VK_SUBOPTIMAL_KHR)
-            {
-                WaitAndResetFences();
-            }
+    std::uint32_t  Output          = 0U;
+    VkResult const OperationResult = vkAcquireNextImageKHR(volkGetLoadedDevice(), SwapChain, g_Timeout, g_ImageAvailableSemaphore, g_Fence, &Output);
+    WaitAndResetFences();
 
+    if (OperationResult != VK_SUCCESS)
+    {
+        if (OperationResult == VK_SUBOPTIMAL_KHR)
+        {
             return std::nullopt;
         }
 
         throw std::runtime_error("Failed to acquire Vulkan swap chain image.");
     }
 
-    return static_cast<std::int32_t>(Output);
+    return std::optional {static_cast<std::int32_t>(Output)};
 }
 
 constexpr std::array<VkDeviceSize, 1U> Offsets {0U};
@@ -226,15 +215,6 @@ void BindDescriptorSets(VkCommandBuffer const                      &CommandBuffe
                         VkExtent2D const                           &SwapChainExtent)
 {
     PUSH_CALLSTACK();
-
-#ifdef _DEBUG
-    bool const IsAMDDebugAvailable    = IsDebugExtensionEnabled(VK_AMD_BUFFER_MARKER_EXTENSION_NAME);
-    bool const IsNVidiaDebugAvailable = IsDebugExtensionEnabled(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME);
-
-    std::uint32_t                     Marker {0U};
-    static std::vector<std::uint32_t> s_Markers {};
-    s_Markers.clear();
-#endif
 
     auto const &SceneBuffer = GetSceneUniformDescriptor();
 
@@ -318,25 +298,6 @@ void BindDescriptorSets(VkCommandBuffer const                      &CommandBuffe
         if (ActiveVertexBinding && ActiveIndexBinding)
         {
             vkCmdDrawIndexed(CommandBuffer, IndexCount, 1U, 0U, 0U, 0U);
-
-#ifdef _DEBUG
-            if constexpr (g_EnableCustomDebug)
-            {
-                if (IsAMDDebugAvailable)
-                {
-                    vkCmdWriteBufferMarker2AMD(CommandBuffer, VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VertexBuffer, 0U, ++Marker);
-                    vkCmdWriteBufferMarker2AMD(CommandBuffer, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VertexBuffer, 0U, ++Marker);
-
-                    vkCmdWriteBufferMarker2AMD(CommandBuffer, VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, IndexBuffer, 0U, ++Marker);
-                    vkCmdWriteBufferMarker2AMD(CommandBuffer, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, IndexBuffer, 0U, ++Marker);
-                }
-                else if (IsNVidiaDebugAvailable)
-                {
-                    s_Markers.emplace_back(++Marker);
-                    vkCmdSetCheckpointNV(CommandBuffer, &s_Markers.back());
-                }
-            }
-#endif
         }
     }
 }
@@ -456,7 +417,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const                       
     PUSH_CALLSTACK();
 
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-    AllocateCommandBuffer(GetGraphicsQueue().first, 1U + static_cast<std::uint8_t>(IsImGuiInitialized()));
+    AllocateCommandBuffers(GetGraphicsQueue().first, 1U + static_cast<std::uint8_t>(IsImGuiInitialized()));
 #else
     AllocateCommandBuffer(GetGraphicsQueue().first, 1U);
 #endif
@@ -477,7 +438,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const                       
             VkRenderingAttachmentInfoKHR const ColorAttachmentInfo {.sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
                                                                     .imageView   = SwapChainView,
                                                                     .imageLayout = SwapChainMidLayout,
-                                                                    .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                                                    .loadOp      = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
                                                                     .storeOp     = VK_ATTACHMENT_STORE_OP_STORE};
 
             VkRenderingInfo const RenderingInfo {.sType                = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
@@ -501,8 +462,6 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const                       
 void RenderCore::SubmitCommandBuffers()
 {
     PUSH_CALLSTACK();
-
-    WaitAndResetFences();
 
     VkSemaphoreSubmitInfoKHR WaitSemaphoreInfo = {.sType       = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
                                                   .semaphore   = g_ImageAvailableSemaphore,
@@ -532,43 +491,8 @@ void RenderCore::SubmitCommandBuffers()
     auto const &GraphicsQueue = GetGraphicsQueue().second;
 
     CheckVulkanResult(vkQueueSubmit2(GraphicsQueue, 1U, &SubmitInfo, g_Fence));
-    VkResult const QueueWaitResult = vkQueueWaitIdle(GraphicsQueue);
-
-#ifdef _DEBUG
-    if constexpr (g_EnableCustomDebug)
-    {
-        if (QueueWaitResult == VK_ERROR_DEVICE_LOST && IsDebugExtensionEnabled(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME))
-        {
-            std::uint32_t DebugMarkersCount {0U};
-            vkGetQueueCheckpointDataNV(GraphicsQueue, &DebugMarkersCount, nullptr);
-
-            if (DebugMarkersCount > 0U)
-            {
-                constexpr VkCheckpointDataNV DefaultData {.sType = VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV, .pNext = nullptr, .pCheckpointMarker = nullptr};
-                std::vector                  DebugMarkers(DebugMarkersCount, DefaultData);
-
-                vkGetQueueCheckpointDataNV(GraphicsQueue, &DebugMarkersCount, std::data(DebugMarkers));
-
-                for (VkCheckpointDataNV const &DebugMarker : DebugMarkers)
-                {
-                    if (!DebugMarker.pCheckpointMarker)
-                    {
-                        continue;
-                    }
-
-                    BOOST_LOG_TRIVIAL(debug) << "Debug marker: " << *static_cast<std::uint32_t *>(DebugMarker.pCheckpointMarker);
-                }
-            }
-        }
-    }
-#endif
-
+    WaitAndResetFences();
     FreeCommandBuffers();
-
-    if (QueueWaitResult == VK_ERROR_DEVICE_LOST)
-    {
-        throw std::runtime_error("Vulkan operation failed with result: VK_ERROR_DEVICE_LOST");
-    }
 }
 
 void RenderCore::PresentFrame(std::uint32_t const ImageIndice, VkSwapchainKHR const &SwapChain)
@@ -592,8 +516,6 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice, VkSwapchainKHR co
             throw std::runtime_error("Vulkan operation failed with result: " + std::string(ResultToString(OperationResult)));
         }
     }
-
-    CheckVulkanResult(vkQueueWaitIdle(Queue));
 }
 
 void RenderCore::InitializeSingleCommandQueue(VkCommandPool &CommandPool, std::vector<VkCommandBuffer> &CommandBuffers, std::uint8_t const QueueFamilyIndex)
