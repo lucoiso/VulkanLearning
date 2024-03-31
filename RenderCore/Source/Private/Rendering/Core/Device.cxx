@@ -70,11 +70,13 @@ bool GetQueueFamilyIndices(VkSurfaceKHR const          &VulkanSurface,
         {
             GraphicsQueueFamilyIndex.emplace(static_cast<std::uint8_t>(Iterator));
         }
-        else if (!ComputeQueueFamilyIndex.has_value() && (QueueFamilies.at(Iterator).queueFlags & VK_QUEUE_COMPUTE_BIT) != 0U)
+
+        if (!ComputeQueueFamilyIndex.has_value() && (QueueFamilies.at(Iterator).queueFlags & VK_QUEUE_COMPUTE_BIT) != 0U)
         {
             ComputeQueueFamilyIndex.emplace(static_cast<std::uint8_t>(Iterator));
         }
-        else if (!PresentationQueueFamilyIndex.has_value())
+
+        if (!PresentationQueueFamilyIndex.has_value())
         {
             VkBool32 PresentationSupport = 0U;
             CheckVulkanResult(vkGetPhysicalDeviceSurfaceSupportKHR(g_PhysicalDevice, Iterator, VulkanSurface, &PresentationSupport));
