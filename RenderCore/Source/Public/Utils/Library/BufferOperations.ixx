@@ -19,21 +19,19 @@ import RenderCore.Utils.EnumHelpers;
 
 export namespace RenderCore
 {
-    VmaAllocationInfo
-    CreateBuffer(VmaAllocator const &, VkDeviceSize const &, VkBufferUsageFlags, VkMemoryPropertyFlags, std::string_view, VkBuffer &, VmaAllocation &);
+    VmaAllocationInfo CreateBuffer(VkDeviceSize const &, VkBufferUsageFlags, VkMemoryPropertyFlags, std::string_view, VkBuffer &, VmaAllocation &);
 
     void CopyBuffer(VkCommandBuffer const &, VkBuffer const &, VkBuffer const &, VkDeviceSize const &);
 
-    CommandBufferSet CreateVertexBuffers(VmaAllocator const &, ObjectAllocationData &, std::vector<Vertex> const &);
+    std::pair<VkBuffer, VmaAllocation> CreateVertexBuffers(VkCommandBuffer &CommandBuffer, ObjectAllocationData &, std::vector<Vertex> const &);
 
-    CommandBufferSet CreateIndexBuffers(VmaAllocator const &, ObjectAllocationData &, std::vector<std::uint32_t> const &);
+    std::pair<VkBuffer, VmaAllocation> CreateIndexBuffers(VkCommandBuffer &CommandBuffer, ObjectAllocationData &, std::vector<std::uint32_t> const &);
 
-    void CreateUniformBuffers(VmaAllocator const &, BufferAllocation &, VkDeviceSize, std::string_view);
+    void CreateUniformBuffers(BufferAllocation &, VkDeviceSize, std::string_view);
 
-    void CreateModelUniformBuffers(VmaAllocator const &, ObjectAllocationData &);
+    void CreateModelUniformBuffers(ObjectAllocationData &);
 
-    void CreateImage(VmaAllocator const &,
-                     VkFormat const &,
+    void CreateImage(VkFormat const &,
                      VkExtent2D const &,
                      VkImageTiling const &,
                      VkImageUsageFlags,
@@ -53,7 +51,8 @@ export namespace RenderCore
 
     void CopyBufferToImage(VkCommandBuffer const &, VkBuffer const &, VkImage const &, VkExtent2D const &);
 
-    ImageCreationData AllocateTexture(VmaAllocator const &, unsigned char const *, std::uint32_t, std::uint32_t, VkFormat, std::size_t);
+    std::pair<VkBuffer, VmaAllocation>
+    AllocateTexture(VkCommandBuffer &, unsigned char const *, std::uint32_t, std::uint32_t, VkFormat, std::size_t, ImageAllocation &);
 
     template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
     constexpr void MoveImageLayout(VkCommandBuffer    &CommandBuffer,

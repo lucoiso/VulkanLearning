@@ -37,13 +37,12 @@ namespace RenderCore
         Camera       m_Camera {};
         Illumination m_Illumination {};
 
-        RendererStateFlags                   m_StateFlags {RendererStateFlags::NONE};
-        std::vector<std::shared_ptr<Object>> m_Objects {};
-        double                               m_DeltaTime {0.F};
-        double                               m_FrameTime {0.F};
-        double                               m_FrameRateCap {0.016667F};
-        std::optional<std::int32_t>          m_ImageIndex {};
-        std::mutex                           m_RenderingMutex {};
+        RendererStateFlags          m_StateFlags {RendererStateFlags::NONE};
+        double                      m_DeltaTime {0.F};
+        double                      m_FrameTime {0.F};
+        double                      m_FrameRateCap {0.016667F};
+        std::optional<std::int32_t> m_ImageIndex {};
+        std::mutex                  m_RenderingMutex {};
 
         friend class Window;
 
@@ -76,7 +75,7 @@ namespace RenderCore
 
         [[nodiscard]] RendererStateFlags GetStateFlags() const;
 
-        [[nodiscard]] std::vector<std::uint32_t> LoadScene(std::string_view);
+        void LoadScene(std::string_view);
 
         void UnloadScene(std::vector<std::uint32_t> const &);
 
@@ -108,13 +107,11 @@ namespace RenderCore
 
         [[nodiscard]] std::uint32_t GetNumObjects() const;
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
-        [[nodiscard]] std::vector<VkImageView> GetViewportRenderImageViews() const;
-#endif
-
         [[nodiscard]] VkSampler GetSampler() const;
 
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
+        [[nodiscard]] std::vector<VkImageView> GetViewportRenderImageViews() const;
+
         static [[nodiscard]] bool IsImGuiInitialized();
 
         void SaveFrameToImageFile(std::string_view) const;

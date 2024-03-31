@@ -4,7 +4,9 @@
 
 module;
 
+#include <memory>
 #include <tiny_gltf.h>
+#include <unordered_map>
 #include <vma/vk_mem_alloc.h>
 
 export module RenderCore.Runtime.Buffer.ModelAllocation;
@@ -20,15 +22,17 @@ export namespace RenderCore
 
     void InsertIndiceInContainer(std::vector<std::uint32_t> &, tinygltf::Accessor const &, auto const *);
 
-    float const *GetPrimitiveData(ObjectData &, std::string_view const &, tinygltf::Model const &, tinygltf::Primitive const &, std::uint32_t *);
+    float const *
+    GetPrimitiveData(std::shared_ptr<Object> const &, std::string_view const &, tinygltf::Model const &, tinygltf::Primitive const &, std::uint32_t *);
 
-    void AllocateModelTexture(ObjectData &, tinygltf::Model const &, VmaAllocator const &, std::int32_t, VkFormat, TextureType);
+    void SetVertexAttributes(std::shared_ptr<Object> const &, tinygltf::Model const &, tinygltf::Primitive const &);
 
-    void AllocateVertexAttributes(ObjectData &, tinygltf::Model const &, tinygltf::Primitive const &);
+    std::uint32_t AllocatePrimitiveIndices(std::shared_ptr<Object> const &, tinygltf::Model const &, tinygltf::Primitive const &);
 
-    std::uint32_t AllocatePrimitiveIndices(ObjectData &, tinygltf::Model const &, tinygltf::Primitive const &);
+    void SetPrimitiveTransform(std::shared_ptr<Object> const &, tinygltf::Node const &);
 
-    void SetPrimitiveTransform(Object &, tinygltf::Node const &);
+    std::unordered_map<VkBuffer, VmaAllocation> AllocateObjectBuffers(VkCommandBuffer &, std::shared_ptr<Object> const &);
 
-    void AllocatePrimitiveMaterials(ObjectData &, tinygltf::Model const &, tinygltf::Primitive const &, VmaAllocator const &, VkFormat);
+    std::unordered_map<VkBuffer, VmaAllocation>
+    AllocateObjectMaterials(VkCommandBuffer &, std::shared_ptr<Object> const &, tinygltf::Primitive const &, tinygltf::Model const &);
 } // namespace RenderCore

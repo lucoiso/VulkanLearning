@@ -32,6 +32,7 @@ import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
 import RenderCore.Utils.DebugHelpers;
 import RenderCore.Utils.Constants;
+import RenderCore.Types.Allocation;
 import RenderCore.Subsystem.Rendering;
 import RuntimeInfo.Manager;
 
@@ -160,7 +161,7 @@ void Renderer::DrawFrame(GLFWwindow *const Window, float const DeltaTime, Camera
         else if (HasFlag(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH))
         {
             CreateDescriptorSetLayout();
-            CreatePipeline(GetSwapChainImageFormat(), GetDepthFormat(), GetSwapChainExtent());
+            CreatePipeline(GetSwapChainImageFormat(), GetDepthImage().Format, GetSwapChainExtent());
             RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
         }
     }
@@ -187,7 +188,7 @@ void Renderer::DrawFrame(GLFWwindow *const Window, float const DeltaTime, Camera
             std::unique_lock Lock(m_RenderingMutex);
 
             UpdateSceneUniformBuffers(Camera, m_Illumination);
-            RecordCommandBuffers(m_ImageIndex.value(), Camera, m_Objects, GetSwapChainExtent());
+            RecordCommandBuffers(m_ImageIndex.value(), Camera, GetSwapChainExtent());
             SubmitCommandBuffers();
             PresentFrame(m_ImageIndex.value(), GetSwapChain());
         }
@@ -245,7 +246,7 @@ void Renderer::Tick()
 
     std::unique_lock Lock(m_RenderingMutex);
 
-    std::ranges::for_each(m_Objects,
+    std::ranges::for_each(GetAllocatedObjects(),
                           [DeltaTime](std::shared_ptr<Object> const &ObjectIter)
                           {
                               if (ObjectIter && !ObjectIter->IsPendingDestroy())
@@ -259,15 +260,10 @@ void Renderer::RemoveInvalidObjects()
 {
     PUSH_CALLSTACK();
 
-    if (std::empty(m_Objects))
-    {
-        return;
-    }
-
     std::unique_lock Lock(m_RenderingMutex);
 
     std::vector<std::uint32_t> LoadedIDs {};
-    for (std::shared_ptr<Object> const &ObjectIter : m_Objects)
+    for (std::shared_ptr<Object> const &ObjectIter : GetAllocatedObjects())
     {
         if (ObjectIter && ObjectIter->IsPendingDestroy())
         {
@@ -358,8 +354,6 @@ void Renderer::Shutdown([[maybe_unused]] GLFWwindow *const Window)
 
     vkDestroyInstance(g_Instance, nullptr);
     g_Instance = VK_NULL_HANDLE;
-
-    m_Objects.clear();
 }
 
 bool Renderer::IsInitialized() const
@@ -392,13 +386,13 @@ RendererStateFlags Renderer::GetStateFlags() const
     return m_StateFlags;
 }
 
-std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const ObjectPath)
+void Renderer::LoadScene(std::string_view const ObjectPath)
 {
     PUSH_CALLSTACK_WITH_COUNTER();
 
     if (!IsInitialized())
     {
-        return {};
+        return;
     }
 
     if (!std::filesystem::exists(ObjectPath))
@@ -410,19 +404,8 @@ std::vector<std::uint32_t> Renderer::LoadScene(std::string_view const ObjectPath
 
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Loading scene...";
 
-    std::vector<Object> const  LoadedObjects = AllocateScene(ObjectPath);
-    std::vector<std::uint32_t> Output;
-    Output.reserve(std::size(LoadedObjects));
-
-    for (Object const &ObjectIter : LoadedObjects)
-    {
-        m_Objects.push_back(std::make_shared<Object>(ObjectIter));
-        Output.push_back(ObjectIter.GetID());
-    }
-
+    AllocateScene(ObjectPath);
     AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
-
-    return Output;
 }
 
 void Renderer::UnloadScene(std::vector<std::uint32_t> const &ObjectIDs)
@@ -439,24 +422,13 @@ void Renderer::UnloadScene(std::vector<std::uint32_t> const &ObjectIDs)
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Unloading scene...";
 
     ReleaseScene(ObjectIDs);
-
-    std::ranges::for_each(ObjectIDs,
-                          [this](std::uint32_t const ObjectID)
-                          {
-                              std::erase_if(m_Objects,
-                                            [ObjectID](std::shared_ptr<Object> const &ObjectIter)
-                                            {
-                                                return !ObjectIter || ObjectIter->GetID() == ObjectID;
-                                            });
-                          });
-
     AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
 }
 
 void Renderer::UnloadAllScenes()
 {
     std::vector<std::uint32_t> LoadedIDs {};
-    for (std::shared_ptr<Object> const &ObjectIter : m_Objects)
+    for (std::shared_ptr<Object> const &ObjectIter : GetAllocatedObjects())
     {
         if (ObjectIter)
         {
@@ -464,7 +436,6 @@ void Renderer::UnloadAllScenes()
         }
     }
     UnloadScene(LoadedIDs);
-    m_Objects.clear();
 }
 
 Timer::Manager &Renderer::GetRenderTimerManager()
@@ -522,12 +493,12 @@ std::optional<std::int32_t> const &Renderer::GetImageIndex() const
 
 std::vector<std::shared_ptr<Object>> const &Renderer::GetObjects() const
 {
-    return m_Objects;
+    return GetAllocatedObjects();
 }
 
 std::shared_ptr<Object> Renderer::GetObjectByID(std::uint32_t const ObjectID) const
 {
-    return *std::ranges::find_if(m_Objects,
+    return *std::ranges::find_if(GetAllocatedObjects(),
                                  [ObjectID](std::shared_ptr<Object> const &ObjectIter)
                                  {
                                      return ObjectIter && ObjectIter->GetID() == ObjectID;
@@ -536,7 +507,12 @@ std::shared_ptr<Object> Renderer::GetObjectByID(std::uint32_t const ObjectID) co
 
 std::uint32_t Renderer::GetNumObjects() const
 {
-    return std::size(m_Objects);
+    return std::size(GetAllocatedObjects());
+}
+
+VkSampler Renderer::GetSampler() const
+{
+    return RenderCore::GetSampler();
 }
 
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
@@ -546,21 +522,14 @@ std::vector<VkImageView> Renderer::GetViewportRenderImageViews() const
     auto const              &ViewportAllocations = GetViewportImages();
     Output.reserve(std::size(ViewportAllocations));
 
-    for (auto const &[Image, View, Allocation, Type] : ViewportAllocations)
+    for (ImageAllocation const &AllocationIter : ViewportAllocations)
     {
-        Output.push_back(View);
+        Output.push_back(AllocationIter.View);
     }
 
     return Output;
 }
-#endif
 
-VkSampler Renderer::GetSampler() const
-{
-    return RenderCore::GetSampler();
-}
-
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 bool Renderer::IsImGuiInitialized()
 {
     return RenderCore::IsImGuiInitialized();

@@ -64,8 +64,7 @@ std::vector<ImageAllocation> g_ViewportImages {};
 VkSampler                                           g_Sampler {VK_NULL_HANDLE};
 ImageAllocation                                     g_DepthImage {};
 ImageAllocation                                     g_EmptyImage {};
-VkFormat                                            g_DepthFormat {VK_FORMAT_UNDEFINED};
-std::vector<ObjectData>                             g_Objects {};
+std::vector<std::shared_ptr<Object>>                g_Objects {};
 std::atomic                                         g_ObjectIDCounter {0U};
 std::pair<BufferAllocation, VkDescriptorBufferInfo> g_SceneUniformBufferAllocation {};
 
@@ -76,7 +75,7 @@ void RenderCore::CreateSceneUniformBuffers()
 
     constexpr VkDeviceSize BufferSize = sizeof(SceneUniformData);
 
-    CreateUniformBuffers(g_Allocator, g_SceneUniformBufferAllocation.first, BufferSize, "SCENE_UNIFORM");
+    CreateUniformBuffers(g_SceneUniformBufferAllocation.first, BufferSize, "SCENE_UNIFORM");
     g_SceneUniformBufferAllocation.second = {.buffer = g_SceneUniformBufferAllocation.first.Buffer, .offset = 0U, .range = BufferSize};
 }
 
@@ -198,8 +197,7 @@ void RenderCore::CreateViewportResources(SurfaceProperties const &SurfacePropert
     std::ranges::for_each(g_ViewportImages,
                           [&](ImageAllocation &ImageIter)
                           {
-                              CreateImage(g_Allocator,
-                                          SurfaceProperties.Format.format,
+                              CreateImage(SurfaceProperties.Format.format,
                                           SurfaceProperties.Extent,
                                           Tiling,
                                           UsageFlags,
@@ -230,10 +228,9 @@ void RenderCore::CreateDepthResources(SurfaceProperties const &SurfaceProperties
     constexpr VmaAllocationCreateFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
     constexpr VkImageAspectFlags       Aspect              = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-    g_DepthFormat = SurfaceProperties.DepthFormat;
+    g_DepthImage.Format = SurfaceProperties.DepthFormat;
 
-    CreateImage(g_Allocator,
-                g_DepthFormat,
+    CreateImage(g_DepthImage.Format,
                 SurfaceProperties.Extent,
                 Tiling,
                 Usage,
@@ -242,8 +239,10 @@ void RenderCore::CreateDepthResources(SurfaceProperties const &SurfaceProperties
                 "DEPTH",
                 g_DepthImage.Image,
                 g_DepthImage.Allocation);
-
-    CreateImageView(g_DepthImage.Image, g_DepthFormat, DepthHasStencil(g_DepthFormat) ? Aspect | VK_IMAGE_ASPECT_STENCIL_BIT : Aspect, g_DepthImage.View);
+    CreateImageView(g_DepthImage.Image,
+                    g_DepthImage.Format,
+                    DepthHasStencil(g_DepthImage.Format) ? Aspect | VK_IMAGE_ASPECT_STENCIL_BIT : Aspect,
+                    g_DepthImage.View);
 }
 
 void RenderCore::AllocateEmptyTexture(VkFormat const TextureFormat)
@@ -254,171 +253,29 @@ void RenderCore::AllocateEmptyTexture(VkFormat const TextureFormat)
     constexpr std::uint8_t                                 DefaultTextureSize {DefaultTextureHalfSize * 2U};
     constexpr std::array<std::uint8_t, DefaultTextureSize> DefaultTextureData {};
 
-    ImageCreationData CreationData
-        = AllocateTexture(g_Allocator, std::data(DefaultTextureData), DefaultTextureHalfSize, DefaultTextureHalfSize, TextureFormat, DefaultTextureSize);
-
     VkCommandPool                CopyCommandPool {VK_NULL_HANDLE};
     std::vector<VkCommandBuffer> CommandBuffers(1U, VK_NULL_HANDLE);
 
     auto const &[FamilyIndex, Queue] = GetGraphicsQueue();
 
     InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, FamilyIndex);
-    {
-        MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffers.at(0U),
-                                                                                                                    CreationData.Allocation.Image,
-                                                                                                                    CreationData.Format);
-
-        CopyBufferToImage(CommandBuffers.at(0U), CreationData.StagingBuffer.first, CreationData.Allocation.Image, CreationData.Extent);
-
-        MoveImageLayout<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffers.at(0U),
-                                                                                                                                CreationData.Allocation.Image,
-                                                                                                                                CreationData.Format);
-    }
+    const auto [Buffer, Allocation] = AllocateTexture(CommandBuffers.at(0U),
+                                                      std::data(DefaultTextureData),
+                                                      DefaultTextureHalfSize,
+                                                      DefaultTextureHalfSize,
+                                                      TextureFormat,
+                                                      DefaultTextureSize,
+                                                      g_EmptyImage);
     FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);
 
-    CreateImageView(CreationData.Allocation.Image, CreationData.Format, VK_IMAGE_ASPECT_COLOR_BIT, CreationData.Allocation.View);
-
-    vmaDestroyBuffer(g_Allocator, CreationData.StagingBuffer.first, CreationData.StagingBuffer.second);
-    g_EmptyImage = std::move(CreationData.Allocation);
+    vmaDestroyBuffer(g_Allocator, Buffer, Allocation);
 }
 
-std::vector<Object> RenderCore::PrepareSceneAllocationResources(std::vector<ObjectData> &AllocationData)
+void RenderCore::AllocateScene(std::string_view const ModelPath)
 {
     PUSH_CALLSTACK();
 
-    g_Objects.reserve(std::size(g_Objects) + std::size(AllocationData));
-
-    std::vector<Object> Output;
-    Output.reserve(std::size(AllocationData));
-
-    std::vector<BufferCopyOperationData> BufferCopyOperationDatas {};
-    BufferCopyOperationDatas.reserve(std::size(AllocationData));
-
-    std::vector<MoveOperationData> MoveOperation {};
-    std::vector<CopyOperationData> CopyOperation {};
-
-    for (ObjectData const &ObjectIter : AllocationData)
-    {
-        auto &[VertexData, IndexData] = BufferCopyOperationDatas.emplace_back();
-
-        VertexData.SourceBuffer          = ObjectIter.CommandBufferSets.at(0U).StagingBuffer.first;
-        VertexData.SourceAllocation      = ObjectIter.CommandBufferSets.at(0U).StagingBuffer.second;
-        VertexData.DestinationBuffer     = ObjectIter.Allocation.VertexBufferAllocation.Buffer;
-        VertexData.DestinationAllocation = ObjectIter.Allocation.VertexBufferAllocation.Allocation;
-        VertexData.AllocationSize        = ObjectIter.CommandBufferSets.at(0U).AllocationSize;
-
-        IndexData.SourceBuffer          = ObjectIter.CommandBufferSets.at(1U).StagingBuffer.first;
-        IndexData.SourceAllocation      = ObjectIter.CommandBufferSets.at(1U).StagingBuffer.second;
-        IndexData.DestinationBuffer     = ObjectIter.Allocation.IndexBufferAllocation.Buffer;
-        IndexData.DestinationAllocation = ObjectIter.Allocation.IndexBufferAllocation.Allocation;
-        IndexData.AllocationSize        = ObjectIter.CommandBufferSets.at(1U).AllocationSize;
-
-        MoveOperation.reserve(std::size(MoveOperation) + std::size(ObjectIter.ImageCreationDatas));
-        for (ImageCreationData const &ImageCreationDataIter : ObjectIter.ImageCreationDatas)
-        {
-            MoveOperation.push_back({.Image = ImageCreationDataIter.Allocation.Image, .Format = ImageCreationDataIter.Format});
-
-            CopyOperation.push_back({.SourceBuffer     = ImageCreationDataIter.StagingBuffer.first,
-                                     .SourceAllocation = ImageCreationDataIter.StagingBuffer.second,
-                                     .DestinationImage = ImageCreationDataIter.Allocation.Image,
-                                     .Format           = ImageCreationDataIter.Format,
-                                     .Extent           = ImageCreationDataIter.Extent});
-        }
-
-        Output.push_back(ObjectIter.Object);
-    }
-
-    auto const &[FamilyIndex, Queue] = GetGraphicsQueue();
-
-    VkCommandPool                CopyCommandPool {VK_NULL_HANDLE};
-    std::vector<VkCommandBuffer> CommandBuffers {};
-    CommandBuffers.resize(std::size(AllocationData) + std::size(MoveOperation) + std::size(CopyOperation) + std::size(MoveOperation));
-
-    InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, FamilyIndex);
-    {
-        std::uint32_t Count = 0U;
-
-        for (auto const &[VertexData, IndexData] : BufferCopyOperationDatas)
-        {
-            VkCommandBuffer const &CommandBuffer = CommandBuffers.at(Count);
-
-            VkBufferCopy const VertexBufferCopy {.size = VertexData.AllocationSize};
-            vkCmdCopyBuffer(CommandBuffer, VertexData.SourceBuffer, VertexData.DestinationBuffer, 1U, &VertexBufferCopy);
-
-            VkBufferCopy const IndexBufferCopy {.size = IndexData.AllocationSize};
-            vkCmdCopyBuffer(CommandBuffer, IndexData.SourceBuffer, IndexData.DestinationBuffer, 1U, &IndexBufferCopy);
-
-            ++Count;
-        }
-
-        for (auto const &[Image, Format] : MoveOperation)
-        {
-            MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffers.at(Count),
-                                                                                                                        Image,
-                                                                                                                        Format);
-            ++Count;
-        }
-
-        for (auto const &[SourceBuffer, SourceAllocation, DestinationImage, Format, Extent] : CopyOperation)
-        {
-            CopyBufferToImage(CommandBuffers.at(Count), SourceBuffer, DestinationImage, Extent);
-            ++Count;
-        }
-
-        for (auto const &[Image, Format] : MoveOperation)
-        {
-            MoveImageLayout<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffers.at(Count),
-                                                                                                                                    Image,
-                                                                                                                                    Format);
-            ++Count;
-        }
-    }
-    FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);
-
-    for (ObjectData &ObjectIter : AllocationData)
-    {
-        for (ImageCreationData &ImageCreationDataIter : ObjectIter.ImageCreationDatas)
-        {
-            CreateTextureImageView(ImageCreationDataIter.Allocation, GetSwapChainImageFormat());
-
-            ObjectIter.Allocation.TextureImageAllocations.push_back(ImageCreationDataIter.Allocation);
-            ObjectIter.Allocation.TextureDescriptors.emplace(ImageCreationDataIter.Type,
-                                                             VkDescriptorImageInfo {.sampler     = g_Sampler,
-                                                                                    .imageView   = ImageCreationDataIter.Allocation.View,
-                                                                                    .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR});
-
-            vmaDestroyBuffer(g_Allocator, ImageCreationDataIter.StagingBuffer.first, ImageCreationDataIter.StagingBuffer.second);
-        }
-        ObjectIter.ImageCreationDatas.clear();
-
-        for (std::uint8_t TextTypeIter = 0U; TextTypeIter <= static_cast<std::uint8_t>(TextureType::MetallicRoughness); ++TextTypeIter)
-        {
-            if (!ObjectIter.Allocation.TextureDescriptors.contains(static_cast<TextureType>(TextTypeIter)))
-            {
-                ObjectIter.Allocation.TextureDescriptors.emplace(
-                    static_cast<TextureType>(TextTypeIter),
-                    VkDescriptorImageInfo {.sampler = g_Sampler, .imageView = g_EmptyImage.View, .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR});
-            }
-        }
-
-        for (CommandBufferSet &CommandBufferSetIter : ObjectIter.CommandBufferSets)
-        {
-            vmaDestroyBuffer(g_Allocator, CommandBufferSetIter.StagingBuffer.first, CommandBufferSetIter.StagingBuffer.second);
-        }
-        ObjectIter.CommandBufferSets.clear();
-    }
-
-    std::ranges::move(AllocationData, std::back_inserter(g_Objects));
-
-    return Output;
-}
-
-std::vector<Object> RenderCore::AllocateScene(std::string_view const ModelPath)
-{
-    PUSH_CALLSTACK();
-
-    std::vector<ObjectData> AllocationData {};
-    tinygltf::Model         Model {};
+    tinygltf::Model Model {};
     {
         tinygltf::TinyGLTF          ModelLoader {};
         std::string                 Error {};
@@ -439,12 +296,14 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const ModelPath)
         if (!LoadResult)
         {
             BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Failed to load model from path: '" << ModelPath << "'";
-            return {};
+            return;
         }
     }
 
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Loaded model from path: '" << ModelPath << "'";
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Loading scenes: " << std::size(Model.scenes);
+
+    std::unordered_map<std::shared_ptr<Object>, tinygltf::Primitive const &> CachedPrimitiveRelationship {};
 
     for (tinygltf::Node const &Node : Model.nodes)
     {
@@ -455,27 +314,47 @@ std::vector<Object> RenderCore::AllocateScene(std::string_view const ModelPath)
         }
 
         tinygltf::Mesh const &Mesh = Model.meshes.at(MeshIndex);
-        AllocationData.reserve(std::size(AllocationData) + std::size(Mesh.primitives));
+
+        g_Objects.reserve(std::size(g_Objects) + std::size(Mesh.primitives));
+        CachedPrimitiveRelationship.reserve(std::size(CachedPrimitiveRelationship) + std::size(Mesh.primitives));
 
         for (tinygltf::Primitive const &Primitive : Mesh.primitives)
         {
             std::uint32_t const ObjectID = g_ObjectIDCounter.fetch_add(1U);
 
-            ObjectData &NewObjectAllocation
-                = AllocationData.emplace_back(ObjectData {.Object {ObjectID, ModelPath, std::format("{}_{:03d}", Mesh.name, ObjectID)}});
+            std::shared_ptr<Object> &NewObject
+                = g_Objects.emplace_back(std::make_shared<Object>(ObjectID, ModelPath, std::format("{}_{:03d}", Mesh.name, ObjectID)));
 
-            AllocateVertexAttributes(NewObjectAllocation, Model, Primitive);
-            NewObjectAllocation.Object.SetTrianglesCount(AllocatePrimitiveIndices(NewObjectAllocation, Model, Primitive));
-            SetPrimitiveTransform(NewObjectAllocation.Object, Node);
-            AllocatePrimitiveMaterials(NewObjectAllocation, Model, Primitive, g_Allocator, GetSwapChainImageFormat());
+            SetVertexAttributes(NewObject, Model, Primitive);
+            SetPrimitiveTransform(NewObject, Node);
+            AllocatePrimitiveIndices(NewObject, Model, Primitive);
 
-            NewObjectAllocation.CommandBufferSets.push_back(CreateVertexBuffers(g_Allocator, NewObjectAllocation.Allocation, NewObjectAllocation.Vertices));
-            NewObjectAllocation.CommandBufferSets.push_back(CreateIndexBuffers(g_Allocator, NewObjectAllocation.Allocation, NewObjectAllocation.Indices));
-            CreateModelUniformBuffers(g_Allocator, NewObjectAllocation.Allocation);
+            CachedPrimitiveRelationship.emplace(NewObject, Primitive);
         }
     }
 
-    return PrepareSceneAllocationResources(AllocationData);
+    VkCommandPool                CopyCommandPool {VK_NULL_HANDLE};
+    std::vector<VkCommandBuffer> CommandBuffers {};
+    CommandBuffers.resize(std::size(CachedPrimitiveRelationship) * 2U);
+
+    auto const &[QueueIndex, Queue] = GetGraphicsQueue();
+    std::unordered_map<VkBuffer, VmaAllocation> BufferAllocations {};
+
+    InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, QueueIndex);
+    {
+        std::int16_t Count = -1;
+        for (std::pair<std::shared_ptr<Object>, tinygltf::Primitive const &> ObjectIter : CachedPrimitiveRelationship)
+        {
+            BufferAllocations.merge(AllocateObjectBuffers(CommandBuffers.at(++Count), ObjectIter.first));
+            BufferAllocations.merge(AllocateObjectMaterials(CommandBuffers.at(++Count), ObjectIter.first, ObjectIter.second, Model));
+        }
+    }
+    FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);
+
+    for (auto &[Buffer, Allocation] : BufferAllocations)
+    {
+        vmaDestroyBuffer(g_Allocator, Buffer, Allocation);
+    }
 }
 
 void RenderCore::ReleaseScene(std::vector<std::uint32_t> const &ObjectIDs)
@@ -486,13 +365,13 @@ void RenderCore::ReleaseScene(std::vector<std::uint32_t> const &ObjectIDs)
                           [&](std::uint32_t const ObjectIDIter)
                           {
                               if (auto const MatchingIter = std::ranges::find_if(g_Objects,
-                                                                                 [ObjectIDIter](ObjectData const &ObjectIter)
+                                                                                 [ObjectIDIter](std::shared_ptr<Object> const &ObjectIter)
                                                                                  {
-                                                                                     return ObjectIter.Object.GetID() == ObjectIDIter;
+                                                                                     return ObjectIter->GetID() == ObjectIDIter;
                                                                                  });
                                   MatchingIter != std::end(g_Objects))
                               {
-                                  MatchingIter->Allocation.DestroyResources(g_Allocator);
+                                  (*MatchingIter)->Destroy();
                                   g_Objects.erase(MatchingIter);
                               }
                           });
@@ -570,9 +449,9 @@ void RenderCore::DestroyBufferResources(bool const ClearScene)
 
     if (ClearScene)
     {
-        for (auto &[Object, Allocation, Vertices, Indices, ImageCreationDatas, CommandBufferSets] : g_Objects)
+        for (std::shared_ptr<Object> const &ObjectIter : g_Objects)
         {
-            Allocation.DestroyResources(g_Allocator);
+            ObjectIter->Destroy();
         }
         g_Objects.clear();
     }
@@ -615,59 +494,14 @@ ImageAllocation const &RenderCore::GetDepthImage()
     return g_DepthImage;
 }
 
-VkFormat const &RenderCore::GetDepthFormat()
-{
-    return g_DepthFormat;
-}
-
 VkSampler const &RenderCore::GetSampler()
 {
     return g_Sampler;
 }
 
-VkBuffer RenderCore::GetVertexBuffer(std::uint32_t const ObjectID)
+ImageAllocation const &RenderCore::GetEmptyImage()
 {
-    if (auto const MatchingIter = std::ranges::find_if(g_Objects,
-                                                       [ObjectID](ObjectData const &ObjectIter)
-                                                       {
-                                                           return ObjectIter.Object.GetID() == ObjectID;
-                                                       });
-        MatchingIter != std::end(g_Objects))
-    {
-        return MatchingIter->Allocation.VertexBufferAllocation.Buffer;
-    }
-
-    return VK_NULL_HANDLE;
-}
-
-VkBuffer RenderCore::GetIndexBuffer(std::uint32_t const ObjectID)
-{
-    if (auto const MatchingIter = std::ranges::find_if(g_Objects,
-                                                       [ObjectID](ObjectData const &ObjectIter)
-                                                       {
-                                                           return ObjectIter.Object.GetID() == ObjectID;
-                                                       });
-        MatchingIter != std::end(g_Objects))
-    {
-        return MatchingIter->Allocation.IndexBufferAllocation.Buffer;
-    }
-
-    return VK_NULL_HANDLE;
-}
-
-std::uint32_t RenderCore::GetIndicesCount(std::uint32_t const ObjectID)
-{
-    if (auto const MatchingIter = std::ranges::find_if(g_Objects,
-                                                       [ObjectID](ObjectData const &ObjectIter)
-                                                       {
-                                                           return ObjectIter.Object.GetID() == ObjectID;
-                                                       });
-        MatchingIter != std::end(g_Objects))
-    {
-        return static_cast<std::uint32_t>(std::size(MatchingIter->Indices));
-    }
-
-    return 0U;
+    return g_EmptyImage;
 }
 
 void *RenderCore::GetSceneUniformData()
@@ -680,32 +514,7 @@ VkDescriptorBufferInfo const &RenderCore::GetSceneUniformDescriptor()
     return g_SceneUniformBufferAllocation.second;
 }
 
-void *RenderCore::GetModelUniformData(std::uint32_t const ObjectID)
-{
-    if (auto const MatchingIter = std::ranges::find_if(g_Objects,
-                                                       [ObjectID](ObjectData const &ObjectIter)
-                                                       {
-                                                           return ObjectIter.Object.GetID() == ObjectID;
-                                                       });
-        MatchingIter != std::end(g_Objects))
-    {
-        return MatchingIter->Allocation.UniformBufferAllocation.MappedData;
-    }
-
-    return nullptr;
-}
-
-bool RenderCore::ContainsObject(std::uint32_t const ID)
-{
-    return std::ranges::find_if(g_Objects,
-                                [ID](auto const &Object)
-                                {
-                                    return Object.Object.GetID() == ID;
-                                })
-        != std::end(g_Objects);
-}
-
-std::vector<ObjectData> const &RenderCore::GetAllocatedObjects()
+std::vector<std::shared_ptr<Object>> const &RenderCore::GetAllocatedObjects()
 {
     return g_Objects;
 }
@@ -713,11 +522,6 @@ std::vector<ObjectData> const &RenderCore::GetAllocatedObjects()
 std::uint32_t RenderCore::GetNumAllocations()
 {
     return static_cast<std::uint32_t>(std::size(g_Objects));
-}
-
-std::uint32_t RenderCore::GetClampedNumAllocations()
-{
-    return std::clamp(static_cast<std::uint32_t>(std::size(g_Objects)), 1U, UINT32_MAX);
 }
 
 void RenderCore::UpdateSceneUniformBuffers(Camera const &Camera, Illumination const &Illumination)
@@ -734,22 +538,6 @@ void RenderCore::UpdateSceneUniformBuffers(Camera const &Camera, Illumination co
         };
 
         std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(SceneUniformData));
-    }
-}
-
-void RenderCore::UpdateModelUniformBuffers(std::shared_ptr<Object> const &Object)
-{
-    PUSH_CALLSTACK();
-
-    if (!Object)
-    {
-        return;
-    }
-
-    if (void *UniformBufferData = GetModelUniformData(Object->GetID()))
-    {
-        glm::mat4 const UpdatedUBO {Object->GetMatrix()};
-        std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(glm::mat4));
     }
 }
 

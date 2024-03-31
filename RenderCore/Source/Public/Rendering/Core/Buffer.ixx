@@ -39,9 +39,7 @@ export namespace RenderCore
 
     void AllocateEmptyTexture(VkFormat);
 
-    std::vector<Object> AllocateScene(std::string_view);
-
-    std::vector<Object> PrepareSceneAllocationResources(std::vector<ObjectData> &);
+    void AllocateScene(std::string_view);
 
     void ReleaseScene(std::vector<std::uint32_t> const &);
 
@@ -65,35 +63,21 @@ export namespace RenderCore
 
     [[nodiscard]] ImageAllocation const &GetDepthImage();
 
-    [[nodiscard]] VkFormat const &GetDepthFormat();
-
     [[nodiscard]] VkSampler const &GetSampler();
 
-    [[nodiscard]] VkBuffer GetVertexBuffer(std::uint32_t);
-
-    [[nodiscard]] VkBuffer GetIndexBuffer(std::uint32_t);
-
-    [[nodiscard]] std::uint32_t GetIndicesCount(std::uint32_t);
+    [[nodiscard]] ImageAllocation const &GetEmptyImage();
 
     [[nodiscard]] void *GetSceneUniformData();
 
     [[nodiscard]] VkDescriptorBufferInfo const &GetSceneUniformDescriptor();
 
-    [[nodiscard]] void *GetModelUniformData(std::uint32_t);
-
-    [[nodiscard]] bool ContainsObject(std::uint32_t);
-
-    [[nodiscard]] std::vector<ObjectData> const &GetAllocatedObjects();
+    [[nodiscard]] std::vector<std::shared_ptr<Object>> const &GetAllocatedObjects();
 
     [[nodiscard]] std::uint32_t GetNumAllocations();
-
-    [[nodiscard]] std::uint32_t GetClampedNumAllocations();
 
     [[nodiscard]] VmaAllocator const &GetAllocator();
 
     void UpdateSceneUniformBuffers(Camera const &, Illumination const &);
-
-    void UpdateModelUniformBuffers(std::shared_ptr<Object> const &);
 
     void SaveImageToFile(VkImage const &, std::string_view);
 } // namespace RenderCore
