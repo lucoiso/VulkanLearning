@@ -10,59 +10,8 @@ SET(RENDERER_RESOURCES_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Resources)
 SET(PRIVATE_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Source/Private)
 SET(PUBLIC_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Source/Public)
 
-SET(PRIVATE_MODULES
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/Window.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/Control.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Windowing/GLFWHandler.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Renderer.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Buffer/AllocationRegister.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Input/GLFWCallbacks.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Camera.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Illumination.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Scene/Object.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Debug/DebugHelpers.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Library/Helpers.cxx
-        ${PRIVATE_MODULES_BASE_DIRECTORY}/Subsystem/RenderingSubsystem.cxx
-)
-
-SET(PUBLIC_MODULES
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Windowing/Window.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Windowing/Control.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Windowing/WindowFlags.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Windowing/GLFWHandler.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/EngineStateFlags.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Renderer.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Shader/ShaderManagement.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Command/CommandsManagement.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Pipeline/PipelineManager.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Camera.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Illumination.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Object.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Transform.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Scene/Vertex.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Subsystem/RenderingSubsystem.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Debug/DebugHelpers.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Library/Helpers.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Library/Constants.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Enum/EnumConverter.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Enum/EnumHelpers.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Overlay/ImGuiManagement.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Input/GLFWCallbacks.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Device/DeviceManagement.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Device/SurfaceProperties.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/TextureType.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/UniformBufferObject.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/AllocationTypes.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/BufferManager.ixx
-        ${PUBLIC_MODULES_BASE_DIRECTORY}/Buffer/AllocationRegister.ixx
-)
+FILE(GLOB_RECURSE PRIVATE_MODULES *.cxx)
+FILE(GLOB_RECURSE PUBLIC_MODULES *.ixx)
 
 ADD_LIBRARY(${LIBRARY_NAME} SHARED ${PRIVATE_MODULES})
 

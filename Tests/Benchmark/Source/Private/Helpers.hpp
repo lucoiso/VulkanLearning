@@ -7,7 +7,7 @@
 #include <Utils.hpp>
 #include <benchmark/benchmark.h>
 
-import RenderCore.Window;
+import RenderCore.UserInterface.Window;
 import RenderCore.Utils.Helpers;
 
 static void GetGLFWExtensions(benchmark::State& State)

@@ -4,10 +4,11 @@
 
 module;
 
+#include "Utils/Library/Macros.h"
 
 #ifdef _DEBUG
-#include <Volk/volk.h>
-#include <boost/log/trivial.hpp>
+    #include <Volk/volk.h>
+    #include <boost/log/trivial.hpp>
 #endif
 
 module RenderCore.Utils.DebugHelpers;
@@ -17,11 +18,11 @@ import RuntimeInfo.Manager;
 using namespace RenderCore;
 
 #ifdef _DEBUG
-static std::vector<std::string> s_EnabledExtensions{};
+static std::vector<std::string> s_EnabledExtensions {};
 
 void RenderCore::SetDebugEnabledExtension(std::string_view const Extension)
 {
-    s_EnabledExtensions.push_back(std::string{Extension});
+    s_EnabledExtensions.push_back(std::string {Extension});
 }
 
 bool RenderCore::IsDebugExtensionEnabled(std::string_view const Extension)
@@ -32,9 +33,9 @@ bool RenderCore::IsDebugExtensionEnabled(std::string_view const Extension)
 VKAPI_ATTR VkBool32 VKAPI_CALL RenderCore::ValidationLayerDebugCallback([[maybe_unused]] VkDebugUtilsMessageSeverityFlagBitsEXT const MessageSeverity,
                                                                         [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT              MessageType,
                                                                         VkDebugUtilsMessengerCallbackDataEXT const *const             CallbackData,
-                                                                        [[maybe_unused]] void *                                       UserData)
+                                                                        [[maybe_unused]] void                                        *UserData)
 {
-    RuntimeInfo::Manager::Get().PushCallstack();
+    PUSH_CALLSTACK();
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Message: " << CallbackData->pMessage;
     return VK_FALSE;
 }
@@ -44,7 +45,7 @@ VkResult RenderCore::CreateDebugUtilsMessenger(VkInstance const                 
                                                VkAllocationCallbacks const *const              Allocator,
                                                VkDebugUtilsMessengerEXT *const                 DebugMessenger)
 {
-    RuntimeInfo::Manager::Get().PushCallstack();
+    PUSH_CALLSTACK();
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating debug messenger";
 
     if (auto const CreationFunctor = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(Instance, "vkCreateDebugUtilsMessengerEXT")))
@@ -58,11 +59,11 @@ void RenderCore::DestroyDebugUtilsMessenger(VkInstance const                   I
                                             VkDebugUtilsMessengerEXT const     DebugMessenger,
                                             VkAllocationCallbacks const *const Allocator)
 {
-    RuntimeInfo::Manager::Get().PushCallstack();
+    PUSH_CALLSTACK();
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Destroying debug messenger";
 
-    if (auto const DestructionFunctor = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-        vkGetInstanceProcAddr(Instance, "vkDestroyDebugUtilsMessengerEXT")))
+    if (auto const DestructionFunctor
+        = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(Instance, "vkDestroyDebugUtilsMessengerEXT")))
     {
         DestructionFunctor(Instance, DebugMessenger, Allocator);
     }
@@ -70,31 +71,29 @@ void RenderCore::DestroyDebugUtilsMessenger(VkInstance const                   I
 
 VkValidationFeaturesEXT RenderCore::GetInstanceValidationFeatures()
 {
-    RuntimeInfo::Manager::Get().PushCallstack();
+    PUSH_CALLSTACK();
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Getting validation features";
 
-    constexpr VkValidationFeaturesEXT InstanceValidationFeatures{
-        .sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
-        .enabledValidationFeatureCount = static_cast<uint32_t>(std::size(g_DebugInstanceValidationFeatures)),
-        .pEnabledValidationFeatures = std::data(g_DebugInstanceValidationFeatures)
-    };
+    constexpr VkValidationFeaturesEXT InstanceValidationFeatures {.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
+                                                                  .enabledValidationFeatureCount
+                                                                  = static_cast<uint32_t>(std::size(g_DebugInstanceValidationFeatures)),
+                                                                  .pEnabledValidationFeatures = std::data(g_DebugInstanceValidationFeatures)};
 
     return InstanceValidationFeatures;
 }
 
-void RenderCore::PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT& Info,
-                                   void *const                         UserData)
+void RenderCore::PopulateDebugInfo(VkDebugUtilsMessengerCreateInfoEXT &Info, void *const UserData)
 {
-    RuntimeInfo::Manager::Get().PushCallstack();
+    PUSH_CALLSTACK();
     BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Populating debug info";
 
     Info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 
-    Info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    Info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
+        | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 
-    Info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT;
+    Info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+        | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT;
 
     Info.pfnUserCallback = ValidationLayerDebugCallback;
     Info.pUserData       = UserData;

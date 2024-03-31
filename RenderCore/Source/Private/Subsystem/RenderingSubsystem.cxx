@@ -2,11 +2,16 @@
 // Year : 2024
 // Repo : https://github.com/lucoiso/VulkanRenderer
 
+module;
+
+#include "Utils/Library/Macros.h"
+
 module RenderCore.Subsystem.Rendering;
 
 using namespace RenderCore;
 
 import RuntimeInfo.Manager;
+import RenderCore.Utils.DebugHelpers;
 
 RenderingSubsystem& RenderingSubsystem::Get()
 {
@@ -16,13 +21,13 @@ RenderingSubsystem& RenderingSubsystem::Get()
 
 void RenderingSubsystem::RegisterRenderer(Renderer *const Renderer)
 {
-    RuntimeInfo::Manager::Get().PushCallstack();
+    PUSH_CALLSTACK();
     m_RegisteredRenderer = Renderer;
 }
 
 void RenderingSubsystem::UnregisterRenderer()
 {
-    RuntimeInfo::Manager::Get().PushCallstack();
+    PUSH_CALLSTACK();
     m_RegisteredRenderer = nullptr;
 }
 

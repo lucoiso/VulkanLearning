@@ -7,7 +7,7 @@
 #include <Utils.hpp>
 #include <catch2/catch_test_macros.hpp>
 
-import RenderCore.Window;
+import RenderCore.UserInterface.Window;
 import RenderCore.Utils.Helpers;
 
 TEST_CASE("Helper Functions", "[RenderCore]")

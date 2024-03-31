@@ -16,27 +16,26 @@ module;
 
 export module RenderCore.Renderer;
 
+import Timer.Manager;
+
+import RenderCore.Types.RendererStateFlags;
 import RenderCore.Types.Camera;
 import RenderCore.Types.Illumination;
 import RenderCore.Types.Transform;
 import RenderCore.Types.Object;
-import Timer.Manager;
 
-import RenderCore.Utils.EngineStateFlags;
-import RenderCore.Window.Control;
-import RenderCore.Management.BufferManagement;
-import RenderCore.Management.PipelineManagement;
-import RenderCore.Management.CommandsManagement;
-import RenderCore.Management.DeviceManagement;
+import RenderCore.UserInterface.Control;
+import RenderCore.Runtime.Buffer;
+import RenderCore.Runtime.Pipeline;
+import RenderCore.Runtime.Command;
+import RenderCore.Runtime.Device;
 
 namespace RenderCore
 {
     export class RENDERCOREMODULE_API Renderer
     {
-        BufferManager   m_BufferManager {};
-        PipelineManager m_PipelineManager {};
-        Camera          m_Camera {};
-        Illumination    m_Illumination {};
+        Camera       m_Camera {};
+        Illumination m_Illumination {};
 
         RendererStateFlags                   m_StateFlags {RendererStateFlags::NONE};
         std::vector<std::shared_ptr<Object>> m_Objects {};

@@ -6,8 +6,8 @@
 
 #include <string>
 
-import RenderCore.Window;
-import RenderCore.Window.Flags;
+import RenderCore.UserInterface.Window;
+import RenderCore.UserInterface.Window.Flags;
 
 class ScopedWindow final
 {

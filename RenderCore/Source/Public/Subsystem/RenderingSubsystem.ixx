@@ -14,17 +14,17 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API RenderingSubsystem
     {
-        Renderer *m_RegisteredRenderer{};
+        Renderer *m_RegisteredRenderer {};
 
-        RenderingSubsystem()  = default;
+         RenderingSubsystem() = default;
         ~RenderingSubsystem() = default;
 
     public:
-        static [[nodiscard]] RenderingSubsystem& Get();
+        static [[nodiscard]] RenderingSubsystem &Get();
 
         void RegisterRenderer(Renderer *);
         void UnregisterRenderer();
 
-        [[nodiscard]] Renderer* GetRenderer() const;
+        [[nodiscard]] Renderer *GetRenderer() const;
     };
 } // namespace RenderCore

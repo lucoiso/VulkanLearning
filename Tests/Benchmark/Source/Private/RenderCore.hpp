@@ -7,8 +7,8 @@
 #include <Utils.hpp>
 #include <benchmark/benchmark.h>
 
-import RenderCore.Window;
-import RenderCore.Window.Flags;
+import RenderCore.UserInterface.Window;
+import RenderCore.UserInterface.Window.Flags;
 import RenderCore.Renderer;
 
 static void InitializeWindow(benchmark::State& State)
