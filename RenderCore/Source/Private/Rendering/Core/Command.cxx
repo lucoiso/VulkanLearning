@@ -225,7 +225,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex, Camera con
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
     AllocateCommandBuffers(GetGraphicsQueue().first, 1U + static_cast<std::uint8_t>(IsImGuiInitialized()));
 #else
-    AllocateCommandBuffer(GetGraphicsQueue().first, 1U);
+    AllocateCommandBuffers(GetGraphicsQueue().first, 1U);
 #endif
 
     RecordSceneCommands(g_CommandBuffers.at(0U), ImageIndex, Camera, SwapChainExtent);
