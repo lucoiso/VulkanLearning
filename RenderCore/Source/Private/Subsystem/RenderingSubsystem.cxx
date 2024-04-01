@@ -9,7 +9,6 @@ module RenderCore.Subsystem.Rendering;
 
 using namespace RenderCore;
 
-import RuntimeInfo.Manager;
 import RenderCore.Utils.DebugHelpers;
 
 RenderingSubsystem& RenderingSubsystem::Get()

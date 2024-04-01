@@ -21,7 +21,6 @@ module;
 module RenderCore.Utils.Helpers;
 
 import RenderCore.Types.Vertex;
-import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 

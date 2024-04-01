@@ -12,7 +12,6 @@ module RenderCore.UserInterface.Window;
 using namespace RenderCore;
 
 import RenderCore.Renderer;
-import RuntimeInfo.Manager;
 
 Window::Window() : Control(nullptr)
 {

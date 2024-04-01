@@ -16,7 +16,6 @@ module RenderCore.Integrations.GLFWHandler;
 
 using namespace RenderCore;
 
-import RuntimeInfo.Manager;
 import RenderCore.Integrations.GLFWCallbacks;
 import RenderCore.Utils.EnumHelpers;
 

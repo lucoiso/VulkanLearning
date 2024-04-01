@@ -10,26 +10,23 @@ module;
 #include <stb_image_write.h>
 
 #ifndef VMA_IMPLEMENTATION
-    #ifdef _DEBUG
-        #include <boost/log/trivial.hpp>
-        #define VMA_DEBUG_LOG_FORMAT(format, ...)                                  \
-            do                                                                     \
-            {                                                                      \
-                std::size_t _BuffSize = snprintf(nullptr, 0, format, __VA_ARGS__); \
-                std::string _Message(_BuffSize + 1, '\0');                         \
-                snprintf(&_Message[0], _Message.size(), format, __VA_ARGS__);      \
-                _Message.pop_back();                                               \
-                BOOST_LOG_TRIVIAL(debug) << _Message;                              \
-            }                                                                      \
-            while (false)
-    #endif
+    #include <boost/log/trivial.hpp>
+    #define VMA_LEAK_LOG_FORMAT(format, ...)                                   \
+        do                                                                     \
+        {                                                                      \
+            std::size_t _BuffSize = snprintf(nullptr, 0, format, __VA_ARGS__); \
+            std::string _Message(_BuffSize + 1, '\0');                         \
+            snprintf(&_Message[0], _Message.size(), format, __VA_ARGS__);      \
+            _Message.pop_back();                                               \
+            BOOST_LOG_TRIVIAL(debug) << _Message;                              \
+        }                                                                      \
+        while (false)
     #define VMA_IMPLEMENTATION
 #endif
 #include <vma/vk_mem_alloc.h>
 
 module RenderCore.Runtime.Memory;
 
-import RenderCore.Subsystem.Allocation;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Runtime.Command;
@@ -43,15 +40,12 @@ void RenderCore::CreateMemoryAllocator(VkPhysicalDevice const &PhysicalDevice)
 {
     VmaVulkanFunctions const VulkanFunctions {.vkGetInstanceProcAddr = vkGetInstanceProcAddr, .vkGetDeviceProcAddr = vkGetDeviceProcAddr};
 
-    constexpr VmaDeviceMemoryCallbacks AllocationCallbacks {.pfnAllocate = AllocationSubsystem::AllocateDeviceMemoryCallback,
-                                                            .pfnFree     = AllocationSubsystem::FreeDeviceMemoryCallback};
-
     VmaAllocatorCreateInfo const AllocatorInfo {.flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT | VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT,
                                                 .physicalDevice                 = PhysicalDevice,
                                                 .device                         = volkGetLoadedDevice(),
                                                 .preferredLargeHeapBlockSize    = 0U /*Default: 256 MiB*/,
                                                 .pAllocationCallbacks           = nullptr,
-                                                .pDeviceMemoryCallbacks         = &AllocationCallbacks,
+                                                .pDeviceMemoryCallbacks         = nullptr,
                                                 .pHeapSizeLimit                 = nullptr,
                                                 .pVulkanFunctions               = &VulkanFunctions,
                                                 .instance                       = volkGetLoadedInstance(),

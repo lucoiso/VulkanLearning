@@ -23,7 +23,6 @@ module RenderCore.Runtime.ShaderCompiler;
 
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.DebugHelpers;
-import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 

@@ -54,10 +54,8 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
         glfw
 
         Timer
-        RuntimeInfo
         Configuration
         Coroutine
-        # RenderGraphRPS
 )
 
 SET(VULKAN_LIBS_TO_LINK

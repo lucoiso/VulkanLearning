@@ -12,7 +12,6 @@ module;
 
 module RenderCore.Utils.DebugHelpers;
 
-import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 

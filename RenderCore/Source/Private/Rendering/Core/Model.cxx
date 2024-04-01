@@ -11,7 +11,6 @@ module;
 
 module RenderCore.Runtime.Model;
 
-import RuntimeInfo.Manager;
 import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Runtime.Scene;

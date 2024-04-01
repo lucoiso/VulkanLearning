@@ -10,7 +10,6 @@ module;
 
 module RenderCore.Runtime.Pipeline;
 
-import RuntimeInfo.Manager;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Types.Vertex;

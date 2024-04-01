@@ -37,7 +37,6 @@ import RenderCore.Utils.DebugHelpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Types.Allocation;
 import RenderCore.Subsystem.Rendering;
-import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 

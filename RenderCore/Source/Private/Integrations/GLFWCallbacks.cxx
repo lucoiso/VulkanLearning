@@ -22,7 +22,6 @@ import RenderCore.Types.Transform;
 import RenderCore.Types.RendererStateFlags;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
-import RuntimeInfo.Manager;
 
 using namespace RenderCore;
 

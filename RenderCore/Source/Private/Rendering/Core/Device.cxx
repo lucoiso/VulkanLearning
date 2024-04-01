@@ -14,7 +14,6 @@ module;
 
 module RenderCore.Runtime.Device;
 
-import RuntimeInfo.Manager;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.DebugHelpers;

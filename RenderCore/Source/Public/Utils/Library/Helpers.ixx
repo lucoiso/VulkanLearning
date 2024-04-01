@@ -14,7 +14,6 @@ module;
 
 export module RenderCore.Utils.Helpers;
 
-import RuntimeInfo.Manager;
 
 namespace RenderCore
 {

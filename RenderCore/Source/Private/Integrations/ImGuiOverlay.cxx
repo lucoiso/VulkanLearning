@@ -24,7 +24,6 @@ import RenderCore.Runtime.Command;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Types.Camera;
-import RuntimeInfo.Manager;
 #endif
 
 using namespace RenderCore;
