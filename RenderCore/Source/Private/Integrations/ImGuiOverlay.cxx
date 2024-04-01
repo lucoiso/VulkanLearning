@@ -24,11 +24,9 @@ import RenderCore.Runtime.Command;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Types.Camera;
-#endif
 
 using namespace RenderCore;
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 VkDescriptorPool g_ImGuiDescriptorPool {VK_NULL_HANDLE};
 
 void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, SurfaceProperties const &SurfaceProperties)
