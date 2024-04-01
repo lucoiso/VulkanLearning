@@ -4,12 +4,9 @@
 
 module;
 
-#include <boost/log/trivial.hpp>
 #include <filesystem>
-#include <glm/ext.hpp>
 #include <mutex>
 #include <vector>
-#include "Utils/Library/Macros.h"
 
 // Include vulkan before glfw
 #ifndef VOLK_IMPLEMENTATION
@@ -23,10 +20,16 @@ module;
 module RenderCore.Renderer;
 
 import RenderCore.Runtime.Device;
-import RenderCore.Runtime.Buffer;
+import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.ShaderCompiler;
 import RenderCore.Runtime.Command;
 import RenderCore.Runtime.Pipeline;
+import RenderCore.Runtime.Memory;
+import RenderCore.Runtime.Scene;
+import RenderCore.Runtime.Model;
+import RenderCore.Runtime.SwapChain;
+import RenderCore.Runtime.Synchronization;
+import RenderCore.Integrations.Viewport;
 import RenderCore.Integrations.ImGuiOverlay;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
@@ -50,9 +53,6 @@ VkDebugUtilsMessengerEXT g_DebugMessenger {VK_NULL_HANDLE};
 
 bool CreateVulkanInstance()
 {
-    PUSH_CALLSTACK();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating vulkan instance";
-
     constexpr VkApplicationInfo AppInfo {.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
                                          .pApplicationName   = "VulkanApp",
                                          .applicationVersion = VK_MAKE_VERSION(1U, 0U, 0U),
@@ -100,7 +100,6 @@ bool CreateVulkanInstance()
     volkLoadInstance(g_Instance);
 
 #ifdef _DEBUG
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Setting up debug messages";
     CheckVulkanResult(CreateDebugUtilsMessenger(g_Instance, &CreateDebugInfo, nullptr, &g_DebugMessenger));
 #endif
 
@@ -109,16 +108,9 @@ bool CreateVulkanInstance()
 
 void Renderer::DrawFrame(GLFWwindow *const Window, float const DeltaTime, Camera const &Camera, Control *const Owner)
 {
-    PUSH_CALLSTACK();
-
     if (!IsInitialized())
     {
         return;
-    }
-
-    if (Window == nullptr || Owner == nullptr)
-    {
-        throw std::runtime_error("Window is invalid");
     }
 
     m_FrameTime = DeltaTime;
@@ -129,8 +121,9 @@ void Renderer::DrawFrame(GLFWwindow *const Window, float const DeltaTime, Camera
     {
         if (!HasFlag(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION) && HasFlag(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
-            DestroyCommandsSynchronizationObjects();
-            DestroyBufferResources(false);
+            ReleaseSynchronizationObjects();
+            DestroySwapChainImages();
+            DestroyViewportImages();
             ReleaseDynamicPipelineResources();
 
             RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
@@ -139,8 +132,6 @@ void Renderer::DrawFrame(GLFWwindow *const Window, float const DeltaTime, Camera
         else if (!HasFlag(m_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE)
                  && HasFlag(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION))
         {
-            BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Refreshing resources...";
-
             auto const SurfaceProperties   = GetSurfaceProperties(Window, GetSurface());
             auto const SurfaceCapabilities = GetSurfaceCapabilities(GetSurface());
 
@@ -153,7 +144,7 @@ void Renderer::DrawFrame(GLFWwindow *const Window, float const DeltaTime, Camera
             CreateDepthResources(SurfaceProperties);
 
             Owner->RefreshResources();
-            CreateCommandsSynchronizationObjects();
+            CreateSynchronizationObjects();
 
             RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
             AddFlags(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
@@ -190,20 +181,18 @@ void Renderer::DrawFrame(GLFWwindow *const Window, float const DeltaTime, Camera
             UpdateSceneUniformBuffers(Camera, m_Illumination);
             RecordCommandBuffers(m_ImageIndex.value(), Camera, GetSwapChainExtent());
             SubmitCommandBuffers();
-            PresentFrame(m_ImageIndex.value(), GetSwapChain());
+            PresentFrame(m_ImageIndex.value());
         }
     }
 }
 
 std::optional<std::int32_t> Renderer::RequestImageIndex(GLFWwindow *const Window)
 {
-    PUSH_CALLSTACK();
-
     std::optional<std::int32_t> Output {};
 
     if (!HasAnyFlag(m_StateFlags, g_InvalidStatesToRender))
     {
-        Output = RequestSwapChainImage(GetSwapChain());
+        Output = RequestSwapChainImage();
     }
 
     if (!GetSurfaceProperties(Window, GetSurface()).IsValid())
@@ -225,8 +214,6 @@ std::optional<std::int32_t> Renderer::RequestImageIndex(GLFWwindow *const Window
 
 void Renderer::Tick()
 {
-    PUSH_CALLSTACK();
-
     if (!IsInitialized())
     {
         return;
@@ -258,8 +245,6 @@ void Renderer::Tick()
 
 void Renderer::RemoveInvalidObjects()
 {
-    PUSH_CALLSTACK();
-
     std::unique_lock Lock(m_RenderingMutex);
 
     std::vector<std::uint32_t> LoadedIDs {};
@@ -279,9 +264,6 @@ void Renderer::RemoveInvalidObjects()
 
 bool Renderer::Initialize(GLFWwindow *const Window)
 {
-    PUSH_CALLSTACK();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Initializing vulkan renderer";
-
     if (IsInitialized())
     {
         return false;
@@ -291,11 +273,7 @@ bool Renderer::Initialize(GLFWwindow *const Window)
 
     CheckVulkanResult(volkInitialize());
 
-    if (!CreateVulkanInstance())
-    {
-        throw std::runtime_error("Failed to create vulkan instance");
-    }
-
+    CreateVulkanInstance();
     CreateVulkanSurface(Window);
     InitializeDevice(GetSurface());
     volkLoadDevice(GetLogicalDevice());
@@ -319,8 +297,6 @@ bool Renderer::Initialize(GLFWwindow *const Window)
 
 void Renderer::Shutdown([[maybe_unused]] GLFWwindow *const Window)
 {
-    PUSH_CALLSTACK();
-
     if (!IsInitialized())
     {
         return;
@@ -334,19 +310,19 @@ void Renderer::Shutdown([[maybe_unused]] GLFWwindow *const Window)
     ReleaseImGuiResources();
 #endif
 
+    ReleaseSwapChainResources();
+    DestroyViewportImages();
     ReleaseShaderResources();
     ReleaseCommandsResources();
-    ReleaseBufferResources();
+    ReleaseSynchronizationObjects();
+    ReleaseSceneResources();
+    ReleaseMemoryResources();
     ReleasePipelineResources();
     ReleaseDeviceResources();
-
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Shutting down vulkan renderer";
 
 #ifdef _DEBUG
     if (g_DebugMessenger != VK_NULL_HANDLE)
     {
-        BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Shutting down vulkan debug messenger";
-
         DestroyDebugUtilsMessenger(g_Instance, g_DebugMessenger, nullptr);
         g_DebugMessenger = VK_NULL_HANDLE;
     }
@@ -388,21 +364,12 @@ RendererStateFlags Renderer::GetStateFlags() const
 
 void Renderer::LoadScene(std::string_view const ObjectPath)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     if (!IsInitialized())
     {
         return;
     }
 
-    if (!std::filesystem::exists(ObjectPath))
-    {
-        throw std::runtime_error("Object path is invalid");
-    }
-
     std::lock_guard Lock(m_RenderingMutex);
-
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Loading scene...";
 
     AllocateScene(ObjectPath);
     AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
@@ -410,8 +377,6 @@ void Renderer::LoadScene(std::string_view const ObjectPath)
 
 void Renderer::UnloadScene(std::vector<std::uint32_t> const &ObjectIDs)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     if (!IsInitialized())
     {
         return;
@@ -419,23 +384,13 @@ void Renderer::UnloadScene(std::vector<std::uint32_t> const &ObjectIDs)
 
     std::unique_lock Lock(m_RenderingMutex);
 
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Unloading scene...";
-
     ReleaseScene(ObjectIDs);
     AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
 }
 
 void Renderer::UnloadAllScenes()
 {
-    std::vector<std::uint32_t> LoadedIDs {};
-    for (std::shared_ptr<Object> const &ObjectIter : GetAllocatedObjects())
-    {
-        if (ObjectIter)
-        {
-            LoadedIDs.push_back(ObjectIter->GetID());
-        }
-    }
-    UnloadScene(LoadedIDs);
+    DestroyObjects();
 }
 
 Timer::Manager &Renderer::GetRenderTimerManager()
@@ -537,7 +492,6 @@ bool Renderer::IsImGuiInitialized()
 
 void Renderer::SaveFrameToImageFile(std::string_view const Path) const
 {
-    PUSH_CALLSTACK();
-    SaveImageToFile(GetViewportImages().at(GetImageIndex().value()).Image, Path);
+    SaveImageToFile(GetViewportImages().at(GetImageIndex().value()).Image, Path, GetSwapChainExtent());
 }
 #endif

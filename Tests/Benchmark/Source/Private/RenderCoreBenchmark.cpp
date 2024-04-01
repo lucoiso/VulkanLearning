@@ -5,7 +5,6 @@
 #include <benchmark/benchmark.h>
 
 #ifndef _DEBUG
-#include <boost/log/trivial.hpp>
 #endif
 
 // User defined modules

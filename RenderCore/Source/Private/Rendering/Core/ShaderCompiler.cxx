@@ -4,7 +4,6 @@
 
 module;
 
-#include "Utils/Library/Macros.h"
 #include <Volk/volk.h>
 #include <array>
 #include <boost/log/trivial.hpp>
@@ -37,8 +36,6 @@ bool CompileInternal(ShaderType const            ShaderType,
                      std::int32_t const          Version,
                      std::vector<std::uint32_t> &OutSPIRVCode)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     glslang::InitializeProcess();
 
     glslang::TShader Shader(Language);
@@ -60,7 +57,8 @@ bool CompileInternal(ShaderType const            ShaderType,
         glslang::FinalizeProcess();
         std::string const InfoLog("Info Log: " + std::string(Shader.getInfoLog()));
         std::string const DebugLog("Debug Log: " + std::string(Shader.getInfoDebugLog()));
-        throw std::runtime_error(std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog));
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: " << std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog);
+        return false;
     }
 
     glslang::TProgram Program;
@@ -71,13 +69,14 @@ bool CompileInternal(ShaderType const            ShaderType,
         glslang::FinalizeProcess();
         std::string const InfoLog("Info Log: " + std::string(Program.getInfoLog()));
         std::string const DebugLog("Debug Log: " + std::string(Program.getInfoDebugLog()));
-        throw std::runtime_error(std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog));
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: " << std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog);
+        return false;
     }
 
 #ifdef _DEBUG
     if constexpr (g_EnableCustomDebug)
     {
-        BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Compiling shader:\n" << Source;
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n" << Source;
     }
 #endif
 
@@ -95,14 +94,6 @@ bool CompileInternal(ShaderType const            ShaderType,
 
 void StageInfo(VkShaderModule const &Module, EShLanguage const Language, std::string_view const EntryPoint)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Staging shader info...";
-
-    if (Module == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Invalid shader module");
-    }
-
     VkPipelineShaderStageCreateInfo StageInfo {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, .module = Module, .pName = std::data(EntryPoint)};
 
     switch (Language)
@@ -156,7 +147,7 @@ void StageInfo(VkShaderModule const &Module, EShLanguage const Language, std::st
             break;
 
         default:
-            throw std::runtime_error("Unsupported shader language");
+            break;
     }
 
     g_StageInfos.emplace(Module, StageInfo);
@@ -168,14 +159,14 @@ bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
     static spvtools::SpirvTools SPIRVToolsInstance(SPV_ENV_VULKAN_1_3);
     if (!SPIRVToolsInstance.IsValid())
     {
-        throw std::runtime_error("Failed to initialize SPIRV-Tools");
+        return false;
     }
 
     if constexpr (g_EnableCustomDebug)
     {
         if (std::string DisassemblySPIRVData; SPIRVToolsInstance.Disassemble(SPIRVData, &DisassemblySPIRVData))
         {
-            BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Generated SPIR-V shader disassembly:\n" << DisassemblySPIRVData;
+            BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Generated SPIR-V shader disassembly:\n" << DisassemblySPIRVData;
         }
     }
 
@@ -190,15 +181,13 @@ bool RenderCore::Compile(std::string_view const      Source,
                          EShLanguage const           Language,
                          std::vector<std::uint32_t> &OutSPIRVCode)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     std::filesystem::path const Path(Source);
     std::stringstream           ShaderSource;
     std::ifstream               File(Path);
 
     if (!File.is_open())
     {
-        throw std::runtime_error(std::format("Failed to open shader file: {}", Path.string()));
+        return false;
     }
 
     ShaderSource << File.rdbuf();
@@ -211,7 +200,7 @@ bool RenderCore::Compile(std::string_view const      Source,
 #ifdef _DEBUG
         if (!ValidateSPIRV(OutSPIRVCode))
         {
-            throw std::runtime_error("Failed to validate SPIR-V code");
+            return false;
         }
 #endif
 
@@ -219,13 +208,11 @@ bool RenderCore::Compile(std::string_view const      Source,
         std::ofstream     SPIRVFile(SPIRVPath, std::ios::binary);
         if (!SPIRVFile.is_open())
         {
-            throw std::runtime_error(std::format("Failed to open SPIRV file: {}", SPIRVPath));
+            return false;
         }
 
         SPIRVFile << std::string(reinterpret_cast<char const *>(std::data(OutSPIRVCode)), std::size(OutSPIRVCode) * sizeof(std::uint32_t));
         SPIRVFile.close();
-
-        BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Shader compiled, generated SPIR-V shader file: " << SPIRVPath;
     }
 
     return Result;
@@ -233,25 +220,22 @@ bool RenderCore::Compile(std::string_view const      Source,
 
 bool RenderCore::Load(std::string_view const Source, std::vector<std::uint32_t> &OutSPIRVCode)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Loading shader: " << Source;
-
     std::filesystem::path const Path(Source);
     if (!exists(Path))
     {
-        throw std::runtime_error(std::format("Shader file does not exist {}", Source));
+        return false;
     }
 
     std::ifstream File(Path, std::ios::ate | std::ios::binary);
     if (!File.is_open())
     {
-        throw std::runtime_error(std::format("Failed to open shader file {}", Source));
+        return false;
     }
 
     std::size_t const FileSize = File.tellg();
     if (FileSize == 0)
     {
-        throw std::runtime_error("Shader file is empty");
+        return false;
     }
 
     OutSPIRVCode.resize(FileSize / sizeof(std::uint32_t), std::uint32_t());
@@ -270,8 +254,6 @@ bool RenderCore::CompileOrLoadIfExists(std::string_view const      Source,
                                        EShLanguage const           Language,
                                        std::vector<std::uint32_t> &OutSPIRVCode)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     if (std::string const CompiledShaderPath = std::format("{}_{}.spv", Source, static_cast<std::uint8_t>(Language));
         std::filesystem::exists(CompiledShaderPath))
     {
@@ -283,18 +265,10 @@ bool RenderCore::CompileOrLoadIfExists(std::string_view const      Source,
 
 VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const &SPIRVCode, EShLanguage const Language, std::string_view const EntryPoint)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating shader module";
-
-    if (std::empty(SPIRVCode))
-    {
-        throw std::runtime_error("Invalid SPIRV code");
-    }
-
 #ifdef _DEBUG
     if (!ValidateSPIRV(SPIRVCode))
     {
-        throw std::runtime_error("Failed to validate SPIR-V code");
+        return VK_NULL_HANDLE;
     }
 #endif
 
@@ -339,9 +313,6 @@ std::vector<VkPipelineShaderStageCreateInfo> RenderCore::GetStageInfos()
 
 void RenderCore::ReleaseShaderResources()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Releasing vulkan shader resources";
-
     for (auto const &ShaderModule : g_StageInfos | std::views::keys)
     {
         if (ShaderModule != VK_NULL_HANDLE)
@@ -354,9 +325,6 @@ void RenderCore::ReleaseShaderResources()
 
 void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const &StagedModules)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Freeing staged shader modules";
-
     for (const auto &[Type, Next, Flags, Stage, Module, Name, Info] : StagedModules)
     {
         if (Module != VK_NULL_HANDLE)

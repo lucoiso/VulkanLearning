@@ -4,7 +4,6 @@
 
 module;
 
-#include "Utils/Library/Macros.h"
 
 module RenderCore.Subsystem.Rendering;
 
@@ -20,15 +19,11 @@ RenderingSubsystem& RenderingSubsystem::Get()
 }
 
 void RenderingSubsystem::RegisterRenderer(Renderer *const Renderer)
-{
-    PUSH_CALLSTACK();
-    m_RegisteredRenderer = Renderer;
+{    m_RegisteredRenderer = Renderer;
 }
 
 void RenderingSubsystem::UnregisterRenderer()
-{
-    PUSH_CALLSTACK();
-    m_RegisteredRenderer = nullptr;
+{    m_RegisteredRenderer = nullptr;
 }
 
 Renderer* RenderingSubsystem::GetRenderer() const

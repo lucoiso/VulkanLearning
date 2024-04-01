@@ -5,11 +5,10 @@
 module;
 
 #include <GLFW/glfw3.h>
-#include <Volk/volk.h>
 #include <boost/log/trivial.hpp>
+#include <Volk/volk.h>
 #include <filesystem>
 #include <span>
-#include "Utils/Library/Macros.h"
 
 #ifndef GLM_FORCE_RADIANS
     #define GLM_FORCE_RADIANS
@@ -42,9 +41,6 @@ VkExtent2D RenderCore::GetWindowExtent(GLFWwindow *const Window, VkSurfaceCapabi
 
 std::vector<std::string> RenderCore::GetGLFWExtensions()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Getting GLFW extensions";
-
     std::uint32_t   GLFWExtensionsCount = 0U;
     char const    **GLFWExtensions      = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
     std::span const GLFWExtensionsSpan(GLFWExtensions, GLFWExtensionsCount);
@@ -54,28 +50,25 @@ std::vector<std::string> RenderCore::GetGLFWExtensions()
 
     if (!std::empty(GLFWExtensionsSpan))
     {
-        BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Found extensions:";
-
         for (char const *const &ExtensionIter : GLFWExtensionsSpan)
         {
-            BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: " << ExtensionIter;
             Output.emplace_back(ExtensionIter);
         }
     }
     else
     {
-        BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Failed to get GLFW extensions. Forcing Vulkan extensions:";
-        BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: VK_KHR_surface";
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Failed to get GLFW extensions. Forcing Vulkan extensions:";
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: VK_KHR_surface";
         Output.emplace_back("VK_KHR_surface");
 
 #ifdef WIN32
-        BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: VK_KHR_win32_surface";
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: VK_KHR_win32_surface";
         Output.emplace_back("VK_KHR_win32_surface");
 #elif __linux__
-        BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: VK_KHR_xcb_surface";
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: VK_KHR_xcb_surface";
         Output.emplace_back("VK_KHR_xcb_surface");
 #elif __APPLE__
-        BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: VK_KHR_macos_surface";
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: VK_KHR_macos_surface";
         Output.emplace_back("VK_KHR_macos_surface");
         elif __ANDROID__ BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: VK_KHR_android_surface";
         Output.emplace_back("VK_KHR_android_surface");
@@ -87,8 +80,6 @@ std::vector<std::string> RenderCore::GetGLFWExtensions()
 
 std::vector<VkLayerProperties> RenderCore::GetAvailableInstanceLayers()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     std::uint32_t LayersCount = 0U;
     CheckVulkanResult(vkEnumerateInstanceLayerProperties(&LayersCount, nullptr));
 
@@ -100,8 +91,6 @@ std::vector<VkLayerProperties> RenderCore::GetAvailableInstanceLayers()
 
 std::vector<std::string> RenderCore::GetAvailableInstanceLayersNames()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     std::vector<std::string> Output;
     for (auto const &[LayerName, SpecVer, ImplVer, Descr] : GetAvailableInstanceLayers())
     {
@@ -113,8 +102,6 @@ std::vector<std::string> RenderCore::GetAvailableInstanceLayersNames()
 
 std::vector<VkExtensionProperties> RenderCore::GetAvailableInstanceExtensions()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     std::uint32_t ExtensionCount = 0U;
     CheckVulkanResult(vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionCount, nullptr));
 
@@ -126,8 +113,6 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailableInstanceExtensions()
 
 std::vector<std::string> RenderCore::GetAvailableInstanceExtensionsNames()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     std::vector<std::string> Output;
     for (auto const &[ExtName, SpecVer] : GetAvailableInstanceExtensions())
     {
@@ -160,8 +145,6 @@ std::vector<VkVertexInputAttributeDescription> RenderCore::GetAttributeDescripti
 
 std::vector<VkExtensionProperties> RenderCore::GetAvailableInstanceLayerExtensions(std::string_view const LayerName)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     if (std::vector<std::string> const AvailableLayers = GetAvailableInstanceLayersNames();
         std::ranges::find(AvailableLayers, LayerName) == std::cend(AvailableLayers))
     {
@@ -179,8 +162,6 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailableInstanceLayerExtensio
 
 std::vector<std::string> RenderCore::GetAvailableInstanceLayerExtensionsNames(std::string_view const LayerName)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     std::vector<std::string> Output;
     for (auto const &[ExtName, SpecVer] : GetAvailableInstanceLayerExtensions(LayerName))
     {

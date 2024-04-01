@@ -6,12 +6,11 @@ module;
 
 #include <GLFW/glfw3.h>
 #include <Volk/volk.h>
-#include <boost/log/trivial.hpp>
 #include <format>
 #include <optional>
 #include <ranges>
-
-#include "Utils/Library/Macros.h"
+#include <algorithm>
+#include <unordered_map>
 
 module RenderCore.Runtime.Device;
 
@@ -31,8 +30,6 @@ std::vector<std::uint8_t>        g_UniqueQueueFamilyIndices {};
 
 bool IsPhysicalDeviceSuitable(VkPhysicalDevice const &Device)
 {
-    PUSH_CALLSTACK();
-
     if (Device == VK_NULL_HANDLE)
     {
         return false;
@@ -52,14 +49,6 @@ bool GetQueueFamilyIndices(VkSurfaceKHR const          &VulkanSurface,
                            std::optional<std::uint8_t> &PresentationQueueFamilyIndex,
                            std::optional<std::uint8_t> &ComputeQueueFamilyIndex)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Getting queue family indices";
-
-    if (g_PhysicalDevice == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan physical device is invalid.");
-    }
-
     std::uint32_t QueueFamilyCount = 0U;
     vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &QueueFamilyCount, nullptr);
 
@@ -99,9 +88,6 @@ bool GetQueueFamilyIndices(VkSurfaceKHR const          &VulkanSurface,
 
 void PickPhysicalDevice()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Picking a physical device";
-
     for (VkPhysicalDevice const &Device : GetAvailablePhysicalDevices())
     {
         if (IsPhysicalDeviceSuitable(Device))
@@ -110,31 +96,15 @@ void PickPhysicalDevice()
             break;
         }
     }
-
-    if (g_PhysicalDevice == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("No suitable Vulkan physical device found.");
-    }
 }
 
 void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     std::optional<std::uint8_t> GraphicsQueueFamilyIndex {std::nullopt};
     std::optional<std::uint8_t> ComputeQueueFamilyIndex {std::nullopt};
     std::optional<std::uint8_t> PresentationQueueFamilyIndex {std::nullopt};
 
-    if (!GetQueueFamilyIndices(VulkanSurface, GraphicsQueueFamilyIndex, PresentationQueueFamilyIndex, ComputeQueueFamilyIndex))
-    {
-        throw std::runtime_error("Failed to get queue family indices.");
-    }
-
-    g_GraphicsQueue.first     = GraphicsQueueFamilyIndex.value();
-    g_PresentationQueue.first = PresentationQueueFamilyIndex.value();
-    g_ComputeQueue.first      = ComputeQueueFamilyIndex.value();
-
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating vulkan logical device";
+    GetQueueFamilyIndices(VulkanSurface, GraphicsQueueFamilyIndex, PresentationQueueFamilyIndex, ComputeQueueFamilyIndex);
 
     if (g_PhysicalDevice == VK_NULL_HANDLE)
     {
@@ -227,32 +197,13 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
     CheckVulkanResult(vkCreateDevice(g_PhysicalDevice, &DeviceCreateInfo, nullptr, &g_Device));
     volkLoadDevice(g_Device);
 
-    if (g_Device == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Failed to create logical device.");
-    }
-
-    if (vkGetDeviceQueue(g_Device, g_GraphicsQueue.first, 0U, &g_GraphicsQueue.second); g_GraphicsQueue.second == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Failed to get graphics queue.");
-    }
-
-    if (vkGetDeviceQueue(g_Device, g_PresentationQueue.first, 0U, &g_PresentationQueue.second); g_PresentationQueue.second == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Failed to get presentation queue.");
-    }
-
-    if (vkGetDeviceQueue(g_Device, g_ComputeQueue.first, 0U, &g_ComputeQueue.second); g_ComputeQueue.second == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Failed to get compute queue.");
-    }
+    vkGetDeviceQueue(g_Device, g_GraphicsQueue.first, 0U, &g_GraphicsQueue.second);
+    vkGetDeviceQueue(g_Device, g_PresentationQueue.first, 0U, &g_PresentationQueue.second);
+    vkGetDeviceQueue(g_Device, g_ComputeQueue.first, 0U, &g_ComputeQueue.second);
 }
 
 void RenderCore::InitializeDevice(VkSurfaceKHR const &VulkanSurface)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Initializing vulkan devices";
-
     if (g_PhysicalDevice != VK_NULL_HANDLE)
     {
         return;
@@ -264,11 +215,6 @@ void RenderCore::InitializeDevice(VkSurfaceKHR const &VulkanSurface)
 
 VkSurfaceCapabilitiesKHR RenderCore::GetSurfaceCapabilities(VkSurfaceKHR const &VulkanSurface)
 {
-    if (g_PhysicalDevice == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan physical device is invalid.");
-    }
-
     VkSurfaceCapabilitiesKHR Output;
     CheckVulkanResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g_PhysicalDevice, VulkanSurface, &Output));
 
@@ -277,17 +223,8 @@ VkSurfaceCapabilitiesKHR RenderCore::GetSurfaceCapabilities(VkSurfaceKHR const &
 
 SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow *const Window, VkSurfaceKHR const &VulkanSurface)
 {
-    std::vector<VkSurfaceFormatKHR> const SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats(g_PhysicalDevice, VulkanSurface);
-    if (std::empty(SupportedFormats))
-    {
-        throw std::runtime_error("No supported surface formats found.");
-    }
-
-    std::vector<VkPresentModeKHR> const SupportedPresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes(g_PhysicalDevice, VulkanSurface);
-    if (std::empty(SupportedFormats))
-    {
-        throw std::runtime_error("No supported presentation modes found.");
-    }
+    std::vector<VkSurfaceFormatKHR> const SupportedFormats           = GetAvailablePhysicalDeviceSurfaceFormats(g_PhysicalDevice, VulkanSurface);
+    std::vector<VkPresentModeKHR> const   SupportedPresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes(g_PhysicalDevice, VulkanSurface);
 
     SurfaceProperties Output {.Format = SupportedFormats.front(), .Extent = GetWindowExtent(Window, GetSurfaceCapabilities(VulkanSurface))};
 
@@ -361,9 +298,6 @@ std::vector<std::uint32_t> RenderCore::GetUniqueQueueFamilyIndicesU32()
 
 void RenderCore::ReleaseDeviceResources()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Releasing vulkan device resources";
-
     vkDestroyDevice(g_Device, nullptr);
     g_Device = VK_NULL_HANDLE;
 
@@ -374,8 +308,6 @@ void RenderCore::ReleaseDeviceResources()
 
 std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     VkInstance const &VulkanInstance = volkGetLoadedInstance();
 
     std::uint32_t DeviceCount = 0U;
@@ -389,13 +321,6 @@ std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
 
 std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceExtensions(VkPhysicalDevice const &PhysicalDevice)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
-    if (PhysicalDevice == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan physical device is invalid.");
-    }
-
     std::uint32_t ExtensionsCount = 0;
     CheckVulkanResult(vkEnumerateDeviceExtensionProperties(PhysicalDevice, nullptr, &ExtensionsCount, nullptr));
 
@@ -407,13 +332,6 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceExtensi
 
 std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers(VkPhysicalDevice const &PhysicalDevice)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
-    if (PhysicalDevice == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan physical device is invalid.");
-    }
-
     std::uint32_t LayersCount = 0;
     CheckVulkanResult(vkEnumerateDeviceLayerProperties(PhysicalDevice, &LayersCount, nullptr));
 
@@ -426,13 +344,6 @@ std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers(VkPh
 std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(VkPhysicalDevice const &PhysicalDevice,
                                                                                          std::string_view const  LayerName)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
-    if (PhysicalDevice == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan physical device is invalid.");
-    }
-
     if (std::vector<std::string> const AvailableLayers = GetAvailablePhysicalDeviceLayersNames(PhysicalDevice);
         std::ranges::find(AvailableLayers, LayerName) == std::cend(AvailableLayers))
     {
@@ -450,8 +361,6 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerEx
 
 std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames(VkPhysicalDevice const &PhysicalDevice)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     std::vector<std::string> Output;
     for (const auto &[Name, Version] : GetAvailablePhysicalDeviceExtensions(PhysicalDevice))
     {
@@ -463,8 +372,6 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames(V
 
 std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(VkPhysicalDevice const &PhysicalDevice, std::string_view const LayerName)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     std::vector<std::string> Output;
     for (const auto &[Name, Version] : GetAvailablePhysicalDeviceLayerExtensions(PhysicalDevice, LayerName))
     {
@@ -476,8 +383,6 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNa
 
 std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames(VkPhysicalDevice const &PhysicalDevice)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     std::vector<std::string> Output;
     for (const auto &[Name, SpecVer, ImplVer, Description] : GetAvailablePhysicalDeviceLayers(PhysicalDevice))
     {
@@ -489,11 +394,6 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames(VkPhy
 
 std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFormats(VkPhysicalDevice const &PhysicalDevice, VkSurfaceKHR const &VulkanSurface)
 {
-    if (PhysicalDevice == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan physical device is invalid.");
-    }
-
     std::uint32_t Count = 0U;
     CheckVulkanResult(vkGetPhysicalDeviceSurfaceFormatsKHR(PhysicalDevice, VulkanSurface, &Count, nullptr));
 
@@ -506,11 +406,6 @@ std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFor
 std::vector<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePresentationModes(VkPhysicalDevice const &PhysicalDevice,
                                                                                              VkSurfaceKHR const     &VulkanSurface)
 {
-    if (PhysicalDevice == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan physical device is invalid.");
-    }
-
     std::uint32_t Count = 0U;
     CheckVulkanResult(vkGetPhysicalDeviceSurfacePresentModesKHR(PhysicalDevice, VulkanSurface, &Count, nullptr));
 
@@ -522,13 +417,6 @@ std::vector<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePrese
 
 VkDeviceSize RenderCore::GetMinUniformBufferOffsetAlignment()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
-    if (g_PhysicalDevice == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan physical device is invalid.");
-    }
-
     VkPhysicalDeviceProperties SurfaceProperties;
     vkGetPhysicalDeviceProperties(g_PhysicalDevice, &SurfaceProperties);
 

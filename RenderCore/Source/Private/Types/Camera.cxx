@@ -8,7 +8,7 @@ module;
 
 module RenderCore.Types.Camera;
 
-import RenderCore.Runtime.Buffer;
+import RenderCore.Runtime.Memory;
 import RenderCore.Utils.EnumHelpers;
 import RenderCore.Utils.Constants;
 

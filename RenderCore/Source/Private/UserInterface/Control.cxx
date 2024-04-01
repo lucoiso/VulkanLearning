@@ -4,7 +4,7 @@
 
 module;
 
-#include <boost/log/trivial.hpp>
+#include <vector>
 
 module RenderCore.UserInterface.Control;
 

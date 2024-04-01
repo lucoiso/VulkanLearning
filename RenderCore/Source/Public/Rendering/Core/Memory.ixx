@@ -5,12 +5,11 @@
 module;
 
 #include <Volk/volk.h>
-#include <stdexcept>
 #include <string_view>
 #include <vector>
 #include <vma/vk_mem_alloc.h>
 
-export module RenderCore.Runtime.Buffer.Operations;
+export module RenderCore.Runtime.Memory;
 
 import RenderCore.Types.Allocation;
 import RenderCore.Types.Vertex;
@@ -19,13 +18,19 @@ import RenderCore.Utils.EnumHelpers;
 
 export namespace RenderCore
 {
+    void CreateMemoryAllocator(VkPhysicalDevice const &);
+
+    void ReleaseMemoryResources();
+
+    [[nodiscard]] VmaAllocator const &GetAllocator();
+
     VmaAllocationInfo CreateBuffer(VkDeviceSize const &, VkBufferUsageFlags, VkMemoryPropertyFlags, std::string_view, VkBuffer &, VmaAllocation &);
 
     void CopyBuffer(VkCommandBuffer const &, VkBuffer const &, VkBuffer const &, VkDeviceSize const &);
 
-    std::pair<VkBuffer, VmaAllocation> CreateVertexBuffers(VkCommandBuffer &CommandBuffer, ObjectAllocationData &, std::vector<Vertex> const &);
+    [[nodiscard]] std::pair<VkBuffer, VmaAllocation> CreateVertexBuffers(VkCommandBuffer const &, ObjectAllocationData &, std::vector<Vertex> const &);
 
-    std::pair<VkBuffer, VmaAllocation> CreateIndexBuffers(VkCommandBuffer &CommandBuffer, ObjectAllocationData &, std::vector<std::uint32_t> const &);
+    [[nodiscard]] std::pair<VkBuffer, VmaAllocation> CreateIndexBuffers(VkCommandBuffer const &, ObjectAllocationData &, std::vector<std::uint32_t> const &);
 
     void CreateUniformBuffers(BufferAllocation &, VkDeviceSize, std::string_view);
 
@@ -45,13 +50,11 @@ export namespace RenderCore
 
     void CreateImageView(VkImage const &, VkFormat const &, VkImageAspectFlags const &, VkImageView &);
 
-    void CreateSwapChainImageViews(std::vector<ImageAllocation> &, VkFormat);
-
     void CreateTextureImageView(ImageAllocation &, VkFormat);
 
     void CopyBufferToImage(VkCommandBuffer const &, VkBuffer const &, VkImage const &, VkExtent2D const &);
 
-    std::pair<VkBuffer, VmaAllocation>
+    [[nodiscard]] std::pair<VkBuffer, VmaAllocation>
     AllocateTexture(VkCommandBuffer &, unsigned char const *, std::uint32_t, std::uint32_t, VkFormat, std::size_t, ImageAllocation &);
 
     template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
@@ -132,10 +135,6 @@ export namespace RenderCore
             ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
             ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
         }
-        else
-        {
-            throw std::runtime_error("Unsupported layout transition!");
-        }
 
         VkDependencyInfo const DependencyInfo {.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
                                                .imageMemoryBarrierCount = 1U,
@@ -143,4 +142,6 @@ export namespace RenderCore
 
         vkCmdPipelineBarrier2(CommandBuffer, &DependencyInfo);
     }
+
+    void SaveImageToFile(VkImage const &, std::string_view, VkExtent2D const &);
 } // namespace RenderCore

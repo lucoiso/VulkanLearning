@@ -5,9 +5,8 @@
 module;
 
 #include <GLFW/glfw3.h>
-#include <boost/log/trivial.hpp>
 #include <glm/ext.hpp>
-#include "Utils/Library/Macros.h"
+#include <boost/log/trivial.hpp>
 
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
     #include <imgui.h>
@@ -31,8 +30,6 @@ bool g_CanMovementCamera = false;
 
 void RenderCore::GLFWWindowCloseRequested(GLFWwindow *const Window)
 {
-    PUSH_CALLSTACK();
-
     glfwSetWindowShouldClose(Window, GLFW_TRUE);
 }
 
@@ -40,8 +37,6 @@ void RenderCore::GLFWWindowResized([[maybe_unused]] GLFWwindow *const  Window,
                                    [[maybe_unused]] std::int32_t const Width,
                                    [[maybe_unused]] std::int32_t const Height)
 {
-    PUSH_CALLSTACK();
-
     Renderer *const Target = RenderingSubsystem::Get().GetRenderer();
     if (!Target)
     {
@@ -60,7 +55,6 @@ void RenderCore::GLFWWindowResized([[maybe_unused]] GLFWwindow *const  Window,
 
 void RenderCore::GLFWErrorCallback(std::int32_t const Error, char const *const Description)
 {
-    PUSH_CALLSTACK();
     BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: GLFW Error: " << Error << " - " << Description;
 }
 
@@ -70,8 +64,6 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow *const  Window,
                                  std::int32_t const                  Action,
                                  [[maybe_unused]] std::int32_t const Mods)
 {
-    PUSH_CALLSTACK();
-
     Renderer *const Target = RenderingSubsystem::Get().GetRenderer();
     if (!Target)
     {
@@ -147,8 +139,6 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow *const  Window,
 
 void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double const NewCursorPosX, double const NewCursorPosY)
 {
-    PUSH_CALLSTACK();
-
     Renderer *const Target = RenderingSubsystem::Get().GetRenderer();
     if (!Target)
     {
@@ -197,8 +187,6 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double con
 
 void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow *const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)
 {
-    PUSH_CALLSTACK();
-
     Renderer *const Target = RenderingSubsystem::Get().GetRenderer();
     if (!Target)
     {
@@ -212,8 +200,6 @@ void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow *const Win
 
 void RenderCore::InstallGLFWCallbacks(GLFWwindow *const Window, bool const InstallClose)
 {
-    PUSH_CALLSTACK();
-
     if (InstallClose)
     {
         glfwSetWindowCloseCallback(Window, &GLFWWindowCloseRequested);

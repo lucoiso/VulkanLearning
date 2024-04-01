@@ -4,23 +4,22 @@
 
 module;
 
+#include <Volk/volk.h>
 #include <array>
 #include <charconv>
 #include <cstdint>
 #include <span>
-#include <Volk/volk.h>
 
 export module RenderCore.Utils.EnumConverter;
 
 namespace RenderCore
 {
-    constexpr char const* ToChars(auto const Argument)
+    constexpr char const *ToChars(auto const Argument)
     {
-        std::array<char, 16U> Buffer{};
+        std::array<char, 16U> Buffer {};
         std::span const       BufferSpan(std::data(Buffer), std::size(Buffer));
 
-        if (auto Result = std::to_chars(std::data(BufferSpan), std::data(BufferSpan) + std::size(BufferSpan), Argument);
-            Result.ec == std::errc())
+        if (auto Result = std::to_chars(std::data(BufferSpan), std::data(BufferSpan) + std::size(BufferSpan), Argument); Result.ec == std::errc())
         {
             *Result.ptr               = '\0';
             auto *const DynamicBuffer = new char[std::size(Buffer)];
@@ -30,7 +29,7 @@ namespace RenderCore
         return nullptr;
     }
 
-    export constexpr char const* ResultToString(VkResult const Input)
+    export constexpr char const *ResultToString(VkResult const Input)
     {
         switch (Input)
         {
@@ -133,7 +132,7 @@ namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    export constexpr char const* SurfaceFormatToString(VkFormat const Input)
+    export constexpr char const *SurfaceFormatToString(VkFormat const Input)
     {
         switch (Input)
         {
@@ -640,7 +639,7 @@ namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    export constexpr char const* ColorSpaceModeToString(VkColorSpaceKHR const Input)
+    export constexpr char const *ColorSpaceModeToString(VkColorSpaceKHR const Input)
     {
         switch (Input)
         {
@@ -683,7 +682,7 @@ namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    export constexpr char const* PresentationModeToString(VkPresentModeKHR const Input)
+    export constexpr char const *PresentationModeToString(VkPresentModeKHR const Input)
     {
         switch (Input)
         {
@@ -706,7 +705,7 @@ namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    export constexpr char const* TransformFlagToString(VkSurfaceTransformFlagBitsKHR const Input)
+    export constexpr char const *TransformFlagToString(VkSurfaceTransformFlagBitsKHR const Input)
     {
         switch (Input)
         {
@@ -735,7 +734,7 @@ namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    export constexpr char const* CompositeAlphaFlagToString(VkCompositeAlphaFlagsKHR const Input)
+    export constexpr char const *CompositeAlphaFlagToString(VkCompositeAlphaFlagsKHR const Input)
     {
         switch (Input)
         {
@@ -754,7 +753,7 @@ namespace RenderCore
         return ToChars(static_cast<std::uint8_t>(Input));
     }
 
-    export constexpr char const* ImageUsageFlagToString(VkImageUsageFlagBits const Input)
+    export constexpr char const *ImageUsageFlagToString(VkImageUsageFlagBits const Input)
     {
         switch (Input)
         {

@@ -12,7 +12,6 @@ module;
     #include <imgui_impl_glfw.h>
     #include <imgui_impl_vulkan.h>
     #include <vector>
-    #include "Utils/Library/Macros.h"
 #endif
 
 module RenderCore.Integrations.ImGuiOverlay;
@@ -35,9 +34,6 @@ VkDescriptorPool g_ImGuiDescriptorPool {VK_NULL_HANDLE};
 
 void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, SurfaceProperties const &SurfaceProperties)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating ImGui Context";
-
     IMGUI_CHECKVERSION();
 
     ImGui_ImplVulkan_LoadFunctions(
@@ -120,8 +116,6 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, SurfacePropert
 
 void RenderCore::ReleaseImGuiResources()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

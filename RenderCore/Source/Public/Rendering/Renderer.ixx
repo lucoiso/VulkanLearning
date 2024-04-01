@@ -25,7 +25,7 @@ import RenderCore.Types.Transform;
 import RenderCore.Types.Object;
 
 import RenderCore.UserInterface.Control;
-import RenderCore.Runtime.Buffer;
+import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Pipeline;
 import RenderCore.Runtime.Command;
 import RenderCore.Runtime.Device;

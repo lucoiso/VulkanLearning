@@ -21,19 +21,11 @@ export namespace RenderCore
 
     [[nodiscard]] VkCommandPool CreateCommandPool(std::uint8_t);
 
-    void CreateCommandsSynchronizationObjects();
-
-    void DestroyCommandsSynchronizationObjects();
-
-    [[nodiscard]] std::optional<std::int32_t> RequestSwapChainImage(VkSwapchainKHR const &);
-
     void RecordCommandBuffers(std::uint32_t, Camera const &, VkExtent2D const &);
 
     void SubmitCommandBuffers();
 
-    void PresentFrame(std::uint32_t, VkSwapchainKHR const &);
-
     void InitializeSingleCommandQueue(VkCommandPool &, std::vector<VkCommandBuffer> &, std::uint8_t);
 
-    void FinishSingleCommandQueue(VkQueue const &, VkCommandPool const &, std::vector<VkCommandBuffer> &);
+    void FinishSingleCommandQueue(VkQueue const &, VkCommandPool const &, std::vector<VkCommandBuffer> const &);
 } // namespace RenderCore

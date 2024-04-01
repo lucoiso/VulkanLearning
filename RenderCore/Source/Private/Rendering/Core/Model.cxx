@@ -4,26 +4,23 @@
 
 module;
 
-#include <boost/log/trivial.hpp>
 #include <filesystem>
 #include <glm/ext.hpp>
 #include <tiny_gltf.h>
 #include <vma/vk_mem_alloc.h>
-#include "Utils/Library/Macros.h"
 
-module RenderCore.Runtime.Buffer.ModelAllocation;
+module RenderCore.Runtime.Model;
 
 import RuntimeInfo.Manager;
-import RenderCore.Runtime.Buffer;
-import RenderCore.Runtime.Buffer.Operations;
+import RenderCore.Runtime.Memory;
+import RenderCore.Runtime.SwapChain;
+import RenderCore.Runtime.Scene;
 import RenderCore.Types.Transform;
 
 using namespace RenderCore;
 
 void RenderCore::TryResizeVertexContainer(std::vector<Vertex> &Vertices, std::uint32_t const NewSize)
 {
-    PUSH_CALLSTACK();
-
     if (std::size(Vertices) < NewSize && NewSize > 0U)
     {
         Vertices.resize(NewSize);
@@ -32,8 +29,6 @@ void RenderCore::TryResizeVertexContainer(std::vector<Vertex> &Vertices, std::ui
 
 void RenderCore::InsertIndiceInContainer(std::vector<std::uint32_t> &Indices, tinygltf::Accessor const &IndexAccessor, auto const *Data)
 {
-    PUSH_CALLSTACK();
-
     for (std::uint32_t Iterator = 0U; Iterator < IndexAccessor.count; ++Iterator)
     {
         Indices.push_back(static_cast<std::uint32_t>(Data[Iterator]));
@@ -46,8 +41,6 @@ float const *RenderCore::GetPrimitiveData(std::shared_ptr<Object> const &Object,
                                           tinygltf::Primitive const     &Primitive,
                                           std::uint32_t                 *NumComponents = nullptr)
 {
-    PUSH_CALLSTACK();
-
     if (Primitive.attributes.contains(std::data(ID)))
     {
         tinygltf::Accessor const   &Accessor   = Model.accessors.at(Primitive.attributes.at(std::data(ID)));
@@ -84,8 +77,6 @@ float const *RenderCore::GetPrimitiveData(std::shared_ptr<Object> const &Object,
 
 void RenderCore::SetVertexAttributes(std::shared_ptr<Object> const &Object, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
 {
-    PUSH_CALLSTACK();
-
     const float  *PositionData = GetPrimitiveData(Object, "POSITION", Model, Primitive);
     const float  *NormalData   = GetPrimitiveData(Object, "NORMAL", Model, Primitive);
     const float  *TexCoordData = GetPrimitiveData(Object, "TEXCOORD_0", Model, Primitive);
@@ -148,8 +139,6 @@ void RenderCore::SetVertexAttributes(std::shared_ptr<Object> const &Object, tiny
 
 std::uint32_t RenderCore::AllocatePrimitiveIndices(std::shared_ptr<Object> const &Object, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
 {
-    PUSH_CALLSTACK();
-
     if (Primitive.indices >= 0)
     {
         tinygltf::Accessor const   &IndexAccessor   = Model.accessors.at(Primitive.indices);
@@ -188,8 +177,6 @@ std::uint32_t RenderCore::AllocatePrimitiveIndices(std::shared_ptr<Object> const
 
 void RenderCore::SetPrimitiveTransform(std::shared_ptr<Object> const &Object, tinygltf::Node const &Node)
 {
-    PUSH_CALLSTACK();
-
     if (!std::empty(Node.translation))
     {
         Object->SetPosition(Vector(glm::make_vec3(std::data(Node.translation))));
@@ -206,7 +193,7 @@ void RenderCore::SetPrimitiveTransform(std::shared_ptr<Object> const &Object, ti
     }
 }
 
-std::unordered_map<VkBuffer, VmaAllocation> RenderCore::AllocateObjectBuffers(VkCommandBuffer &CommandBuffer, std::shared_ptr<Object> const &Object)
+std::unordered_map<VkBuffer, VmaAllocation> RenderCore::AllocateObjectBuffers(VkCommandBuffer const &CommandBuffer, std::shared_ptr<Object> const &Object)
 {
     std::unordered_map Output {CreateVertexBuffers(CommandBuffer, Object->GetMutableAllocationData(), Object->GetVertices()),
                                CreateIndexBuffers(CommandBuffer, Object->GetMutableAllocationData(), Object->GetIndices())};
@@ -221,8 +208,6 @@ std::unordered_map<VkBuffer, VmaAllocation> RenderCore::AllocateObjectMaterials(
                                                                                 tinygltf::Primitive const     &Primitive,
                                                                                 tinygltf::Model const         &Model)
 {
-    PUSH_CALLSTACK();
-
     std::unordered_map<VkBuffer, VmaAllocation> Output;
 
     if (Primitive.material >= 0)

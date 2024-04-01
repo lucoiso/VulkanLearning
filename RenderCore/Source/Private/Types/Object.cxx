@@ -11,8 +11,9 @@ module;
 module RenderCore.Types.Object;
 
 import RenderCore.Renderer;
-import RenderCore.Runtime.Buffer;
+import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Pipeline;
+import RenderCore.Runtime.Scene;
 import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
@@ -101,7 +102,6 @@ bool Object::IsPendingDestroy() const
 void Object::Destroy()
 {
     m_IsPendingDestroy = true;
-
     m_Allocation.DestroyResources(GetAllocator());
 }
 

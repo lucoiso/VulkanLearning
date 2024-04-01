@@ -4,10 +4,8 @@
 
 module;
 
-#include "Utils/Library/Macros.h"
 #include <Volk/volk.h>
 #include <array>
-#include <boost/log/trivial.hpp>
 #include <ranges>
 
 module RenderCore.Runtime.Pipeline;
@@ -27,9 +25,6 @@ VkDescriptorSetLayout g_DescriptorSetLayout {VK_NULL_HANDLE};
 
 void RenderCore::CreatePipeline(VkFormat const SwapChainImageFormat, VkFormat const DepthFormat, VkExtent2D const &ViewportExtent)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating vulkan graphics pipelines";
-
     VkPipelineLayoutCreateInfo const PipelineLayoutCreateInfo {.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                                                                .setLayoutCount = 1U,
                                                                .pSetLayouts    = &g_DescriptorSetLayout};
@@ -203,9 +198,6 @@ void RenderCore::CreatePipeline(VkFormat const SwapChainImageFormat, VkFormat co
 
 void RenderCore::CreateDescriptorSetLayout()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Creating vulkan decriptor set layout";
-
     constexpr std::array LayoutBindings {VkDescriptorSetLayoutBinding {.binding            = 0U,
                                                                        .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                                                        .descriptorCount    = 1U,
@@ -252,17 +244,11 @@ void RenderCore::CreateDescriptorSetLayout()
 
 void RenderCore::ReleasePipelineResources()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Releasing vulkan pipeline resources";
-
     ReleaseDynamicPipelineResources();
 }
 
 void RenderCore::ReleaseDynamicPipelineResources()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Releasing vulkan pipeline resources";
-
     if (g_Pipeline != VK_NULL_HANDLE)
     {
         vkDestroyPipeline(volkGetLoadedDevice(), g_Pipeline, nullptr);

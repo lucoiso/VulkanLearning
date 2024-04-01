@@ -5,9 +5,7 @@
 module;
 
 #include <GLFW/glfw3.h>
-#include <boost/log/trivial.hpp>
 #include <chrono>
-#include "Utils/Library/Macros.h"
 
 module RenderCore.UserInterface.Window;
 
@@ -27,8 +25,6 @@ Window::~Window()
 
 bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, InitializationFlags const Flags)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     if (IsInitialized())
     {
         return false;
@@ -51,8 +47,6 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
 
 void Window::Shutdown()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-
     DestroyChildren();
 
     if (IsInitialized())
@@ -110,8 +104,6 @@ void Window::PollEvents()
 
 void Window::RequestRender(float const DeltaTime)
 {
-    PUSH_CALLSTACK();
-
     if (!IsInitialized() || !IsOpen())
     {
         return;

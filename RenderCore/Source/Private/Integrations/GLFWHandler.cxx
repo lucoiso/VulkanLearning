@@ -4,8 +4,7 @@
 
 module;
 
-#include <boost/log/trivial.hpp>
-#include "Utils/Library/Macros.h"
+#include <string_view>
 
 // Include vulkan before glfw
 #include <Volk/volk.h>
@@ -23,17 +22,9 @@ import RenderCore.Utils.EnumHelpers;
 
 bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, InitializationFlags const Flags)
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Initializing GLFW Handler";
-
-    if (glfwInit() == GLFW_FALSE)
+    if (!glfwInit() || !glfwVulkanSupported())
     {
-        throw std::runtime_error("Failed to initialize GLFW");
-    }
-
-    if (glfwVulkanSupported() == GLFW_FALSE)
-    {
-        throw std::runtime_error("Vulkan is not supported by GLFW");
+        return false;
     }
 
     if (static bool GLFWErrorCallbacksSet = false; !GLFWErrorCallbacksSet)
@@ -49,13 +40,6 @@ bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Heig
 
     m_Window = glfwCreateWindow(Width, Height, std::data(Title), nullptr, nullptr);
 
-    if (m_Window == nullptr)
-    {
-        throw std::runtime_error("Failed to create GLFW Window");
-    }
-
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: GLFW Window created successfully. Setting up callbacks";
-
     InstallGLFWCallbacks(m_Window, true);
 
     return m_Window != nullptr;
@@ -63,9 +47,6 @@ bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Heig
 
 void GLFWHandler::Shutdown()
 {
-    PUSH_CALLSTACK_WITH_COUNTER();
-    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Shutting down GLFW Handler";
-
     glfwSetWindowShouldClose(m_Window, GLFW_TRUE);
     glfwDestroyWindow(m_Window);
     m_Window = nullptr;

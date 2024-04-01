@@ -9,7 +9,6 @@
 #include "RenderCore.hpp"
 
 #ifndef _DEBUG
-#include <boost/log/trivial.hpp>
 #endif
 
 int main(int const ArgC, char** ArgV)

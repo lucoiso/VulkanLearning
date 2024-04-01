@@ -4,11 +4,9 @@
 
 module;
 
-#include <boost/log/trivial.hpp>
 #include <ranges>
 #include <sstream>
 #include <vma/vk_mem_alloc.h>
-#include "Utils/Library/Macros.h"
 
 module RenderCore.Subsystem.Allocation;
 
@@ -46,14 +44,6 @@ void AllocationSubsystem::AllocateDeviceMemoryCallback([[maybe_unused]] VmaAlloc
                                                        VkDeviceSize const                  AllocationSize,
                                                        void *const                         UserData)
 {
-    PUSH_CALLSTACK();
-
-#ifdef _DEBUG
-    std::stringstream MemAddress;
-    MemAddress << std::hex << Memory;
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Allocating device memory " << MemAddress.str() << " with size " << AllocationSize << " bytes.";
-#endif
-
     AllocationSubsystemData Data {MemoryType, Memory, AllocationSize, UserData};
     Get().RemoveElement(Data);
     Get().GetRegisterData().push_back(std::move(Data));
@@ -65,12 +55,6 @@ void AllocationSubsystem::FreeDeviceMemoryCallback([[maybe_unused]] VmaAllocator
                                                    VkDeviceSize const                  AllocationSize,
                                                    [[maybe_unused]] void *const        UserData)
 {
-    PUSH_CALLSTACK();
-
-#ifdef _DEBUG
-    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Freeing device memory " << std::hex << Memory << " with size " << AllocationSize << " bytes.";
-#endif
-
     AllocationSubsystemData const Data {MemoryType, Memory, AllocationSize, UserData};
     Get().RemoveElement(Data);
 }

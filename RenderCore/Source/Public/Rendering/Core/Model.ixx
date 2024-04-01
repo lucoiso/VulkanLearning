@@ -9,7 +9,7 @@ module;
 #include <unordered_map>
 #include <vma/vk_mem_alloc.h>
 
-export module RenderCore.Runtime.Buffer.ModelAllocation;
+export module RenderCore.Runtime.Model;
 
 import RenderCore.Types.Vertex;
 import RenderCore.Types.TextureType;
@@ -31,7 +31,7 @@ export namespace RenderCore
 
     void SetPrimitiveTransform(std::shared_ptr<Object> const &, tinygltf::Node const &);
 
-    std::unordered_map<VkBuffer, VmaAllocation> AllocateObjectBuffers(VkCommandBuffer &, std::shared_ptr<Object> const &);
+    std::unordered_map<VkBuffer, VmaAllocation> AllocateObjectBuffers(VkCommandBuffer const &, std::shared_ptr<Object> const &);
 
     std::unordered_map<VkBuffer, VmaAllocation>
     AllocateObjectMaterials(VkCommandBuffer &, std::shared_ptr<Object> const &, tinygltf::Primitive const &, tinygltf::Model const &);
