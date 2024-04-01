@@ -170,7 +170,7 @@ void RecordSceneCommands(VkCommandBuffer &CommandBuffer, std::uint32_t const Ima
         .loadOp      = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .storeOp     = VK_ATTACHMENT_STORE_OP_DONT_CARE,
 #else
-        .imageView   = SwapChainView,
+        .imageView   = SwapchainAllocation.View,
         .imageLayout = SwapChainMidLayout,
         .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
@@ -214,7 +214,7 @@ void RecordSceneCommands(VkCommandBuffer &CommandBuffer, std::uint32_t const Ima
         RenderCore::MoveImageLayout<SwapChainMidLayout, SwapChainFinalLayout, ImageAspect>(CommandBuffer, SwapchainAllocation.Image, SwapChainFormat);
     }
 #else
-    RenderCore::MoveImageLayout<SwapChainMidLayout, SwapChainFinalLayout, ImageAspect>(CommandBuffer, SwapChainImage, SwapChainFormat);
+    RenderCore::MoveImageLayout<SwapChainMidLayout, SwapChainFinalLayout, ImageAspect>(CommandBuffer, SwapchainAllocation.Image, SwapChainFormat);
 #endif
 
     CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
