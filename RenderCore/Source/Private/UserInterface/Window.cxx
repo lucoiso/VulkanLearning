@@ -6,12 +6,16 @@ module;
 
 #include <GLFW/glfw3.h>
 #include <chrono>
+#include <latch>
 
 module RenderCore.UserInterface.Window;
 
 import RenderCore.Renderer;
+import Timer.Manager;
 
 using namespace RenderCore;
+
+Timer::Manager RenderTimerManager {};
 
 Window::Window()
     : Control(nullptr)
@@ -35,11 +39,30 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
     m_Height = Height;
     m_Flags  = Flags;
 
-    if (m_GLFWHandler.Initialize(m_Width, m_Height, m_Title, m_Flags) && RenderCore::Initialize(m_GLFWHandler.GetWindow()))
+    if (m_GLFWHandler.Initialize(m_Width, m_Height, m_Title, m_Flags))
     {
-        OnInitialized();
-        RefreshResources();
-        return true;
+        RenderTimerManager.SetActive(true);
+
+        std::latch Latch(1);
+        RenderTimerManager.SetTimer(std::chrono::nanoseconds(0),
+                                    [this, &Latch]
+                                    {
+                                        if (RenderCore::Initialize(m_GLFWHandler.GetWindow()))
+                                        {
+                                            OnInitialized();
+                                            RefreshResources();
+                                        }
+
+                                        Latch.count_down();
+                                    });
+
+        Latch.wait();
+
+        if (Renderer::IsInitialized())
+        {
+            RequestDraw();
+            return true;
+        }
     }
 
     return false;
@@ -51,7 +74,16 @@ void Window::Shutdown()
 
     if (IsInitialized())
     {
-        RenderCore::Shutdown(m_GLFWHandler.GetWindow());
+        std::latch Latch(1);
+        RenderTimerManager.SetTimer(std::chrono::nanoseconds(0),
+                                    [this, &Latch]
+                                    {
+                                        RenderCore::Shutdown(m_GLFWHandler.GetWindow());
+                                        Latch.count_down();
+                                    });
+
+        Latch.wait();
+        RenderTimerManager.SetActive(false);
     }
 
     if (IsOpen())
@@ -77,26 +109,40 @@ void Window::PollEvents()
         return;
     }
 
-    static std::uint64_t LastTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).
-            count();
-    std::uint64_t const CurrentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).
-            count();
-    double const DeltaTime = static_cast<double>(CurrentTime - LastTime) / 1000.0;
+    glfwPollEvents();
+}
 
-    if (DeltaTime < Renderer::GetFrameRateCap())
+void Window::RequestDraw()
+{
+    RenderTimerManager.SetTimer(std::chrono::nanoseconds(0),
+                                [this]
+                                {
+                                    Draw();
+                                });
+}
+
+void Window::Draw()
+{
+    if (!IsInitialized() || !IsOpen())
     {
         return;
     }
 
-    if (DeltaTime > 0.F)
+    static std::uint64_t LastTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).
+            count();
+    std::uint64_t const CurrentTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).
+            count();
+
+    if (double const DeltaTime = static_cast<double>(CurrentTime - LastTime) / static_cast<double>(std::nano::den);
+        DeltaTime >= Renderer::GetFrameRateCap())
     {
         LastTime = CurrentTime;
+
+        if (IsInitialized() && IsOpen())
+        {
+            DrawFrame(m_GLFWHandler.GetWindow(), DeltaTime, this);
+        }
     }
 
-    glfwPollEvents();
-
-    if (IsInitialized() && IsOpen())
-    {
-        DrawFrame(m_GLFWHandler.GetWindow(), DeltaTime, this);
-    }
+    RequestDraw();
 }

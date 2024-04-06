@@ -39,6 +39,9 @@ void RenderCore::CreateViewportResources(SurfaceProperties const &SurfacePropert
     std::ranges::for_each(g_ViewportImages,
                           [&](ImageAllocation &ImageIter)
                           {
+                              ImageIter.Extent = SurfaceProperties.Extent;
+                              ImageIter.Format = SurfaceProperties.Format.format;
+
                               CreateImage(SurfaceProperties.Format.format,
                                           SurfaceProperties.Extent,
                                           Tiling,

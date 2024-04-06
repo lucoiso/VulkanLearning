@@ -15,6 +15,7 @@ module;
 
 // Include glfw after vulkan
 #include <execution>
+#include <future>
 #include <GLFW/glfw3.h>
 
 module RenderCore.Renderer;
@@ -401,6 +402,7 @@ bool Renderer::IsImGuiInitialized()
 
 void Renderer::SaveFrameAsImage(std::string_view const Path)
 {
-    SaveImageToFile(RenderCore::GetViewportImages().at(GetImageIndex().value()).Image, Path, GetSwapChainExtent());
+    ImageAllocation const &ViewportImage = RenderCore::GetViewportImages().at(GetImageIndex().value());
+    SaveImageToFile(ViewportImage.Image, Path, ViewportImage.Extent);
 }
 #endif

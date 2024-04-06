@@ -458,12 +458,6 @@ void RenderCore::SaveImageToFile(VkImage const &Image, std::string_view const Pa
 
     auto ImagePixels = static_cast<unsigned char *>(ImageData);
 
-    std::ranges::for_each(std::views::iota(0U, Extent.width * Extent.height),
-                          [&](std::uint32_t const Iterator)
-                          {
-                              std::swap(ImagePixels[Iterator * Components], ImagePixels[Iterator * Components + 2U]);
-                          });
-
     stbi_write_png(std::data(Path), Extent.width, Extent.height, Components, ImagePixels, Extent.width * Components);
 
     vmaUnmapMemory(g_Allocator, Allocation);

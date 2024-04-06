@@ -390,7 +390,7 @@ void RenderCore::FinishSingleCommandQueue(VkQueue const &Queue, VkCommandPool co
             .pCommandBufferInfos = std::data(CommandBufferInfos)
     };
 
-    CheckVulkanResult(vkQueueSubmit2(Queue, 1U, &SubmitInfo, GetFence()));
+    CheckVulkanResult(vkQueueSubmit2(Queue, 1U, &SubmitInfo, VK_NULL_HANDLE));
     CheckVulkanResult(vkQueueWaitIdle(Queue));
 
     vkFreeCommandBuffers(volkGetLoadedDevice(), CommandPool, static_cast<std::uint32_t>(std::size(CommandBuffers)), std::data(CommandBuffers));

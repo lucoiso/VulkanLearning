@@ -19,25 +19,22 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Window : public Control
     {
-        InitializationFlags m_Flags{};
-        GLFWHandler m_GLFWHandler{};
-        std::uint16_t       m_Width{};
-        std::uint16_t       m_Height{};
-        std::string         m_Title{};
+        InitializationFlags m_Flags {};
+        GLFWHandler         m_GLFWHandler {};
+        std::uint16_t       m_Width {};
+        std::uint16_t       m_Height {};
+        std::string         m_Title {};
 
     public:
         Window();
 
-        Window(Window const&) = delete;
+        Window(Window const &) = delete;
 
-        Window& operator=(Window const&) = delete;
+        Window &operator=(Window const &) = delete;
 
         ~Window() override;
 
-        bool Initialize(std::uint16_t,
-                        std::uint16_t,
-                        std::string_view,
-                        InitializationFlags Flags = InitializationFlags::NONE);
+        bool Initialize(std::uint16_t, std::uint16_t, std::string_view, InitializationFlags Flags = InitializationFlags::NONE);
 
         void Shutdown();
 
@@ -51,5 +48,9 @@ namespace RenderCore
         virtual void OnInitialized()
         {
         }
+
+    private:
+        void RequestDraw();
+        void Draw();
     };
 } // namespace RenderCore
