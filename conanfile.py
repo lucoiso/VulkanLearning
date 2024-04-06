@@ -5,7 +5,7 @@ from conan.tools.cmake import cmake_layout, CMakeToolchain
 from conan.tools.files import copy
 
 
-class vulkan-rendererRecipe(ConanFile):
+class VulkanRendererRecipe(ConanFile):
     name = "vulkan-renderer"
     version = "0.0.1"
 
