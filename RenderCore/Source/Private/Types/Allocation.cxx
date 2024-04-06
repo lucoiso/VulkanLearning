@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -74,7 +74,8 @@ void ObjectAllocationData::DestroyResources(VmaAllocator const &Allocator)
 
     VertexBufferAllocation.DestroyResources(Allocator);
     IndexBufferAllocation.DestroyResources(Allocator);
-    UniformBufferAllocation.DestroyResources(Allocator);
+    ModelBufferAllocation.DestroyResources(Allocator);
+    MaterialBufferAllocation.DestroyResources(Allocator);
     ModelDescriptors.clear();
     TextureDescriptors.clear();
 }

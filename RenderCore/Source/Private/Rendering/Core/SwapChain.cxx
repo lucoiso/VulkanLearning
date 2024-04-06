@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 #include <Volk/volk.h>
@@ -22,11 +22,11 @@ import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
-VkSurfaceKHR                 g_Surface {VK_NULL_HANDLE};
-VkSwapchainKHR               g_SwapChain {VK_NULL_HANDLE};
-VkSwapchainKHR               g_OldSwapChain {VK_NULL_HANDLE};
-VkFormat                     g_SwapChainImageFormat {VK_FORMAT_UNDEFINED};
-VkExtent2D                   g_SwapChainExtent {0U, 0U};
+VkSurfaceKHR                 g_Surface { VK_NULL_HANDLE };
+VkSwapchainKHR               g_SwapChain { VK_NULL_HANDLE };
+VkSwapchainKHR               g_OldSwapChain { VK_NULL_HANDLE };
+VkFormat                     g_SwapChainImageFormat { VK_FORMAT_UNDEFINED };
+VkExtent2D                   g_SwapChainExtent { 0U, 0U };
 std::vector<ImageAllocation> g_SwapChainImages {};
 
 void RenderCore::CreateVulkanSurface(GLFWwindow *const Window)
@@ -34,7 +34,7 @@ void RenderCore::CreateVulkanSurface(GLFWwindow *const Window)
     CheckVulkanResult(glfwCreateWindowSurface(volkGetLoadedInstance(), Window, nullptr, &g_Surface));
 }
 
-void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkSurfaceCapabilitiesKHR const &Capabilities)
+void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkSurfaceCapabilitiesKHR const &SurfaceCapabilities)
 {
     auto const QueueFamilyIndices      = GetUniqueQueueFamilyIndicesU32();
     auto const QueueFamilyIndicesCount = static_cast<std::uint32_t>(std::size(QueueFamilyIndices));
@@ -43,23 +43,24 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
     g_SwapChainExtent      = SurfaceProperties.Extent;
     g_SwapChainImageFormat = SurfaceProperties.Format.format;
 
-    VkSwapchainCreateInfoKHR const SwapChainCreateInfo {.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-                                                        .surface          = GetSurface(),
-                                                        .minImageCount    = g_MinImageCount,
-                                                        .imageFormat      = g_SwapChainImageFormat,
-                                                        .imageColorSpace  = SurfaceProperties.Format.colorSpace,
-                                                        .imageExtent      = g_SwapChainExtent,
-                                                        .imageArrayLayers = 1U,
-                                                        .imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                                        .imageSharingMode
-                                                        = QueueFamilyIndicesCount > 1U ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
-                                                        .queueFamilyIndexCount = QueueFamilyIndicesCount,
-                                                        .pQueueFamilyIndices   = std::data(QueueFamilyIndices),
-                                                        .preTransform          = Capabilities.currentTransform,
-                                                        .compositeAlpha        = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-                                                        .presentMode           = SurfaceProperties.Mode,
-                                                        .clipped               = VK_TRUE,
-                                                        .oldSwapchain          = g_OldSwapChain};
+    VkSwapchainCreateInfoKHR const SwapChainCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+            .surface = GetSurface(),
+            .minImageCount = g_MinImageCount,
+            .imageFormat = g_SwapChainImageFormat,
+            .imageColorSpace = SurfaceProperties.Format.colorSpace,
+            .imageExtent = g_SwapChainExtent,
+            .imageArrayLayers = 1U,
+            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            .imageSharingMode = QueueFamilyIndicesCount > 1U ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+            .queueFamilyIndexCount = QueueFamilyIndicesCount,
+            .pQueueFamilyIndices = std::data(QueueFamilyIndices),
+            .preTransform = SurfaceCapabilities.currentTransform,
+            .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            .presentMode = SurfaceProperties.Mode,
+            .clipped = VK_TRUE,
+            .oldSwapchain = g_OldSwapChain
+    };
 
     CheckVulkanResult(vkCreateSwapchainKHR(volkGetLoadedDevice(), &SwapChainCreateInfo, nullptr, &g_SwapChain));
 
@@ -80,16 +81,21 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
                            std::begin(g_SwapChainImages),
                            [](VkImage const &Image)
                            {
-                               return ImageAllocation {.Image = Image};
+                               return ImageAllocation { .Image = Image };
                            });
 
-    CreateSwapChainImageViews(g_SwapChainImages, SurfaceProperties.Format.format);
+    CreateSwapChainImageViews(g_SwapChainImages);
 }
 
 std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
 {
     std::uint32_t  Output          = 0U;
-    VkResult const OperationResult = vkAcquireNextImageKHR(volkGetLoadedDevice(), g_SwapChain, g_Timeout, GetImageAvailableSemaphore(), GetFence(), &Output);
+    VkResult const OperationResult = vkAcquireNextImageKHR(volkGetLoadedDevice(),
+                                                           g_SwapChain,
+                                                           g_Timeout,
+                                                           GetImageAvailableSemaphore(),
+                                                           GetFence(),
+                                                           &Output);
     WaitAndResetFences();
 
     if (OperationResult != VK_SUCCESS)
@@ -97,27 +103,29 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
         return std::nullopt;
     }
 
-    return std::optional {static_cast<std::int32_t>(Output)};
+    return std::optional { static_cast<std::int32_t>(Output) };
 }
 
-void RenderCore::CreateSwapChainImageViews(std::vector<ImageAllocation> &Images, VkFormat const ImageFormat)
+void RenderCore::CreateSwapChainImageViews(std::vector<ImageAllocation> &Images)
 {
     std::ranges::for_each(Images,
                           [&](ImageAllocation &ImageIter)
                           {
-                              CreateImageView(ImageIter.Image, ImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, ImageIter.View);
+                              CreateImageView(ImageIter.Image, g_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, ImageIter.View);
                           });
 }
 
 void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
 {
-    VkPresentInfoKHR const PresentInfo {.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-                                        .waitSemaphoreCount = 1U,
-                                        .pWaitSemaphores    = &GetRenderFinishedSemaphore(),
-                                        .swapchainCount     = 1U,
-                                        .pSwapchains        = &g_SwapChain,
-                                        .pImageIndices      = &ImageIndice,
-                                        .pResults           = nullptr};
+    VkPresentInfoKHR const PresentInfo {
+            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            .waitSemaphoreCount = 1U,
+            .pWaitSemaphores = &GetRenderFinishedSemaphore(),
+            .swapchainCount = 1U,
+            .pSwapchains = &g_SwapChain,
+            .pImageIndices = &ImageIndice,
+            .pResults = nullptr
+    };
 
     CheckVulkanResult(vkQueuePresentKHR(GetPresentationQueue().second, &PresentInfo));
 }

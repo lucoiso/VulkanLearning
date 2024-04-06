@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -15,6 +15,7 @@ module;
 #include <Volk/volk.h>
 
 // Include glfw after vulkan
+#include <execution>
 #include <GLFW/glfw3.h>
 
 module RenderCore.Renderer;
@@ -29,250 +30,163 @@ import RenderCore.Runtime.Scene;
 import RenderCore.Runtime.Model;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Runtime.Synchronization;
+import RenderCore.Runtime.Instance;
 import RenderCore.Integrations.Viewport;
 import RenderCore.Integrations.ImGuiOverlay;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
-import RenderCore.Utils.DebugHelpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Types.Allocation;
-import RenderCore.Subsystem.Rendering;
 
 using namespace RenderCore;
 
-VkInstance     g_Instance {VK_NULL_HANDLE};
-Timer::Manager g_RenderTimerManager {};
+RendererStateFlags          g_StateFlags { RendererStateFlags::NONE };
+double                      g_FrameTime { 0.F };
+double                      g_FrameRateCap { 0.016667F };
+std::optional<std::int32_t> g_ImageIndex {};
+std::mutex                  g_RenderingMutex {};
 
-constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE | RendererStateFlags::PENDING_RESOURCES_DESTRUCTION
-    | RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::PENDING_PIPELINE_REFRESH;
+constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
+                                                       RendererStateFlags::PENDING_RESOURCES_DESTRUCTION |
+                                                       RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::PENDING_PIPELINE_REFRESH;
 
-#ifdef _DEBUG
-VkDebugUtilsMessengerEXT g_DebugMessenger {VK_NULL_HANDLE};
-#endif
-
-bool CreateVulkanInstance()
+void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Control *const Owner)
 {
-    constexpr VkApplicationInfo AppInfo {.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-                                         .pApplicationName   = "VulkanApp",
-                                         .applicationVersion = VK_MAKE_VERSION(1U, 0U, 0U),
-                                         .pEngineName        = "No Engine",
-                                         .engineVersion      = VK_MAKE_VERSION(1U, 0U, 0U),
-                                         .apiVersion         = VK_API_VERSION_1_3};
-
-    VkInstanceCreateInfo CreateInfo {.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, .pNext = nullptr, .pApplicationInfo = &AppInfo, .enabledLayerCount = 0U};
-
-    std::vector Layers(std::cbegin(g_RequiredInstanceLayers), std::cend(g_RequiredInstanceLayers));
-    std::vector Extensions(std::cbegin(g_RequiredInstanceExtensions), std::cend(g_RequiredInstanceExtensions));
-
-    // ReSharper disable once CppTooWideScopeInitStatement
-    std::vector const GLFWExtensions = GetGLFWExtensions();
-
-    for (std::string const &ExtensionIter : GLFWExtensions)
-    {
-        Extensions.push_back(std::data(ExtensionIter));
-    }
-
-#ifdef _DEBUG
-    VkValidationFeaturesEXT const ValidationFeatures = GetInstanceValidationFeatures();
-    CreateInfo.pNext                                 = &ValidationFeatures;
-
-    Layers.insert(std::cend(Layers), std::cbegin(g_DebugInstanceLayers), std::cend(g_DebugInstanceLayers));
-    Extensions.insert(std::cend(Extensions), std::cbegin(g_DebugInstanceExtensions), std::cend(g_DebugInstanceExtensions));
-
-    VkDebugUtilsMessengerCreateInfoEXT CreateDebugInfo {};
-    PopulateDebugInfo(CreateDebugInfo, nullptr);
-#endif
-
-    auto const AvailableLayers = GetAvailableInstanceLayersNames();
-    GetAvailableResources("instance layer", Layers, g_OptionalInstanceLayers, AvailableLayers);
-
-    auto const AvailableExtensions = GetAvailableInstanceExtensionsNames();
-    GetAvailableResources("instance extension", Extensions, g_OptionalInstanceExtensions, AvailableExtensions);
-
-    CreateInfo.enabledLayerCount   = static_cast<std::uint32_t>(std::size(Layers));
-    CreateInfo.ppEnabledLayerNames = std::data(Layers);
-
-    CreateInfo.enabledExtensionCount   = static_cast<std::uint32_t>(std::size(Extensions));
-    CreateInfo.ppEnabledExtensionNames = std::data(Extensions);
-
-    CheckVulkanResult(vkCreateInstance(&CreateInfo, nullptr, &g_Instance));
-    volkLoadInstance(g_Instance);
-
-#ifdef _DEBUG
-    CheckVulkanResult(CreateDebugUtilsMessenger(g_Instance, &CreateDebugInfo, nullptr, &g_DebugMessenger));
-#endif
-
-    return g_Instance != VK_NULL_HANDLE;
-}
-
-void Renderer::DrawFrame(GLFWwindow *const Window, float const DeltaTime, Camera const &Camera, Control *const Owner)
-{
-    if (!IsInitialized())
+    if (!Renderer::IsInitialized())
     {
         return;
     }
 
-    m_FrameTime = DeltaTime;
+    g_FrameTime = DeltaTime;
 
-    RemoveInvalidObjects();
-
-    if (HasAnyFlag(m_StateFlags, g_InvalidStatesToRender))
+    if (HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
     {
-        if (!HasFlag(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION) && HasFlag(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
+        if (!HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION) && HasFlag(g_StateFlags,
+                                                                                              RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
             ReleaseSynchronizationObjects();
             DestroySwapChainImages();
+            #ifdef VULKAN_RENDERER_ENABLE_IMGUI
             DestroyViewportImages();
+            #endif
             ReleaseDynamicPipelineResources();
 
-            RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
-            AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
+            RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+            AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
         }
-        else if (!HasFlag(m_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE)
-                 && HasFlag(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION))
+        else if (!HasFlag(g_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE) && HasFlag(g_StateFlags,
+                     RendererStateFlags::PENDING_RESOURCES_CREATION))
         {
-            auto const SurfaceProperties   = GetSurfaceProperties(Window, GetSurface());
-            auto const SurfaceCapabilities = GetSurfaceCapabilities(GetSurface());
+            auto const SurfaceProperties   = GetSurfaceProperties(Window);
+            auto const SurfaceCapabilities = GetSurfaceCapabilities();
 
             CreateSwapChain(SurfaceProperties, SurfaceCapabilities);
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
+            #ifdef VULKAN_RENDERER_ENABLE_IMGUI
             CreateViewportResources(SurfaceProperties);
-#endif
+            #endif
 
             CreateDepthResources(SurfaceProperties);
 
             Owner->RefreshResources();
             CreateSynchronizationObjects();
 
-            RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
-            AddFlags(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
+            RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
+            AddFlags(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
         }
-        else if (HasFlag(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH))
+        else if (HasFlag(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH))
         {
             CreateDescriptorSetLayout();
-            CreatePipeline(GetSwapChainImageFormat(), GetDepthImage().Format, GetSwapChainExtent());
-            RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
+            CreatePipeline();
+            RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
         }
     }
-    else if (m_ImageIndex = RequestImageIndex(Window); m_ImageIndex.has_value())
+    else if (g_ImageIndex = RequestImageIndex(Window);
+        g_ImageIndex.has_value())
     {
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
-        DrawImGuiFrame(
-            [Owner]
-            {
-                Owner->PreUpdate();
-            },
-            [Owner]
-            {
-                Owner->Update();
-            },
-            [Owner]
-            {
-                Owner->PostUpdate();
-            });
-#endif
+        Tick();
 
-        if (!HasAnyFlag(m_StateFlags, g_InvalidStatesToRender) && m_ImageIndex.has_value())
+        #ifdef VULKAN_RENDERER_ENABLE_IMGUI
+        DrawImGuiFrame([Owner]
+                       {
+                           Owner->PreUpdate();
+                       },
+                       [Owner]
+                       {
+                           Owner->Update();
+                       },
+                       [Owner]
+                       {
+                           Owner->PostUpdate();
+                       });
+        #endif
+
+        if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender) && g_ImageIndex.has_value())
         {
-            std::unique_lock Lock(m_RenderingMutex);
+            std::lock_guard Lock(g_RenderingMutex);
 
-            UpdateSceneUniformBuffers(Camera, m_Illumination);
-            RecordCommandBuffers(m_ImageIndex.value(), Camera, GetSwapChainExtent());
+            UpdateSceneUniformBuffers();
+            RecordCommandBuffers(g_ImageIndex.value());
             SubmitCommandBuffers();
-            PresentFrame(m_ImageIndex.value());
+            PresentFrame(g_ImageIndex.value());
         }
     }
 }
 
-std::optional<std::int32_t> Renderer::RequestImageIndex(GLFWwindow *const Window)
+std::optional<std::int32_t> RenderCore::RequestImageIndex(GLFWwindow *const Window)
 {
     std::optional<std::int32_t> Output {};
 
-    if (!HasAnyFlag(m_StateFlags, g_InvalidStatesToRender))
+    if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
     {
         Output = RequestSwapChainImage();
     }
 
-    if (!GetSurfaceProperties(Window, GetSurface()).IsValid())
+    if (!GetSurfaceProperties(Window).IsValid())
     {
-        AddFlags(m_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+        AddFlags(g_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
     }
     else
     {
-        RemoveFlags(m_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+        RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
     }
 
     if (!Output.has_value())
     {
-        AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
     }
 
     return Output;
 }
 
-void Renderer::Tick()
+void RenderCore::Tick()
 {
-    if (!IsInitialized())
-    {
-        return;
-    }
+    GetCamera().UpdateCameraMovement(g_FrameTime);
 
-    static std::uint64_t LastTime    = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    std::uint64_t const  CurrentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    double const         DeltaTime   = static_cast<double>(CurrentTime - LastTime) / 1000.0;
+    auto const &Objects = GetObjects();
 
-    if (DeltaTime <= 0.F)
-    {
-        return;
-    }
-
-    m_DeltaTime = DeltaTime;
-    LastTime    = CurrentTime;
-
-    std::unique_lock Lock(m_RenderingMutex);
-
-    std::ranges::for_each(GetAllocatedObjects(),
-                          [DeltaTime](std::shared_ptr<Object> const &ObjectIter)
-                          {
-                              if (ObjectIter && !ObjectIter->IsPendingDestroy())
-                              {
-                                  ObjectIter->Tick(DeltaTime);
-                              }
-                          });
+    std::for_each(std::execution::par_unseq,
+                  std::begin(Objects),
+                  std::end(Objects),
+                  [](std::shared_ptr<Object> const &ObjectIter)
+                  {
+                      if (ObjectIter && !ObjectIter->IsPendingDestroy())
+                      {
+                          ObjectIter->Tick(g_FrameTime);
+                      }
+                  });
 }
 
-void Renderer::RemoveInvalidObjects()
+bool RenderCore::Initialize(GLFWwindow *const Window)
 {
-    std::unique_lock Lock(m_RenderingMutex);
-
-    std::vector<std::uint32_t> LoadedIDs {};
-    for (std::shared_ptr<Object> const &ObjectIter : GetAllocatedObjects())
-    {
-        if (ObjectIter && ObjectIter->IsPendingDestroy())
-        {
-            LoadedIDs.push_back(ObjectIter->GetID());
-        }
-    }
-
-    if (!std::empty(LoadedIDs))
-    {
-        UnloadScene(LoadedIDs);
-    }
-}
-
-bool Renderer::Initialize(GLFWwindow *const Window)
-{
-    if (IsInitialized())
+    if (Renderer::IsInitialized())
     {
         return false;
     }
 
-    RenderingSubsystem::Get().RegisterRenderer(this);
-
     CheckVulkanResult(volkInitialize());
 
-    CreateVulkanInstance();
+    [[maybe_unused]] bool const _1 = CreateVulkanInstance();
     CreateVulkanSurface(Window);
     InitializeDevice(GetSurface());
     volkLoadDevice(GetLogicalDevice());
@@ -280,37 +194,35 @@ bool Renderer::Initialize(GLFWwindow *const Window)
     CreateMemoryAllocator(GetPhysicalDevice());
     CreateSceneUniformBuffers();
     CreateImageSampler();
-    auto const _                 = CompileDefaultShaders();
-    auto const SurfaceProperties = GetSurfaceProperties(Window, GetSurface());
+    [[maybe_unused]] auto const _2                = CompileDefaultShaders();
+    auto const                  SurfaceProperties = GetSurfaceProperties(Window);
     AllocateEmptyTexture(SurfaceProperties.Format.format);
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
+    #ifdef VULKAN_RENDERER_ENABLE_IMGUI
     InitializeImGuiContext(Window, SurfaceProperties);
-#endif
+    #endif
 
-    AddFlags(m_StateFlags, RendererStateFlags::INITIALIZED);
-    AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
+    AddFlags(g_StateFlags, RendererStateFlags::INITIALIZED);
+    AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
 
-    return SurfaceProperties.IsValid() && IsInitialized();
+    return SurfaceProperties.IsValid() && Renderer::IsInitialized();
 }
 
-void Renderer::Shutdown([[maybe_unused]] GLFWwindow *const Window)
+void RenderCore::Shutdown([[maybe_unused]] GLFWwindow *const Window)
 {
-    if (!IsInitialized())
+    if (!Renderer::IsInitialized())
     {
         return;
     }
 
-    RenderingSubsystem::Get().UnregisterRenderer();
+    RemoveFlags(g_StateFlags, RendererStateFlags::INITIALIZED);
 
-    RemoveFlags(m_StateFlags, RendererStateFlags::INITIALIZED);
-
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
+    #ifdef VULKAN_RENDERER_ENABLE_IMGUI
     ReleaseImGuiResources();
-#endif
+    DestroyViewportImages();
+    #endif
 
     ReleaseSwapChainResources();
-    DestroyViewportImages();
     ReleaseShaderResources();
     ReleaseCommandsResources();
     ReleaseSynchronizationObjects();
@@ -318,162 +230,142 @@ void Renderer::Shutdown([[maybe_unused]] GLFWwindow *const Window)
     ReleaseMemoryResources();
     ReleasePipelineResources();
     ReleaseDeviceResources();
-
-#ifdef _DEBUG
-    if (g_DebugMessenger != VK_NULL_HANDLE)
-    {
-        DestroyDebugUtilsMessenger(g_Instance, g_DebugMessenger, nullptr);
-        g_DebugMessenger = VK_NULL_HANDLE;
-    }
-#endif
-
-    vkDestroyInstance(g_Instance, nullptr);
-    g_Instance = VK_NULL_HANDLE;
+    DestroyVulkanInstance();
 }
 
-bool Renderer::IsInitialized() const
+bool Renderer::IsInitialized()
 {
-    return HasFlag(m_StateFlags, RendererStateFlags::INITIALIZED);
+    return HasFlag(g_StateFlags, RendererStateFlags::INITIALIZED);
 }
 
-bool Renderer::IsReady() const
+bool Renderer::IsReady()
 {
     return GetSwapChain() != VK_NULL_HANDLE;
 }
 
 void Renderer::AddStateFlag(RendererStateFlags const Flag)
 {
-    AddFlags(m_StateFlags, Flag);
+    AddFlags(g_StateFlags, Flag);
 }
 
 void Renderer::RemoveStateFlag(RendererStateFlags const Flag)
 {
-    RemoveFlags(m_StateFlags, Flag);
+    RemoveFlags(g_StateFlags, Flag);
 }
 
-bool Renderer::HasStateFlag(RendererStateFlags const Flag) const
+bool Renderer::HasStateFlag(RendererStateFlags const Flag)
 {
-    return HasFlag(m_StateFlags, Flag);
+    return HasFlag(g_StateFlags, Flag);
 }
 
-RendererStateFlags Renderer::GetStateFlags() const
+RendererStateFlags Renderer::GetStateFlags()
 {
-    return m_StateFlags;
+    return g_StateFlags;
 }
 
-void Renderer::LoadScene(std::string_view const ObjectPath)
-{
-    if (!IsInitialized())
-    {
-        return;
-    }
-
-    std::lock_guard Lock(m_RenderingMutex);
-
-    AllocateScene(ObjectPath);
-    AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
-}
-
-void Renderer::UnloadScene(std::vector<std::uint32_t> const &ObjectIDs)
+void Renderer::LoadObject(std::string_view const ObjectPath)
 {
     if (!IsInitialized())
     {
         return;
     }
 
-    std::unique_lock Lock(m_RenderingMutex);
+    std::lock_guard Lock(g_RenderingMutex);
 
-    ReleaseScene(ObjectIDs);
-    AddFlags(m_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    RenderCore::LoadObject(ObjectPath);
+    AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
 }
 
-void Renderer::UnloadAllScenes()
+void Renderer::UnloadObjects(std::vector<std::uint32_t> const &ObjectIDs)
 {
-    DestroyObjects();
+    if (!IsInitialized())
+    {
+        return;
+    }
+
+    std::lock_guard Lock(g_RenderingMutex);
+
+    RenderCore::UnloadObjects(ObjectIDs);
+    AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
 }
 
-Timer::Manager &Renderer::GetRenderTimerManager()
+void Renderer::DestroyObjects()
 {
-    return g_RenderTimerManager;
+    RenderCore::DestroyObjects();
 }
 
-double Renderer::GetDeltaTime() const
+double Renderer::GetFrameTime()
 {
-    return m_DeltaTime;
-}
-
-double Renderer::GetFrameTime() const
-{
-    return m_FrameTime;
+    return g_FrameTime;
 }
 
 void Renderer::SetFrameRateCap(double const FrameRateCap)
 {
     if (FrameRateCap > 0.0)
     {
-        m_FrameRateCap = 1.0 / FrameRateCap;
+        g_FrameRateCap = 1.0 / FrameRateCap;
     }
 }
 
-double Renderer::GetFrameRateCap() const
+double Renderer::GetFrameRateCap()
 {
-    return m_FrameRateCap;
+    return g_FrameRateCap;
 }
 
-Camera const &Renderer::GetCamera() const
+Camera const &Renderer::GetCamera()
 {
-    return m_Camera;
+    return RenderCore::GetCamera();
 }
 
 Camera &Renderer::GetMutableCamera()
 {
-    return m_Camera;
+    return RenderCore::GetCamera();
 }
 
-Illumination const &Renderer::GetIllumination() const
+Illumination const &Renderer::GetIllumination()
 {
-    return m_Illumination;
+    return RenderCore::GetIllumination();
 }
 
 Illumination &Renderer::GetMutableIllumination()
 {
-    return m_Illumination;
+    return RenderCore::GetIllumination();
 }
 
-std::optional<std::int32_t> const &Renderer::GetImageIndex() const
+std::optional<std::int32_t> const &Renderer::GetImageIndex()
 {
-    return m_ImageIndex;
+    return g_ImageIndex;
 }
 
-std::vector<std::shared_ptr<Object>> const &Renderer::GetObjects() const
+std::vector<std::shared_ptr<Object>> const &Renderer::GetObjects()
 {
-    return GetAllocatedObjects();
+    return RenderCore::GetObjects();
 }
 
-std::shared_ptr<Object> Renderer::GetObjectByID(std::uint32_t const ObjectID) const
+std::shared_ptr<Object> Renderer::GetObjectByID(std::uint32_t const ObjectID)
 {
-    return *std::ranges::find_if(GetAllocatedObjects(),
+    return *std::ranges::find_if(RenderCore::GetObjects(),
                                  [ObjectID](std::shared_ptr<Object> const &ObjectIter)
                                  {
                                      return ObjectIter && ObjectIter->GetID() == ObjectID;
                                  });
 }
 
-std::uint32_t Renderer::GetNumObjects() const
+std::uint32_t Renderer::GetNumObjects()
 {
-    return std::size(GetAllocatedObjects());
+    return std::size(RenderCore::GetObjects());
 }
 
-VkSampler Renderer::GetSampler() const
+VkSampler Renderer::GetSampler()
 {
     return RenderCore::GetSampler();
 }
 
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-std::vector<VkImageView> Renderer::GetViewportRenderImageViews() const
+std::vector<VkImageView> Renderer::GetViewportImages()
 {
     std::vector<VkImageView> Output;
-    auto const              &ViewportAllocations = GetViewportImages();
+    auto const &             ViewportAllocations = RenderCore::GetViewportImages();
     Output.reserve(std::size(ViewportAllocations));
 
     for (ImageAllocation const &AllocationIter : ViewportAllocations)
@@ -489,8 +381,8 @@ bool Renderer::IsImGuiInitialized()
     return RenderCore::IsImGuiInitialized();
 }
 
-void Renderer::SaveFrameToImageFile(std::string_view const Path) const
+void Renderer::SaveFrameAsImage(std::string_view const Path)
 {
-    SaveImageToFile(GetViewportImages().at(GetImageIndex().value()).Image, Path, GetSwapChainExtent());
+    SaveImageToFile(RenderCore::GetViewportImages().at(GetImageIndex().value()).Image, Path, GetSwapChainExtent());
 }
 #endif

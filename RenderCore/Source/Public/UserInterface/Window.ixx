@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -19,13 +19,11 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Window : public Control
     {
+        InitializationFlags m_Flags{};
         GLFWHandler m_GLFWHandler{};
-        Renderer    m_Renderer{};
-
-        std::string         m_Title{};
         std::uint16_t       m_Width{};
         std::uint16_t       m_Height{};
-        InitializationFlags m_Flags{};
+        std::string         m_Title{};
 
     public:
         Window();
@@ -47,16 +45,11 @@ namespace RenderCore
 
         [[nodiscard]] bool IsOpen() const;
 
-        [[nodiscard]] Renderer& GetRenderer();
-
         virtual void PollEvents();
 
     protected:
         virtual void OnInitialized()
         {
         }
-
-    private:
-        void RequestRender(float);
     };
 } // namespace RenderCore

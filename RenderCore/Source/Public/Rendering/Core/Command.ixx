@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -21,7 +21,7 @@ export namespace RenderCore
 
     [[nodiscard]] VkCommandPool CreateCommandPool(std::uint8_t);
 
-    void RecordCommandBuffers(std::uint32_t, Camera const &, VkExtent2D const &);
+    void RecordCommandBuffers(std::uint32_t);
 
     void SubmitCommandBuffers();
 

@@ -1,12 +1,11 @@
 # Copyright Notices: [...]
 
 import os
-from conan import ConanFile
 from conan.tools.cmake import cmake_layout, CMakeToolchain
 from conan.tools.files import copy
 
 
-class VulkanRendererRecipe(ConanFile):
+class vulkan-rendererRecipe(ConanFile):
     name = "vulkan-renderer"
     version = "0.0.1"
 

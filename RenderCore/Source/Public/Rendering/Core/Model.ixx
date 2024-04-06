@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -12,18 +12,15 @@ module;
 export module RenderCore.Runtime.Model;
 
 import RenderCore.Types.Vertex;
-import RenderCore.Types.TextureType;
+import RenderCore.Types.Material;
 import RenderCore.Types.Object;
 import RenderCore.Types.Allocation;
 
 export namespace RenderCore
 {
-    void TryResizeVertexContainer(std::vector<Vertex> &, std::uint32_t);
-
     void InsertIndiceInContainer(std::vector<std::uint32_t> &, tinygltf::Accessor const &, auto const *);
 
-    float const *
-    GetPrimitiveData(std::shared_ptr<Object> const &, std::string_view const &, tinygltf::Model const &, tinygltf::Primitive const &, std::uint32_t *);
+    float const *GetPrimitiveData(std::string_view const &, tinygltf::Model const &, tinygltf::Primitive const &, std::uint32_t *);
 
     void SetVertexAttributes(std::shared_ptr<Object> const &, tinygltf::Model const &, tinygltf::Primitive const &);
 
@@ -33,6 +30,8 @@ export namespace RenderCore
 
     std::unordered_map<VkBuffer, VmaAllocation> AllocateObjectBuffers(VkCommandBuffer const &, std::shared_ptr<Object> const &);
 
-    std::unordered_map<VkBuffer, VmaAllocation>
-    AllocateObjectMaterials(VkCommandBuffer &, std::shared_ptr<Object> const &, tinygltf::Primitive const &, tinygltf::Model const &);
+    std::unordered_map<VkBuffer, VmaAllocation> AllocateObjectMaterials(VkCommandBuffer &,
+                                                                        std::shared_ptr<Object> const &,
+                                                                        tinygltf::Primitive const &,
+                                                                        tinygltf::Model const &);
 } // namespace RenderCore

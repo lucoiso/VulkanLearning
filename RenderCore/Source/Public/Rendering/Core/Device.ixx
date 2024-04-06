@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -19,9 +19,9 @@ export namespace RenderCore
 
     void ReleaseDeviceResources();
 
-    [[nodiscard]] VkSurfaceCapabilitiesKHR GetSurfaceCapabilities(VkSurfaceKHR const &);
+    [[nodiscard]] VkSurfaceCapabilitiesKHR GetSurfaceCapabilities();
 
-    [[nodiscard]] SurfaceProperties GetSurfaceProperties(GLFWwindow *Window, VkSurfaceKHR const &VulkanSurface);
+    [[nodiscard]] SurfaceProperties GetSurfaceProperties(GLFWwindow *);
 
     [[nodiscard]] VkDevice &GetLogicalDevice();
 
@@ -39,19 +39,19 @@ export namespace RenderCore
 
     [[nodiscard]] std::vector<VkPhysicalDevice> GetAvailablePhysicalDevices();
 
-    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions(VkPhysicalDevice const &);
+    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions();
 
-    [[nodiscard]] std::vector<VkLayerProperties> GetAvailablePhysicalDeviceLayers(VkPhysicalDevice const &);
+    [[nodiscard]] std::vector<VkLayerProperties> GetAvailablePhysicalDeviceLayers();
 
-    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(VkPhysicalDevice const &, std::string_view);
+    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(std::string_view);
 
-    [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceExtensionsNames(VkPhysicalDevice const &);
+    [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceExtensionsNames();
 
-    [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayerExtensionsNames(VkPhysicalDevice const &, std::string_view);
+    [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view);
 
-    [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayersNames(VkPhysicalDevice const &);
+    [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayersNames();
 
-    [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats(VkPhysicalDevice const &, VkSurfaceKHR const &);
+    [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats();
 
-    [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes(VkPhysicalDevice const &, VkSurfaceKHR const &);
+    [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes();
 } // namespace RenderCore

@@ -1,6 +1,6 @@
 # Author: Lucas Vilas-Boas
 # Year: 2024
-# Repo: https://github.com/lucoiso/VulkanRenderer
+# Repo: https://github.com/lucoiso/vulkan-renderer
 
 # ----------- Global Definitions -----------
 SET(LIBRARY_NAME RenderGraphRPS)

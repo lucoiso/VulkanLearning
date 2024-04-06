@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -12,19 +12,19 @@ export module RenderCore.Types.Allocation;
 
 import RenderCore.Utils.Constants;
 import RenderCore.Types.Vertex;
-import RenderCore.Types.TextureType;
+import RenderCore.Types.Material;
 import RenderCore.Types.UniformBufferObject;
 
 namespace RenderCore
 {
     export struct ImageAllocation
     {
-        VkImage       Image {VK_NULL_HANDLE};
-        VkImageView   View {VK_NULL_HANDLE};
-        VmaAllocation Allocation {VK_NULL_HANDLE};
+        VkImage       Image { VK_NULL_HANDLE };
+        VkImageView   View { VK_NULL_HANDLE };
+        VmaAllocation Allocation { VK_NULL_HANDLE };
         VkExtent2D    Extent {};
         VkFormat      Format {};
-        TextureType   Type {TextureType::BaseColor};
+        TextureType   Type { TextureType::BaseColor };
 
         [[nodiscard]] bool IsValid() const;
         void               DestroyResources(VmaAllocator const &);
@@ -32,22 +32,29 @@ namespace RenderCore
 
     export struct BufferAllocation
     {
-        VkBuffer      Buffer {VK_NULL_HANDLE};
-        VmaAllocation Allocation {VK_NULL_HANDLE};
-        void         *MappedData {nullptr};
+        VkBuffer      Buffer { VK_NULL_HANDLE };
+        VmaAllocation Allocation { VK_NULL_HANDLE };
+        void *        MappedData { nullptr };
 
         [[nodiscard]] bool IsValid() const;
         void               DestroyResources(VmaAllocator const &);
     };
 
+    export enum class UniformType : std::uint32_t
+    {
+        Model,
+        Material
+    };
+
     export struct ObjectAllocationData
     {
-        BufferAllocation                                       VertexBufferAllocation {};
-        BufferAllocation                                       IndexBufferAllocation {};
-        BufferAllocation                                       UniformBufferAllocation {};
-        std::vector<ImageAllocation>                           TextureImageAllocations {};
-        std::vector<VkDescriptorBufferInfo>                    ModelDescriptors {};
-        std::unordered_map<TextureType, VkDescriptorImageInfo> TextureDescriptors {};
+        BufferAllocation                                        VertexBufferAllocation {};
+        BufferAllocation                                        IndexBufferAllocation {};
+        BufferAllocation                                        ModelBufferAllocation {};
+        BufferAllocation                                        MaterialBufferAllocation {};
+        std::vector<ImageAllocation>                            TextureImageAllocations {};
+        std::unordered_map<UniformType, VkDescriptorBufferInfo> ModelDescriptors {};
+        std::unordered_map<TextureType, VkDescriptorImageInfo>  TextureDescriptors {};
 
         [[nodiscard]] bool IsValid() const;
         void               DestroyResources(VmaAllocator const &);

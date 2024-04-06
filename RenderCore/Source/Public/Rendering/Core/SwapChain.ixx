@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -34,7 +34,7 @@ export namespace RenderCore
 
     void PresentFrame(std::uint32_t);
 
-    void CreateSwapChainImageViews(std::vector<ImageAllocation> &, VkFormat);
+    void CreateSwapChainImageViews(std::vector<ImageAllocation> &);
 
     void ReleaseSwapChainResources();
 

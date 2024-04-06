@@ -1,21 +1,20 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
 #include <GLFW/glfw3.h>
-#include <glm/ext.hpp>
 #include <boost/log/trivial.hpp>
+#include <glm/ext.hpp>
 
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-    #include <imgui.h>
+#include <imgui.h>
 #endif
 
 module RenderCore.Integrations.GLFWCallbacks;
 
 import RenderCore.Renderer;
-import RenderCore.Subsystem.Rendering;
 import RenderCore.Runtime.Device;
 import RenderCore.Types.Camera;
 import RenderCore.Types.Transform;
@@ -36,19 +35,13 @@ void RenderCore::GLFWWindowResized([[maybe_unused]] GLFWwindow *const  Window,
                                    [[maybe_unused]] std::int32_t const Width,
                                    [[maybe_unused]] std::int32_t const Height)
 {
-    Renderer *const Target = RenderingSubsystem::Get().GetRenderer();
-    if (!Target)
-    {
-        return;
-    }
-
     if (Width <= 0 || Height <= 0)
     {
-        Target->AddStateFlag(RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+        Renderer::AddStateFlag(RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
     }
     else
     {
-        Target->RemoveStateFlag(RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+        Renderer::RemoveStateFlag(RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
     }
 }
 
@@ -63,13 +56,7 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow *const  Window,
                                  std::int32_t const                  Action,
                                  [[maybe_unused]] std::int32_t const Mods)
 {
-    Renderer *const Target = RenderingSubsystem::Get().GetRenderer();
-    if (!Target)
-    {
-        return;
-    }
-
-    Camera                  &Camera               = Target->GetMutableCamera();
+    Camera &                 Camera               = Renderer::GetMutableCamera();
     CameraMovementStateFlags CurrentMovementState = Camera.GetCameraMovementStateFlags();
 
     if (!g_CanMovementCamera)
@@ -138,12 +125,6 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow *const  Window,
 
 void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double const NewCursorPosX, double const NewCursorPosY)
 {
-    Renderer *const Target = RenderingSubsystem::Get().GetRenderer();
-    if (!Target)
-    {
-        return;
-    }
-
     static double LastCursorPosX = NewCursorPosX;
     static double LastCursorPosY = NewCursorPosY;
 
@@ -153,24 +134,24 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double con
     {
         glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-        Camera &Camera {Target->GetMutableCamera()};
+        Camera &Camera { Renderer::GetMutableCamera() };
 
-        float const Sensitivity {Camera.GetSensitivity() * 0.1F};
+        float const Sensitivity { Camera.GetSensitivity() * 0.1F };
+        float const OffsetX { static_cast<float>(NewCursorPosX - LastCursorPosX) * Sensitivity };
+        float const OffsetY { static_cast<float>(NewCursorPosY - LastCursorPosY) * Sensitivity };
 
-        float const OffsetX {static_cast<float>(NewCursorPosX - LastCursorPosX) * Sensitivity};
-        float const OffsetY {static_cast<float>(LastCursorPosY - NewCursorPosY) * Sensitivity};
+        glm::vec3 Rotation { Camera.GetRotation() };
 
-        Rotator Rotation {Camera.GetRotation()};
-        Rotation.Pitch += OffsetY;
-        Rotation.Yaw += OffsetX;
+        Rotation.x -= OffsetY;
+        Rotation.y += OffsetX;
 
-        if (Rotation.Pitch > 89.F)
+        if (Rotation.x > 89.F)
         {
-            Rotation.Pitch = 89.F;
+            Rotation.x = 89.F;
         }
-        else if (Rotation.Pitch < -89.F)
+        else if (Rotation.x < -89.F)
         {
-            Rotation.Pitch = -89.F;
+            Rotation.x = -89.F;
         }
 
         Camera.SetRotation(Rotation);
@@ -186,15 +167,9 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double con
 
 void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow *const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)
 {
-    Renderer *const Target = RenderingSubsystem::Get().GetRenderer();
-    if (!Target)
-    {
-        return;
-    }
-
-    Camera     &Camera = Target->GetMutableCamera();
+    Camera &    Camera = Renderer::GetMutableCamera();
     float const Zoom   = static_cast<float>(OffsetY) * 0.1f;
-    Camera.SetPosition(Camera.GetPosition() + Camera.GetRotation().GetFront() * Zoom);
+    Camera.SetPosition(Camera.GetPosition() + Camera.GetFront() * Zoom);
 }
 
 void RenderCore::InstallGLFWCallbacks(GLFWwindow *const Window, bool const InstallClose)

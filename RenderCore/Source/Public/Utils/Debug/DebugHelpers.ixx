@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -15,8 +15,6 @@ export module RenderCore.Utils.DebugHelpers;
 namespace RenderCore
 {
 #ifdef _DEBUG
-    export constexpr bool g_EnableCustomDebug = false;
-
     #if defined(GPU_API_DUMP) && GPU_API_DUMP
     export constexpr std::array g_DebugInstanceLayers = {"VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_api_dump"};
 

@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -8,10 +8,10 @@ module;
 
 module RenderCore.Runtime.Synchronization;
 
-using namespace RenderCore;
-
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
+
+using namespace RenderCore;
 
 VkSemaphore g_ImageAvailableSemaphore {};
 VkSemaphore g_RenderFinishedSemaphore {};
@@ -30,9 +30,9 @@ void RenderCore::WaitAndResetFences()
 
 void RenderCore::CreateSynchronizationObjects()
 {
-    constexpr VkSemaphoreCreateInfo SemaphoreCreateInfo {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+    constexpr VkSemaphoreCreateInfo SemaphoreCreateInfo { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 
-    constexpr VkFenceCreateInfo FenceCreateInfo {.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT};
+    constexpr VkFenceCreateInfo FenceCreateInfo { .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT };
 
     CheckVulkanResult(vkCreateSemaphore(volkGetLoadedDevice(), &SemaphoreCreateInfo, nullptr, &g_ImageAvailableSemaphore));
     CheckVulkanResult(vkCreateSemaphore(volkGetLoadedDevice(), &SemaphoreCreateInfo, nullptr, &g_RenderFinishedSemaphore));

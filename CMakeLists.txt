@@ -1,10 +1,10 @@
 # Author: Lucas Vilas-Boas
 # Year: 2024
-# Repo: https://github.com/lucoiso/VulkanRenderer
+# Repo: https://github.com/lucoiso/vulkan-renderer
 
 # ----------- Global Definitions -----------
 CMAKE_MINIMUM_REQUIRED(VERSION 3.28)
-PROJECT(VulkanRenderer VERSION 0.0.1 LANGUAGES CXX)
+PROJECT(vulkan-renderer VERSION 0.0.1 LANGUAGES CXX)
 
 IF (POLICY CMP0048)
     CMAKE_POLICY(SET CMP0048 NEW)
@@ -23,7 +23,7 @@ ADD_DEFINITIONS(-DRPS_D3D11_RUNTIME=0)
 ADD_DEFINITIONS(-DIMGUI_IMPL_VULKAN_NO_PROTOTYPES)
 
 IF (UNIX)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++23 -fmodules-ts")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fmodules-ts")
 ENDIF (UNIX)
 
 SET(Boost_NO_WARN_NEW_VERSIONS ON)
@@ -39,10 +39,10 @@ OPTION(VULKAN_RENDERER_ENABLE_IMGUI "Enable ImGui linkage, including support for
 
 # -------------- Directories ---------------
 ADD_SUBDIRECTORY(RenderCore)
+ADD_SUBDIRECTORY(ThirdParty)
 ADD_SUBDIRECTORY(RadeonManager)
 ADD_SUBDIRECTORY(RenderGraphRPS)
 ADD_SUBDIRECTORY(cpp-submodules)
-ADD_SUBDIRECTORY(ThirdParty)
 
 IF (BUILD_TESTS)
     INCLUDE(CTest)

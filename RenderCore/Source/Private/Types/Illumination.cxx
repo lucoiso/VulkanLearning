@@ -1,29 +1,31 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
+
+#include <glm/ext.hpp>
 
 module RenderCore.Types.Illumination;
 
 using namespace RenderCore;
 
-void Illumination::SetPosition(Vector const& Value)
+void Illumination::SetPosition(glm::vec3 const &Value)
 {
     m_LightPosition = Value;
 }
 
-Vector const& Illumination::GetPosition() const
+glm::vec3 const &Illumination::GetPosition() const
 {
     return m_LightPosition;
 }
 
-void Illumination::SetColor(Vector const& Value)
+void Illumination::SetColor(glm::vec3 const &Value)
 {
     m_LightColor = Value;
 }
 
-Vector const& Illumination::GetColor() const
+glm::vec3 const &Illumination::GetColor() const
 {
     return m_LightColor;
 }

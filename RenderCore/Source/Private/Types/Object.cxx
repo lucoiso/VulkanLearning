@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -15,17 +15,21 @@ import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Pipeline;
 import RenderCore.Runtime.Scene;
 import RenderCore.Utils.Constants;
+import RenderCore.Types.UniformBufferObject;
 
 using namespace RenderCore;
 
 Object::Object(std::uint32_t const ID, std::string_view const Path)
     : m_ID(ID)
-    , m_Path(Path)
-    , m_Name(m_Path.substr(m_Path.find_last_of('/') + 1, m_Path.find_last_of('.') - m_Path.find_last_of('/') - 1))
+  , m_Path(Path)
+  , m_Name(m_Path.substr(m_Path.find_last_of('/') + 1, m_Path.find_last_of('.') - m_Path.find_last_of('/') - 1))
 {
 }
 
-Object::Object(std::uint32_t const ID, std::string_view const Path, std::string_view const Name) : m_ID(ID), m_Path(Path), m_Name(Name)
+Object::Object(std::uint32_t const ID, std::string_view const Path, std::string_view const Name)
+    : m_ID(ID)
+  , m_Path(Path)
+  , m_Name(Name)
 {
 }
 
@@ -59,39 +63,59 @@ void Object::SetTransform(Transform const &Value)
     m_Transform = Value;
 }
 
-Vector Object::GetPosition() const
+glm::vec3 Object::GetPosition() const
 {
-    return m_Transform.Position;
+    return m_Transform.GetPosition();
 }
 
-void Object::SetPosition(Vector const &Position)
+void Object::SetPosition(glm::vec3 const &Position)
 {
-    m_Transform.Position = Position;
+    m_Transform.SetPosition(Position);
 }
 
-Rotator Object::GetRotation() const
+glm::vec3 Object::GetRotation() const
 {
-    return m_Transform.Rotation;
+    return m_Transform.GetRotation();
 }
 
-void Object::SetRotation(Rotator const &Rotation)
+void Object::SetRotation(glm::vec3 const &Rotation)
 {
-    m_Transform.Rotation = Rotation;
+    m_Transform.SetRotation(Rotation);
 }
 
-Vector Object::GetScale() const
+glm::vec3 Object::GetScale() const
 {
-    return m_Transform.Scale;
+    return m_Transform.GetScale();
 }
 
-void Object::SetScale(Vector const &Scale)
+void Object::SetScale(glm::vec3 const &Scale)
 {
-    m_Transform.Scale = Scale;
+    m_Transform.SetScale(Scale);
 }
 
 glm::mat4 Object::GetMatrix() const
 {
-    return m_Transform.ToGlmMat4();
+    return m_Transform.GetMatrix();
+}
+
+void Object::SetMatrix(glm::mat4 const &Matrix)
+{
+    m_Transform.SetMatrix(Matrix);
+}
+
+MaterialData const &Object::GetMaterialData() const
+{
+    return m_MaterialData;
+}
+
+MaterialData &Object::GetMutableMaterialData()
+{
+    return m_MaterialData;
+}
+
+void Object::SetMaterialData(MaterialData const &Value)
+{
+    m_MaterialData = Value;
 }
 
 bool Object::IsPendingDestroy() const
@@ -152,47 +176,69 @@ std::uint32_t Object::GetNumTriangles() const
 
 void Object::UpdateUniformBuffers() const
 {
-    if (!m_Allocation.UniformBufferAllocation.MappedData)
+    if (m_Allocation.ModelBufferAllocation.MappedData)
     {
-        return;
+        ModelUniformData const UpdatedModelUBO { .ModelMatrix = m_Transform.GetMatrix(), };
+
+        std::memcpy(m_Allocation.ModelBufferAllocation.MappedData, &UpdatedModelUBO, sizeof(ModelUniformData));
     }
 
-    glm::mat4 const UpdatedUBO {GetMatrix()};
-    std::memcpy(m_Allocation.UniformBufferAllocation.MappedData, &UpdatedUBO, sizeof(glm::mat4));
+    if (m_Allocation.MaterialBufferAllocation.MappedData)
+    {
+        MaterialUniformData const UpdatedMaterialUBO {
+                .BaseColorFactor = m_MaterialData.BaseColorFactor,
+                .EmissiveFactor = m_MaterialData.EmissiveFactor,
+                .MetallicFactor = static_cast<double>(m_MaterialData.MetallicFactor),
+                .RoughnessFactor = static_cast<double>(m_MaterialData.RoughnessFactor),
+                .AlphaCutoff = static_cast<double>(m_MaterialData.AlphaCutoff),
+                .NormalScale = static_cast<double>(m_MaterialData.NormalScale),
+                .OcclusionStrength = static_cast<double>(m_MaterialData.OcclusionStrength),
+                .AlphaMode = static_cast<int>(m_MaterialData.AlphaMode),
+                .DoubleSided = static_cast<int>(m_MaterialData.DoubleSided)
+        };
+
+        std::memcpy(m_Allocation.MaterialBufferAllocation.MappedData, &UpdatedMaterialUBO, sizeof(MaterialUniformData));
+    }
 }
 
 void Object::DrawObject(VkCommandBuffer const &CommandBuffer) const
 {
-    std::vector WriteDescriptors {VkWriteDescriptorSet {
-                                      .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                      .dstSet          = VK_NULL_HANDLE,
-                                      .dstBinding      = 0U,
-                                      .dstArrayElement = 0U,
-                                      .descriptorCount = 1U,
-                                      .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                      .pBufferInfo     = &GetSceneUniformDescriptor(),
-                                  },
-                                  VkWriteDescriptorSet {
-                                      .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                      .dstSet          = VK_NULL_HANDLE,
-                                      .dstBinding      = 1U,
-                                      .dstArrayElement = 0U,
-                                      .descriptorCount = static_cast<std::uint32_t>(std::size(m_Allocation.ModelDescriptors)),
-                                      .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                      .pBufferInfo     = std::data(m_Allocation.ModelDescriptors),
-                                  }};
+    std::vector WriteDescriptors {
+            VkWriteDescriptorSet {
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet = VK_NULL_HANDLE,
+                    .dstBinding = 0U,
+                    .dstArrayElement = 0U,
+                    .descriptorCount = 1U,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .pBufferInfo = &GetSceneUniformDescriptor(),
+            }
+    };
+
+    for (auto &ModelDescriptorIter : m_Allocation.ModelDescriptors)
+    {
+        WriteDescriptors.push_back(VkWriteDescriptorSet {
+                                           .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                           .dstSet = VK_NULL_HANDLE,
+                                           .dstBinding = 1U + static_cast<std::uint32_t>(ModelDescriptorIter.first),
+                                           .dstArrayElement = 0U,
+                                           .descriptorCount = 1U,
+                                           .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                           .pBufferInfo = &ModelDescriptorIter.second,
+                                   });
+    }
 
     for (auto &TextureDescriptorIter : m_Allocation.TextureDescriptors)
     {
         WriteDescriptors.push_back(VkWriteDescriptorSet {
-            .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .dstSet          = VK_NULL_HANDLE,
-            .dstBinding      = 2U + static_cast<std::uint32_t>(TextureDescriptorIter.first),
-            .dstArrayElement = 0U,
-            .descriptorCount = 1U,
-            .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .pImageInfo      = &TextureDescriptorIter.second,
-        });
+                                           .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                           .dstSet = VK_NULL_HANDLE,
+                                           .dstBinding = 3U + static_cast<std::uint32_t>(TextureDescriptorIter.first),
+                                           .dstArrayElement = 0U,
+                                           .descriptorCount = 1U,
+                                           .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                           .pImageInfo = &TextureDescriptorIter.second,
+                                   });
     }
 
     vkCmdPushDescriptorSetKHR(CommandBuffer,

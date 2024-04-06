@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -49,7 +49,7 @@ adlx_handle ADLX_CDECL_CALL CrossPlatformLoadLibrary(std::string_view const File
 int ADLX_CDECL_CALL CrossPlatformFreeLibrary(adlx_handle ModuleHandle)
 {
     #ifdef _WIN32
-    return ::FreeLibrary(static_cast<HMODULE>(ModuleHandle)) == TRUE;
+    return FreeLibrary(static_cast<HMODULE>(ModuleHandle)) == TRUE;
     #else
     return ::dlclose(ModuleHandle) == 0;
     #endif
@@ -59,7 +59,7 @@ void* ADLX_CDECL_CALL CrossPlatformGetProcAddress(adlx_handle            ModuleH
                                                   std::string_view const ProcName)
 {
     #ifdef _WIN32
-    return reinterpret_cast<void*>(::GetProcAddress(static_cast<HMODULE>(ModuleHandle), std::data(ProcName)));
+    return reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(ModuleHandle), std::data(ProcName)));
     #else
     return ::dlsym(ModuleHandle, std::data(ProcName));
     #endif

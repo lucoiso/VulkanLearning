@@ -1,10 +1,9 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
-#include <GLFW/glfw3.h>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -29,9 +28,9 @@ export namespace RenderCore
 
     void AllocateEmptyTexture(VkFormat);
 
-    void AllocateScene(std::string_view);
+    void LoadObject(std::string_view);
 
-    void ReleaseScene(std::vector<std::uint32_t> const &);
+    void UnloadObjects(std::vector<std::uint32_t> const &);
 
     void ReleaseSceneResources();
 
@@ -47,9 +46,13 @@ export namespace RenderCore
 
     [[nodiscard]] VkDescriptorBufferInfo const &GetSceneUniformDescriptor();
 
-    [[nodiscard]] std::vector<std::shared_ptr<Object>> const &GetAllocatedObjects();
+    [[nodiscard]] std::vector<std::shared_ptr<Object>> const &GetObjects();
 
     [[nodiscard]] std::uint32_t GetNumAllocations();
 
-    void UpdateSceneUniformBuffers(Camera const &, Illumination const &);
+    void UpdateSceneUniformBuffers();
+
+    [[nodiscard]] Camera &GetCamera();
+
+    [[nodiscard]] Illumination &GetIllumination();
 } // namespace RenderCore

@@ -1,4 +1,4 @@
-[![VulkanRenderer CMake Workflow](https://github.com/lucoiso/VulkanRenderer/actions/workflows/cmake-build.yml/badge.svg)](https://github.com/lucoiso/VulkanRenderer/actions/workflows/cmake-build.yml)
+[![vulkan-renderer CMake Workflow](https://github.com/lucoiso/vulkan-renderer/actions/workflows/cmake-build.yml/badge.svg)](https://github.com/lucoiso/vulkan-renderer/actions/workflows/cmake-build.yml)
 
 # Dependencies
 
@@ -9,6 +9,6 @@
 
 # Example
 
-![image](https://github.com/lucoiso/VulkanRenderer/assets/77353979/55f06534-2ce0-465f-ae10-3f82156cf3a4)
+![image](https://github.com/lucoiso/vulkan-renderer/assets/77353979/55f06534-2ce0-465f-ae10-3f82156cf3a4)
 
 - Renderer Application using this library: https://github.com/lucoiso/renderer-application

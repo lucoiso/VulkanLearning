@@ -1,35 +1,37 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
 #include <glm/ext.hpp>
+#include <Volk/volk.h>
 
 module RenderCore.Types.Camera;
 
 import RenderCore.Runtime.Memory;
+import RenderCore.Runtime.SwapChain;
 import RenderCore.Utils.EnumHelpers;
 import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
-Vector Camera::GetPosition() const
+glm::vec3 Camera::GetPosition() const
 {
     return m_CameraPosition;
 }
 
-void Camera::SetPosition(Vector const& Position)
+void Camera::SetPosition(glm::vec3 const &Position)
 {
     m_CameraPosition = Position;
 }
 
-Rotator Camera::GetRotation() const
+glm::vec3 Camera::GetRotation() const
 {
     return m_CameraRotation;
 }
 
-void Camera::SetRotation(Rotator const& Rotation)
+void Camera::SetRotation(glm::vec3 const &Rotation)
 {
     m_CameraRotation = Rotation;
 }
@@ -94,15 +96,40 @@ void Camera::SetDrawDistance(float const DrawDistance)
     m_DrawDistance = DrawDistance;
 }
 
-glm::mat4 Camera::GetViewMatrix() const
+glm::vec3 Camera::GetFront() const
 {
-    return lookAt(m_CameraPosition.ToGlmVec3(), (m_CameraPosition + m_CameraRotation.GetFront()).ToGlmVec3(), m_CameraRotation.GetUp().ToGlmVec3());
+    float const Yaw   = glm::radians(m_CameraRotation.y);
+    float const Pitch = glm::radians(m_CameraRotation.x);
+
+    glm::vec3 Front;
+    Front.x = cos(Yaw) * cos(Pitch);
+    Front.y = sin(Pitch);
+    Front.z = sin(Yaw) * cos(Pitch);
+
+    return normalize(Front);
 }
 
-glm::mat4 Camera::GetProjectionMatrix(VkExtent2D const& Extent) const
+glm::vec3 Camera::GetUp() const
 {
+    return rotate(glm::mat4(1.0f), glm::radians(m_CameraRotation.z), GetRight()) * glm::vec4 { 0.F, 1.F, 0.F, 1.F };
+}
+
+glm::vec3 Camera::GetRight() const
+{
+    return cross(GetFront(), glm::vec3 { 0.F, 1.F, 0.F });
+}
+
+glm::mat4 Camera::GetViewMatrix() const
+{
+    return lookAt(m_CameraPosition, m_CameraPosition + GetFront(), GetUp());
+}
+
+glm::mat4 Camera::GetProjectionMatrix() const
+{
+    VkExtent2D const &SwapChainExtent = GetSwapChainExtent();
+
     glm::mat4 Projection = glm::perspective(glm::radians(m_FieldOfView),
-                                            static_cast<float>(Extent.width) / static_cast<float>(Extent.height),
+                                            static_cast<float>(SwapChainExtent.width) / static_cast<float>(SwapChainExtent.height),
                                             m_NearPlane,
                                             m_FarPlane);
     Projection[1][1] *= -1;
@@ -122,19 +149,11 @@ void Camera::SetCameraMovementStateFlags(CameraMovementStateFlags const State)
 
 void Camera::UpdateCameraMovement(float const DeltaTime)
 {
-    float const CameraSpeed{
-        GetSpeed()
-    };
-    Vector const CameraFront{
-        m_CameraRotation.GetFront()
-    };
-    Vector const CameraRight{
-        m_CameraRotation.GetRight()
-    };
-
-    Vector NewPosition{
-        GetPosition()
-    };
+    float const     CameraSpeed { GetSpeed() };
+    glm::vec3 const CameraFront { GetFront() };
+    glm::vec3 const CameraUp { GetUp() };
+    glm::vec3 const CameraRight { GetRight() };
+    glm::vec3       NewPosition { GetPosition() };
 
     if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::FORWARD))
     {
@@ -148,49 +167,47 @@ void Camera::UpdateCameraMovement(float const DeltaTime)
 
     if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::LEFT))
     {
-        NewPosition += CameraSpeed * CameraRight * DeltaTime;
+        NewPosition -= CameraSpeed * CameraRight * DeltaTime;
     }
 
     if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::RIGHT))
     {
-        NewPosition -= CameraSpeed * CameraRight * DeltaTime;
+        NewPosition += CameraSpeed * CameraRight * DeltaTime;
     }
 
     if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::UP))
     {
-        NewPosition += CameraSpeed * m_CameraRotation.GetUp() * DeltaTime;
+        NewPosition += CameraSpeed * CameraUp * DeltaTime;
     }
 
     if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::DOWN))
     {
-        NewPosition -= CameraSpeed * m_CameraRotation.GetUp() * DeltaTime;
+        NewPosition -= CameraSpeed * CameraUp * DeltaTime;
     }
 
     SetPosition(NewPosition);
 }
 
-bool Camera::IsInsideCameraFrustum(Vector const& TestLocation,
-                                   VkExtent2D const& Extent) const
+bool Camera::IsInsideCameraFrustum(glm::vec3 const &TestLocation) const
 {
-    glm::mat4 const ViewProjectionMatrix = GetProjectionMatrix(Extent) * GetViewMatrix();
+    glm::mat4 const ViewProjectionMatrix = GetProjectionMatrix() * GetViewMatrix();
 
-    auto const HomogeneousTestLocation = glm::vec4(TestLocation.ToGlmVec3(), 1.F);
-    glm::vec4 const ClipSpaceTestLocation = ViewProjectionMatrix * HomogeneousTestLocation;
+    auto const      HomogeneousTestLocation = glm::vec4(TestLocation, 1.F);
+    glm::vec4 const ClipSpaceTestLocation   = ViewProjectionMatrix * HomogeneousTestLocation;
 
-    return std::abs(ClipSpaceTestLocation.x) <= std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.y) <= std::abs(ClipSpaceTestLocation.w) &&
-        std::abs(ClipSpaceTestLocation.z) <= std::abs(ClipSpaceTestLocation.w);
+    return std::abs(ClipSpaceTestLocation.x) <= std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.y) <=
+           std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.z) <= std::abs(ClipSpaceTestLocation.w);
 }
 
-bool Camera::IsInAllowedDistance(Vector const& TestLocation) const
+bool Camera::IsInAllowedDistance(glm::vec3 const &TestLocation) const
 {
-    Vector const CameraToTestLocation = TestLocation - GetPosition();
-    float const DistanceToTestLocation = CameraToTestLocation.Length();
+    glm::vec3 const CameraToTestLocation   = TestLocation - GetPosition();
+    float const     DistanceToTestLocation = length(CameraToTestLocation);
 
     return DistanceToTestLocation <= GetDrawDistance();
 }
 
-bool Camera::CanDrawObject(std::shared_ptr<Object> const& Object,
-                           VkExtent2D const& Extent) const
+bool Camera::CanDrawObject(std::shared_ptr<Object> const &Object) const
 {
     if (!Object)
     {
@@ -199,7 +216,7 @@ bool Camera::CanDrawObject(std::shared_ptr<Object> const& Object,
 
     if constexpr (g_EnableExperimentalFrustumCulling)
     {
-        return IsInsideCameraFrustum(Object->GetPosition(), Extent) && IsInAllowedDistance(Object->GetPosition());
+        return IsInsideCameraFrustum(Object->GetPosition()) && IsInAllowedDistance(Object->GetPosition());
     }
 
     return true;

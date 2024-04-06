@@ -1,10 +1,11 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
 #include "RenderCoreModule.hpp"
+#include <glm/ext.hpp>
 
 export module RenderCore.Types.Illumination;
 
@@ -14,18 +15,18 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Illumination
     {
-        Vector m_LightPosition {0.f, 2.5f, 1.f};
-        Vector m_LightColor {1.F, 1.F, 1.F};
-        float  m_LightIntensity {1.F};
+        glm::vec3 m_LightPosition{100.F, 100.F, 100.F};
+        glm::vec3 m_LightColor{1.F, 1.F, 1.F};
+        float     m_LightIntensity{1.F};
 
     public:
         Illumination() = default;
 
-        void                        SetPosition(Vector const &);
-        [[nodiscard]] Vector const &GetPosition() const;
+        void                           SetPosition(glm::vec3 const &);
+        [[nodiscard]] glm::vec3 const &GetPosition() const;
 
-        void                        SetColor(Vector const &);
-        [[nodiscard]] Vector const &GetColor() const;
+        void                           SetColor(glm::vec3 const &);
+        [[nodiscard]] glm::vec3 const &GetColor() const;
 
         void                SetIntensity(float);
         [[nodiscard]] float GetIntensity() const;

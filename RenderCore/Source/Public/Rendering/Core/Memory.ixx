@@ -1,10 +1,11 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
 #include <Volk/volk.h>
+#include <memory>
 #include <string_view>
 #include <vector>
 #include <vma/vk_mem_alloc.h>
@@ -13,6 +14,7 @@ export module RenderCore.Runtime.Memory;
 
 import RenderCore.Types.Allocation;
 import RenderCore.Types.Vertex;
+import RenderCore.Types.Object;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
 
@@ -34,7 +36,7 @@ export namespace RenderCore
 
     void CreateUniformBuffers(BufferAllocation &, VkDeviceSize, std::string_view);
 
-    void CreateModelUniformBuffers(ObjectAllocationData &);
+    void CreateModelUniformBuffers(std::shared_ptr<Object> const &);
 
     void CreateImage(VkFormat const &,
                      VkExtent2D const &,
@@ -58,22 +60,22 @@ export namespace RenderCore
     AllocateTexture(VkCommandBuffer &, unsigned char const *, std::uint32_t, std::uint32_t, VkFormat, std::size_t, ImageAllocation &);
 
     template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
-    constexpr void MoveImageLayout(VkCommandBuffer    &CommandBuffer,
-                                   VkImage const      &Image,
-                                   VkFormat const     &Format,
+    constexpr void MoveImageLayout(VkCommandBuffer &   CommandBuffer,
+                                   VkImage const &     Image,
+                                   VkFormat const &    Format,
                                    std::uint32_t const FromQueueIndex = VK_QUEUE_FAMILY_IGNORED,
                                    std::uint32_t const ToQueueIndex   = VK_QUEUE_FAMILY_IGNORED)
     {
-        VkImageMemoryBarrier2 ImageBarrier {.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                            .srcAccessMask       = 0U,
-                                            .dstAccessMask       = 0U,
-                                            .oldLayout           = OldLayout,
-                                            .newLayout           = NewLayout,
-                                            .srcQueueFamilyIndex = FromQueueIndex,
-                                            .dstQueueFamilyIndex = ToQueueIndex,
-                                            .image               = Image,
-                                            .subresourceRange
-                                            = {.aspectMask = Aspect, .baseMipLevel = 0U, .levelCount = 1U, .baseArrayLayer = 0U, .layerCount = 1U}};
+        VkImageMemoryBarrier2 ImageBarrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                           .srcAccessMask = 0U,
+                                           .dstAccessMask = 0U,
+                                           .oldLayout = OldLayout,
+                                           .newLayout = NewLayout,
+                                           .srcQueueFamilyIndex = FromQueueIndex,
+                                           .dstQueueFamilyIndex = ToQueueIndex,
+                                           .image = Image,
+                                           .subresourceRange
+                                           = {.aspectMask = Aspect, .baseMipLevel = 0U, .levelCount = 1U, .baseArrayLayer = 0U, .layerCount = 1U}};
 
         if constexpr (HasFlag<VkImageAspectFlags>(Aspect, VK_IMAGE_ASPECT_DEPTH_BIT))
         {
@@ -136,9 +138,9 @@ export namespace RenderCore
             ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
         }
 
-        VkDependencyInfo const DependencyInfo {.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                                               .imageMemoryBarrierCount = 1U,
-                                               .pImageMemoryBarriers    = &ImageBarrier};
+        VkDependencyInfo const DependencyInfo{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                                              .imageMemoryBarrierCount = 1U,
+                                              .pImageMemoryBarriers = &ImageBarrier};
 
         vkCmdPipelineBarrier2(CommandBuffer, &DependencyInfo);
     }

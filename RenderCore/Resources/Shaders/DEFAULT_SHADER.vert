@@ -3,7 +3,7 @@
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inUV;
-layout(location = 3) in vec3 inColor;
+layout(location = 3) in vec4 inColor;
 layout(location = 4) in vec4 inTangent;
 
 layout(set = 0, binding = 0) uniform UBOScene {
@@ -14,36 +14,31 @@ layout(set = 0, binding = 0) uniform UBOScene {
 } uboScene;
 
 layout(set = 0, binding = 1) uniform UBOModel {
-    mat4 local;
+    mat4 model;
 } uboModel;
 
-layout(location = 1) out VS_OUT {
-    vec3 fragNormal;
-    vec4 fragColor;
-    vec2 fragUV;
-    vec3 fragTangent;
-    vec3 fragViewDir;
-    vec3 fragLightDir;
-    vec3 fragLightColor;
-} vs_out;
+layout(location = 1) out FragmentData {
+    vec3 model_view;
+    vec3 model_normal;
+    vec4 model_color;
+    vec2 model_uv;
+    vec4 model_tangent;
+    vec3 cam_view;
+    vec3 light_view;
+    vec3 light_color;
+} fragData;
 
 void main() {
-    gl_Position = uboScene.projection * uboScene.view * uboModel.local * vec4(inPos, 1.0);
+    vec4 modelViewPos = uboScene.view * uboModel.model * vec4(inPos, 1.0);
 
-    vec4 worldPos = uboModel.local * vec4(inPos, 1.0);
-    vec3 worldNormal = mat3(uboModel.local) * inNormal;
-    vec3 worldTangent = normalize(mat3(uboModel.local) * inTangent.xyz);
-    vec3 worldBitangent = cross(worldNormal, worldTangent) * inTangent.w;
+    fragData.model_view = modelViewPos.xyz;
+    fragData.model_normal = inNormal;
+    fragData.model_color = inColor;
+    fragData.model_uv = inUV;
+    fragData.model_tangent = inTangent;
+    fragData.cam_view = (uboScene.view * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+    fragData.light_view = uboScene.lightPos.xyz;
+    fragData.light_color = uboScene.lightColor.xyz;
 
-    vs_out.fragNormal = normalize(worldNormal);
-    vs_out.fragColor = vec4(inColor, 1.0);
-    vs_out.fragUV = inUV;
-    vs_out.fragTangent = worldTangent;
-
-    vec3 worldViewDir = normalize(vec3(uboScene.view * vec4(0.0, 0.0, 0.0, 1.0)) - worldPos.xyz);
-    vec3 lightDir = normalize(uboScene.lightPos.xyz - worldPos.xyz);
-
-    vs_out.fragViewDir = worldViewDir;
-    vs_out.fragLightDir = lightDir;
-    vs_out.fragLightColor = uboScene.lightColor.rgb;
+    gl_Position = uboScene.projection * modelViewPos;
 }

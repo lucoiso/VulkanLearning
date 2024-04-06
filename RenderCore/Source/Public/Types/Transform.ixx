@@ -1,599 +1,78 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
 #include "RenderCoreModule.hpp"
-
 #include <glm/ext.hpp>
-#include <string>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/matrix_decompose.hpp>
 
 export module RenderCore.Types.Transform;
 
 namespace RenderCore
 {
-    export struct RENDERCOREMODULE_API Vector
+    export class RENDERCOREMODULE_API Transform
     {
-        float X {0.f};
-        float Y {0.f};
-        float Z {0.f};
-
-        Vector() = default;
-
-        explicit Vector(float const Value)
-            : X(Value), Y(Value), Z(Value)
-        {
-        }
-
-        Vector(float const X, float const Y, float const Z)
-            : X(X), Y(Y), Z(Z)
-        {
-        }
-
-        template<typename Other>
-        constexpr explicit Vector(Other const& Value)
-            : X(Value.x), Y(Value.y), Z(Value.z)
-        {
-        }
-
-        template<typename Other>
-        Vector& operator=(Other const& Value)
-        {
-            X = Value.x;
-            Y = Value.y;
-            Z = Value.z;
-            return *this;
-        }
-
-        template<typename Other>
-        Vector& operator=(Other&& Value)
-        {
-            X = Value.x;
-            Y = Value.y;
-            Z = Value.z;
-            return *this;
-        }
-
-        Vector& operator=(float const Value)
-        {
-            X = Value;
-            Y = Value;
-            Z = Value;
-            return *this;
-        }
-
-        Vector& operator+=(Vector const& Value)
-        {
-            X += Value.X;
-            Y += Value.Y;
-            Z += Value.Z;
-            return *this;
-        }
-
-        Vector& operator+=(float const Value)
-        {
-            X += Value;
-            Y += Value;
-            Z += Value;
-            return *this;
-        }
-
-        Vector& operator-=(Vector const& Value)
-        {
-            X -= Value.X;
-            Y -= Value.Y;
-            Z -= Value.Z;
-            return *this;
-        }
-
-        Vector& operator-=(float const Value)
-        {
-            X -= Value;
-            Y -= Value;
-            Z -= Value;
-            return *this;
-        }
-
-        Vector& operator*=(Vector const& Value)
-        {
-            X *= Value.X;
-            Y *= Value.Y;
-            Z *= Value.Z;
-            return *this;
-        }
-
-        Vector& operator*=(float const Value)
-        {
-            X *= Value;
-            Y *= Value;
-            Z *= Value;
-            return *this;
-        }
-
-        Vector& operator/=(Vector const& Value)
-        {
-            X /= Value.X;
-            Y /= Value.Y;
-            Z /= Value.Z;
-            return *this;
-        }
-
-        Vector& operator/=(float const Value)
-        {
-            X /= Value;
-            Y /= Value;
-            Z /= Value;
-            return *this;
-        }
-
-        Vector operator+(Vector const& Value) const
-        {
-            return {X + Value.X, Y + Value.Y, Z + Value.Z};
-        }
-
-        Vector operator+(float const Value) const
-        {
-            return {X + Value, Y + Value, Z + Value};
-        }
-
-        Vector operator-(Vector const& Value) const
-        {
-            return {X - Value.X, Y - Value.Y, Z - Value.Z};
-        }
-
-        Vector operator-(float const Value) const
-        {
-            return {X - Value, Y - Value, Z - Value};
-        }
-
-        Vector operator*(Vector const& Value) const
-        {
-            return {X * Value.X, Y * Value.Y, Z * Value.Z};
-        }
-
-        Vector operator*(float const Value) const
-        {
-            return {X * Value, Y * Value, Z * Value};
-        }
-
-        Vector operator/(Vector const& Value) const
-        {
-            return {X / Value.X, Y / Value.Y, Z / Value.Z};
-        }
-
-        Vector operator/(float const Value) const
-        {
-            return {X / Value, Y / Value, Z / Value};
-        }
-
-        [[nodiscard]] glm::vec3 ToGlmVec3() const
-        {
-            return glm::vec3{X, Y, Z};
-        }
-
-        [[nodiscard]] glm::vec4 ToGlmVec4() const
-        {
-            return glm::vec4{X, Y, Z, 1.F};
-        }
-
-        void Normalize()
-        {
-            float const Size = Length();
-            X /= Size;
-            Y /= Size;
-            Z /= Size;
-        }
-
-        [[nodiscard]] Vector NormalizeInline() const
-        {
-            float const Size = Length();
-            return {X / Size, Y / Size, Z / Size};
-        }
-
-        void Cross(Vector const& Value)
-        {
-            X = Y * Value.Z - Z * Value.Y;
-            Y = Z * Value.X - X * Value.Z;
-            Z = X * Value.Y - Y * Value.X;
-        }
-
-        [[nodiscard]] Vector CrossInline(Vector const& Value) const
-        {
-            return {Y * Value.Z - Z * Value.Y,
-                    Z * Value.X - X * Value.Z,
-                    X * Value.Y - Y * Value.X};
-        }
-
-        [[nodiscard]] float Length() const
-        {
-            return std::sqrt(X * X + Y * Y + Z * Z);
-        }
-
-        [[nodiscard]] float LengthSquared() const
-        {
-            return X * X + Y * Y + Z * Z;
-        }
-
-        [[nodiscard]] float Dot(Vector const& Value) const
-        {
-            return X * Value.X + Y * Value.Y + Z * Value.Z;
-        }
-
-        [[nodiscard]] std::string ToString() const
-        {
-            return std::to_string(X) + ", " + std::to_string(Y) + ", " + std::to_string(Z);
-        }
-    };
-
-    export [[nodiscard]] Vector operator*(float const Value, Vector const& Vector)
-    {
-        return {Vector.X * Value, Vector.Y * Value, Vector.Z * Value};
-    }
-
-    export struct RENDERCOREMODULE_API Rotator
-    {
-        float Pitch {0.f};
-        float Yaw {0.f};
-        float Roll {0.f};
-
-        Rotator() = default;
-
-        explicit Rotator(float const Value)
-            : Pitch(Value), Yaw(Value), Roll(Value)
-        {
-        }
-
-        Rotator(float const Pitch, float const Yaw, float const Roll)
-            : Pitch(Pitch), Yaw(Yaw), Roll(Roll)
-        {
-        }
-
-        explicit Rotator(glm::vec3 const& Value)
-            : Pitch(Value.x), Yaw(Value.y), Roll(Value.z)
-        {
-        }
-
-        explicit Rotator(glm::quat const& Value)
-            : Pitch(glm::degrees(pitch(Value))), Yaw(glm::degrees(yaw(Value))), Roll(glm::degrees(roll(Value)))
-        {
-        }
-
-        Rotator& operator=(glm::vec3 const& Value)
-        {
-            Pitch = Value.x;
-            Yaw   = Value.y;
-            Roll  = Value.z;
-            return *this;
-        }
-
-        Rotator& operator=(glm::vec3&& Value)
-        {
-            Pitch = Value.x;
-            Yaw   = Value.y;
-            Roll  = Value.z;
-            return *this;
-        }
-
-        Rotator& operator=(glm::quat const& Value)
-        {
-            Pitch = glm::degrees(pitch(Value));
-            Yaw   = glm::degrees(yaw(Value));
-            Roll  = glm::degrees(roll(Value));
-            return *this;
-        }
-
-        Rotator& operator=(glm::quat&& Value)
-        {
-            Pitch = glm::degrees(pitch(Value));
-            Yaw   = glm::degrees(yaw(Value));
-            Roll  = glm::degrees(roll(Value));
-            return *this;
-        }
-
-        Rotator& operator=(float const Value)
-        {
-            Pitch = Value;
-            Yaw   = Value;
-            Roll  = Value;
-            return *this;
-        }
-
-        Rotator& operator+=(Rotator const& Value)
-        {
-            Pitch += Value.Pitch;
-            Yaw += Value.Yaw;
-            Roll += Value.Roll;
-            return *this;
-        }
-
-        Rotator& operator+=(float const Value)
-        {
-            Pitch += Value;
-            Yaw += Value;
-            Roll += Value;
-            return *this;
-        }
-
-        Rotator& operator-=(Rotator const& Value)
-        {
-            Pitch -= Value.Pitch;
-            Yaw -= Value.Yaw;
-            Roll -= Value.Roll;
-            return *this;
-        }
-
-        Rotator& operator-=(float const Value)
-        {
-            Pitch -= Value;
-            Yaw -= Value;
-            Roll -= Value;
-            return *this;
-        }
-
-        Rotator& operator*=(Rotator const& Value)
-        {
-            Pitch *= Value.Pitch;
-            Yaw *= Value.Yaw;
-            Roll *= Value.Roll;
-            return *this;
-        }
-
-        Rotator& operator*=(float const Value)
-        {
-            Pitch *= Value;
-            Yaw *= Value;
-            Roll *= Value;
-            return *this;
-        }
-
-        Rotator& operator/=(Rotator const& Value)
-        {
-            Pitch /= Value.Pitch;
-            Yaw /= Value.Yaw;
-            Roll /= Value.Roll;
-            return *this;
-        }
-
-        Rotator& operator/=(float const Value)
-        {
-            Pitch /= Value;
-            Yaw /= Value;
-            Roll /= Value;
-            return *this;
-        }
-
-        Rotator operator+(Rotator const& Value) const
-        {
-            return {Pitch + Value.Pitch, Yaw + Value.Yaw, Roll + Value.Roll};
-        }
-
-        Rotator operator+(float const Value) const
-        {
-            return {Pitch + Value, Yaw + Value, Roll + Value};
-        }
-
-        Rotator operator-(Rotator const& Value) const
-        {
-            return {Pitch - Value.Pitch, Yaw - Value.Yaw, Roll - Value.Roll};
-        }
-
-        Rotator operator-(float const Value) const
-        {
-            return {Pitch - Value, Yaw - Value, Roll - Value};
-        }
-
-        Rotator operator*(Rotator const& Value) const
-        {
-            return {Pitch * Value.Pitch, Yaw * Value.Yaw, Roll * Value.Roll};
-        }
-
-        Rotator operator*(float const Value) const
-        {
-            return {Pitch * Value, Yaw * Value, Roll * Value};
-        }
-
-        Rotator operator/(Rotator const& Value) const
-        {
-            return {Pitch / Value.Pitch, Yaw / Value.Yaw, Roll / Value.Roll};
-        }
-
-        Rotator operator/(float const Value) const
-        {
-            return {Pitch / Value, Yaw / Value, Roll / Value};
-        }
-
-        [[nodiscard]] glm::vec3 ToGlmVec3() const
-        {
-            return glm::vec3{Pitch, Yaw, Roll};
-        }
-
-        [[nodiscard]] glm::vec4 ToGlmVec4() const
-        {
-            return glm::vec4{Pitch, Yaw, Roll, 1.F};
-        }
-
-        [[nodiscard]] Vector GetFront() const
-        {
-            return {cos(glm::radians(Yaw)) * cos(glm::radians(Pitch)),
-                    sin(glm::radians(Pitch)),
-                    sin(glm::radians(Yaw)) * cos(glm::radians(Pitch))};
-        }
-
-        [[nodiscard]] Vector GetRight() const
-        {
-            return {cos(glm::radians(Yaw - 90.F)),
-                    0.F,
-                    sin(glm::radians(Yaw - 90.F))};
-        }
-
-        [[nodiscard]] Vector GetUp() const
-        {
-            return GetFront().CrossInline(GetRight());
-        }
-
-        [[nodiscard]] std::string ToString() const
-        {
-            return std::to_string(Pitch) + ", " + std::to_string(Yaw) + ", " + std::to_string(Roll);
-        }
-    };
-
-    export [[nodiscard]] Rotator operator*(float const Value, Rotator const& Rotator)
-    {
-        return {Rotator.Pitch * Value, Rotator.Yaw * Value, Rotator.Roll * Value};
-    }
-
-    export struct RENDERCOREMODULE_API Transform
-    {
-        Vector Position {0.F};
-        Vector Scale {1.F};
-        Rotator Rotation {0.F};
-
+        glm::vec3 m_Position{0.F};
+        glm::vec3 m_Scale{1.F};
+        glm::vec3 m_Rotation{0.F};
+
+    public:
         Transform() = default;
 
-        Transform(Vector const& Position, Vector const& Scale, Rotator const& Rotation)
-            : Position(Position), Scale(Scale), Rotation(Rotation)
+        [[nodiscard]] inline glm::vec3 GetPosition() const
         {
+            return m_Position;
         }
 
-        Transform(Vector&& Position, Vector&& Scale, Rotator&& Rotation)
-            : Position(Position), Scale(Scale), Rotation(Rotation)
+        inline void SetPosition(glm::vec3 const &Value)
         {
+            m_Position = Value;
         }
 
-        explicit Transform(glm::mat4 const& TransformMatrix)
-            : Position(Vector(TransformMatrix[3])),
-              Scale(Vector(glm::vec3(TransformMatrix[0][0], TransformMatrix[1][1], TransformMatrix[2][2]))),
-              Rotation(Rotator(eulerAngles(glm::quat(TransformMatrix))))
+        [[nodiscard]] inline glm::vec3 GetRotation() const
         {
+            return m_Rotation;
         }
 
-        Transform& operator=(float const Value)
+        inline void SetRotation(glm::vec3 const &Value)
         {
-            Position = Value;
-            Scale    = Value;
-            Rotation = Value;
-            return *this;
+            m_Rotation = Value;
         }
 
-        Transform& operator+=(Transform const& Value)
+        [[nodiscard]] inline glm::vec3 GetScale() const
         {
-            Position += Value.Position;
-            Scale += Value.Scale;
-            Rotation += Value.Rotation;
-            return *this;
+            return m_Scale;
         }
 
-        Transform& operator+=(float const Value)
+        inline void SetScale(glm::vec3 const &Value)
         {
-            Position += Value;
-            Scale += Value;
-            Rotation += Value;
-            return *this;
+            m_Scale = Value;
         }
 
-        Transform& operator-=(Transform const& Value)
+        [[nodiscard]] inline glm::mat4 GetMatrix() const
         {
-            Position -= Value.Position;
-            Scale -= Value.Scale;
-            Rotation -= Value.Rotation;
-            return *this;
+            glm::mat4 Matrix {1.F};
+            Matrix = translate(Matrix, m_Position);
+            Matrix = scale(Matrix, m_Scale);
+            Matrix = rotate(Matrix, glm::radians(m_Rotation.x), glm::vec3(1.F, 0.F, 0.F));
+            Matrix = rotate(Matrix, glm::radians(m_Rotation.y), glm::vec3(0.F, 1.F, 0.F));
+            Matrix = rotate(Matrix, glm::radians(m_Rotation.z), glm::vec3(0.F, 0.F, 1.F));
+
+            return Matrix;
         }
 
-        Transform& operator-=(float const Value)
+        void SetMatrix(glm::mat4 const &Matrix)
         {
-            Position -= Value;
-            Scale -= Value;
-            Rotation -= Value;
-            return *this;
-        }
+            glm::quat Quaternion;
+            glm::vec3 _1;
+            glm::vec4 _2;
+            decompose(Matrix, m_Scale, Quaternion, m_Position, _1, _2);
 
-        Transform& operator*=(Transform const& Value)
-        {
-            Position *= Value.Position;
-            Scale *= Value.Scale;
-            Rotation *= Value.Rotation;
-            return *this;
-        }
-
-        Transform& operator*=(float const Value)
-        {
-            Position *= Value;
-            Scale *= Value;
-            Rotation *= Value;
-            return *this;
-        }
-
-        Transform& operator/=(Transform const& Value)
-        {
-            Position /= Value.Position;
-            Scale /= Value.Scale;
-            Rotation /= Value.Rotation;
-            return *this;
-        }
-
-        Transform& operator/=(float const Value)
-        {
-            Position /= Value;
-            Scale /= Value;
-            Rotation /= Value;
-            return *this;
-        }
-
-        Transform operator+(Transform const& Value) const
-        {
-            return {Position + Value.Position, Scale + Value.Scale, Rotation + Value.Rotation};
-        }
-
-        Transform operator+(float const Value) const
-        {
-            return {Position + Value, Scale + Value, Rotation + Value};
-        }
-
-        Transform operator-(Transform const& Value) const
-        {
-            return {Position - Value.Position, Scale - Value.Scale, Rotation - Value.Rotation};
-        }
-
-        Transform operator-(float const Value) const
-        {
-            return {Position - Value, Scale - Value, Rotation - Value};
-        }
-
-        Transform operator*(Transform const& Value) const
-        {
-            return {Position * Value.Position, Scale * Value.Scale, Rotation * Value.Rotation};
-        }
-
-        Transform operator*(float const Value) const
-        {
-            return {Position * Value, Scale * Value, Rotation * Value};
-        }
-
-        Transform operator/(Transform const& Value) const
-        {
-            return {Position / Value.Position, Scale / Value.Scale, Rotation / Value.Rotation};
-        }
-
-        Transform operator/(float const Value) const
-        {
-            return {Position / Value, Scale / Value, Rotation / Value};
-        }
-
-        [[nodiscard]] glm::mat4 ToGlmMat4() const
-        {
-            glm::mat4 TransformMatrix(1.F);
-            TransformMatrix = translate(TransformMatrix, Position.ToGlmVec3());
-            TransformMatrix = scale(TransformMatrix, Scale.ToGlmVec3());
-            TransformMatrix = rotate(TransformMatrix, glm::radians(Rotation.Pitch), glm::vec3(1.F, 0.F, 0.F));
-            TransformMatrix = rotate(TransformMatrix, glm::radians(Rotation.Yaw), glm::vec3(0.F, 1.F, 0.F));
-            TransformMatrix = rotate(TransformMatrix, glm::radians(Rotation.Roll), glm::vec3(0.F, 0.F, 1.F));
-            return TransformMatrix;
-        }
-
-        [[nodiscard]] std::string ToString() const
-        {
-            return Position.ToString() + ", " + Scale.ToString() + ", " + Rotation.ToString();
+            m_Rotation = eulerAngles(Quaternion);
         }
     };
-}// namespace RenderCore
+} // namespace RenderCore

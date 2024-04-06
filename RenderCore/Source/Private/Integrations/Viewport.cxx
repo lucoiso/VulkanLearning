@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -29,11 +29,11 @@ void RenderCore::CreateViewportResources(SurfaceProperties const &SurfacePropert
                           });
     g_ViewportImages.resize(std::size(GetSwapChainImages()));
 
-    constexpr VmaMemoryUsage     MemoryUsage = VMA_MEMORY_USAGE_AUTO;
+    constexpr VmaMemoryUsage MemoryUsage = VMA_MEMORY_USAGE_AUTO;
     constexpr VkImageAspectFlags AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-    constexpr VkImageTiling      Tiling      = VK_IMAGE_TILING_LINEAR;
-    constexpr VkImageUsageFlags  UsageFlags
-        = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    constexpr VkImageTiling Tiling = VK_IMAGE_TILING_LINEAR;
+    constexpr VkImageUsageFlags UsageFlags = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                                             VK_IMAGE_USAGE_SAMPLED_BIT;
     constexpr VmaAllocationCreateFlags MemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
     std::ranges::for_each(g_ViewportImages,

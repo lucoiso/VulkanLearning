@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -16,8 +16,6 @@ module;
 
 export module RenderCore.Renderer;
 
-import Timer.Manager;
-
 import RenderCore.Types.RendererStateFlags;
 import RenderCore.Types.Camera;
 import RenderCore.Types.Illumination;
@@ -30,91 +28,68 @@ import RenderCore.Runtime.Pipeline;
 import RenderCore.Runtime.Command;
 import RenderCore.Runtime.Device;
 
-namespace RenderCore
+export namespace RenderCore
 {
-    export class RENDERCOREMODULE_API Renderer
+    void DrawFrame(GLFWwindow *, double, Control *);
+
+    std::optional<std::int32_t> RequestImageIndex(GLFWwindow *);
+
+    void Tick();
+
+    bool Initialize(GLFWwindow *);
+
+    void Shutdown(GLFWwindow *);
+
+    namespace Renderer
     {
-        Camera       m_Camera {};
-        Illumination m_Illumination {};
+        [[nodiscard]] RENDERCOREMODULE_API bool IsInitialized();
 
-        RendererStateFlags          m_StateFlags {RendererStateFlags::NONE};
-        double                      m_DeltaTime {0.F};
-        double                      m_FrameTime {0.F};
-        double                      m_FrameRateCap {0.016667F};
-        std::optional<std::int32_t> m_ImageIndex {};
-        std::mutex                  m_RenderingMutex {};
+        [[nodiscard]] RENDERCOREMODULE_API bool IsReady();
 
-        friend class Window;
+        RENDERCOREMODULE_API void AddStateFlag(RendererStateFlags);
 
-        void DrawFrame(GLFWwindow *, float, Camera const &, Control *);
+        RENDERCOREMODULE_API void RemoveStateFlag(RendererStateFlags);
 
-        std::optional<std::int32_t> RequestImageIndex(GLFWwindow *);
+        [[nodiscard]] RENDERCOREMODULE_API bool HasStateFlag(RendererStateFlags);
 
-        void Tick();
+        [[nodiscard]] RENDERCOREMODULE_API RendererStateFlags GetStateFlags();
 
-        void RemoveInvalidObjects();
+        RENDERCOREMODULE_API void LoadObject(std::string_view);
 
-        bool Initialize(GLFWwindow *);
+        RENDERCOREMODULE_API void UnloadObjects(std::vector<std::uint32_t> const &);
 
-        void Shutdown(GLFWwindow *);
+        RENDERCOREMODULE_API void DestroyObjects();
 
-    public:
-        Renderer() = default;
+        [[nodiscard]] RENDERCOREMODULE_API double GetFrameTime();
 
-        ~Renderer() = default;
+        RENDERCOREMODULE_API void SetFrameRateCap(double);
 
-        [[nodiscard]] bool IsInitialized() const;
+        [[nodiscard]] RENDERCOREMODULE_API double GetFrameRateCap();
 
-        [[nodiscard]] bool IsReady() const;
+        [[nodiscard]] RENDERCOREMODULE_API Camera const &GetCamera();
 
-        void AddStateFlag(RendererStateFlags);
+        [[nodiscard]] RENDERCOREMODULE_API Camera &GetMutableCamera();
 
-        void RemoveStateFlag(RendererStateFlags);
+        [[nodiscard]] RENDERCOREMODULE_API Illumination const &GetIllumination();
 
-        [[nodiscard]] bool HasStateFlag(RendererStateFlags) const;
+        [[nodiscard]] RENDERCOREMODULE_API Illumination &GetMutableIllumination();
 
-        [[nodiscard]] RendererStateFlags GetStateFlags() const;
+        [[nodiscard]] RENDERCOREMODULE_API std::optional<std::int32_t> const &GetImageIndex();
 
-        void LoadScene(std::string_view);
+        [[nodiscard]] RENDERCOREMODULE_API std::vector<std::shared_ptr<Object>> const &GetObjects();
 
-        void UnloadScene(std::vector<std::uint32_t> const &);
+        [[nodiscard]] RENDERCOREMODULE_API std::shared_ptr<Object> GetObjectByID(std::uint32_t);
 
-        void UnloadAllScenes();
+        [[nodiscard]] RENDERCOREMODULE_API std::uint32_t GetNumObjects();
 
-        static [[nodiscard]] Timer::Manager &GetRenderTimerManager();
+        [[nodiscard]] RENDERCOREMODULE_API VkSampler GetSampler();
 
-        [[nodiscard]] double GetDeltaTime() const;
+        #ifdef VULKAN_RENDERER_ENABLE_IMGUI
+        [[nodiscard]] RENDERCOREMODULE_API std::vector<VkImageView> GetViewportImages();
 
-        [[nodiscard]] double GetFrameTime() const;
+        [[nodiscard]] RENDERCOREMODULE_API bool IsImGuiInitialized();
 
-        void SetFrameRateCap(double);
-
-        [[nodiscard]] double GetFrameRateCap() const;
-
-        [[nodiscard]] Camera const &GetCamera() const;
-
-        [[nodiscard]] Camera &GetMutableCamera();
-
-        [[nodiscard]] Illumination const &GetIllumination() const;
-
-        [[nodiscard]] Illumination &GetMutableIllumination();
-
-        [[nodiscard]] std::optional<std::int32_t> const &GetImageIndex() const;
-
-        [[nodiscard]] std::vector<std::shared_ptr<Object>> const &GetObjects() const;
-
-        [[nodiscard]] std::shared_ptr<Object> GetObjectByID(std::uint32_t) const;
-
-        [[nodiscard]] std::uint32_t GetNumObjects() const;
-
-        [[nodiscard]] VkSampler GetSampler() const;
-
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
-        [[nodiscard]] std::vector<VkImageView> GetViewportRenderImageViews() const;
-
-        static [[nodiscard]] bool IsImGuiInitialized();
-
-        void SaveFrameToImageFile(std::string_view) const;
-#endif
-    };
-} // namespace RenderCore
+        RENDERCOREMODULE_API void SaveFrameAsImage(std::string_view);
+        #endif
+    } // namespace Renderer
+}     // namespace RenderCore

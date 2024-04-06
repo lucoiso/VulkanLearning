@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -10,14 +10,15 @@ module;
 #include <boost/log/trivial.hpp>
 
 #ifndef TINYGLTF_IMPLEMENTATION
-    #define TINYGLTF_IMPLEMENTATION
+#define TINYGLTF_IMPLEMENTATION
 #endif
 #ifndef STB_IMAGE_IMPLEMENTATION
-    #define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
 #endif
 #ifndef STB_IMAGE_WRITE_IMPLEMENTATION
-    #define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #endif
+#include <execution>
 #include <tiny_gltf.h>
 
 module RenderCore.Runtime.Scene;
@@ -34,10 +35,13 @@ import RenderCore.Utils.Helpers;
 
 using namespace RenderCore;
 
-VkSampler                                           g_Sampler {VK_NULL_HANDLE};
+Camera       g_Camera {};
+Illumination g_Illumination {};
+
+VkSampler                                           g_Sampler { VK_NULL_HANDLE };
 ImageAllocation                                     g_DepthImage {};
 ImageAllocation                                     g_EmptyImage {};
-std::atomic                                         g_ObjectIDCounter {0U};
+std::atomic                                         g_ObjectIDCounter { 0U };
 std::vector<std::shared_ptr<Object>>                g_Objects {};
 std::pair<BufferAllocation, VkDescriptorBufferInfo> g_SceneUniformBufferAllocation {};
 
@@ -46,7 +50,7 @@ void RenderCore::CreateSceneUniformBuffers()
     constexpr VkDeviceSize BufferSize = sizeof(SceneUniformData);
 
     CreateUniformBuffers(g_SceneUniformBufferAllocation.first, BufferSize, "SCENE_UNIFORM");
-    g_SceneUniformBufferAllocation.second = {.buffer = g_SceneUniformBufferAllocation.first.Buffer, .offset = 0U, .range = BufferSize};
+    g_SceneUniformBufferAllocation.second = { .buffer = g_SceneUniformBufferAllocation.first.Buffer, .offset = 0U, .range = BufferSize };
 }
 
 void RenderCore::CreateImageSampler()
@@ -87,11 +91,11 @@ void RenderCore::CreateDepthResources(SurfaceProperties const &SurfaceProperties
 
 void RenderCore::AllocateEmptyTexture(VkFormat const TextureFormat)
 {
-    constexpr std::uint8_t                                 DefaultTextureHalfSize {2U};
-    constexpr std::uint8_t                                 DefaultTextureSize {DefaultTextureHalfSize * 2U};
+    constexpr std::uint8_t                                 DefaultTextureHalfSize { 2U };
+    constexpr std::uint8_t                                 DefaultTextureSize { DefaultTextureHalfSize * 2U };
     constexpr std::array<std::uint8_t, DefaultTextureSize> DefaultTextureData {};
 
-    VkCommandPool                CopyCommandPool {VK_NULL_HANDLE};
+    VkCommandPool                CopyCommandPool { VK_NULL_HANDLE };
     std::vector<VkCommandBuffer> CommandBuffers(1U, VK_NULL_HANDLE);
 
     auto const &[FamilyIndex, Queue] = GetGraphicsQueue();
@@ -109,7 +113,7 @@ void RenderCore::AllocateEmptyTexture(VkFormat const TextureFormat)
     vmaDestroyBuffer(GetAllocator(), Buffer, Allocation);
 }
 
-void RenderCore::AllocateScene(std::string_view const ModelPath)
+void RenderCore::LoadObject(std::string_view const ModelPath)
 {
     tinygltf::Model Model {};
     {
@@ -117,8 +121,9 @@ void RenderCore::AllocateScene(std::string_view const ModelPath)
         std::string                 Error {};
         std::string                 Warning {};
         std::filesystem::path const ModelFilepath(ModelPath);
-        bool const LoadResult = ModelFilepath.extension() == ".gltf" ? ModelLoader.LoadASCIIFromFile(&Model, &Error, &Warning, std::data(ModelPath))
-                                                                     : ModelLoader.LoadBinaryFromFile(&Model, &Error, &Warning, std::data(ModelPath));
+        bool const                  LoadResult = ModelFilepath.extension() == ".gltf"
+                                                     ? ModelLoader.LoadASCIIFromFile(&Model, &Error, &Warning, std::data(ModelPath))
+                                                     : ModelLoader.LoadBinaryFromFile(&Model, &Error, &Warning, std::data(ModelPath));
         if (!std::empty(Error))
         {
             BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Error: '" << Error << "'";
@@ -151,26 +156,30 @@ void RenderCore::AllocateScene(std::string_view const ModelPath)
         g_Objects.reserve(std::size(g_Objects) + std::size(Mesh.primitives));
         CachedPrimitiveRelationship.reserve(std::size(CachedPrimitiveRelationship) + std::size(Mesh.primitives));
 
-        for (tinygltf::Primitive const &Primitive : Mesh.primitives)
-        {
-            std::uint32_t const ObjectID = g_ObjectIDCounter.fetch_add(1U);
+        std::for_each(std::execution::par_unseq,
+                      std::begin(Mesh.primitives),
+                      std::end(Mesh.primitives),
+                      [&](tinygltf::Primitive const &PrimitiveIter)
+                      {
+                          std::uint32_t const ObjectID = g_ObjectIDCounter.fetch_add(1U);
 
-            std::shared_ptr<Object> &NewObject
-                = g_Objects.emplace_back(std::make_shared<Object>(ObjectID, ModelPath, std::format("{}_{:03d}", Mesh.name, ObjectID)));
+                          std::shared_ptr<Object> &NewObject = g_Objects.emplace_back(std::make_shared<Object>(ObjectID,
+                                                                                          ModelPath,
+                                                                                          std::format("{}_{:03d}", Mesh.name, ObjectID)));
 
-            SetVertexAttributes(NewObject, Model, Primitive);
-            SetPrimitiveTransform(NewObject, Node);
-            AllocatePrimitiveIndices(NewObject, Model, Primitive);
+                          SetVertexAttributes(NewObject, Model, PrimitiveIter);
+                          SetPrimitiveTransform(NewObject, Node);
+                          AllocatePrimitiveIndices(NewObject, Model, PrimitiveIter);
 
-            CachedPrimitiveRelationship.emplace(NewObject, Primitive);
-        }
+                          CachedPrimitiveRelationship.emplace(NewObject, PrimitiveIter);
+                      });
     }
 
-    VkCommandPool                CopyCommandPool {VK_NULL_HANDLE};
+    VkCommandPool                CopyCommandPool { VK_NULL_HANDLE };
     std::vector<VkCommandBuffer> CommandBuffers {};
     CommandBuffers.resize(std::size(CachedPrimitiveRelationship) * 2U);
 
-    auto const &[QueueIndex, Queue] = GetGraphicsQueue();
+    auto const &                                [QueueIndex, Queue] = GetGraphicsQueue();
     std::unordered_map<VkBuffer, VmaAllocation> BufferAllocations {};
 
     InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, QueueIndex);
@@ -190,22 +199,24 @@ void RenderCore::AllocateScene(std::string_view const ModelPath)
     }
 }
 
-void RenderCore::ReleaseScene(std::vector<std::uint32_t> const &ObjectIDs)
+void RenderCore::UnloadObjects(std::vector<std::uint32_t> const &ObjectIDs)
 {
-    std::ranges::for_each(ObjectIDs,
-                          [&](std::uint32_t const ObjectIDIter)
-                          {
-                              if (auto const MatchingIter = std::ranges::find_if(g_Objects,
-                                                                                 [ObjectIDIter](std::shared_ptr<Object> const &ObjectIter)
-                                                                                 {
-                                                                                     return ObjectIter->GetID() == ObjectIDIter;
-                                                                                 });
-                                  MatchingIter != std::end(g_Objects))
-                              {
-                                  (*MatchingIter)->Destroy();
-                                  g_Objects.erase(MatchingIter);
-                              }
-                          });
+    std::for_each(std::execution::par_unseq,
+                  std::begin(ObjectIDs),
+                  std::end(ObjectIDs),
+                  [&](std::uint32_t const ObjectIDIter)
+                  {
+                      if (auto const MatchingIter = std::ranges::find_if(g_Objects,
+                                                                         [ObjectIDIter](std::shared_ptr<Object> const &ObjectIter)
+                                                                         {
+                                                                             return ObjectIter->GetID() == ObjectIDIter;
+                                                                         });
+                          MatchingIter != std::end(g_Objects))
+                      {
+                          (*MatchingIter)->Destroy();
+                          g_Objects.erase(MatchingIter);
+                      }
+                  });
 
     if (std::empty(g_Objects))
     {
@@ -229,10 +240,14 @@ void RenderCore::ReleaseSceneResources()
 
 void RenderCore::DestroyObjects()
 {
-    for (std::shared_ptr<Object> const &ObjectIter : g_Objects)
-    {
-        ObjectIter->Destroy();
-    }
+    std::for_each(std::execution::par_unseq,
+                  std::begin(g_Objects),
+                  std::end(g_Objects),
+                  [](std::shared_ptr<Object> const &ObjectIter)
+                  {
+                      ObjectIter->Destroy();
+                  });
+
     g_Objects.clear();
 }
 
@@ -261,7 +276,7 @@ VkDescriptorBufferInfo const &RenderCore::GetSceneUniformDescriptor()
     return g_SceneUniformBufferAllocation.second;
 }
 
-std::vector<std::shared_ptr<Object>> const &RenderCore::GetAllocatedObjects()
+std::vector<std::shared_ptr<Object>> const &RenderCore::GetObjects()
 {
     return g_Objects;
 }
@@ -271,17 +286,27 @@ std::uint32_t RenderCore::GetNumAllocations()
     return static_cast<std::uint32_t>(std::size(g_Objects));
 }
 
-void RenderCore::UpdateSceneUniformBuffers(Camera const &Camera, Illumination const &Illumination)
+void RenderCore::UpdateSceneUniformBuffers()
 {
     if (void *UniformBufferData = GetSceneUniformData())
     {
         SceneUniformData const UpdatedUBO {
-            .Projection    = Camera.GetProjectionMatrix(GetSwapChainExtent()),
-            .View          = Camera.GetViewMatrix(),
-            .LightPosition = Illumination.GetPosition().ToGlmVec4(),
-            .LightColor    = Illumination.GetColor().ToGlmVec4() * Illumination.GetIntensity(),
+                .Projection = g_Camera.GetProjectionMatrix(),
+                .View = g_Camera.GetViewMatrix(),
+                .LightPosition = g_Illumination.GetPosition(),
+                .LightColor = g_Illumination.GetColor() * g_Illumination.GetIntensity()
         };
 
         std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(SceneUniformData));
     }
+}
+
+Camera &RenderCore::GetCamera()
+{
+    return g_Camera;
+}
+
+Illumination &RenderCore::GetIllumination()
+{
+    return g_Illumination;
 }

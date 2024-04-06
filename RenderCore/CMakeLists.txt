@@ -1,6 +1,6 @@
 # Author: Lucas Vilas-Boas
 # Year: 2024
-# Repo: https://github.com/lucoiso/VulkanRenderer
+# Repo: https://github.com/lucoiso/vulkan-renderer
 
 # ----------- Global Definitions -----------
 SET(LIBRARY_NAME RenderCore)
@@ -48,14 +48,8 @@ TARGET_LINK_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Libr
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
         Boost::log
-
         TinyGLTF::TinyGLTF
-
         glfw
-
-        Timer
-        Configuration
-        Coroutine
 )
 
 SET(VULKAN_LIBS_TO_LINK

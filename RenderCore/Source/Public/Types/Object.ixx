@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year : 2024
-// Repo : https://github.com/lucoiso/VulkanRenderer
+// Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
 
@@ -16,22 +16,24 @@ export module RenderCore.Types.Object;
 import RenderCore.Types.Transform;
 import RenderCore.Types.Vertex;
 import RenderCore.Types.Allocation;
+import RenderCore.Types.Material;
 
 namespace RenderCore
 {
     export class RENDERCOREMODULE_API Object
     {
-        bool                       m_IsPendingDestroy {false};
-        std::uint32_t              m_ID {};
-        std::string                m_Path {};
-        std::string                m_Name {};
-        Transform                  m_Transform {};
-        ObjectAllocationData       m_Allocation {};
-        std::vector<Vertex>        m_Vertices {};
-        std::vector<std::uint32_t> m_Indices {};
+        bool                       m_IsPendingDestroy{false};
+        std::uint32_t              m_ID{};
+        std::string                m_Path{};
+        std::string                m_Name{};
+        Transform                  m_Transform{};
+        ObjectAllocationData       m_Allocation{};
+        std::vector<Vertex>        m_Vertices{};
+        std::vector<std::uint32_t> m_Indices{};
+        MaterialData               m_MaterialData{};
 
     public:
-                 Object() = delete;
+        Object()          = delete;
         virtual ~Object() = default;
 
         Object(std::uint32_t, std::string_view);
@@ -42,19 +44,24 @@ namespace RenderCore
         [[nodiscard]] std::string const &GetName() const;
 
         [[nodiscard]] Transform const &GetTransform() const;
-        [[nodiscard]] Transform       &GetMutableTransform();
+        [[nodiscard]] Transform &      GetMutableTransform();
         void                           SetTransform(Transform const &Value);
 
-        [[nodiscard]] Vector GetPosition() const;
-        void                 SetPosition(Vector const &Position);
+        [[nodiscard]] glm::vec3 GetPosition() const;
+        void                    SetPosition(glm::vec3 const &Position);
 
-        [[nodiscard]] Rotator GetRotation() const;
-        void                  SetRotation(Rotator const &Rotation);
+        [[nodiscard]] glm::vec3 GetRotation() const;
+        void                    SetRotation(glm::vec3 const &Rotation);
 
-        [[nodiscard]] Vector GetScale() const;
-        void                 SetScale(Vector const &Scale);
+        [[nodiscard]] glm::vec3 GetScale() const;
+        void                    SetScale(glm::vec3 const &Scale);
 
         [[nodiscard]] glm::mat4 GetMatrix() const;
+        void                    SetMatrix(glm::mat4 const &Matrix);
+
+        [[nodiscard]] MaterialData const &GetMaterialData() const;
+        [[nodiscard]] MaterialData &      GetMutableMaterialData();
+        void                              SetMaterialData(MaterialData const &);
 
         virtual void Tick(double)
         {
@@ -64,15 +71,15 @@ namespace RenderCore
         void               Destroy();
 
         [[nodiscard]] ObjectAllocationData const &GetAllocationData() const;
-        [[nodiscard]] ObjectAllocationData       &GetMutableAllocationData();
+        [[nodiscard]] ObjectAllocationData &      GetMutableAllocationData();
 
         void                                     SetVertexBuffer(std::vector<Vertex> const &);
         [[nodiscard]] std::vector<Vertex> const &GetVertices() const;
-        [[nodiscard]] std::vector<Vertex>       &GetMutableVertices();
+        [[nodiscard]] std::vector<Vertex> &      GetMutableVertices();
 
         void                                            SetIndexBuffer(std::vector<std::uint32_t> const &);
         [[nodiscard]] std::vector<std::uint32_t> const &GetIndices() const;
-        [[nodiscard]] std::vector<std::uint32_t>       &GetMutableIndices();
+        [[nodiscard]] std::vector<std::uint32_t> &      GetMutableIndices();
 
         [[nodiscard]] std::uint32_t GetNumTriangles() const;
 
