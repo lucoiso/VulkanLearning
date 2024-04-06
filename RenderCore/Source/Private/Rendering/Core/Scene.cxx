@@ -188,8 +188,7 @@ void RenderCore::LoadObject(std::string_view const ModelPath)
     }
 
     VkCommandPool                CopyCommandPool { VK_NULL_HANDLE };
-    std::vector<VkCommandBuffer> CommandBuffers {};
-    CommandBuffers.resize(std::size(CachedPrimitiveRelationship));
+    std::vector<VkCommandBuffer> CommandBuffers { VK_NULL_HANDLE };
 
     auto const &                                [QueueIndex, Queue] = GetGraphicsQueue();
     std::unordered_map<VkBuffer, VmaAllocation> BufferAllocations {};
@@ -198,15 +197,11 @@ void RenderCore::LoadObject(std::string_view const ModelPath)
     {
         std::lock_guard Lock { g_ObjectMutex };
 
-        std::int16_t Count = 0U;
+        VkCommandBuffer &CommandBuffer = CommandBuffers.at(0U);
         for (Object &ObjectIter : g_Objects)
         {
-            BufferAllocations.merge(AllocateObjectBuffers(CommandBuffers.at(Count), ObjectIter));
-            BufferAllocations.merge(AllocateObjectMaterials(CommandBuffers.at(Count),
-                                                            ObjectIter,
-                                                            CachedPrimitiveRelationship.at(ObjectIter.GetID()),
-                                                            Model));
-            ++Count;
+            BufferAllocations.merge(AllocateObjectBuffers(CommandBuffer, ObjectIter));
+            BufferAllocations.merge(AllocateObjectMaterials(CommandBuffer, ObjectIter, CachedPrimitiveRelationship.at(ObjectIter.GetID()), Model));
         }
     }
     FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);

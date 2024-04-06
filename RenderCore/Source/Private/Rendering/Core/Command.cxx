@@ -114,11 +114,6 @@ constexpr VkImageLayout SwapChainMidLayout   = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMA
 constexpr VkImageLayout SwapChainFinalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 constexpr VkImageLayout DepthLayout          = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
 
-constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-};
-
 void BindDescriptorSets(VkCommandBuffer const &CommandBuffer)
 {
     for (Object const ObjectIter : GetObjects())
@@ -150,8 +145,6 @@ void SetViewport(VkCommandBuffer const &CommandBuffer, VkExtent2D const &SwapCha
 
 void RecordSceneCommands(VkCommandBuffer &CommandBuffer, std::uint32_t const ImageIndex, VkExtent2D const &SwapChainExtent)
 {
-    CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
-
     SetViewport(CommandBuffer, SwapChainExtent);
     VkFormat const SwapChainFormat = GetSwapChainImageFormat();
 
@@ -237,59 +230,60 @@ void RecordSceneCommands(VkCommandBuffer &CommandBuffer, std::uint32_t const Ima
     #else
     RenderCore::MoveImageLayout<SwapChainMidLayout, SwapChainFinalLayout, ImageAspect>(CommandBuffer, SwapchainAllocation.Image, SwapChainFormat);
     #endif
-
-    CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
 }
 
 void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
 {
-    #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-    AllocateCommandBuffers(GetGraphicsQueue().first, 1U + static_cast<std::uint8_t>(IsImGuiInitialized()));
-    #else
     AllocateCommandBuffers(GetGraphicsQueue().first, 1U);
-    #endif
+    VkCommandBuffer &CommandBuffer = g_CommandBuffers.at(0U);
 
-    VkExtent2D const &SwapChainExtent = GetSwapChainExtent();
-    RecordSceneCommands(g_CommandBuffers.at(0U), ImageIndex, SwapChainExtent);
+    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+    };
 
-    #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-    if (IsImGuiInitialized())
+    CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
     {
-        VkCommandBuffer &CommandBuffer = g_CommandBuffers.at(1U);
-        CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
+        VkExtent2D const &SwapChainExtent = GetSwapChainExtent();
+        RecordSceneCommands(CommandBuffer, ImageIndex, SwapChainExtent);
 
-        ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
-        VkFormat const         SwapChainFormat     = GetSwapChainImageFormat();
-
-        if (ImDrawData *const ImGuiDrawData = ImGui::GetDrawData())
+        #ifdef VULKAN_RENDERER_ENABLE_IMGUI
+        if (IsImGuiInitialized())
         {
-            VkRenderingAttachmentInfoKHR const ColorAttachmentInfo {
-                    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-                    .imageView = SwapchainAllocation.View,
-                    .imageLayout = SwapChainMidLayout,
-                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                    .clearValue = g_ClearValues.at(0U)
-            };
+            ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
+            VkFormat const         SwapChainFormat     = GetSwapChainImageFormat();
 
-            VkRenderingInfo const RenderingInfo {
-                    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
-                    .renderArea = { .offset = { 0, 0 }, .extent = SwapChainExtent },
-                    .layerCount = 1U,
-                    .colorAttachmentCount = 1U,
-                    .pColorAttachments = &ColorAttachmentInfo
-            };
+            if (ImDrawData *const ImGuiDrawData = ImGui::GetDrawData())
+            {
+                VkRenderingAttachmentInfoKHR const ColorAttachmentInfo {
+                        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+                        .imageView = SwapchainAllocation.View,
+                        .imageLayout = SwapChainMidLayout,
+                        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                        .clearValue = g_ClearValues.at(0U)
+                };
 
-            vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
-            ImGui_ImplVulkan_RenderDrawData(ImGuiDrawData, CommandBuffer);
-            vkCmdEndRendering(CommandBuffer);
+                VkRenderingInfo const RenderingInfo {
+                        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+                        .renderArea = { .offset = { 0, 0 }, .extent = SwapChainExtent },
+                        .layerCount = 1U,
+                        .colorAttachmentCount = 1U,
+                        .pColorAttachments = &ColorAttachmentInfo
+                };
+
+                vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
+                ImGui_ImplVulkan_RenderDrawData(ImGuiDrawData, CommandBuffer);
+                vkCmdEndRendering(CommandBuffer);
+            }
+
+            RenderCore::MoveImageLayout<SwapChainMidLayout, SwapChainFinalLayout, ImageAspect>(CommandBuffer,
+                                                                                               SwapchainAllocation.Image,
+                                                                                               SwapChainFormat);
         }
-
-        RenderCore::MoveImageLayout<SwapChainMidLayout, SwapChainFinalLayout, ImageAspect>(CommandBuffer, SwapchainAllocation.Image, SwapChainFormat);
-
-        CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
+        #endif
     }
-    #endif
+    CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
 }
 
 void RenderCore::SubmitCommandBuffers()

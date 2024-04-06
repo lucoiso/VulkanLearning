@@ -26,7 +26,7 @@ import RenderCore.Utils.DebugHelpers;
 
 using namespace RenderCore;
 
-std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> g_StageInfos{};
+std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> g_StageInfos {};
 
 bool CompileInternal(ShaderType const            ShaderType,
                      std::string_view const      Source,
@@ -81,7 +81,8 @@ bool CompileInternal(ShaderType const            ShaderType,
     GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
     glslang::FinalizeProcess();
 
-    if (std::string const GeneratedLogs = Logger.getAllMessages(); !std::empty(GeneratedLogs))
+    if (std::string const GeneratedLogs = Logger.getAllMessages();
+        !std::empty(GeneratedLogs))
     {
         BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Shader compilation result log:\n" << GeneratedLogs;
     }
@@ -91,7 +92,11 @@ bool CompileInternal(ShaderType const            ShaderType,
 
 void StageInfo(VkShaderModule const &Module, EShLanguage const Language, std::string_view const EntryPoint)
 {
-    VkPipelineShaderStageCreateInfo StageInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, .module = Module, .pName = std::data(EntryPoint)};
+    VkPipelineShaderStageCreateInfo StageInfo {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .module = Module,
+            .pName = std::data(EntryPoint)
+    };
 
     switch (Language)
     {
@@ -173,16 +178,13 @@ bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
             {
                 case SPV_MSG_FATAL:
                 case SPV_MSG_INTERNAL_ERROR:
-                case SPV_MSG_ERROR:
-                    BOOST_LOG_TRIVIAL(error) << "[" << __func_internal__ << "]: " << std::format("Error: {}\n", Message);
+                case SPV_MSG_ERROR: BOOST_LOG_TRIVIAL(error) << "[" << __func_internal__ << "]: " << std::format("Error: {}\n", Message);
                     break;
 
-                case SPV_MSG_WARNING:
-                    BOOST_LOG_TRIVIAL(warning) << "[" << __func_internal__ << "]: " << std::format("Warning: {}\n", Message);
+                case SPV_MSG_WARNING: BOOST_LOG_TRIVIAL(warning) << "[" << __func_internal__ << "]: " << std::format("Warning: {}\n", Message);
                     break;
 
-                case SPV_MSG_INFO:
-                    BOOST_LOG_TRIVIAL(info) << "[" << __func_internal__ << "]: " << std::format("Info: {}\n", Message);
+                case SPV_MSG_INFO: BOOST_LOG_TRIVIAL(info) << "[" << __func_internal__ << "]: " << std::format("Info: {}\n", Message);
                     break;
 
                 default:
@@ -301,9 +303,11 @@ VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const &SPIRVC
     }
     #endif
 
-    VkShaderModuleCreateInfo const CreateInfo{.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-                                              .codeSize = std::size(SPIRVCode) * sizeof(std::uint32_t),
-                                              .pCode = std::data(SPIRVCode)};
+    VkShaderModuleCreateInfo const CreateInfo {
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .codeSize = std::size(SPIRVCode) * sizeof(std::uint32_t),
+            .pCode = std::data(SPIRVCode)
+    };
 
     VkShaderModule Output = nullptr;
     CheckVulkanResult(vkCreateShaderModule(volkGetLoadedDevice(), &CreateInfo, nullptr, &Output));
@@ -372,12 +376,13 @@ std::vector<VkPipelineShaderStageCreateInfo> RenderCore::CompileDefaultShaders()
 {
     constexpr auto GlslVersion = 450;
     constexpr auto EntryPoint  = "main";
-    constexpr auto VertexShader{DEFAULT_VERTEX_SHADER};
-    constexpr auto FragmentShader{DEFAULT_FRAGMENT_SHADER};
+    constexpr auto VertexShader { DEFAULT_VERTEX_SHADER };
+    constexpr auto FragmentShader { DEFAULT_FRAGMENT_SHADER };
 
     std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
 
-    if (std::vector<std::uint32_t> ShaderCode; CompileOrLoadIfExists(VertexShader, ShaderType::GLSL, EntryPoint, GlslVersion, EShLangVertex, ShaderCode))
+    if (std::vector<std::uint32_t> ShaderCode;
+        CompileOrLoadIfExists(VertexShader, ShaderType::GLSL, EntryPoint, GlslVersion, EShLangVertex, ShaderCode))
     {
         auto const VertexModule = CreateModule(ShaderCode, EShLangVertex, EntryPoint);
         ShaderStages.push_back(GetStageInfo(VertexModule));

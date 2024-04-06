@@ -5,7 +5,6 @@
 module;
 
 #include <Volk/volk.h>
-#include <memory>
 #include <string_view>
 #include <vector>
 #include <vma/vk_mem_alloc.h>
