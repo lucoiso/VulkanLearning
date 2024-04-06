@@ -1,6 +1,7 @@
 # Copyright Notices: [...]
 
 import os
+from conan import ConanFile
 from conan.tools.cmake import cmake_layout, CMakeToolchain
 from conan.tools.files import copy
 
