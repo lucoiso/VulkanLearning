@@ -88,7 +88,7 @@ VmaAllocationInfo RenderCore::CreateBuffer(VkDeviceSize const &        Size,
     VmaAllocationInfo MemoryAllocationInfo;
     CheckVulkanResult(vmaCreateBuffer(GetAllocator(), &BufferCreateInfo, &AllocationCreateInfo, &Buffer, &Allocation, &MemoryAllocationInfo));
 
-    vmaSetAllocationName(GetAllocator(), Allocation, std::format("Buffer: {}", Identifier).c_str());
+    vmaSetAllocationName(GetAllocator(), Allocation, std::data(std::format("Buffer: {}", Identifier)));
 
     return MemoryAllocationInfo;
 }
@@ -183,31 +183,31 @@ void RenderCore::CreateUniformBuffers(BufferAllocation &BufferAllocation, VkDevi
     vmaMapMemory(GetAllocator(), BufferAllocation.Allocation, &BufferAllocation.MappedData);
 }
 
-void RenderCore::CreateModelUniformBuffers(std::shared_ptr<Object> const &Object)
+void RenderCore::CreateModelUniformBuffers(Object &Object)
 {
     {
         constexpr VkDeviceSize BufferSize = sizeof(ModelUniformData);
-        CreateUniformBuffers(Object->GetMutableAllocationData().ModelBufferAllocation, BufferSize, "MODEL_UNIFORM");
+        CreateUniformBuffers(Object.GetMutableAllocationData().ModelBufferAllocation, BufferSize, "MODEL_UNIFORM");
 
-        Object->GetMutableAllocationData().ModelDescriptors.emplace(UniformType::Model,
-                                                                    VkDescriptorBufferInfo {
-                                                                            .buffer = Object->GetMutableAllocationData().ModelBufferAllocation.Buffer,
-                                                                            .offset = 0U,
-                                                                            .range = BufferSize
-                                                                    });
+        Object.GetMutableAllocationData().ModelDescriptors.emplace(UniformType::Model,
+                                                                   VkDescriptorBufferInfo {
+                                                                           .buffer = Object.GetMutableAllocationData().ModelBufferAllocation.Buffer,
+                                                                           .offset = 0U,
+                                                                           .range = BufferSize
+                                                                   });
     }
 
     {
         constexpr VkDeviceSize BufferSize = sizeof(MaterialUniformData);
-        CreateUniformBuffers(Object->GetMutableAllocationData().MaterialBufferAllocation, BufferSize, "MATERIAL_UNIFORM");
+        CreateUniformBuffers(Object.GetMutableAllocationData().MaterialBufferAllocation, BufferSize, "MATERIAL_UNIFORM");
 
-        Object->GetMutableAllocationData().ModelDescriptors.emplace(UniformType::Material,
-                                                                    VkDescriptorBufferInfo {
-                                                                            .buffer = Object->GetMutableAllocationData().MaterialBufferAllocation.
-                                                                                              Buffer,
-                                                                            .offset = 0U,
-                                                                            .range = BufferSize
-                                                                    });
+        Object.GetMutableAllocationData().ModelDescriptors.emplace(UniformType::Material,
+                                                                   VkDescriptorBufferInfo {
+                                                                           .buffer = Object.GetMutableAllocationData().MaterialBufferAllocation.
+                                                                                            Buffer,
+                                                                           .offset = 0U,
+                                                                           .range = BufferSize
+                                                                   });
     }
 }
 
@@ -240,7 +240,7 @@ void RenderCore::CreateImage(VkFormat const &               ImageFormat,
     VmaAllocationInfo AllocationInfo;
     CheckVulkanResult(vmaCreateImage(GetAllocator(), &ImageViewCreateInfo, &ImageCreateInfo, &Image, &Allocation, &AllocationInfo));
 
-    vmaSetAllocationName(GetAllocator(), Allocation, std::format("Image: {}", Identifier).c_str());
+    vmaSetAllocationName(GetAllocator(), Allocation, std::data(std::format("Image: {}", Identifier)));
 }
 
 void RenderCore::CreateTextureSampler(VkPhysicalDevice const &Device, VkSampler &Sampler)

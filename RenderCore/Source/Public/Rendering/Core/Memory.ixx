@@ -30,13 +30,16 @@ export namespace RenderCore
 
     void CopyBuffer(VkCommandBuffer const &, VkBuffer const &, VkBuffer const &, VkDeviceSize const &);
 
-    [[nodiscard]] std::pair<VkBuffer, VmaAllocation> CreateVertexBuffers(VkCommandBuffer const &, ObjectAllocationData &, std::vector<Vertex> const &);
+    [[nodiscard]] std::pair<VkBuffer, VmaAllocation>
+    CreateVertexBuffers(VkCommandBuffer const &, ObjectAllocationData &, std::vector<Vertex> const &);
 
-    [[nodiscard]] std::pair<VkBuffer, VmaAllocation> CreateIndexBuffers(VkCommandBuffer const &, ObjectAllocationData &, std::vector<std::uint32_t> const &);
+    [[nodiscard]] std::pair<VkBuffer, VmaAllocation> CreateIndexBuffers(VkCommandBuffer const &,
+                                                                        ObjectAllocationData &,
+                                                                        std::vector<std::uint32_t> const &);
 
     void CreateUniformBuffers(BufferAllocation &, VkDeviceSize, std::string_view);
 
-    void CreateModelUniformBuffers(std::shared_ptr<Object> const &);
+    void CreateModelUniformBuffers(Object &);
 
     void CreateImage(VkFormat const &,
                      VkExtent2D const &,
@@ -56,8 +59,13 @@ export namespace RenderCore
 
     void CopyBufferToImage(VkCommandBuffer const &, VkBuffer const &, VkImage const &, VkExtent2D const &);
 
-    [[nodiscard]] std::pair<VkBuffer, VmaAllocation>
-    AllocateTexture(VkCommandBuffer &, unsigned char const *, std::uint32_t, std::uint32_t, VkFormat, std::size_t, ImageAllocation &);
+    [[nodiscard]] std::pair<VkBuffer, VmaAllocation> AllocateTexture(VkCommandBuffer &,
+                                                                     unsigned char const *,
+                                                                     std::uint32_t,
+                                                                     std::uint32_t,
+                                                                     VkFormat,
+                                                                     std::size_t,
+                                                                     ImageAllocation &);
 
     template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
     constexpr void MoveImageLayout(VkCommandBuffer &   CommandBuffer,
@@ -66,16 +74,17 @@ export namespace RenderCore
                                    std::uint32_t const FromQueueIndex = VK_QUEUE_FAMILY_IGNORED,
                                    std::uint32_t const ToQueueIndex   = VK_QUEUE_FAMILY_IGNORED)
     {
-        VkImageMemoryBarrier2 ImageBarrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                           .srcAccessMask = 0U,
-                                           .dstAccessMask = 0U,
-                                           .oldLayout = OldLayout,
-                                           .newLayout = NewLayout,
-                                           .srcQueueFamilyIndex = FromQueueIndex,
-                                           .dstQueueFamilyIndex = ToQueueIndex,
-                                           .image = Image,
-                                           .subresourceRange
-                                           = {.aspectMask = Aspect, .baseMipLevel = 0U, .levelCount = 1U, .baseArrayLayer = 0U, .layerCount = 1U}};
+        VkImageMemoryBarrier2 ImageBarrier {
+                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                .srcAccessMask = 0U,
+                .dstAccessMask = 0U,
+                .oldLayout = OldLayout,
+                .newLayout = NewLayout,
+                .srcQueueFamilyIndex = FromQueueIndex,
+                .dstQueueFamilyIndex = ToQueueIndex,
+                .image = Image,
+                .subresourceRange = { .aspectMask = Aspect, .baseMipLevel = 0U, .levelCount = 1U, .baseArrayLayer = 0U, .layerCount = 1U }
+        };
 
         if constexpr (HasFlag<VkImageAspectFlags>(Aspect, VK_IMAGE_ASPECT_DEPTH_BIT))
         {
@@ -138,9 +147,11 @@ export namespace RenderCore
             ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
         }
 
-        VkDependencyInfo const DependencyInfo{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                                              .imageMemoryBarrierCount = 1U,
-                                              .pImageMemoryBarriers = &ImageBarrier};
+        VkDependencyInfo const DependencyInfo {
+                .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                .imageMemoryBarrierCount = 1U,
+                .pImageMemoryBarriers = &ImageBarrier
+        };
 
         vkCmdPipelineBarrier2(CommandBuffer, &DependencyInfo);
     }

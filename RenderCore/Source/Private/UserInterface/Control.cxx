@@ -33,17 +33,17 @@ void Control::DestroyChildren()
     }
 }
 
-Control* Control::GetParent() const
+Control *Control::GetParent() const
 {
     return m_Parent;
 }
 
-std::vector<std::shared_ptr<Control>> const& Control::GetChildren() const
+std::vector<std::shared_ptr<Control>> const &Control::GetChildren() const
 {
     return m_Children;
 }
 
-std::vector<std::shared_ptr<Control>> const& Control::GetIndependentChildren() const
+std::vector<std::shared_ptr<Control>> const &Control::GetIndependentChildren() const
 {
     return m_IndependentChildren;
 }

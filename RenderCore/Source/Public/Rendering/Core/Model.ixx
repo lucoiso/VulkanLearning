@@ -22,16 +22,16 @@ export namespace RenderCore
 
     float const *GetPrimitiveData(std::string_view const &, tinygltf::Model const &, tinygltf::Primitive const &, std::uint32_t *);
 
-    void SetVertexAttributes(std::shared_ptr<Object> const &, tinygltf::Model const &, tinygltf::Primitive const &);
+    void SetVertexAttributes(Object &, tinygltf::Model const &, tinygltf::Primitive const &);
 
-    std::uint32_t AllocatePrimitiveIndices(std::shared_ptr<Object> const &, tinygltf::Model const &, tinygltf::Primitive const &);
+    std::uint32_t AllocatePrimitiveIndices(Object &, tinygltf::Model const &, tinygltf::Primitive const &);
 
-    void SetPrimitiveTransform(std::shared_ptr<Object> const &, tinygltf::Node const &);
+    void SetPrimitiveTransform(Object &, tinygltf::Node const &);
 
-    std::unordered_map<VkBuffer, VmaAllocation> AllocateObjectBuffers(VkCommandBuffer const &, std::shared_ptr<Object> const &);
+    std::unordered_map<VkBuffer, VmaAllocation> AllocateObjectBuffers(VkCommandBuffer const &, Object &);
 
     std::unordered_map<VkBuffer, VmaAllocation> AllocateObjectMaterials(VkCommandBuffer &,
-                                                                        std::shared_ptr<Object> const &,
+                                                                        Object &,
                                                                         tinygltf::Primitive const &,
                                                                         tinygltf::Model const &);
 } // namespace RenderCore

@@ -34,6 +34,8 @@ export namespace RenderCore
 
     std::optional<std::int32_t> RequestImageIndex(GLFWwindow *);
 
+    void CheckObjectManagementFlags();
+
     void Tick();
 
     bool Initialize(GLFWwindow *);
@@ -54,11 +56,11 @@ export namespace RenderCore
 
         [[nodiscard]] RENDERCOREMODULE_API RendererStateFlags GetStateFlags();
 
-        RENDERCOREMODULE_API void LoadObject(std::string_view);
+        RENDERCOREMODULE_API void RequestLoadObject(std::string_view);
 
-        RENDERCOREMODULE_API void UnloadObjects(std::vector<std::uint32_t> const &);
+        RENDERCOREMODULE_API void RequestUnloadObjects(std::vector<std::uint32_t> const &);
 
-        RENDERCOREMODULE_API void DestroyObjects();
+        RENDERCOREMODULE_API void RequestDestroyObjects();
 
         [[nodiscard]] RENDERCOREMODULE_API double GetFrameTime();
 
@@ -76,9 +78,11 @@ export namespace RenderCore
 
         [[nodiscard]] RENDERCOREMODULE_API std::optional<std::int32_t> const &GetImageIndex();
 
-        [[nodiscard]] RENDERCOREMODULE_API std::vector<std::shared_ptr<Object>> const &GetObjects();
+        [[nodiscard]] RENDERCOREMODULE_API std::vector<Object> const &GetObjects();
 
-        [[nodiscard]] RENDERCOREMODULE_API std::shared_ptr<Object> GetObjectByID(std::uint32_t);
+        [[nodiscard]] RENDERCOREMODULE_API std::vector<Object> &GetMutableObjects();
+
+        [[nodiscard]] RENDERCOREMODULE_API Object GetObjectByID(std::uint32_t);
 
         [[nodiscard]] RENDERCOREMODULE_API std::uint32_t GetNumObjects();
 

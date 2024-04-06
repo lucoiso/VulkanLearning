@@ -207,16 +207,16 @@ bool Camera::IsInAllowedDistance(glm::vec3 const &TestLocation) const
     return DistanceToTestLocation <= GetDrawDistance();
 }
 
-bool Camera::CanDrawObject(std::shared_ptr<Object> const &Object) const
+bool Camera::CanDrawObject(Object const &Object) const
 {
-    if (!Object)
+    if (Object.IsPendingDestroy())
     {
         return false;
     }
 
     if constexpr (g_EnableExperimentalFrustumCulling)
     {
-        return IsInsideCameraFrustum(Object->GetPosition()) && IsInAllowedDistance(Object->GetPosition());
+        return IsInsideCameraFrustum(Object.GetPosition()) && IsInAllowedDistance(Object.GetPosition());
     }
 
     return true;

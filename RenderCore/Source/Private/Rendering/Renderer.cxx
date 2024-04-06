@@ -5,7 +5,6 @@
 module;
 
 #include <filesystem>
-#include <mutex>
 #include <vector>
 
 // Include vulkan before glfw
@@ -40,11 +39,13 @@ import RenderCore.Types.Allocation;
 
 using namespace RenderCore;
 
-RendererStateFlags          g_StateFlags { RendererStateFlags::NONE };
-double                      g_FrameTime { 0.F };
-double                      g_FrameRateCap { 0.016667F };
-std::optional<std::int32_t> g_ImageIndex {};
-std::mutex                  g_RenderingMutex {};
+RendererStateFlags                  g_StateFlags { RendererStateFlags::NONE };
+RendererObjectsManagementStateFlags g_ObjectsManagementStateFlags { RendererObjectsManagementStateFlags::NONE };
+std::vector<std::string>            g_ModelsToLoad {};
+std::vector<std::uint32_t>          g_ModelsToUnload {};
+double                              g_FrameTime { 0.F };
+double                              g_FrameRateCap { 0.016667F };
+std::optional<std::int32_t>         g_ImageIndex {};
 
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
                                                        RendererStateFlags::PENDING_RESOURCES_DESTRUCTION |
@@ -58,6 +59,8 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
     }
 
     g_FrameTime = DeltaTime;
+
+    CheckObjectManagementFlags();
 
     if (HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
     {
@@ -123,7 +126,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
 
         if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender) && g_ImageIndex.has_value())
         {
-            std::lock_guard Lock(g_RenderingMutex);
+            auto const Lock = LockScene();
 
             UpdateSceneUniformBuffers();
             RecordCommandBuffers(g_ImageIndex.value());
@@ -159,22 +162,46 @@ std::optional<std::int32_t> RenderCore::RequestImageIndex(GLFWwindow *const Wind
     return Output;
 }
 
+void RenderCore::CheckObjectManagementFlags()
+{
+    if (HasAnyFlag(g_ObjectsManagementStateFlags))
+    {
+        AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    }
+
+    if (HasAnyFlag(g_ObjectsManagementStateFlags,
+                   RendererObjectsManagementStateFlags::PENDING_CLEAR | RendererObjectsManagementStateFlags::PENDING_UNLOAD))
+    {
+        if (HasFlag(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_CLEAR))
+        {
+            DestroyObjects();
+        }
+        else if (HasFlag(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_UNLOAD))
+        {
+            UnloadObjects(g_ModelsToUnload);
+        }
+
+        g_ModelsToUnload.clear();
+        RemoveFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_CLEAR);
+        RemoveFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_UNLOAD);
+    }
+
+    if (HasFlag(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_LOAD))
+    {
+        for (auto const &ModelPath : g_ModelsToLoad)
+        {
+            LoadObject(ModelPath);
+        }
+
+        g_ModelsToLoad.clear();
+        RemoveFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_LOAD);
+    }
+}
+
 void RenderCore::Tick()
 {
     GetCamera().UpdateCameraMovement(g_FrameTime);
-
-    auto const &Objects = GetObjects();
-
-    std::for_each(std::execution::par_unseq,
-                  std::begin(Objects),
-                  std::end(Objects),
-                  [](std::shared_ptr<Object> const &ObjectIter)
-                  {
-                      if (ObjectIter && !ObjectIter->IsPendingDestroy())
-                      {
-                          ObjectIter->Tick(g_FrameTime);
-                      }
-                  });
+    TickObjects(static_cast<float>(g_FrameTime));
 }
 
 bool RenderCore::Initialize(GLFWwindow *const Window)
@@ -263,35 +290,21 @@ RendererStateFlags Renderer::GetStateFlags()
     return g_StateFlags;
 }
 
-void Renderer::LoadObject(std::string_view const ObjectPath)
+void Renderer::RequestLoadObject(std::string_view const ObjectPath)
 {
-    if (!IsInitialized())
-    {
-        return;
-    }
-
-    std::lock_guard Lock(g_RenderingMutex);
-
-    RenderCore::LoadObject(ObjectPath);
-    AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    g_ModelsToLoad.emplace_back(ObjectPath);
+    AddFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_LOAD);
 }
 
-void Renderer::UnloadObjects(std::vector<std::uint32_t> const &ObjectIDs)
+void Renderer::RequestUnloadObjects(std::vector<std::uint32_t> const &ObjectIDs)
 {
-    if (!IsInitialized())
-    {
-        return;
-    }
-
-    std::lock_guard Lock(g_RenderingMutex);
-
-    RenderCore::UnloadObjects(ObjectIDs);
-    AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    g_ModelsToUnload.insert(std::end(g_ModelsToUnload), std::begin(ObjectIDs), std::end(ObjectIDs));
+    AddFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_UNLOAD);
 }
 
-void Renderer::DestroyObjects()
+void Renderer::RequestDestroyObjects()
 {
-    RenderCore::DestroyObjects();
+    AddFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_CLEAR);
 }
 
 double Renderer::GetFrameTime()
@@ -337,17 +350,22 @@ std::optional<std::int32_t> const &Renderer::GetImageIndex()
     return g_ImageIndex;
 }
 
-std::vector<std::shared_ptr<Object>> const &Renderer::GetObjects()
+std::vector<Object> const &Renderer::GetObjects()
 {
     return RenderCore::GetObjects();
 }
 
-std::shared_ptr<Object> Renderer::GetObjectByID(std::uint32_t const ObjectID)
+std::vector<Object> &Renderer::GetMutableObjects()
+{
+    return RenderCore::GetObjects();
+}
+
+Object Renderer::GetObjectByID(std::uint32_t const ObjectID)
 {
     return *std::ranges::find_if(RenderCore::GetObjects(),
-                                 [ObjectID](std::shared_ptr<Object> const &ObjectIter)
+                                 [ObjectID](Object const &ObjectIter)
                                  {
-                                     return ObjectIter && ObjectIter->GetID() == ObjectID;
+                                     return ObjectIter.GetID() == ObjectID;
                                  });
 }
 

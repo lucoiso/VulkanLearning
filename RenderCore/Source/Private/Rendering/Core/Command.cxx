@@ -121,12 +121,12 @@ constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
 
 void BindDescriptorSets(VkCommandBuffer const &CommandBuffer)
 {
-    for (std::shared_ptr<Object> const &ObjectIter : GetObjects())
+    for (Object const ObjectIter : GetObjects())
     {
-        if (ObjectIter && !ObjectIter->IsPendingDestroy() && GetCamera().CanDrawObject(ObjectIter))
+        if (GetCamera().CanDrawObject(ObjectIter))
         {
-            ObjectIter->UpdateUniformBuffers();
-            ObjectIter->DrawObject(CommandBuffer);
+            ObjectIter.UpdateUniformBuffers();
+            ObjectIter.DrawObject(CommandBuffer);
         }
     }
 }

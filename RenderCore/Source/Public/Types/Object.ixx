@@ -8,6 +8,7 @@ module;
 #include <glm/ext.hpp>
 #include <string>
 #include <vector>
+#include <bitset>
 
 #include "RenderCoreModule.hpp"
 
@@ -22,19 +23,24 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Object
     {
-        bool                       m_IsPendingDestroy{false};
-        std::uint32_t              m_ID{};
-        std::string                m_Path{};
-        std::string                m_Name{};
-        Transform                  m_Transform{};
-        ObjectAllocationData       m_Allocation{};
-        std::vector<Vertex>        m_Vertices{};
-        std::vector<std::uint32_t> m_Indices{};
-        MaterialData               m_MaterialData{};
+        bool                       m_IsPendingDestroy { false };
+        std::uint32_t              m_ID {};
+        std::string                m_Path {};
+        std::string                m_Name {};
+        Transform                  m_Transform {};
+        std::vector<Vertex>        m_Vertices {};
+        std::vector<std::uint32_t> m_Indices {};
+        MaterialData               m_MaterialData {};
+        ObjectAllocationData       m_Allocation {};
 
     public:
         Object()          = delete;
         virtual ~Object() = default;
+
+        inline bool operator==(Object const &Rhs) const
+        {
+            return GetID() == Rhs.GetID() && GetName() == Rhs.GetName() && GetPath() == Rhs.GetPath();
+        }
 
         Object(std::uint32_t, std::string_view);
         Object(std::uint32_t, std::string_view, std::string_view);

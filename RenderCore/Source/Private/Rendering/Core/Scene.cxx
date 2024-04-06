@@ -42,8 +42,9 @@ VkSampler                                           g_Sampler { VK_NULL_HANDLE }
 ImageAllocation                                     g_DepthImage {};
 ImageAllocation                                     g_EmptyImage {};
 std::atomic                                         g_ObjectIDCounter { 0U };
-std::vector<std::shared_ptr<Object>>                g_Objects {};
+std::vector<Object>                                 g_Objects {};
 std::pair<BufferAllocation, VkDescriptorBufferInfo> g_SceneUniformBufferAllocation {};
+std::mutex                                          g_ObjectMutex {};
 
 void RenderCore::CreateSceneUniformBuffers()
 {
@@ -141,7 +142,7 @@ void RenderCore::LoadObject(std::string_view const ModelPath)
         }
     }
 
-    std::unordered_map<std::shared_ptr<Object>, tinygltf::Primitive const &> CachedPrimitiveRelationship {};
+    std::unordered_map<std::uint32_t, tinygltf::Primitive const &> CachedPrimitiveRelationship {};
 
     for (tinygltf::Node const &Node : Model.nodes)
     {
@@ -162,33 +163,39 @@ void RenderCore::LoadObject(std::string_view const ModelPath)
                       [&](tinygltf::Primitive const &PrimitiveIter)
                       {
                           std::uint32_t const ObjectID = g_ObjectIDCounter.fetch_add(1U);
+                          CachedPrimitiveRelationship.emplace(ObjectID, PrimitiveIter);
 
-                          std::shared_ptr<Object> &NewObject = g_Objects.emplace_back(std::make_shared<Object>(ObjectID,
-                                                                                          ModelPath,
-                                                                                          std::format("{}_{:03d}", Mesh.name, ObjectID)));
+                          Object NewObject(ObjectID, ModelPath, std::format("{}_{:03d}", std::empty(Mesh.name) ? "None" : Mesh.name, ObjectID));
 
                           SetVertexAttributes(NewObject, Model, PrimitiveIter);
                           SetPrimitiveTransform(NewObject, Node);
                           AllocatePrimitiveIndices(NewObject, Model, PrimitiveIter);
 
-                          CachedPrimitiveRelationship.emplace(NewObject, PrimitiveIter);
+                          std::lock_guard Lock { g_ObjectMutex };
+                          g_Objects.push_back(std::move(NewObject));
                       });
     }
 
     VkCommandPool                CopyCommandPool { VK_NULL_HANDLE };
     std::vector<VkCommandBuffer> CommandBuffers {};
-    CommandBuffers.resize(std::size(CachedPrimitiveRelationship) * 2U);
+    CommandBuffers.resize(std::size(CachedPrimitiveRelationship));
 
     auto const &                                [QueueIndex, Queue] = GetGraphicsQueue();
     std::unordered_map<VkBuffer, VmaAllocation> BufferAllocations {};
 
     InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, QueueIndex);
     {
-        std::int16_t Count = -1;
-        for (std::pair<std::shared_ptr<Object>, tinygltf::Primitive const &> ObjectIter : CachedPrimitiveRelationship)
+        std::lock_guard Lock { g_ObjectMutex };
+
+        std::int16_t Count = 0U;
+        for (Object &ObjectIter : g_Objects)
         {
-            BufferAllocations.merge(AllocateObjectBuffers(CommandBuffers.at(++Count), ObjectIter.first));
-            BufferAllocations.merge(AllocateObjectMaterials(CommandBuffers.at(++Count), ObjectIter.first, ObjectIter.second, Model));
+            BufferAllocations.merge(AllocateObjectBuffers(CommandBuffers.at(Count), ObjectIter));
+            BufferAllocations.merge(AllocateObjectMaterials(CommandBuffers.at(Count),
+                                                            ObjectIter,
+                                                            CachedPrimitiveRelationship.at(ObjectIter.GetID()),
+                                                            Model));
+            ++Count;
         }
     }
     FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);
@@ -201,19 +208,21 @@ void RenderCore::LoadObject(std::string_view const ModelPath)
 
 void RenderCore::UnloadObjects(std::vector<std::uint32_t> const &ObjectIDs)
 {
+    std::lock_guard Lock { g_ObjectMutex };
+
     std::for_each(std::execution::par_unseq,
                   std::begin(ObjectIDs),
                   std::end(ObjectIDs),
                   [&](std::uint32_t const ObjectIDIter)
                   {
                       if (auto const MatchingIter = std::ranges::find_if(g_Objects,
-                                                                         [ObjectIDIter](std::shared_ptr<Object> const &ObjectIter)
+                                                                         [ObjectIDIter](Object const &ObjectIter)
                                                                          {
-                                                                             return ObjectIter->GetID() == ObjectIDIter;
+                                                                             return ObjectIter.GetID() == ObjectIDIter;
                                                                          });
                           MatchingIter != std::end(g_Objects))
                       {
-                          (*MatchingIter)->Destroy();
+                          MatchingIter->Destroy();
                           g_Objects.erase(MatchingIter);
                       }
                   });
@@ -240,15 +249,39 @@ void RenderCore::ReleaseSceneResources()
 
 void RenderCore::DestroyObjects()
 {
+    std::lock_guard Lock { g_ObjectMutex };
+
     std::for_each(std::execution::par_unseq,
                   std::begin(g_Objects),
                   std::end(g_Objects),
-                  [](std::shared_ptr<Object> const &ObjectIter)
+                  [&](Object &ObjectIter)
                   {
-                      ObjectIter->Destroy();
+                      ObjectIter.Destroy();
                   });
 
     g_Objects.clear();
+    g_ObjectIDCounter = 0U;
+}
+
+void RenderCore::TickObjects(float const DeltaTime)
+{
+    std::lock_guard Lock { g_ObjectMutex };
+
+    std::for_each(std::execution::par_unseq,
+                  std::begin(g_Objects),
+                  std::end(g_Objects),
+                  [&, DeltaTime](Object &ObjectIter)
+                  {
+                      if (!ObjectIter.IsPendingDestroy())
+                      {
+                          ObjectIter.Tick(DeltaTime);
+                      }
+                  });
+}
+
+std::lock_guard<std::mutex> RenderCore::LockScene()
+{
+    return std::lock_guard { g_ObjectMutex };
 }
 
 ImageAllocation const &RenderCore::GetDepthImage()
@@ -276,7 +309,7 @@ VkDescriptorBufferInfo const &RenderCore::GetSceneUniformDescriptor()
     return g_SceneUniformBufferAllocation.second;
 }
 
-std::vector<std::shared_ptr<Object>> const &RenderCore::GetObjects()
+std::vector<Object> &RenderCore::GetObjects()
 {
     return g_Objects;
 }

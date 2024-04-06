@@ -84,6 +84,6 @@ namespace RenderCore
 
         [[nodiscard]] bool IsInsideCameraFrustum(glm::vec3 const &) const;
         [[nodiscard]] bool IsInAllowedDistance(glm::vec3 const &) const;
-        [[nodiscard]] bool CanDrawObject(std::shared_ptr<Object> const &) const;
+        [[nodiscard]] bool CanDrawObject(Object const &) const;
     };
 } // namespace RenderCore

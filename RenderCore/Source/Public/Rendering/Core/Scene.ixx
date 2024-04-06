@@ -5,7 +5,7 @@
 module;
 
 #include <cstdint>
-#include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 #include <vma/vk_mem_alloc.h>
@@ -36,6 +36,10 @@ export namespace RenderCore
 
     void DestroyObjects();
 
+    void TickObjects(float);
+
+    std::lock_guard<std::mutex> LockScene();
+
     [[nodiscard]] ImageAllocation const &GetDepthImage();
 
     [[nodiscard]] VkSampler const &GetSampler();
@@ -46,7 +50,7 @@ export namespace RenderCore
 
     [[nodiscard]] VkDescriptorBufferInfo const &GetSceneUniformDescriptor();
 
-    [[nodiscard]] std::vector<std::shared_ptr<Object>> const &GetObjects();
+    [[nodiscard]] std::vector<Object> &GetObjects();
 
     [[nodiscard]] std::uint32_t GetNumAllocations();
 
