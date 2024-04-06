@@ -183,7 +183,7 @@ void RenderCore::SetPrimitiveTransform(Object &Object, tinygltf::Node const &Nod
 
     if (!std::empty(Node.rotation))
     {
-        Object.SetRotation(glm::make_vec3(std::data(Node.rotation)));
+        Object.SetRotation(degrees(eulerAngles(glm::make_quat(std::data(Node.rotation)))));
     }
 
     if (!Node.matrix.empty())

@@ -15,9 +15,9 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Illumination
     {
-        glm::vec3 m_LightPosition{100.F, 100.F, 100.F};
-        glm::vec3 m_LightColor{1.F, 1.F, 1.F};
-        float     m_LightIntensity{1.F};
+        glm::vec3 m_LightPosition { 100.F, 100.F, 100.F };
+        glm::vec3 m_LightColor { 1.F, 1.F, 1.F };
+        float     m_LightIntensity { 1.F };
 
     public:
         Illumination() = default;

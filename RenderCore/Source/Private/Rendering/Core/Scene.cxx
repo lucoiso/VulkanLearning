@@ -35,23 +35,34 @@ import RenderCore.Utils.Helpers;
 
 using namespace RenderCore;
 
-Camera       g_Camera {};
-Illumination g_Illumination {};
+Camera                                              g_Camera {};
+std::pair<BufferAllocation, VkDescriptorBufferInfo> g_CameraUniformBufferAllocation {};
 
-VkSampler                                           g_Sampler { VK_NULL_HANDLE };
-ImageAllocation                                     g_DepthImage {};
-ImageAllocation                                     g_EmptyImage {};
-std::atomic                                         g_ObjectIDCounter { 0U };
-std::vector<Object>                                 g_Objects {};
-std::pair<BufferAllocation, VkDescriptorBufferInfo> g_SceneUniformBufferAllocation {};
-std::mutex                                          g_ObjectMutex {};
+Illumination                                        g_Illumination {};
+std::pair<BufferAllocation, VkDescriptorBufferInfo> g_LightUniformBufferAllocation {};
+
+VkSampler           g_Sampler { VK_NULL_HANDLE };
+ImageAllocation     g_DepthImage {};
+ImageAllocation     g_EmptyImage {};
+std::atomic         g_ObjectIDCounter { 0U };
+std::vector<Object> g_Objects {};
+std::mutex          g_ObjectMutex {};
 
 void RenderCore::CreateSceneUniformBuffers()
 {
-    constexpr VkDeviceSize BufferSize = sizeof(SceneUniformData);
+    {
+        constexpr VkDeviceSize BufferSize = sizeof(CameraUniformData);
 
-    CreateUniformBuffers(g_SceneUniformBufferAllocation.first, BufferSize, "SCENE_UNIFORM");
-    g_SceneUniformBufferAllocation.second = { .buffer = g_SceneUniformBufferAllocation.first.Buffer, .offset = 0U, .range = BufferSize };
+        CreateUniformBuffers(g_CameraUniformBufferAllocation.first, BufferSize, "CAMERA_UNIFORM");
+        g_CameraUniformBufferAllocation.second = { .buffer = g_CameraUniformBufferAllocation.first.Buffer, .offset = 0U, .range = BufferSize };
+    }
+
+    {
+        constexpr VkDeviceSize BufferSize = sizeof(LightUniformData);
+
+        CreateUniformBuffers(g_LightUniformBufferAllocation.first, BufferSize, "LIGHT_UNIFORM");
+        g_LightUniformBufferAllocation.second = { .buffer = g_LightUniformBufferAllocation.first.Buffer, .offset = 0U, .range = BufferSize };
+    }
 }
 
 void RenderCore::CreateImageSampler()
@@ -92,8 +103,8 @@ void RenderCore::CreateDepthResources(SurfaceProperties const &SurfaceProperties
 
 void RenderCore::AllocateEmptyTexture(VkFormat const TextureFormat)
 {
-    constexpr std::uint8_t                                 DefaultTextureHalfSize { 2U };
-    constexpr std::uint8_t                                 DefaultTextureSize { DefaultTextureHalfSize * 2U };
+    constexpr std::uint16_t                                DefaultTextureHalfSize { 256U };
+    constexpr std::uint16_t                                DefaultTextureSize { DefaultTextureHalfSize * 2U };
     constexpr std::array<std::uint8_t, DefaultTextureSize> DefaultTextureData {};
 
     VkCommandPool                CopyCommandPool { VK_NULL_HANDLE };
@@ -243,7 +254,8 @@ void RenderCore::ReleaseSceneResources()
 
     g_EmptyImage.DestroyResources(GetAllocator());
     g_DepthImage.DestroyResources(GetAllocator());
-    g_SceneUniformBufferAllocation.first.DestroyResources(GetAllocator());
+    g_CameraUniformBufferAllocation.first.DestroyResources(GetAllocator());
+    g_LightUniformBufferAllocation.first.DestroyResources(GetAllocator());
     DestroyObjects();
 }
 
@@ -299,14 +311,24 @@ ImageAllocation const &RenderCore::GetEmptyImage()
     return g_EmptyImage;
 }
 
-void *RenderCore::GetSceneUniformData()
+void *RenderCore::GetCameraUniformData()
 {
-    return g_SceneUniformBufferAllocation.first.MappedData;
+    return g_CameraUniformBufferAllocation.first.MappedData;
 }
 
-VkDescriptorBufferInfo const &RenderCore::GetSceneUniformDescriptor()
+VkDescriptorBufferInfo const &RenderCore::GetCameraUniformDescriptor()
 {
-    return g_SceneUniformBufferAllocation.second;
+    return g_CameraUniformBufferAllocation.second;
+}
+
+void *RenderCore::GetLightUniformData()
+{
+    return g_LightUniformBufferAllocation.first.MappedData;
+}
+
+VkDescriptorBufferInfo const &RenderCore::GetLightUniformDescriptor()
+{
+    return g_LightUniformBufferAllocation.second;
 }
 
 std::vector<Object> &RenderCore::GetObjects()
@@ -321,16 +343,21 @@ std::uint32_t RenderCore::GetNumAllocations()
 
 void RenderCore::UpdateSceneUniformBuffers()
 {
-    if (void *UniformBufferData = GetSceneUniformData())
+    if (void *UniformBufferData = GetCameraUniformData())
     {
-        SceneUniformData const UpdatedUBO {
-                .Projection = g_Camera.GetProjectionMatrix(),
-                .View = g_Camera.GetViewMatrix(),
+        CameraUniformData const UpdatedUBO { .Projection = g_Camera.GetProjectionMatrix(), .View = g_Camera.GetViewMatrix() };
+
+        std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(CameraUniformData));
+    }
+
+    if (void *LightBufferData = GetLightUniformData())
+    {
+        LightUniformData const UpdatedUBO {
                 .LightPosition = g_Illumination.GetPosition(),
                 .LightColor = g_Illumination.GetColor() * g_Illumination.GetIntensity()
         };
 
-        std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(SceneUniformData));
+        std::memcpy(LightBufferData, &UpdatedUBO, sizeof(LightUniformData));
     }
 }
 

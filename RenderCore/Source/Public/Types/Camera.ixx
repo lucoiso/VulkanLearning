@@ -5,7 +5,6 @@
 module;
 
 #include <cstdint>
-#include <memory>
 #include <Volk/volk.h>
 #include <glm/ext.hpp>
 #include "RenderCoreModule.hpp"
@@ -19,30 +18,30 @@ namespace RenderCore
 {
     export enum class CameraMovementStateFlags : std::uint8_t
     {
-        NONE = 0,
-        FORWARD = 1 << 1,
+        NONE     = 0,
+        FORWARD  = 1 << 1,
         BACKWARD = 1 << 2,
-        LEFT = 1 << 3,
-        RIGHT = 1 << 4,
-        UP = 1 << 5,
-        DOWN = 1 << 6
+        LEFT     = 1 << 3,
+        RIGHT    = 1 << 4,
+        UP       = 1 << 5,
+        DOWN     = 1 << 6
     };
 
     export class RENDERCOREMODULE_API Camera
     {
-        glm::vec3 m_CameraPosition{0.F, 0.F, -3.F};
-        glm::vec3 m_CameraRotation{0.F, 90.F, 0.F};
+        glm::vec3 m_CameraPosition { 0.F, 0.F, 1.F };
+        glm::vec3 m_CameraRotation { -90.F, 0.F, 0.F };
 
-        float m_CameraSpeed{1.F};
-        float m_CameraSensitivity{1.F};
+        float m_CameraSpeed { 1.F };
+        float m_CameraSensitivity { 1.F };
 
-        float m_FieldOfView{45.F};
-        float m_NearPlane{0.001F};
-        float m_FarPlane{1000.F};
-        float m_CurrentAspectRatio{1.F};
-        float m_DrawDistance{500.F};
+        float m_FieldOfView { 45.F };
+        float m_NearPlane { 0.001F };
+        float m_FarPlane { 1000.F };
+        float m_CurrentAspectRatio { 1.F };
+        float m_DrawDistance { 500.F };
 
-        CameraMovementStateFlags m_CameraMovementStateFlags{CameraMovementStateFlags::NONE};
+        CameraMovementStateFlags m_CameraMovementStateFlags { CameraMovementStateFlags::NONE };
 
     public:
         Camera() = default;

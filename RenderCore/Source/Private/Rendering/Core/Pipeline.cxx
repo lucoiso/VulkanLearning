@@ -236,7 +236,7 @@ void RenderCore::CreatePipeline()
 void RenderCore::CreateDescriptorSetLayout()
 {
         constexpr std::array LayoutBindings {
-                        VkDescriptorSetLayoutBinding
+                        VkDescriptorSetLayoutBinding // Camera
                         {
                                         .binding = 0U,
                                         .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -244,31 +244,31 @@ void RenderCore::CreateDescriptorSetLayout()
                                         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
                                         .pImmutableSamplers = nullptr
                         },
-                        VkDescriptorSetLayoutBinding
+                        VkDescriptorSetLayoutBinding // Light
                         {
                                         .binding = 1U,
+                                        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                        .descriptorCount = 1U,
+                                        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                                        .pImmutableSamplers = nullptr
+                        },
+                        VkDescriptorSetLayoutBinding // Model
+                        {
+                                        .binding = 2U,
                                         .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                         .descriptorCount = 1U,
                                         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
                                         .pImmutableSamplers = nullptr
                         },
-                        VkDescriptorSetLayoutBinding
+                        VkDescriptorSetLayoutBinding // Material
                         {
-                                        .binding = 2U,
+                                        .binding = 3U,
                                         .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                         .descriptorCount = 1U,
                                         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
                                         .pImmutableSamplers = nullptr
                         },
-                        VkDescriptorSetLayoutBinding
-                        {
-                                        .binding = 3U,
-                                        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                        .descriptorCount = 1U,
-                                        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-                                        .pImmutableSamplers = nullptr
-                        },
-                        VkDescriptorSetLayoutBinding
+                        VkDescriptorSetLayoutBinding // Albedo Texture
                         {
                                         .binding = 4U,
                                         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -276,22 +276,33 @@ void RenderCore::CreateDescriptorSetLayout()
                                         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
                                         .pImmutableSamplers = nullptr
                         },
-                        VkDescriptorSetLayoutBinding {
+                        VkDescriptorSetLayoutBinding // Normal Texture
+                        {
                                         .binding = 5U,
                                         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                         .descriptorCount = 1U,
                                         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
                                         .pImmutableSamplers = nullptr
                         },
-                        VkDescriptorSetLayoutBinding {
+                        VkDescriptorSetLayoutBinding // Occlusion Texture
+                        {
                                         .binding = 6U,
                                         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                         .descriptorCount = 1U,
                                         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
                                         .pImmutableSamplers = nullptr
                         },
-                        VkDescriptorSetLayoutBinding {
+                        VkDescriptorSetLayoutBinding // Emissive Texture
+                        {
                                         .binding = 7U,
+                                        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                        .descriptorCount = 1U,
+                                        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                                        .pImmutableSamplers = nullptr
+                        },
+                        VkDescriptorSetLayoutBinding // Metallic Roughness Texture
+                        {
+                                        .binding = 8U,
                                         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                         .descriptorCount = 1U,
                                         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,

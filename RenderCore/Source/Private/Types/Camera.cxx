@@ -98,25 +98,22 @@ void Camera::SetDrawDistance(float const DrawDistance)
 
 glm::vec3 Camera::GetFront() const
 {
-    float const Yaw   = glm::radians(m_CameraRotation.y);
-    float const Pitch = glm::radians(m_CameraRotation.x);
+    float const Yaw   = glm::radians(m_CameraRotation.x);
+    float const Pitch = glm::radians(m_CameraRotation.y);
 
-    glm::vec3 Front;
-    Front.x = cos(Yaw) * cos(Pitch);
-    Front.y = sin(Pitch);
-    Front.z = sin(Yaw) * cos(Pitch);
-
-    return normalize(Front);
-}
-
-glm::vec3 Camera::GetUp() const
-{
-    return rotate(glm::mat4(1.0f), glm::radians(m_CameraRotation.z), GetRight()) * glm::vec4 { 0.F, 1.F, 0.F, 1.F };
+    return glm::vec3 { cos(Yaw) * cos(Pitch), sin(Pitch), sin(Yaw) * cos(Pitch) };
 }
 
 glm::vec3 Camera::GetRight() const
 {
-    return cross(GetFront(), glm::vec3 { 0.F, 1.F, 0.F });
+    float const Yaw = glm::radians(m_CameraRotation.x);
+
+    return glm::vec3 { cos(Yaw - glm::radians(90.0f)), 0.0f, sin(Yaw - glm::radians(90.0f)) };
+}
+
+glm::vec3 Camera::GetUp() const
+{
+    return cross(GetFront(), GetRight());
 }
 
 glm::mat4 Camera::GetViewMatrix() const
@@ -127,11 +124,10 @@ glm::mat4 Camera::GetViewMatrix() const
 glm::mat4 Camera::GetProjectionMatrix() const
 {
     VkExtent2D const &SwapChainExtent = GetSwapChainExtent();
-
-    glm::mat4 Projection = glm::perspective(glm::radians(m_FieldOfView),
-                                            static_cast<float>(SwapChainExtent.width) / static_cast<float>(SwapChainExtent.height),
-                                            m_NearPlane,
-                                            m_FarPlane);
+    glm::mat4         Projection      = glm::perspective(glm::radians(m_FieldOfView),
+                                                         static_cast<float>(SwapChainExtent.width) / static_cast<float>(SwapChainExtent.height),
+                                                         m_NearPlane,
+                                                         m_FarPlane);
     Projection[1][1] *= -1;
 
     return Projection;
@@ -149,11 +145,11 @@ void Camera::SetCameraMovementStateFlags(CameraMovementStateFlags const State)
 
 void Camera::UpdateCameraMovement(float const DeltaTime)
 {
-    float const     CameraSpeed { GetSpeed() };
-    glm::vec3 const CameraFront { GetFront() };
-    glm::vec3 const CameraUp { GetUp() };
-    glm::vec3 const CameraRight { GetRight() };
-    glm::vec3       NewPosition { GetPosition() };
+    float const     CameraSpeed = GetSpeed();
+    glm::vec3 const CameraFront = GetFront();
+    glm::vec3 const CameraUp    = GetUp();
+    glm::vec3 const CameraRight = GetRight();
+    glm::vec3       NewPosition = GetPosition();
 
     if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::FORWARD))
     {
@@ -167,12 +163,12 @@ void Camera::UpdateCameraMovement(float const DeltaTime)
 
     if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::LEFT))
     {
-        NewPosition -= CameraSpeed * CameraRight * DeltaTime;
+        NewPosition += CameraSpeed * CameraRight * DeltaTime;
     }
 
     if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::RIGHT))
     {
-        NewPosition += CameraSpeed * CameraRight * DeltaTime;
+        NewPosition -= CameraSpeed * CameraRight * DeltaTime;
     }
 
     if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::UP))

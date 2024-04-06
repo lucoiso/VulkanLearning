@@ -137,21 +137,21 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double con
         Camera &Camera { Renderer::GetMutableCamera() };
 
         float const Sensitivity { Camera.GetSensitivity() * 0.1F };
-        float const OffsetX { static_cast<float>(NewCursorPosX - LastCursorPosX) * Sensitivity };
-        float const OffsetY { static_cast<float>(NewCursorPosY - LastCursorPosY) * Sensitivity };
+        float const OffsetX { static_cast<float>(LastCursorPosX - NewCursorPosX) * Sensitivity };
+        float const OffsetY { static_cast<float>(LastCursorPosY - NewCursorPosY) * Sensitivity };
 
         glm::vec3 Rotation { Camera.GetRotation() };
 
-        Rotation.x -= OffsetY;
-        Rotation.y += OffsetX;
+        Rotation.x -= OffsetX;
+        Rotation.y += OffsetY;
 
-        if (Rotation.x > 89.F)
+        if (Rotation.y > 89.F)
         {
-            Rotation.x = 89.F;
+            Rotation.y = 89.F;
         }
-        else if (Rotation.x < -89.F)
+        else if (Rotation.y < -89.F)
         {
-            Rotation.x = -89.F;
+            Rotation.y = -89.F;
         }
 
         Camera.SetRotation(Rotation);

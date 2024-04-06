@@ -211,7 +211,16 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer) const
                     .dstArrayElement = 0U,
                     .descriptorCount = 1U,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .pBufferInfo = &GetSceneUniformDescriptor(),
+                    .pBufferInfo = &GetCameraUniformDescriptor(),
+            },
+            VkWriteDescriptorSet {
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet = VK_NULL_HANDLE,
+                    .dstBinding = 1U,
+                    .dstArrayElement = 0U,
+                    .descriptorCount = 1U,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .pBufferInfo = &GetLightUniformDescriptor(),
             }
     };
 
@@ -220,7 +229,7 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer) const
         WriteDescriptors.push_back(VkWriteDescriptorSet {
                                            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                            .dstSet = VK_NULL_HANDLE,
-                                           .dstBinding = 1U + static_cast<std::uint32_t>(ModelDescriptorIter.first),
+                                           .dstBinding = 2U + static_cast<std::uint32_t>(ModelDescriptorIter.first),
                                            .dstArrayElement = 0U,
                                            .descriptorCount = 1U,
                                            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -233,7 +242,7 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer) const
         WriteDescriptors.push_back(VkWriteDescriptorSet {
                                            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                            .dstSet = VK_NULL_HANDLE,
-                                           .dstBinding = 3U + static_cast<std::uint32_t>(TextureDescriptorIter.first),
+                                           .dstBinding = 4U + static_cast<std::uint32_t>(TextureDescriptorIter.first),
                                            .dstArrayElement = 0U,
                                            .descriptorCount = 1U,
                                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,

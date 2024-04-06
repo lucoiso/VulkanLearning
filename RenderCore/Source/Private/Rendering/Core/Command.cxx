@@ -183,8 +183,9 @@ void RecordSceneCommands(VkCommandBuffer &CommandBuffer, std::uint32_t const Ima
                                        #ifdef VULKAN_RENDERER_ENABLE_IMGUI
                                        .imageView = ViewportAllocation.View,
                                        .imageLayout = ViewportMidLayout,
-                                       .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                                       .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                                       .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                       .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                                       .clearValue = g_ClearValues.at(1U)
                                        #else
                                        .imageView = SwapchainAllocation.View,
                                        .imageLayout = SwapChainMidLayout,
@@ -205,7 +206,7 @@ void RecordSceneCommands(VkCommandBuffer &CommandBuffer, std::uint32_t const Ima
             .imageLayout = DepthLayout,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .clearValue = g_ClearValues.at(1U)
+            .clearValue = g_ClearValues.at(2U)
     };
 
     VkRenderingInfo const RenderingInfo {

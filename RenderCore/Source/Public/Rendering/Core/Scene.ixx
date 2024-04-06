@@ -46,9 +46,13 @@ export namespace RenderCore
 
     [[nodiscard]] ImageAllocation const &GetEmptyImage();
 
-    void *GetSceneUniformData();
+    void *GetCameraUniformData();
 
-    [[nodiscard]] VkDescriptorBufferInfo const &GetSceneUniformDescriptor();
+    [[nodiscard]] VkDescriptorBufferInfo const &GetCameraUniformDescriptor();
+
+    void *GetLightUniformData();
+
+    [[nodiscard]] VkDescriptorBufferInfo const &GetLightUniformDescriptor();
 
     [[nodiscard]] std::vector<Object> &GetObjects();
 
