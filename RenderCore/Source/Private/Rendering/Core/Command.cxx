@@ -307,16 +307,20 @@ std::vector<VkCommandBuffer> RecordSceneCommands()
         {
             VkCommandBuffer const &CommandBuffer = CommandResources.CommandBuffers.at(ObjectIndex);
 
-            CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
-            {
-                vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
-                SetViewport(CommandBuffer, GetSwapChainExtent());
+            g_ThreadPool.AddTask([ThreadIndex, ObjectIndex, &CommandBuffer, &SecondaryBeginInfo, &Pipeline, &Objects]()
+                                 {
+                                     CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
+                                     {
+                                         vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
+                                         SetViewport(CommandBuffer, GetSwapChainExtent());
 
-                Object const &Object = Objects.at(ThreadIndex * g_ObjectsPerThread + ObjectIndex);
-                Object.UpdateUniformBuffers();
-                Object.DrawObject(CommandBuffer);
-            }
-            CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
+                                         Object const &Object = Objects.at(ThreadIndex * g_ObjectsPerThread + ObjectIndex);
+                                         Object.UpdateUniformBuffers();
+                                         Object.DrawObject(CommandBuffer);
+                                     }
+                                     CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
+                                 },
+                                 ThreadIndex);
 
             Output.push_back(CommandBuffer);
         }

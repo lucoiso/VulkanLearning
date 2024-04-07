@@ -156,7 +156,7 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
     }
 
     VkPhysicalDeviceMeshShaderFeaturesEXT MeshShaderFeatures { // Required
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
             .pNext = nullptr,
             .taskShader = VK_TRUE,
             .meshShader = VK_TRUE
