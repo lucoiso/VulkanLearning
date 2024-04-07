@@ -35,11 +35,8 @@ import RenderCore.Utils.Helpers;
 
 using namespace RenderCore;
 
-Camera                                              g_Camera {};
-std::pair<BufferAllocation, VkDescriptorBufferInfo> g_CameraUniformBufferAllocation {};
-
-Illumination                                        g_Illumination {};
-std::pair<BufferAllocation, VkDescriptorBufferInfo> g_LightUniformBufferAllocation {};
+Camera       g_Camera {};
+Illumination g_Illumination {};
 
 VkSampler           g_Sampler { VK_NULL_HANDLE };
 ImageAllocation     g_DepthImage {};
@@ -50,19 +47,8 @@ std::mutex          g_ObjectMutex {};
 
 void RenderCore::CreateSceneUniformBuffers()
 {
-    {
-        constexpr VkDeviceSize BufferSize = sizeof(CameraUniformData);
-
-        CreateUniformBuffers(g_CameraUniformBufferAllocation.first, BufferSize, "CAMERA_UNIFORM");
-        g_CameraUniformBufferAllocation.second = { .buffer = g_CameraUniformBufferAllocation.first.Buffer, .offset = 0U, .range = BufferSize };
-    }
-
-    {
-        constexpr VkDeviceSize BufferSize = sizeof(LightUniformData);
-
-        CreateUniformBuffers(g_LightUniformBufferAllocation.first, BufferSize, "LIGHT_UNIFORM");
-        g_LightUniformBufferAllocation.second = { .buffer = g_LightUniformBufferAllocation.first.Buffer, .offset = 0U, .range = BufferSize };
-    }
+    g_Camera.AllocateUniformBuffer();
+    g_Illumination.AllocateUniformBuffer();
 }
 
 void RenderCore::CreateImageSampler()
@@ -249,8 +235,8 @@ void RenderCore::ReleaseSceneResources()
 
     g_EmptyImage.DestroyResources(GetAllocator());
     g_DepthImage.DestroyResources(GetAllocator());
-    g_CameraUniformBufferAllocation.first.DestroyResources(GetAllocator());
-    g_LightUniformBufferAllocation.first.DestroyResources(GetAllocator());
+    g_Camera.Destroy();
+    g_Illumination.Destroy();
     DestroyObjects();
 }
 
@@ -312,26 +298,6 @@ ImageAllocation const &RenderCore::GetEmptyImage()
     return g_EmptyImage;
 }
 
-void *RenderCore::GetCameraUniformData()
-{
-    return g_CameraUniformBufferAllocation.first.MappedData;
-}
-
-VkDescriptorBufferInfo const &RenderCore::GetCameraUniformDescriptor()
-{
-    return g_CameraUniformBufferAllocation.second;
-}
-
-void *RenderCore::GetLightUniformData()
-{
-    return g_LightUniformBufferAllocation.first.MappedData;
-}
-
-VkDescriptorBufferInfo const &RenderCore::GetLightUniformDescriptor()
-{
-    return g_LightUniformBufferAllocation.second;
-}
-
 std::vector<Object> &RenderCore::GetObjects()
 {
     return g_Objects;
@@ -344,22 +310,8 @@ std::uint32_t RenderCore::GetNumAllocations()
 
 void RenderCore::UpdateSceneUniformBuffers()
 {
-    if (void *UniformBufferData = GetCameraUniformData())
-    {
-        CameraUniformData const UpdatedUBO { .Projection = g_Camera.GetProjectionMatrix(), .View = g_Camera.GetViewMatrix() };
-
-        std::memcpy(UniformBufferData, &UpdatedUBO, sizeof(CameraUniformData));
-    }
-
-    if (void *LightBufferData = GetLightUniformData())
-    {
-        LightUniformData const UpdatedUBO {
-                .LightPosition = g_Illumination.GetPosition(),
-                .LightColor = g_Illumination.GetColor() * g_Illumination.GetIntensity()
-        };
-
-        std::memcpy(LightBufferData, &UpdatedUBO, sizeof(LightUniformData));
-    }
+    g_Camera.UpdateUniformBuffers();
+    g_Illumination.UpdateUniformBuffers();
 }
 
 Camera &RenderCore::GetCamera()

@@ -66,9 +66,10 @@ float const *RenderCore::GetPrimitiveData(std::string_view const &   ID,
 
 void RenderCore::SetVertexAttributes(Object &Object, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
 {
+    std::vector<Vertex> Vertices;
     {
         tinygltf::Accessor const &PositionAccessor = Model.accessors.at(Primitive.attributes.at("POSITION"));
-        Object.GetMutableVertices().resize(PositionAccessor.count);
+        Vertices.resize(PositionAccessor.count);
     }
 
     const float * PositionData = GetPrimitiveData("POSITION", Model, Primitive);
@@ -82,21 +83,21 @@ void RenderCore::SetVertexAttributes(Object &Object, tinygltf::Model const &Mode
 
     bool const HasSkin = JointData && WeightData;
 
-    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(Object.GetVertices())); ++Iterator)
+    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(Vertices)); ++Iterator)
     {
         if (PositionData)
         {
-            Object.GetMutableVertices().at(Iterator).Position = glm::make_vec3(&PositionData[Iterator * 3]);
+            Vertices.at(Iterator).Position = glm::make_vec3(&PositionData[Iterator * 3]);
         }
 
         if (NormalData)
         {
-            Object.GetMutableVertices().at(Iterator).Normal = glm::make_vec3(&NormalData[Iterator * 3]);
+            Vertices.at(Iterator).Normal = glm::make_vec3(&NormalData[Iterator * 3]);
         }
 
         if (TexCoordData)
         {
-            Object.GetMutableVertices().at(Iterator).TextureCoordinate = glm::make_vec2(&TexCoordData[Iterator * 2]);
+            Vertices.at(Iterator).TextureCoordinate = glm::make_vec2(&TexCoordData[Iterator * 2]);
         }
 
         if (ColorData)
@@ -104,10 +105,10 @@ void RenderCore::SetVertexAttributes(Object &Object, tinygltf::Model const &Mode
             switch (NumColorComponents)
             {
                 case 3U:
-                    Object.GetMutableVertices().at(Iterator).Color = glm::vec4(glm::make_vec3(&ColorData[Iterator * 3]), 1.F);
+                    Vertices.at(Iterator).Color = glm::vec4(glm::make_vec3(&ColorData[Iterator * 3]), 1.F);
                     break;
                 case 4U:
-                    Object.GetMutableVertices().at(Iterator).Color = glm::make_vec4(&ColorData[Iterator * 4]);
+                    Vertices.at(Iterator).Color = glm::make_vec4(&ColorData[Iterator * 4]);
                     break;
                 default:
                     break;
@@ -115,24 +116,28 @@ void RenderCore::SetVertexAttributes(Object &Object, tinygltf::Model const &Mode
         }
         else
         {
-            Object.GetMutableVertices().at(Iterator).Color = glm::vec4(1.F);
+            Vertices.at(Iterator).Color = glm::vec4(1.F);
         }
 
         if (HasSkin)
         {
-            Object.GetMutableVertices().at(Iterator).Joint  = glm::make_vec4(&JointData[Iterator * 4]);
-            Object.GetMutableVertices().at(Iterator).Weight = glm::make_vec4(&WeightData[Iterator * 4]);
+            Vertices.at(Iterator).Joint  = glm::make_vec4(&JointData[Iterator * 4]);
+            Vertices.at(Iterator).Weight = glm::make_vec4(&WeightData[Iterator * 4]);
         }
 
         if (TangentData)
         {
-            Object.GetMutableVertices().at(Iterator).Tangent = glm::make_vec4(&TangentData[Iterator * 4]);
+            Vertices.at(Iterator).Tangent = glm::make_vec4(&TangentData[Iterator * 4]);
         }
     }
+
+    Object.SetVertexBuffer(Vertices);
 }
 
-std::uint32_t RenderCore::AllocatePrimitiveIndices(Object &Object, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
+void RenderCore::AllocatePrimitiveIndices(Object &Object, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
 {
+    std::vector<std::uint32_t> Indices;
+
     if (Primitive.indices >= 0)
     {
         tinygltf::Accessor const &  IndexAccessor   = Model.accessors.at(Primitive.indices);
@@ -140,33 +145,31 @@ std::uint32_t RenderCore::AllocatePrimitiveIndices(Object &Object, tinygltf::Mod
         tinygltf::Buffer const &    IndexBuffer     = Model.buffers.at(IndexBufferView.buffer);
         unsigned char const *const  IndicesData     = std::data(IndexBuffer.data) + IndexBufferView.byteOffset + IndexAccessor.byteOffset;
 
-        Object.GetMutableIndices().reserve(IndexAccessor.count);
+        Indices.reserve(IndexAccessor.count);
 
         switch (IndexAccessor.componentType)
         {
             case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
             {
-                InsertIndiceInContainer(Object.GetMutableIndices(), IndexAccessor, reinterpret_cast<const uint32_t *>(IndicesData));
+                InsertIndiceInContainer(Indices, IndexAccessor, reinterpret_cast<const uint32_t *>(IndicesData));
                 break;
             }
             case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT:
             {
-                InsertIndiceInContainer(Object.GetMutableIndices(), IndexAccessor, reinterpret_cast<const uint16_t *>(IndicesData));
+                InsertIndiceInContainer(Indices, IndexAccessor, reinterpret_cast<const uint16_t *>(IndicesData));
                 break;
             }
             case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE:
             {
-                InsertIndiceInContainer(Object.GetMutableIndices(), IndexAccessor, IndicesData);
+                InsertIndiceInContainer(Indices, IndexAccessor, IndicesData);
                 break;
             }
             default:
                 break;
         }
-
-        return IndexAccessor.count / 3U;
     }
 
-    return 0U;
+    Object.SetIndexBuffer(Indices);
 }
 
 void RenderCore::SetPrimitiveTransform(Object &Object, tinygltf::Node const &Node)

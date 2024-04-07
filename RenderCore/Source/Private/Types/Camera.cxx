@@ -13,47 +13,61 @@ import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Utils.EnumHelpers;
 import RenderCore.Utils.Constants;
+import RenderCore.Types.UniformBufferObject;
 
 using namespace RenderCore;
 
-glm::vec3 Camera::GetPosition() const
+void Camera::Destroy()
 {
-    return m_CameraPosition;
+    m_UniformBufferAllocation.first.DestroyResources(GetAllocator());
 }
 
-void Camera::SetPosition(glm::vec3 const &Position)
+glm::vec3 Camera::GetPosition() const
 {
-    m_CameraPosition = Position;
+    return m_Position;
+}
+
+void Camera::SetPosition(glm::vec3 const &Value)
+{
+    if (m_Position != Value)
+    {
+        m_Position      = Value;
+        m_IsRenderDirty = true;
+    }
 }
 
 glm::vec3 Camera::GetRotation() const
 {
-    return m_CameraRotation;
+    return m_Rotation;
 }
 
-void Camera::SetRotation(glm::vec3 const &Rotation)
+void Camera::SetRotation(glm::vec3 const &Value)
 {
-    m_CameraRotation = Rotation;
+    if (m_Rotation != Value)
+    {
+        m_Rotation      = Value;
+        m_IsRenderDirty = true;
+    }
 }
 
 float Camera::GetSpeed() const
 {
-    return m_CameraSpeed;
+    return m_Speed;
 }
 
-void Camera::SetSpeed(float const Speed)
+void Camera::SetSpeed(float const Value)
 {
-    m_CameraSpeed = Speed;
+    m_Speed = Value;
 }
 
 float Camera::GetSensitivity() const
 {
-    return m_CameraSensitivity;
+    return m_Sensitivity;
 }
 
-void Camera::SetSensitivity(float const Sensitivity)
+void Camera::SetSensitivity(float const Value)
 {
-    m_CameraSensitivity = Sensitivity;
+    m_Sensitivity = Value;
 }
 
 float Camera::GetFieldOfView() const
@@ -61,9 +75,13 @@ float Camera::GetFieldOfView() const
     return m_FieldOfView;
 }
 
-void Camera::SetFieldOfView(float const FieldOfView)
+void Camera::SetFieldOfView(float const Value)
 {
-    m_FieldOfView = FieldOfView;
+    if (m_FieldOfView != Value)
+    {
+        m_FieldOfView   = Value;
+        m_IsRenderDirty = true;
+    }
 }
 
 float Camera::GetNearPlane() const
@@ -71,9 +89,13 @@ float Camera::GetNearPlane() const
     return m_NearPlane;
 }
 
-void Camera::SetNearPlane(float const NearPlane)
+void Camera::SetNearPlane(float const Value)
 {
-    m_NearPlane = NearPlane;
+    if (m_NearPlane != Value)
+    {
+        m_NearPlane     = Value;
+        m_IsRenderDirty = true;
+    }
 }
 
 float Camera::GetFarPlane() const
@@ -81,9 +103,13 @@ float Camera::GetFarPlane() const
     return m_FarPlane;
 }
 
-void Camera::SetFarPlane(float const FarPlane)
+void Camera::SetFarPlane(float const Value)
 {
-    m_FarPlane = FarPlane;
+    if (m_FarPlane != Value)
+    {
+        m_FarPlane      = Value;
+        m_IsRenderDirty = true;
+    }
 }
 
 float Camera::GetDrawDistance() const
@@ -91,23 +117,25 @@ float Camera::GetDrawDistance() const
     return m_DrawDistance;
 }
 
-void Camera::SetDrawDistance(float const DrawDistance)
+void Camera::SetDrawDistance(float const Value)
 {
-    m_DrawDistance = DrawDistance;
+    if (m_DrawDistance != Value)
+    {
+        m_DrawDistance  = Value;
+        m_IsRenderDirty = true;
+    }
 }
 
 glm::vec3 Camera::GetFront() const
 {
-    float const Yaw   = glm::radians(m_CameraRotation.x);
-    float const Pitch = glm::radians(m_CameraRotation.y);
-
+    float const Yaw   = glm::radians(m_Rotation.x);
+    float const Pitch = glm::radians(m_Rotation.y);
     return glm::vec3 { cos(Yaw) * cos(Pitch), sin(Pitch), sin(Yaw) * cos(Pitch) };
 }
 
 glm::vec3 Camera::GetRight() const
 {
-    float const Yaw = glm::radians(m_CameraRotation.x);
-
+    float const Yaw = glm::radians(m_Rotation.x);
     return glm::vec3 { cos(Yaw - glm::radians(90.0f)), 0.0f, sin(Yaw - glm::radians(90.0f)) };
 }
 
@@ -118,7 +146,7 @@ glm::vec3 Camera::GetUp() const
 
 glm::mat4 Camera::GetViewMatrix() const
 {
-    return lookAt(m_CameraPosition, m_CameraPosition + GetFront(), GetUp());
+    return lookAt(m_Position, m_Position + GetFront(), GetUp());
 }
 
 glm::mat4 Camera::GetProjectionMatrix() const
@@ -135,12 +163,12 @@ glm::mat4 Camera::GetProjectionMatrix() const
 
 CameraMovementStateFlags Camera::GetCameraMovementStateFlags() const
 {
-    return m_CameraMovementStateFlags;
+    return m_MovementStateFlags;
 }
 
-void Camera::SetCameraMovementStateFlags(CameraMovementStateFlags const State)
+void Camera::SetCameraMovementStateFlags(CameraMovementStateFlags const Value)
 {
-    m_CameraMovementStateFlags = State;
+    m_MovementStateFlags = Value;
 }
 
 void Camera::UpdateCameraMovement(float const DeltaTime)
@@ -151,32 +179,32 @@ void Camera::UpdateCameraMovement(float const DeltaTime)
     glm::vec3 const CameraRight = GetRight();
     glm::vec3       NewPosition = GetPosition();
 
-    if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::FORWARD))
+    if (HasFlag(m_MovementStateFlags, CameraMovementStateFlags::FORWARD))
     {
         NewPosition += CameraSpeed * CameraFront * DeltaTime;
     }
 
-    if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::BACKWARD))
+    if (HasFlag(m_MovementStateFlags, CameraMovementStateFlags::BACKWARD))
     {
         NewPosition -= CameraSpeed * CameraFront * DeltaTime;
     }
 
-    if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::LEFT))
+    if (HasFlag(m_MovementStateFlags, CameraMovementStateFlags::LEFT))
     {
         NewPosition += CameraSpeed * CameraRight * DeltaTime;
     }
 
-    if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::RIGHT))
+    if (HasFlag(m_MovementStateFlags, CameraMovementStateFlags::RIGHT))
     {
         NewPosition -= CameraSpeed * CameraRight * DeltaTime;
     }
 
-    if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::UP))
+    if (HasFlag(m_MovementStateFlags, CameraMovementStateFlags::UP))
     {
         NewPosition += CameraSpeed * CameraUp * DeltaTime;
     }
 
-    if (HasFlag(m_CameraMovementStateFlags, CameraMovementStateFlags::DOWN))
+    if (HasFlag(m_MovementStateFlags, CameraMovementStateFlags::DOWN))
     {
         NewPosition -= CameraSpeed * CameraUp * DeltaTime;
     }
@@ -216,4 +244,37 @@ bool Camera::CanDrawObject(Object const &Object) const
     }
 
     return true;
+}
+
+void *Camera::GetUniformData() const
+{
+    return m_UniformBufferAllocation.first.MappedData;
+}
+
+VkDescriptorBufferInfo const &Camera::GetUniformDescriptor() const
+{
+    return m_UniformBufferAllocation.second;
+}
+
+void Camera::UpdateUniformBuffers() const
+{
+    if (!m_IsRenderDirty)
+    {
+        return;
+    }
+
+    if (m_UniformBufferAllocation.first.MappedData)
+    {
+        CameraUniformData const UpdatedUBO { .Projection = GetProjectionMatrix(), .View = GetViewMatrix() };
+        std::memcpy(m_UniformBufferAllocation.first.MappedData, &UpdatedUBO, sizeof(CameraUniformData));
+    }
+
+    m_IsRenderDirty = false;
+}
+
+void Camera::AllocateUniformBuffer()
+{
+    constexpr VkDeviceSize BufferSize = sizeof(CameraUniformData);
+    CreateUniformBuffers(m_UniformBufferAllocation.first, BufferSize, "CAMERA_UNIFORM");
+    m_UniformBufferAllocation.second = { .buffer = m_UniformBufferAllocation.first.Buffer, .offset = 0U, .range = BufferSize };
 }

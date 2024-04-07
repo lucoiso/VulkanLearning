@@ -4,7 +4,6 @@
 
 module;
 
-#include <memory>
 #include <tiny_gltf.h>
 #include <unordered_map>
 #include <vma/vk_mem_alloc.h>
@@ -24,7 +23,7 @@ export namespace RenderCore
 
     void SetVertexAttributes(Object &, tinygltf::Model const &, tinygltf::Primitive const &);
 
-    std::uint32_t AllocatePrimitiveIndices(Object &, tinygltf::Model const &, tinygltf::Primitive const &);
+    void AllocatePrimitiveIndices(Object &, tinygltf::Model const &, tinygltf::Primitive const &);
 
     void SetPrimitiveTransform(Object &, tinygltf::Node const &);
 

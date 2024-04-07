@@ -16,9 +16,9 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Transform
     {
-        glm::vec3 m_Position{0.F};
-        glm::vec3 m_Scale{1.F};
-        glm::vec3 m_Rotation{0.F};
+        glm::vec3 m_Position { 0.F };
+        glm::vec3 m_Scale { 1.F };
+        glm::vec3 m_Rotation { 0.F };
 
     public:
         Transform() = default;
@@ -55,7 +55,7 @@ namespace RenderCore
 
         [[nodiscard]] inline glm::mat4 GetMatrix() const
         {
-            glm::mat4 Matrix {1.F};
+            glm::mat4 Matrix { 1.F };
             Matrix = translate(Matrix, m_Position);
             Matrix = scale(Matrix, m_Scale);
             Matrix = rotate(Matrix, glm::radians(m_Rotation.x), glm::vec3(1.F, 0.F, 0.F));
@@ -73,6 +73,16 @@ namespace RenderCore
             decompose(Matrix, m_Scale, Quaternion, m_Position, _1, _2);
 
             m_Rotation = eulerAngles(Quaternion);
+        }
+
+        bool operator==(Transform const &Rhs) const
+        {
+            return m_Position == Rhs.m_Position && m_Scale == Rhs.m_Scale && m_Rotation == Rhs.m_Rotation;
+        }
+
+        bool operator!=(Transform const &Rhs) const
+        {
+            return !(*this == Rhs);
         }
     };
 } // namespace RenderCore

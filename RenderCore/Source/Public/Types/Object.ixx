@@ -24,6 +24,8 @@ namespace RenderCore
     export class RENDERCOREMODULE_API Object
     {
         bool                       m_IsPendingDestroy { false };
+        mutable bool               m_IsModelRenderDirty { true };
+        mutable bool               m_IsMaterialRenderDirty { true };
         std::uint32_t              m_ID {};
         std::string                m_Path {};
         std::string                m_Name {};
@@ -50,23 +52,21 @@ namespace RenderCore
         [[nodiscard]] std::string const &GetName() const;
 
         [[nodiscard]] Transform const &GetTransform() const;
-        [[nodiscard]] Transform &      GetMutableTransform();
-        void                           SetTransform(Transform const &Value);
+        void                           SetTransform(Transform const &);
 
         [[nodiscard]] glm::vec3 GetPosition() const;
-        void                    SetPosition(glm::vec3 const &Position);
+        void                    SetPosition(glm::vec3 const &);
 
         [[nodiscard]] glm::vec3 GetRotation() const;
-        void                    SetRotation(glm::vec3 const &Rotation);
+        void                    SetRotation(glm::vec3 const &);
 
         [[nodiscard]] glm::vec3 GetScale() const;
-        void                    SetScale(glm::vec3 const &Scale);
+        void                    SetScale(glm::vec3 const &);
 
         [[nodiscard]] glm::mat4 GetMatrix() const;
-        void                    SetMatrix(glm::mat4 const &Matrix);
+        void                    SetMatrix(glm::mat4 const &);
 
         [[nodiscard]] MaterialData const &GetMaterialData() const;
-        [[nodiscard]] MaterialData &      GetMutableMaterialData();
         void                              SetMaterialData(MaterialData const &);
 
         virtual void Tick(double)
@@ -81,11 +81,9 @@ namespace RenderCore
 
         void                                     SetVertexBuffer(std::vector<Vertex> const &);
         [[nodiscard]] std::vector<Vertex> const &GetVertices() const;
-        [[nodiscard]] std::vector<Vertex> &      GetMutableVertices();
 
         void                                            SetIndexBuffer(std::vector<std::uint32_t> const &);
         [[nodiscard]] std::vector<std::uint32_t> const &GetIndices() const;
-        [[nodiscard]] std::vector<std::uint32_t> &      GetMutableIndices();
 
         [[nodiscard]] std::uint32_t GetNumTriangles() const;
 

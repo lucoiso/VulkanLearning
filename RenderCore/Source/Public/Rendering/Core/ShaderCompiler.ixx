@@ -20,9 +20,9 @@ export namespace RenderCore
         HLSL
     };
 
-    [[nodiscard]] bool           Compile(std::string_view, ShaderType, std::string_view, std::int32_t, EShLanguage, std::vector<uint32_t> &);
-    [[nodiscard]] bool           Load(std::string_view, std::vector<uint32_t> &);
-    [[nodiscard]] bool           CompileOrLoadIfExists(std::string_view, ShaderType, std::string_view, std::int32_t, EShLanguage, std::vector<uint32_t> &);
+    [[nodiscard]] bool Compile(std::string_view, ShaderType, std::string_view, std::int32_t, EShLanguage, std::vector<uint32_t> &);
+    [[nodiscard]] bool Load(std::string_view, std::vector<uint32_t> &);
+    [[nodiscard]] bool CompileOrLoadIfExists(std::string_view, ShaderType, std::string_view, std::int32_t, EShLanguage, std::vector<uint32_t> &);
     [[nodiscard]] VkShaderModule CreateModule(std::vector<uint32_t> const &, EShLanguage, std::string_view);
 
     [[nodiscard]] VkPipelineShaderStageCreateInfo              GetStageInfo(VkShaderModule const &Module);

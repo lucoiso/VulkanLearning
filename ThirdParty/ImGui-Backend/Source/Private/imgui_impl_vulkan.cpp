@@ -670,9 +670,7 @@ bool ImGui_ImplVulkan_CreateFontsTexture()
     {
         VkCommandPoolCreateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        //~ Begin: Set flag to reset the entire pool to avoid performance warnings
-        info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-        //~ End: Set flag to reset the entire pool to avoid performance warnings
+        info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         info.queueFamilyIndex = v->QueueFamily;
         vkCreateCommandPool(v->Device, &info, v->Allocator, &bd->FontCommandPool);
     }
@@ -1381,9 +1379,7 @@ void ImGui_ImplVulkanH_CreateWindowCommandBuffers(VkPhysicalDevice physical_devi
         {
             VkCommandPoolCreateInfo info = {};
             info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-            //~ Begin: Set flag to reset the entire pool to avoid performance warnings
-            info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-            //~ End: Set flag to reset the entire pool to avoid performance warnings
+            info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
             info.queueFamilyIndex = queue_family;
             err = vkCreateCommandPool(device, &info, allocator, &fd->CommandPool);
             check_vk_result(err);

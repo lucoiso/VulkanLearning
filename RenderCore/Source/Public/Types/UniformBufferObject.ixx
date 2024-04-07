@@ -24,7 +24,7 @@ namespace RenderCore
 
     export struct ModelUniformData
     {
-        alignas(16) glm::mat4 ModelMatrix {};
+        alignas(16) glm::mat4 Model {};
     };
 
     export struct MaterialUniformData

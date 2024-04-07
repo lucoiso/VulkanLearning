@@ -25,14 +25,26 @@ namespace RenderCore
 
     export struct MaterialData
     {
-        glm::vec4 BaseColorFactor{};
-        glm::vec3 EmissiveFactor{};
-        float     MetallicFactor{};
-        float     RoughnessFactor{};
-        float     AlphaCutoff{};
-        float     NormalScale{};
-        float     OcclusionStrength{};
-        AlphaMode AlphaMode{};
-        bool      DoubleSided{};
+        glm::vec4 BaseColorFactor {};
+        glm::vec3 EmissiveFactor {};
+        float     MetallicFactor {};
+        float     RoughnessFactor {};
+        float     AlphaCutoff {};
+        float     NormalScale {};
+        float     OcclusionStrength {};
+        AlphaMode AlphaMode {};
+        bool      DoubleSided {};
+
+        bool operator==(MaterialData const &Rhs) const
+        {
+            return BaseColorFactor == Rhs.BaseColorFactor && EmissiveFactor == Rhs.EmissiveFactor && MetallicFactor == Rhs.MetallicFactor &&
+                   RoughnessFactor == Rhs.RoughnessFactor && AlphaCutoff == Rhs.AlphaCutoff && NormalScale == Rhs.NormalScale && OcclusionStrength ==
+                   Rhs.OcclusionStrength && AlphaMode == Rhs.AlphaMode && DoubleSided == Rhs.DoubleSided;
+        }
+
+        bool operator!=(MaterialData const &Rhs) const
+        {
+            return !(*this == Rhs);
+        }
     };
 } // namespace RenderCore

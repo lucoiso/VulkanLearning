@@ -79,6 +79,8 @@ TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE
         # Assets directory (relative to binaries)
         DEFAULT_VERTEX_SHADER="Resources/Shaders/DEFAULT_SHADER.vert"
         DEFAULT_FRAGMENT_SHADER="Resources/Shaders/DEFAULT_SHADER.frag"
+        DEFAULT_TASK_SHADER="Resources/Shaders/DEFAULT_SHADER.task"
+        DEFAULT_MESH_SHADER="Resources/Shaders/DEFAULT_SHADER.mesh"
 )
 
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC

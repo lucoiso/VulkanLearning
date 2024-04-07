@@ -169,22 +169,22 @@ bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
 
     if (!Initialized)
     {
-        SPIRVToolsInstance.SetMessageConsumer([__func_internal__ = __func__](spv_message_level_t const              Level,
-                                                                             [[maybe_unused]] const char *          Source,
-                                                                             [[maybe_unused]] const spv_position_t &Position,
-                                                                             const char *                           Message)
+        SPIRVToolsInstance.SetMessageConsumer([_func_internal_ = __func__](spv_message_level_t const              Level,
+                                                                           [[maybe_unused]] const char *          Source,
+                                                                           [[maybe_unused]] const spv_position_t &Position,
+                                                                           const char *                           Message)
         {
             switch (Level)
             {
                 case SPV_MSG_FATAL:
                 case SPV_MSG_INTERNAL_ERROR:
-                case SPV_MSG_ERROR: BOOST_LOG_TRIVIAL(error) << "[" << __func_internal__ << "]: " << std::format("Error: {}\n", Message);
+                case SPV_MSG_ERROR: BOOST_LOG_TRIVIAL(error) << "[" << _func_internal_ << "]: " << std::format("Error: {}\n", Message);
                     break;
 
-                case SPV_MSG_WARNING: BOOST_LOG_TRIVIAL(warning) << "[" << __func_internal__ << "]: " << std::format("Warning: {}\n", Message);
+                case SPV_MSG_WARNING: BOOST_LOG_TRIVIAL(warning) << "[" << _func_internal_ << "]: " << std::format("Warning: {}\n", Message);
                     break;
 
-                case SPV_MSG_INFO: BOOST_LOG_TRIVIAL(info) << "[" << __func_internal__ << "]: " << std::format("Info: {}\n", Message);
+                case SPV_MSG_INFO: BOOST_LOG_TRIVIAL(info) << "[" << _func_internal_ << "]: " << std::format("Info: {}\n", Message);
                     break;
 
                 default:
@@ -376,24 +376,34 @@ std::vector<VkPipelineShaderStageCreateInfo> RenderCore::CompileDefaultShaders()
 {
     constexpr auto GlslVersion = 450;
     constexpr auto EntryPoint  = "main";
-    constexpr auto VertexShader { DEFAULT_VERTEX_SHADER };
-    constexpr auto FragmentShader { DEFAULT_FRAGMENT_SHADER };
 
     std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
 
-    if (std::vector<std::uint32_t> ShaderCode;
-        CompileOrLoadIfExists(VertexShader, ShaderType::GLSL, EntryPoint, GlslVersion, EShLangVertex, ShaderCode))
+    auto const CompileAndStage = [&ShaderStages, EntryPoint, GlslVersion](std::string_view const Shader, EShLanguage const Language)
     {
-        auto const VertexModule = CreateModule(ShaderCode, EShLangVertex, EntryPoint);
-        ShaderStages.push_back(GetStageInfo(VertexModule));
-    }
+        if (std::vector<std::uint32_t> ShaderCode;
+            CompileOrLoadIfExists(Shader, ShaderType::GLSL, EntryPoint, GlslVersion, Language, ShaderCode))
+        {
+            auto const Module = CreateModule(ShaderCode, Language, EntryPoint);
+            ShaderStages.push_back(GetStageInfo(Module));
+        }
+    };
 
-    if (std::vector<std::uint32_t> ShaderCode;
-        CompileOrLoadIfExists(FragmentShader, ShaderType::GLSL, EntryPoint, GlslVersion, EShLangFragment, ShaderCode))
-    {
-        auto const FragmentModule = CreateModule(ShaderCode, EShLangFragment, EntryPoint);
-        ShaderStages.push_back(GetStageInfo(FragmentModule));
-    }
+    // constexpr auto TaskLang { EShLangTask };
+    // constexpr auto TaskShader { DEFAULT_TASK_SHADER };
+    // CompileAndStage(TaskShader, TaskLang);
+
+    // constexpr auto MeshLang { EShLangMesh };
+    // constexpr auto MeshShader { DEFAULT_MESH_SHADER };
+    // CompileAndStage(MeshShader, MeshLang);
+
+    constexpr auto VertexLang { EShLangVertex };
+    constexpr auto VertexShader { DEFAULT_VERTEX_SHADER };
+    CompileAndStage(VertexShader, VertexLang);
+
+    constexpr auto FragmentLang { EShLangFragment };
+    constexpr auto FragmentShader { DEFAULT_FRAGMENT_SHADER };
+    CompileAndStage(FragmentShader, FragmentLang);
 
     return ShaderStages;
 }

@@ -155,25 +155,32 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
                                   });
     }
 
-    VkPhysicalDeviceSynchronization2Features Synchronization2Features {
+    VkPhysicalDeviceMeshShaderFeaturesEXT MeshShaderFeatures { // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
             .pNext = nullptr,
-            .synchronization2 = Contains(AvailableExtensions, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME)
+            .taskShader = VK_TRUE,
+            .meshShader = VK_TRUE
     };
 
-    VkPhysicalDeviceDynamicRenderingFeatures DynamicRenderingFeatures {
+    VkPhysicalDeviceSynchronization2Features Synchronization2Features { // Required
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
+            .pNext = &MeshShaderFeatures,
+            .synchronization2 = VK_TRUE
+    };
+
+    VkPhysicalDeviceDynamicRenderingFeatures DynamicRenderingFeatures { // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
             .pNext = &Synchronization2Features,
-            .dynamicRendering = Contains(AvailableExtensions, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
+            .dynamicRendering = VK_TRUE
     };
 
-    VkPhysicalDeviceRobustness2FeaturesEXT RobustnessFeatures {
+    VkPhysicalDeviceRobustness2FeaturesEXT RobustnessFeatures { // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
             .pNext = &DynamicRenderingFeatures,
-            .nullDescriptor = Contains(AvailableExtensions, VK_EXT_PIPELINE_ROBUSTNESS_EXTENSION_NAME)
+            .nullDescriptor = VK_TRUE
     };
 
-    VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT UnusedAttachmentsFeatures {
+    VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT UnusedAttachmentsFeatures { // Optional
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT,
             .pNext = &RobustnessFeatures,
             .dynamicRenderingUnusedAttachments = Contains(AvailableExtensions, VK_EXT_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_EXTENSION_NAME)

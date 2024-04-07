@@ -48,11 +48,6 @@ std::string const &Object::GetName() const
     return m_Name;
 }
 
-Transform &Object::GetMutableTransform()
-{
-    return m_Transform;
-}
-
 Transform const &Object::GetTransform() const
 {
     return m_Transform;
@@ -60,7 +55,11 @@ Transform const &Object::GetTransform() const
 
 void Object::SetTransform(Transform const &Value)
 {
-    m_Transform = Value;
+    if (m_Transform != Value)
+    {
+        m_Transform          = Value;
+        m_IsModelRenderDirty = true;
+    }
 }
 
 glm::vec3 Object::GetPosition() const
@@ -68,9 +67,13 @@ glm::vec3 Object::GetPosition() const
     return m_Transform.GetPosition();
 }
 
-void Object::SetPosition(glm::vec3 const &Position)
+void Object::SetPosition(glm::vec3 const &Value)
 {
-    m_Transform.SetPosition(Position);
+    if (m_Transform.GetPosition() != Value)
+    {
+        m_Transform.SetPosition(Value);
+        m_IsModelRenderDirty = true;
+    }
 }
 
 glm::vec3 Object::GetRotation() const
@@ -78,9 +81,13 @@ glm::vec3 Object::GetRotation() const
     return m_Transform.GetRotation();
 }
 
-void Object::SetRotation(glm::vec3 const &Rotation)
+void Object::SetRotation(glm::vec3 const &Value)
 {
-    m_Transform.SetRotation(Rotation);
+    if (m_Transform.GetRotation() != Value)
+    {
+        m_Transform.SetRotation(Value);
+        m_IsModelRenderDirty = true;
+    }
 }
 
 glm::vec3 Object::GetScale() const
@@ -88,9 +95,13 @@ glm::vec3 Object::GetScale() const
     return m_Transform.GetScale();
 }
 
-void Object::SetScale(glm::vec3 const &Scale)
+void Object::SetScale(glm::vec3 const &Value)
 {
-    m_Transform.SetScale(Scale);
+    if (m_Transform.GetScale() != Value)
+    {
+        m_Transform.SetScale(Value);
+        m_IsModelRenderDirty = true;
+    }
 }
 
 glm::mat4 Object::GetMatrix() const
@@ -98,9 +109,10 @@ glm::mat4 Object::GetMatrix() const
     return m_Transform.GetMatrix();
 }
 
-void Object::SetMatrix(glm::mat4 const &Matrix)
+void Object::SetMatrix(glm::mat4 const &Value)
 {
-    m_Transform.SetMatrix(Matrix);
+    m_Transform.SetMatrix(Value);
+    m_IsModelRenderDirty = true;
 }
 
 MaterialData const &Object::GetMaterialData() const
@@ -108,14 +120,13 @@ MaterialData const &Object::GetMaterialData() const
     return m_MaterialData;
 }
 
-MaterialData &Object::GetMutableMaterialData()
-{
-    return m_MaterialData;
-}
-
 void Object::SetMaterialData(MaterialData const &Value)
 {
-    m_MaterialData = Value;
+    if (m_MaterialData != Value)
+    {
+        m_MaterialData          = Value;
+        m_IsMaterialRenderDirty = true;
+    }
 }
 
 bool Object::IsPendingDestroy() const
@@ -141,7 +152,8 @@ ObjectAllocationData &Object::GetMutableAllocationData()
 
 void Object::SetVertexBuffer(std::vector<Vertex> const &Value)
 {
-    m_Vertices = Value;
+    m_Vertices           = Value;
+    m_IsModelRenderDirty = true;
 }
 
 std::vector<Vertex> const &Object::GetVertices() const
@@ -149,22 +161,13 @@ std::vector<Vertex> const &Object::GetVertices() const
     return m_Vertices;
 }
 
-std::vector<Vertex> &Object::GetMutableVertices()
-{
-    return m_Vertices;
-}
-
 void Object::SetIndexBuffer(std::vector<std::uint32_t> const &Value)
 {
-    m_Indices = Value;
+    m_Indices            = Value;
+    m_IsModelRenderDirty = true;
 }
 
 std::vector<std::uint32_t> const &Object::GetIndices() const
-{
-    return m_Indices;
-}
-
-std::vector<std::uint32_t> &Object::GetMutableIndices()
 {
     return m_Indices;
 }
@@ -176,14 +179,14 @@ std::uint32_t Object::GetNumTriangles() const
 
 void Object::UpdateUniformBuffers() const
 {
-    if (m_Allocation.ModelBufferAllocation.MappedData)
+    if (m_IsModelRenderDirty && m_Allocation.ModelBufferAllocation.MappedData)
     {
-        ModelUniformData const UpdatedModelUBO { .ModelMatrix = m_Transform.GetMatrix(), };
-
+        ModelUniformData const UpdatedModelUBO { .Model = m_Transform.GetMatrix() };
         std::memcpy(m_Allocation.ModelBufferAllocation.MappedData, &UpdatedModelUBO, sizeof(ModelUniformData));
+        m_IsModelRenderDirty = false;
     }
 
-    if (m_Allocation.MaterialBufferAllocation.MappedData)
+    if (m_IsMaterialRenderDirty && m_Allocation.MaterialBufferAllocation.MappedData)
     {
         MaterialUniformData const UpdatedMaterialUBO {
                 .BaseColorFactor = m_MaterialData.BaseColorFactor,
@@ -198,6 +201,7 @@ void Object::UpdateUniformBuffers() const
         };
 
         std::memcpy(m_Allocation.MaterialBufferAllocation.MappedData, &UpdatedMaterialUBO, sizeof(MaterialUniformData));
+        m_IsMaterialRenderDirty = false;
     }
 }
 
@@ -211,7 +215,7 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer) const
                     .dstArrayElement = 0U,
                     .descriptorCount = 1U,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .pBufferInfo = &GetCameraUniformDescriptor(),
+                    .pBufferInfo = &GetCamera().GetUniformDescriptor(),
             },
             VkWriteDescriptorSet {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -220,7 +224,7 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer) const
                     .dstArrayElement = 0U,
                     .descriptorCount = 1U,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .pBufferInfo = &GetLightUniformDescriptor(),
+                    .pBufferInfo = &GetIllumination().GetUniformDescriptor(),
             }
     };
 
