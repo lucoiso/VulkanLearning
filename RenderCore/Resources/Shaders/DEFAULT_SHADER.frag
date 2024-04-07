@@ -28,7 +28,6 @@ layout(location = 0) out vec4 outFragColor;
 layout(location = 1) in FragmentData {
     vec2 model_uv;
     vec3 model_view;
-    vec3 cam_view;
     vec3 model_normal;
     vec4 model_color;
     vec4 model_tangent;
@@ -39,8 +38,7 @@ void main() {
     vec3 normal = normalize(texture(samplerNormalMap, fragData.model_uv).rgb * 2.0 - 1.0);
     normal = normalize(fragData.model_normal);
 
-    vec3 viewDir = normalize(fragData.cam_view);
-    vec3 lightDir = normalize(uboLight.position - fragData.model_view);
+    vec3 lightDir = normalize(uboLight.position - fragData.model_view.xyz);
     vec3 lightColor = uboLight.color;
 
     float NdotL = max(dot(normal, lightDir), 0.0);

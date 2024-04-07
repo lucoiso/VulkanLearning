@@ -12,8 +12,7 @@ namespace RenderCore
 {
     export struct CameraUniformData
     {
-        alignas(16) glm::mat4 Projection {};
-        alignas(16) glm::mat4 View {};
+        alignas(16) glm::mat4 ProjectionView {};
     };
 
     export struct LightUniformData

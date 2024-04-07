@@ -265,7 +265,7 @@ void Camera::UpdateUniformBuffers() const
 
     if (m_UniformBufferAllocation.first.MappedData)
     {
-        CameraUniformData const UpdatedUBO { .Projection = GetProjectionMatrix(), .View = GetViewMatrix() };
+        CameraUniformData const UpdatedUBO { .ProjectionView = GetProjectionMatrix() * GetViewMatrix() };
         std::memcpy(m_UniformBufferAllocation.first.MappedData, &UpdatedUBO, sizeof(CameraUniformData));
     }
 
