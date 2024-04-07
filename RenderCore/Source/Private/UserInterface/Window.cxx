@@ -82,6 +82,11 @@ void Window::PollEvents()
     Draw();
 }
 
+double ToNanoSeconds(std::chrono::time_point<std::chrono::system_clock> const &TimePoint)
+{
+    return static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(TimePoint.time_since_epoch()).count());
+}
+
 void Window::Draw()
 {
     if (!IsInitialized() || !IsOpen())
@@ -89,11 +94,10 @@ void Window::Draw()
         return;
     }
 
-    static std::uint64_t LastTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    std::uint64_t const  CurrentTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).
-            count();
+    static auto LastTime    = ToNanoSeconds(std::chrono::system_clock::now());
+    auto const  CurrentTime = ToNanoSeconds(std::chrono::system_clock::now());
 
-    if (double const DeltaTime = static_cast<double>(CurrentTime - LastTime) / static_cast<double>(std::nano::den);
+    if (double const DeltaTime = (CurrentTime - LastTime) / static_cast<double>(std::nano::den);
         DeltaTime >= Renderer::GetFrameRateCap())
     {
         LastTime = CurrentTime;

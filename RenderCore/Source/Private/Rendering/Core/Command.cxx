@@ -262,7 +262,7 @@ void EndRendering(std::uint32_t const ImageIndex)
     #endif
 }
 
-std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const ImageIndex)
+std::vector<VkCommandBuffer> RecordSceneCommands()
 {
     std::vector<VkCommandBuffer> Output {};
     Output.reserve(g_NumThreads);
@@ -335,7 +335,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
         CommandBuffers.reserve(g_NumThreads);
 
         BeginRendering(ImageIndex, GetSwapChainExtent());
-        CommandBuffers.append_range(RecordSceneCommands(ImageIndex));
+        CommandBuffers.append_range(RecordSceneCommands());
 
         if (!std::empty(CommandBuffers))
         {
