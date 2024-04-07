@@ -68,6 +68,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         if (!HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION) && HasFlag(g_StateFlags,
                                                                                               RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
+            ReleaseCommandsResources();
             ReleaseSynchronizationObjects();
             DestroySwapChainImages();
             #ifdef VULKAN_RENDERER_ENABLE_IMGUI
@@ -84,6 +85,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             auto const SurfaceProperties   = GetSurfaceProperties(Window);
             auto const SurfaceCapabilities = GetSurfaceCapabilities();
 
+            InitializeCommandsResources();
             CreateSwapChain(SurfaceProperties, SurfaceCapabilities);
 
             #ifdef VULKAN_RENDERER_ENABLE_IMGUI
@@ -94,6 +96,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
 
             Owner->RefreshResources();
             CreateSynchronizationObjects();
+            AllocateCommandBuffers(GetGraphicsQueue().first, GetNumAllocations());
 
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
             AddFlags(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
@@ -219,6 +222,7 @@ bool RenderCore::Initialize(GLFWwindow *const Window)
     InitializeDevice(GetSurface());
     volkLoadDevice(GetLogicalDevice());
 
+    InitializeCommandsResources();
     CreateMemoryAllocator(GetPhysicalDevice());
     CreateSceneUniformBuffers();
     CreateImageSampler();

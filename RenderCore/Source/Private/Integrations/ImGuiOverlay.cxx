@@ -21,9 +21,11 @@ import RenderCore.Renderer;
 import RenderCore.Runtime.Device;
 import RenderCore.Runtime.Pipeline;
 import RenderCore.Runtime.Command;
+import RenderCore.Runtime.SwapChain;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Types.Camera;
+import RenderCore.Types.Allocation;
 
 using namespace RenderCore;
 
@@ -159,5 +161,39 @@ void RenderCore::DrawImGuiFrame(std::function<void()> &&PreDraw, std::function<v
 bool RenderCore::IsImGuiInitialized()
 {
     return g_ImGuiDescriptorPool != VK_NULL_HANDLE;
+}
+
+void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
+                                          std::uint32_t const    ImageIndex,
+                                          VkImageLayout const    SwapChainMidLayout)
+{
+    if (IsImGuiInitialized())
+    {
+        ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
+
+        if (ImDrawData *const ImGuiDrawData = ImGui::GetDrawData())
+        {
+            VkRenderingAttachmentInfoKHR const ColorAttachmentInfo {
+                    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+                    .imageView = SwapchainAllocation.View,
+                    .imageLayout = SwapChainMidLayout,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                    .clearValue = g_ClearValues.at(0U)
+            };
+
+            VkRenderingInfo const RenderingInfo {
+                    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+                    .renderArea = { .offset = { 0, 0 }, .extent = SwapchainAllocation.Extent },
+                    .layerCount = 1U,
+                    .colorAttachmentCount = 1U,
+                    .pColorAttachments = &ColorAttachmentInfo
+            };
+
+            vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
+            ImGui_ImplVulkan_RenderDrawData(ImGuiDrawData, CommandBuffer);
+            vkCmdEndRendering(CommandBuffer);
+        }
+    }
 }
 #endif

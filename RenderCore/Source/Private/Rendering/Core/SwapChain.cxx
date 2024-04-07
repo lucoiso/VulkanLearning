@@ -25,8 +25,6 @@ using namespace RenderCore;
 VkSurfaceKHR                 g_Surface { VK_NULL_HANDLE };
 VkSwapchainKHR               g_SwapChain { VK_NULL_HANDLE };
 VkSwapchainKHR               g_OldSwapChain { VK_NULL_HANDLE };
-VkFormat                     g_SwapChainImageFormat { VK_FORMAT_UNDEFINED };
-VkExtent2D                   g_SwapChainExtent { 0U, 0U };
 std::vector<ImageAllocation> g_SwapChainImages {};
 
 void RenderCore::CreateVulkanSurface(GLFWwindow *const Window)
@@ -39,17 +37,15 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
     auto const QueueFamilyIndices      = GetUniqueQueueFamilyIndicesU32();
     auto const QueueFamilyIndicesCount = static_cast<std::uint32_t>(std::size(QueueFamilyIndices));
 
-    g_OldSwapChain         = g_SwapChain;
-    g_SwapChainExtent      = SurfaceProperties.Extent;
-    g_SwapChainImageFormat = SurfaceProperties.Format.format;
+    g_OldSwapChain = g_SwapChain;
 
     VkSwapchainCreateInfoKHR const SwapChainCreateInfo {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface = GetSurface(),
             .minImageCount = g_MinImageCount,
-            .imageFormat = g_SwapChainImageFormat,
+            .imageFormat = SurfaceProperties.Format.format,
             .imageColorSpace = SurfaceProperties.Format.colorSpace,
-            .imageExtent = g_SwapChainExtent,
+            .imageExtent = SurfaceProperties.Extent,
             .imageArrayLayers = 1U,
             .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             .imageSharingMode = QueueFamilyIndicesCount > 1U ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
@@ -79,9 +75,13 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
     g_SwapChainImages.resize(Count, ImageAllocation());
     std::ranges::transform(SwapChainImages,
                            std::begin(g_SwapChainImages),
-                           [](VkImage const &Image)
+                           [SurfaceProperties](VkImage const &Image)
                            {
-                               return ImageAllocation { .Image = Image };
+                               return ImageAllocation {
+                                       .Image = Image,
+                                       .Extent = SurfaceProperties.Extent,
+                                       .Format = SurfaceProperties.Format.format
+                               };
                            });
 
     CreateSwapChainImageViews(g_SwapChainImages);
@@ -111,7 +111,7 @@ void RenderCore::CreateSwapChainImageViews(std::vector<ImageAllocation> &Images)
     std::ranges::for_each(Images,
                           [&](ImageAllocation &ImageIter)
                           {
-                              CreateImageView(ImageIter.Image, g_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, ImageIter.View);
+                              CreateImageView(ImageIter.Image, ImageIter.Format, VK_IMAGE_ASPECT_COLOR_BIT, ImageIter.View);
                           });
 }
 
@@ -172,12 +172,12 @@ VkSwapchainKHR const &RenderCore::GetSwapChain()
 
 VkExtent2D const &RenderCore::GetSwapChainExtent()
 {
-    return g_SwapChainExtent;
+    return g_SwapChainImages.at(0U).Extent;
 }
 
 VkFormat const &RenderCore::GetSwapChainImageFormat()
 {
-    return g_SwapChainImageFormat;
+    return g_SwapChainImages.at(0U).Format;
 }
 
 std::vector<ImageAllocation> const &RenderCore::GetSwapChainImages()

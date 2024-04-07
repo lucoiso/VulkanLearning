@@ -6,6 +6,7 @@ module;
 
 #include <GLFW/glfw3.h>
 #include <functional>
+#include <Volk/volk.h>
 
 export module RenderCore.Integrations.ImGuiOverlay;
 
@@ -18,5 +19,6 @@ namespace RenderCore
     export void               ReleaseImGuiResources();
     export void               DrawImGuiFrame(std::function<void()> &&, std::function<void()> &&, std::function<void()> &&);
     export [[nodiscard]] bool IsImGuiInitialized();
+    export void               RecordImGuiCommandBuffer(VkCommandBuffer const &, std::uint32_t, VkImageLayout);
 } // namespace RenderCore
 #endif

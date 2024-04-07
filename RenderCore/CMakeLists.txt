@@ -50,6 +50,7 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PRIVATE
         Boost::log
         TinyGLTF::TinyGLTF
         glfw
+        ThreadPool
 )
 
 SET(VULKAN_LIBS_TO_LINK

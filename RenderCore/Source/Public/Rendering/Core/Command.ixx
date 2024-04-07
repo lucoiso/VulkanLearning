@@ -17,9 +17,15 @@ import RenderCore.Types.Camera;
 
 export namespace RenderCore
 {
+    void AllocateCommandBuffers(std::uint32_t, std::uint32_t);
+
+    void FreeCommandBuffers();
+
+    void InitializeCommandsResources();
+
     void ReleaseCommandsResources();
 
-    [[nodiscard]] VkCommandPool CreateCommandPool(std::uint8_t);
+    [[nodiscard]] VkCommandPool CreateCommandPool(std::uint8_t, VkCommandPoolCreateFlags);
 
     void RecordCommandBuffers(std::uint32_t);
 
