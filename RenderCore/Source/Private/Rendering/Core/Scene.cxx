@@ -5,7 +5,6 @@
 module;
 
 #include <Volk/volk.h>
-#include <glm/ext.hpp>
 #include <vma/vk_mem_alloc.h>
 #include <boost/log/trivial.hpp>
 
@@ -32,6 +31,7 @@ import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Model;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Utils.Helpers;
+import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
@@ -63,20 +63,16 @@ void RenderCore::CreateDepthResources(SurfaceProperties const &SurfaceProperties
         g_DepthImage.DestroyResources(GetAllocator());
     }
 
-    constexpr VmaMemoryUsage           MemoryUsage         = VMA_MEMORY_USAGE_AUTO;
-    constexpr VkImageTiling            Tiling              = VK_IMAGE_TILING_OPTIMAL;
     constexpr VkImageUsageFlagBits     Usage               = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    constexpr VmaAllocationCreateFlags MemoryPropertyFlags = 0U;
     constexpr VkImageAspectFlags       Aspect              = VK_IMAGE_ASPECT_DEPTH_BIT;
 
     g_DepthImage.Format = SurfaceProperties.DepthFormat;
 
     CreateImage(g_DepthImage.Format,
                 SurfaceProperties.Extent,
-                Tiling,
+                g_ImageTiling,
                 Usage,
-                MemoryPropertyFlags,
-                MemoryUsage,
+                g_TextureMemoryUsage,
                 "DEPTH",
                 g_DepthImage.Image,
                 g_DepthImage.Allocation);
@@ -140,7 +136,6 @@ void RenderCore::LoadObject(std::string_view const ModelPath)
     }
 
 
-
     VkCommandPool                CopyCommandPool { VK_NULL_HANDLE };
     std::vector<VkCommandBuffer> CommandBuffers { VK_NULL_HANDLE };
 
@@ -149,7 +144,7 @@ void RenderCore::LoadObject(std::string_view const ModelPath)
 
     InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, QueueIndex);
     {
-        VkCommandBuffer &CommandBuffer = CommandBuffers.at(0U);
+        VkCommandBuffer &                                              CommandBuffer = CommandBuffers.at(0U);
         std::unordered_map<std::uint32_t, tinygltf::Primitive const &> CachedPrimitiveRelationship {};
         for (tinygltf::Node const &Node : Model.nodes)
         {
@@ -174,8 +169,7 @@ void RenderCore::LoadObject(std::string_view const ModelPath)
                 SetVertexAttributes(NewObject, Model, PrimitiveIter);
                 SetPrimitiveTransform(NewObject, Node);
                 AllocatePrimitiveIndices(NewObject, Model, PrimitiveIter);
-
-                BufferAllocations.emplace(AllocateObjectBuffers(CommandBuffer, NewObject));
+                AllocateModelBuffers(NewObject);
                 BufferAllocations.merge(AllocateObjectMaterials(CommandBuffer, NewObject, CachedPrimitiveRelationship.at(ObjectID), Model));
 
                 g_Objects.push_back(std::move(NewObject));

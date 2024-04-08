@@ -37,7 +37,8 @@ namespace RenderCore
     export [[nodiscard]] VkVertexInputBindingDescription GetBindingDescriptors(std::uint32_t);
 
     export [[nodiscard]] std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(std::uint32_t,
-                                                                                                 std::vector<VkVertexInputAttributeDescription> const &);
+                                                                                                 std::vector<VkVertexInputAttributeDescription> const
+                                                                                                 &);
 
     export template <typename ItemType, typename ContainerType>
     constexpr bool Contains(ContainerType const &Container, ItemType const &Item)

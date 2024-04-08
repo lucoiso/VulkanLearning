@@ -195,11 +195,6 @@ void RenderCore::SetPrimitiveTransform(Object &Object, tinygltf::Node const &Nod
     }
 }
 
-std::pair<VkBuffer, VmaAllocation> RenderCore::AllocateObjectBuffers(VkCommandBuffer const &CommandBuffer, Object &Object)
-{
-    return AllocateModelBuffers(CommandBuffer, Object);
-}
-
 std::unordered_map<VkBuffer, VmaAllocation> RenderCore::AllocateObjectMaterials(VkCommandBuffer &          CommandBuffer,
                                                                                 Object &                   Object,
                                                                                 tinygltf::Primitive const &Primitive,

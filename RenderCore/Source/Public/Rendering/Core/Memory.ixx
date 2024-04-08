@@ -25,7 +25,7 @@ export namespace RenderCore
 
     [[nodiscard]] VmaAllocator const &GetAllocator();
 
-    VmaAllocationInfo CreateBuffer(VkDeviceSize const &, VkBufferUsageFlags, VkMemoryPropertyFlags, std::string_view, VkBuffer &, VmaAllocation &);
+    VmaAllocationInfo CreateBuffer(VkDeviceSize const &, VkBufferUsageFlags, std::string_view, VkBuffer &, VmaAllocation &);
 
     void CopyBuffer(VkCommandBuffer const &, VkBuffer const &, VkBuffer const &, VkDeviceSize const &);
 
@@ -35,7 +35,6 @@ export namespace RenderCore
                      VkExtent2D const &,
                      VkImageTiling const &,
                      VkImageUsageFlags,
-                     VmaAllocationCreateFlags,
                      VmaMemoryUsage,
                      std::string_view,
                      VkImage &,
@@ -57,7 +56,7 @@ export namespace RenderCore
                                                                      std::size_t,
                                                                      ImageAllocation &);
 
-    [[nodiscard]] std::pair<VkBuffer, VmaAllocation> AllocateModelBuffers(VkCommandBuffer const &, Object &);
+    void AllocateModelBuffers(Object &);
 
     template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
     constexpr void MoveImageLayout(VkCommandBuffer &   CommandBuffer,
