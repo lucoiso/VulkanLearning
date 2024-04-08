@@ -5,6 +5,7 @@
 module;
 
 #include <algorithm>
+#include <ranges>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -137,7 +138,7 @@ void RenderCore::FreeCommandBuffers()
 void RenderCore::InitializeCommandsResources()
 {
     g_NumThreads = static_cast<std::uint8_t>(std::thread::hardware_concurrency());
-    g_ThreadPool.SetThreadCount(g_NumThreads);
+    g_ThreadPool.SetupCPUThreads();
 
     for (std::uint8_t ThreadIndex = 0U; ThreadIndex < g_NumThreads; ++ThreadIndex)
     {
@@ -307,12 +308,12 @@ std::vector<VkCommandBuffer> RecordSceneCommands()
         {
             VkCommandBuffer const &CommandBuffer = CommandResources.CommandBuffers.at(ObjectIndex);
 
-            g_ThreadPool.AddTask([ThreadIndex, ObjectIndex, &CommandBuffer, &SecondaryBeginInfo, &Pipeline, &Objects]()
+            g_ThreadPool.AddTask([ThreadIndex, ObjectIndex, &CommandBuffer, &SecondaryBeginInfo, &Pipeline, &Objects]
                                  {
                                      CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
                                      {
-                                         vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
                                          SetViewport(CommandBuffer, GetSwapChainExtent());
+                                         vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
 
                                          Object const &Object = Objects.at(ThreadIndex * g_ObjectsPerThread + ObjectIndex);
                                          Object.UpdateUniformBuffers();
@@ -321,12 +322,15 @@ std::vector<VkCommandBuffer> RecordSceneCommands()
                                      CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
                                  },
                                  ThreadIndex);
-
-            Output.push_back(CommandBuffer);
         }
     }
 
     g_ThreadPool.Wait();
+
+    for (auto const &CommandResources : g_CommandResources | std::views::values)
+    {
+        Output.insert(std::end(Output), std::begin(CommandResources.CommandBuffers), std::end(CommandResources.CommandBuffers));
+    }
 
     return Output;
 }

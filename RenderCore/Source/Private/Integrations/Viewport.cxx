@@ -31,7 +31,7 @@ void RenderCore::CreateViewportResources(SurfaceProperties const &SurfacePropert
     g_ViewportImages.resize(std::size(GetSwapChainImages()));
 
     constexpr VkImageAspectFlags AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-    constexpr VkImageUsageFlags UsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    constexpr VkImageUsageFlags  UsageFlags  = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
     std::ranges::for_each(g_ViewportImages,
                           [&](ImageAllocation &ImageIter)

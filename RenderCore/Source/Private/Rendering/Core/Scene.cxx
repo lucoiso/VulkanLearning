@@ -63,8 +63,8 @@ void RenderCore::CreateDepthResources(SurfaceProperties const &SurfaceProperties
         g_DepthImage.DestroyResources(GetAllocator());
     }
 
-    constexpr VkImageUsageFlagBits     Usage               = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    constexpr VkImageAspectFlags       Aspect              = VK_IMAGE_ASPECT_DEPTH_BIT;
+    constexpr VkImageUsageFlagBits Usage  = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    constexpr VkImageAspectFlags   Aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 
     g_DepthImage.Format = SurfaceProperties.DepthFormat;
 
