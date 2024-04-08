@@ -11,7 +11,7 @@ export module RenderGraphRPS.Manager;
 
 namespace RenderGraphRPS
 {
-    export RENDERGRAPHRPSMODULE_API bool CreateRPSDevice(VkDevice const &, VkPhysicalDevice const &);
+    export RENDERGRAPHRPSMODULE_API void CreateRPSDevice(VkDevice const &, VkPhysicalDevice const &);
     export RENDERGRAPHRPSMODULE_API void DestroyDevice();
 
     export RENDERGRAPHRPSMODULE_API RpsRenderGraph CreateRPSRenderGraph(RpsRpslEntry const &);

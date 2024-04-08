@@ -39,9 +39,10 @@ export namespace RenderCore
 
         constexpr std::array g_DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH };
 
-        constexpr std::uint64_t g_BufferMemoryAllocationSize = 65536U;
-
-        constexpr std::uint64_t g_ImageBufferMemoryAllocationSize = 262144U;
+        constexpr std::uint64_t g_MinMemoryBlock = 4U;
+        constexpr std::uint64_t g_MinStagingMemoryBlock = 2U;
+        constexpr std::uint64_t g_BufferMemoryAllocationSize = 4'194'304U;
+        constexpr std::uint64_t g_ImageMemoryAllocationSize = g_BufferMemoryAllocationSize * 5U;
 
         constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 

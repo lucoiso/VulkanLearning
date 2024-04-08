@@ -4,8 +4,9 @@
 
 module;
 
-#include <rps/rps.h>
+#include <cassert>
 #include <type_traits>
+#include <rps/rps.h>
 
 export module RenderGraphRPS.Utils;
 
@@ -13,15 +14,15 @@ namespace RenderGraphRPS
 {
     export template <typename T>
         requires std::is_same_v<T, RpsResult> || std::is_same_v<T, RpsResult &>
-    constexpr bool CheckRPSResult(T &&InputOperation)
+    constexpr void CheckRPSResult(T &&InputOperation)
     {
-        return InputOperation == RPS_OK;
+        assert(InputOperation == RPS_OK);
     }
 
     export template <typename T>
         requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, RpsResult> || std::is_same_v<std::invoke_result_t<T>, RpsResult &>)
-    constexpr bool CheckRPSResult(T &&InputOperation)
+    constexpr void CheckRPSResult(T &&InputOperation)
     {
-        return CheckRPSResult(InputOperation());
+        CheckRPSResult(InputOperation());
     }
 } // namespace RenderGraphRPS

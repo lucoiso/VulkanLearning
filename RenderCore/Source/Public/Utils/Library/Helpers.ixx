@@ -4,13 +4,14 @@
 
 module;
 
-#include <GLFW/glfw3.h>
-#include <Volk/volk.h>
 #include <algorithm>
+#include <cassert>
 #include <format>
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <GLFW/glfw3.h>
+#include <Volk/volk.h>
 
 export module RenderCore.Utils.Helpers;
 
@@ -68,16 +69,16 @@ namespace RenderCore
 
     export template <typename T>
         requires std::is_same_v<T, VkResult> || std::is_same_v<T, VkResult &>
-    constexpr bool CheckVulkanResult(T &&InputOperation)
+    constexpr void CheckVulkanResult(T &&InputOperation)
     {
-        return InputOperation == VK_SUCCESS;
+        assert(InputOperation == VK_SUCCESS);
     }
 
     export template <typename T>
         requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, VkResult> || std::is_same_v<std::invoke_result_t<T>, VkResult &>)
-    constexpr bool CheckVulkanResult(T &&InputOperation)
+    constexpr void CheckVulkanResult(T &&InputOperation)
     {
-        return CheckVulkanResult(InputOperation());
+        CheckVulkanResult(InputOperation());
     }
 
     export constexpr bool DepthHasStencil(VkFormat const &Format)

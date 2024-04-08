@@ -134,5 +134,5 @@ jobs:
       #   run: ctest --build-config ${{ matrix.build_type }}
 
       # - name: Run Benchmark
-      #   working-directory: ${{ steps.strings.outputs.build-output-dir }}/bin
+      #   working-directory: ${{ steps.strings.outputs.build-output-dir }}/Release/bin
       #   run: ./RenderCoreBenchmark.exe

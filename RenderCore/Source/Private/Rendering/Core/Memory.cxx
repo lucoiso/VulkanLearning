@@ -36,6 +36,9 @@ import RenderCore.Types.UniformBufferObject;
 
 using namespace RenderCore;
 
+VmaPool g_StagingBufferPool { VK_NULL_HANDLE };
+VmaPool g_BufferPool { VK_NULL_HANDLE };
+VmaPool g_ImagePool { VK_NULL_HANDLE };
 VmaAllocator g_Allocator { VK_NULL_HANDLE };
 
 void RenderCore::CreateMemoryAllocator(VkPhysicalDevice const &PhysicalDevice)
@@ -57,10 +60,105 @@ void RenderCore::CreateMemoryAllocator(VkPhysicalDevice const &PhysicalDevice)
     };
 
     CheckVulkanResult(vmaCreateAllocator(&AllocatorInfo, &g_Allocator));
+
+    {
+        constexpr VmaAllocationCreateInfo AllocationCreateInfo {
+            .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+            .usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST
+        };
+
+        constexpr VkBufferCreateInfo BufferCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .size = 0x100,
+            .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+        };
+
+        std::uint32_t MemoryType;
+        CheckVulkanResult(vmaFindMemoryTypeIndexForBufferInfo(g_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &MemoryType));
+
+        VmaPoolCreateInfo const PoolCreateInfo {
+            .memoryTypeIndex = MemoryType,
+            .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
+            .blockSize = g_ImageMemoryAllocationSize,
+            .minBlockCount = g_MinStagingMemoryBlock,
+            .priority = 0.F,
+            .minAllocationAlignment = GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment
+        };
+
+        CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_StagingBufferPool));
+    }
+
+    {
+        constexpr VmaAllocationCreateInfo AllocationCreateInfo {
+            .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE
+        };
+
+        constexpr VkBufferCreateInfo BufferCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .size = 0x100,
+            .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
+        };
+
+        std::uint32_t MemoryType;
+        CheckVulkanResult(vmaFindMemoryTypeIndexForBufferInfo(g_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &MemoryType));
+
+        VmaPoolCreateInfo const PoolCreateInfo {
+            .memoryTypeIndex = MemoryType,
+            .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
+            .blockSize = g_BufferMemoryAllocationSize,
+            .minBlockCount = g_MinMemoryBlock,
+            .priority = 1.F,
+            .minAllocationAlignment = GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment
+        };
+
+        CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_BufferPool));
+    }
+
+    {
+        constexpr VmaAllocationCreateInfo AllocationCreateInfo {
+            .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE
+        };
+
+        constexpr VkImageCreateInfo ImageViewCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .imageType = VK_IMAGE_TYPE_2D,
+            .format = VK_FORMAT_R8G8B8A8_SRGB,
+            .extent = { .width = 256U, .height = 256U, .depth = 1U },
+            .mipLevels = 1U,
+            .arrayLayers = 1U,
+            .samples = g_MSAASamples,
+            .tiling = VK_IMAGE_TILING_LINEAR,
+            .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+        };
+
+        std::uint32_t MemoryType;
+        CheckVulkanResult(vmaFindMemoryTypeIndexForImageInfo(g_Allocator, &ImageViewCreateInfo, &AllocationCreateInfo, &MemoryType));
+
+        VmaPoolCreateInfo const PoolCreateInfo {
+            .memoryTypeIndex = MemoryType,
+            .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
+            .blockSize = g_ImageMemoryAllocationSize,
+            .minBlockCount = g_MinMemoryBlock,
+            .priority = 0.5F
+        };
+
+        CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_ImagePool));
+    }
 }
 
 void RenderCore::ReleaseMemoryResources()
 {
+    vmaDestroyPool(g_Allocator, g_StagingBufferPool);
+    g_StagingBufferPool = VK_NULL_HANDLE;
+
+    vmaDestroyPool(g_Allocator, g_BufferPool);
+    g_BufferPool = VK_NULL_HANDLE;
+
+    vmaDestroyPool(g_Allocator, g_ImagePool);
+    g_ImagePool = VK_NULL_HANDLE;
+
     vmaDestroyAllocator(g_Allocator);
     g_Allocator = VK_NULL_HANDLE;
 }
@@ -77,11 +175,18 @@ VmaAllocationInfo RenderCore::CreateBuffer(VkDeviceSize const &        Size,
                                            VkBuffer &                  Buffer,
                                            VmaAllocation &             Allocation)
 {
-    VmaAllocationCreateInfo const AllocationCreateInfo { .flags = Flags, .usage = VMA_MEMORY_USAGE_AUTO };
+    constexpr VkMemoryPropertyFlags StagingMemoryFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    bool const IsStaging = HasAnyFlag<VkMemoryPropertyFlags>(Flags, StagingMemoryFlags);
+
+    VmaAllocationCreateInfo const AllocationCreateInfo {
+        .flags = Flags,
+        .usage = IsStaging ? VMA_MEMORY_USAGE_AUTO_PREFER_HOST : VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+        .pool = IsStaging ? g_StagingBufferPool : g_BufferPool
+    };
 
     VkBufferCreateInfo const BufferCreateInfo {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .size = std::clamp(Size, g_BufferMemoryAllocationSize, UINT64_MAX),
+            .size = Size,
             .usage = Usage
     };
 
@@ -133,7 +238,11 @@ void RenderCore::CreateImage(VkFormat const &               ImageFormat,
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
     };
 
-    VmaAllocationCreateInfo const ImageCreateInfo { .flags = Flags, .usage = MemoryUsage };
+    VmaAllocationCreateInfo const ImageCreateInfo {
+        .flags = Flags,
+        .usage = MemoryUsage,
+        .pool = g_ImagePool
+    };
 
     VmaAllocationInfo AllocationInfo;
     CheckVulkanResult(vmaCreateImage(GetAllocator(), &ImageViewCreateInfo, &ImageCreateInfo, &Image, &Allocation, &AllocationInfo));
@@ -208,19 +317,17 @@ std::pair<VkBuffer, VmaAllocation> RenderCore::AllocateTexture(VkCommandBuffer &
                                                                std::size_t const    AllocationSize,
                                                                ImageAllocation &    ImageAllocation)
 {
-    constexpr VmaMemoryUsage MemoryUsage = VMA_MEMORY_USAGE_AUTO;
-
     constexpr VkBufferUsageFlags       SourceUsageFlags          = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    constexpr VmaAllocationCreateFlags SourceMemoryPropertyFlags =
-            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    constexpr VmaAllocationCreateFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
     constexpr VkImageUsageFlags        DestinationUsageFlags          = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    constexpr VmaAllocationCreateFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+    constexpr VmaAllocationCreateFlags DestinationMemoryPropertyFlags = 0U;
 
+    constexpr VmaMemoryUsage MemoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     constexpr VkImageTiling Tiling = VK_IMAGE_TILING_LINEAR;
 
     std::pair<VkBuffer, VmaAllocation> Output;
-    VmaAllocationInfo const            StagingInfo = CreateBuffer(std::clamp(AllocationSize, g_ImageBufferMemoryAllocationSize, UINT64_MAX),
+    VmaAllocationInfo const            StagingInfo = CreateBuffer(AllocationSize,
                                                                   SourceUsageFlags,
                                                                   SourceMemoryPropertyFlags,
                                                                   "STAGING_TEXTURE",

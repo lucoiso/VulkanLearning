@@ -17,7 +17,7 @@ using namespace RenderGraphRPS;
 
 static RpsDevice s_RPSDevice {nullptr};
 
-bool RenderGraphRPS::CreateRPSDevice(VkDevice const &LogicalDevice, VkPhysicalDevice const &PhysicalDevice)
+void RenderGraphRPS::CreateRPSDevice(VkDevice const &LogicalDevice, VkPhysicalDevice const &PhysicalDevice)
 {
     RpsVKFunctions RPSVKFunctions {};
 #define RPS_VK_FILL_VK_FUNCTION(CallName) RPSVKFunctions.CallName = CallName;
@@ -30,7 +30,7 @@ bool RenderGraphRPS::CreateRPSDevice(VkDevice const &LogicalDevice, VkPhysicalDe
         .pVkFunctions      = &RPSVKFunctions,
     };
 
-    return CheckRPSResult(rpsVKRuntimeDeviceCreate(&RPSDeviceCreateInfo, &s_RPSDevice));
+    CheckRPSResult(rpsVKRuntimeDeviceCreate(&RPSDeviceCreateInfo, &s_RPSDevice));
 }
 
 void RenderGraphRPS::DestroyDevice()
