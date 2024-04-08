@@ -96,81 +96,7 @@ VmaAllocationInfo RenderCore::CreateBuffer(VkDeviceSize const &        Size,
 void RenderCore::CopyBuffer(VkCommandBuffer const &CommandBuffer, VkBuffer const &Source, VkBuffer const &Destination, VkDeviceSize const &Size)
 {
     VkBufferCopy const BufferCopy { .size = Size, };
-
     vkCmdCopyBuffer(CommandBuffer, Source, Destination, 1U, &BufferCopy);
-}
-
-std::pair<VkBuffer, VmaAllocation> RenderCore::CreateVertexBuffers(VkCommandBuffer const &    CommandBuffer,
-                                                                   ObjectAllocationData &     Object,
-                                                                   std::vector<Vertex> const &Vertices)
-{
-    VkDeviceSize const BufferSize = std::size(Vertices) * sizeof(Vertex);
-
-    constexpr VkBufferUsageFlags    SourceUsageFlags          = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags =
-            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-    constexpr VkBufferUsageFlags    DestinationUsageFlags          = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = 0U;
-
-    std::pair<VkBuffer, VmaAllocation> Output;
-
-    VmaAllocationInfo const StagingInfo = CreateBuffer(BufferSize,
-                                                       SourceUsageFlags,
-                                                       SourceMemoryPropertyFlags,
-                                                       "STAGING_VERTEX",
-                                                       Output.first,
-                                                       Output.second);
-
-    std::memcpy(StagingInfo.pMappedData, std::data(Vertices), BufferSize);
-
-    CreateBuffer(BufferSize,
-                 DestinationUsageFlags,
-                 DestinationMemoryPropertyFlags,
-                 "VERTEX",
-                 Object.VertexBufferAllocation.Buffer,
-                 Object.VertexBufferAllocation.Allocation);
-
-    VkBufferCopy const BufferCopy { .size = BufferSize };
-    vkCmdCopyBuffer(CommandBuffer, Output.first, Object.VertexBufferAllocation.Buffer, 1U, &BufferCopy);
-
-    return Output;
-}
-
-std::pair<VkBuffer, VmaAllocation> RenderCore::CreateIndexBuffers(VkCommandBuffer const &           CommandBuffer,
-                                                                  ObjectAllocationData &            Object,
-                                                                  std::vector<std::uint32_t> const &Indices)
-{
-    VkDeviceSize const BufferSize = std::size(Indices) * sizeof(std::uint32_t);
-
-    constexpr VkBufferUsageFlags    SourceUsageFlags          = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags =
-            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-    constexpr VkBufferUsageFlags    DestinationUsageFlags          = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-    constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = 0U;
-
-    std::pair<VkBuffer, VmaAllocation> Output;
-
-    VmaAllocationInfo const StagingInfo = CreateBuffer(BufferSize,
-                                                       SourceUsageFlags,
-                                                       SourceMemoryPropertyFlags,
-                                                       "STAGING_INDEX",
-                                                       Output.first,
-                                                       Output.second);
-
-    std::memcpy(StagingInfo.pMappedData, std::data(Indices), BufferSize);
-    CheckVulkanResult(vmaFlushAllocation(GetAllocator(), Output.second, 0U, BufferSize));
-
-    CreateBuffer(BufferSize,
-                 DestinationUsageFlags,
-                 DestinationMemoryPropertyFlags,
-                 "INDEX",
-                 Object.IndexBufferAllocation.Buffer,
-                 Object.IndexBufferAllocation.Allocation);
-
-    VkBufferCopy const BufferCopy { .size = BufferSize };
-    vkCmdCopyBuffer(CommandBuffer, Output.first, Object.IndexBufferAllocation.Buffer, 1U, &BufferCopy);
-
-    return Output;
 }
 
 void RenderCore::CreateUniformBuffers(BufferAllocation &BufferAllocation, VkDeviceSize const BufferSize, std::string_view const Identifier)
@@ -181,34 +107,6 @@ void RenderCore::CreateUniformBuffers(BufferAllocation &BufferAllocation, VkDevi
     CreateBuffer(BufferSize, DestinationUsageFlags, DestinationMemoryPropertyFlags, Identifier, BufferAllocation.Buffer, BufferAllocation.Allocation);
 
     vmaMapMemory(GetAllocator(), BufferAllocation.Allocation, &BufferAllocation.MappedData);
-}
-
-void RenderCore::CreateModelUniformBuffers(Object &Object)
-{
-    {
-        constexpr VkDeviceSize BufferSize = sizeof(ModelUniformData);
-        CreateUniformBuffers(Object.GetMutableAllocationData().ModelBufferAllocation, BufferSize, "MODEL_UNIFORM");
-
-        Object.GetMutableAllocationData().ModelDescriptors.emplace(UniformType::Model,
-                                                                   VkDescriptorBufferInfo {
-                                                                           .buffer = Object.GetMutableAllocationData().ModelBufferAllocation.Buffer,
-                                                                           .offset = 0U,
-                                                                           .range = BufferSize
-                                                                   });
-    }
-
-    {
-        constexpr VkDeviceSize BufferSize = sizeof(MaterialUniformData);
-        CreateUniformBuffers(Object.GetMutableAllocationData().MaterialBufferAllocation, BufferSize, "MATERIAL_UNIFORM");
-
-        Object.GetMutableAllocationData().ModelDescriptors.emplace(UniformType::Material,
-                                                                   VkDescriptorBufferInfo {
-                                                                           .buffer = Object.GetMutableAllocationData().MaterialBufferAllocation.
-                                                                                            Buffer,
-                                                                           .offset = 0U,
-                                                                           .range = BufferSize
-                                                                   });
-    }
 }
 
 void RenderCore::CreateImage(VkFormat const &               ImageFormat,
@@ -355,6 +253,69 @@ std::pair<VkBuffer, VmaAllocation> RenderCore::AllocateTexture(VkCommandBuffer &
         ImageAllocation.Format);
 
     CreateImageView(ImageAllocation.Image, ImageAllocation.Format, VK_IMAGE_ASPECT_COLOR_BIT, ImageAllocation.View);
+
+    return Output;
+}
+
+std::pair<VkBuffer, VmaAllocation> RenderCore::AllocateModelBuffers(VkCommandBuffer const &CommandBuffer, Object &Object)
+{
+    ObjectAllocationData &            ObjectAllocation = Object.GetMutableAllocationData();
+    std::vector<Vertex> const &       Vertices         = Object.GetVertices();
+    std::vector<std::uint32_t> const &Indices          = Object.GetIndices();
+    std::size_t const                 AllocationSize   = Object.GetAllocationSize();
+
+    constexpr VkBufferUsageFlags    SourceUsageFlags          = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    constexpr VkMemoryPropertyFlags SourceMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    constexpr VkBufferUsageFlags    DestinationUsageFlags     = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                                                                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+    constexpr VkMemoryPropertyFlags DestinationMemoryPropertyFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+    std::pair<VkBuffer, VmaAllocation> Output;
+
+    VmaAllocationInfo StagingInfo = CreateBuffer(AllocationSize,
+                                                 SourceUsageFlags,
+                                                 SourceMemoryPropertyFlags,
+                                                 "STAGING_MODEL_UNIFIED_BUFFER",
+                                                 Output.first,
+                                                 Output.second);
+
+    CheckVulkanResult(vmaMapMemory(GetAllocator(), Output.second, &StagingInfo.pMappedData));
+    std::memcpy(static_cast<char *>(StagingInfo.pMappedData) + Object.GetVertexBufferStart(), std::data(Vertices), Object.GetVertexBufferSize());
+    std::memcpy(static_cast<char *>(StagingInfo.pMappedData) + Object.GetIndexBufferStart(), std::data(Indices), Object.GetIndexBufferSize());
+    CheckVulkanResult(vmaFlushAllocation(GetAllocator(), Output.second, Object.GetIndexBufferStart(), Object.GetIndexBufferSize()));
+
+    CreateBuffer(AllocationSize,
+                 DestinationUsageFlags,
+                 DestinationMemoryPropertyFlags,
+                 "MODEL_UNIFIED_BUFFER",
+                 ObjectAllocation.BufferAllocation.Buffer,
+                 ObjectAllocation.BufferAllocation.Allocation);
+
+    VkBufferCopy const BufferCopy { .size = AllocationSize };
+    vkCmdCopyBuffer(CommandBuffer, Output.first, ObjectAllocation.BufferAllocation.Buffer, 1U, &BufferCopy);
+
+    vmaUnmapMemory(GetAllocator(), Output.second);
+    CheckVulkanResult(vmaMapMemory(GetAllocator(), ObjectAllocation.BufferAllocation.Allocation, &ObjectAllocation.BufferAllocation.MappedData));
+
+    ObjectAllocation.ModelDescriptors = {
+            {
+                    UniformType::Model,
+                    VkDescriptorBufferInfo {
+                            .buffer = ObjectAllocation.BufferAllocation.Buffer,
+                            .offset = Object.GetModelUniformStart(),
+                            .range = Object.GetModelUniformBufferSize()
+                    }
+            },
+            {
+                    UniformType::Material,
+                    VkDescriptorBufferInfo {
+                            .buffer = ObjectAllocation.BufferAllocation.Buffer,
+                            .offset = Object.GetMaterialUniformStart(),
+                            .range = Object.GetMaterialUniformBufferSize()
+                    }
+            }
+    };
 
     return Output;
 }

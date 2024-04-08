@@ -62,20 +62,17 @@ void BufferAllocation::DestroyResources(VmaAllocator const &Allocator)
 
 bool ObjectAllocationData::IsValid() const
 {
-    return VertexBufferAllocation.IsValid() && IndexBufferAllocation.IsValid();
+    return BufferAllocation.IsValid();
 }
 
 void ObjectAllocationData::DestroyResources(VmaAllocator const &Allocator)
 {
-    for (ImageAllocation &TextureAllocationIter : TextureImageAllocations)
+    for (ImageAllocation &TextureAllocationIter : ImageAllocations)
     {
         TextureAllocationIter.DestroyResources(Allocator);
     }
     TextureDescriptors.clear();
 
-    VertexBufferAllocation.DestroyResources(Allocator);
-    IndexBufferAllocation.DestroyResources(Allocator);
-    ModelBufferAllocation.DestroyResources(Allocator);
-    MaterialBufferAllocation.DestroyResources(Allocator);
+    BufferAllocation.DestroyResources(Allocator);
     ModelDescriptors.clear();
 }

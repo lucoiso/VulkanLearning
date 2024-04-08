@@ -29,16 +29,7 @@ export namespace RenderCore
 
     void CopyBuffer(VkCommandBuffer const &, VkBuffer const &, VkBuffer const &, VkDeviceSize const &);
 
-    [[nodiscard]] std::pair<VkBuffer, VmaAllocation>
-    CreateVertexBuffers(VkCommandBuffer const &, ObjectAllocationData &, std::vector<Vertex> const &);
-
-    [[nodiscard]] std::pair<VkBuffer, VmaAllocation> CreateIndexBuffers(VkCommandBuffer const &,
-                                                                        ObjectAllocationData &,
-                                                                        std::vector<std::uint32_t> const &);
-
     void CreateUniformBuffers(BufferAllocation &, VkDeviceSize, std::string_view);
-
-    void CreateModelUniformBuffers(Object &);
 
     void CreateImage(VkFormat const &,
                      VkExtent2D const &,
@@ -65,6 +56,8 @@ export namespace RenderCore
                                                                      VkFormat,
                                                                      std::size_t,
                                                                      ImageAllocation &);
+
+    [[nodiscard]] std::pair<VkBuffer, VmaAllocation> AllocateModelBuffers(VkCommandBuffer const &, Object &);
 
     template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
     constexpr void MoveImageLayout(VkCommandBuffer &   CommandBuffer,

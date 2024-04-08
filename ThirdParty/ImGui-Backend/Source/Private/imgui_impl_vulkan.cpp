@@ -91,13 +91,6 @@
 #define IM_MAX(A, B)    (((A) >= (B)) ? (A) : (B))
 #endif
 
-//~ Begin: Add includes and a constant to clamp the memory allocation to avoid performance warnings
-#include <algorithm>
-#include <cstdint>
-#include <vector>
-constexpr std::uint64_t g_IMGUI_ImageBufferMemoryAllocationSize = 262144U;
-//~ End: Add includes and a constant to clamp the memory allocation to avoid performance warnings
-
 // Visual Studio warnings
 #ifdef _MSC_VER
 #pragma warning (disable: 4127) // condition expression is constant
@@ -449,9 +442,7 @@ static void CreateOrResizeBuffer(VkBuffer& buffer, VkDeviceMemory& buffer_memory
     bd->BufferMemoryAlignment = (bd->BufferMemoryAlignment > req.alignment) ? bd->BufferMemoryAlignment : req.alignment;
     VkMemoryAllocateInfo alloc_info = {};
     alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    //~ Begin: Clamp the memory allocation size to avoid performance warnings
-    alloc_info.allocationSize = std::clamp(req.size, g_IMGUI_ImageBufferMemoryAllocationSize, UINT64_MAX);
-    //~ End: Clamp the memory allocation size to avoid performance warnings
+    alloc_info.allocationSize = req.size;
     alloc_info.memoryTypeIndex = ImGui_ImplVulkan_MemoryType(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, req.memoryTypeBits);
     err = vkAllocateMemory(v->Device, &alloc_info, v->Allocator, &buffer_memory);
     check_vk_result(err);
@@ -500,10 +491,8 @@ static void ImGui_ImplVulkan_SetupRenderState(ImDrawData* draw_data, VkPipeline 
         float translate[2];
         translate[0] = -1.0f - draw_data->DisplayPos.x * scale[0];
         translate[1] = -1.0f - draw_data->DisplayPos.y * scale[1];
-        //~ Begin: Set flag to reset the entire pool to avoid performance warnings
-        std::vector const push_constants { scale[0], scale[1], translate[0], translate[1] };
-        vkCmdPushConstants(command_buffer, bd->PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * std::size(push_constants), std::data(push_constants));
-        //~ End: Set flag to reset the entire pool to avoid performance warnings    }
+        vkCmdPushConstants(command_buffer, bd->PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(float) * 0, sizeof(float) * 2, scale);
+        vkCmdPushConstants(command_buffer, bd->PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(float) * 2, sizeof(float) * 2, translate);
     }
 }
 
@@ -670,7 +659,7 @@ bool ImGui_ImplVulkan_CreateFontsTexture()
     {
         VkCommandPoolCreateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        info.flags = 0;
         info.queueFamilyIndex = v->QueueFamily;
         vkCreateCommandPool(v->Device, &info, v->Allocator, &bd->FontCommandPool);
     }
@@ -722,9 +711,7 @@ bool ImGui_ImplVulkan_CreateFontsTexture()
         vkGetImageMemoryRequirements(v->Device, bd->FontImage, &req);
         VkMemoryAllocateInfo alloc_info = {};
         alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        //~ Begin: Clamp the memory allocation size to avoid performance warnings
-        alloc_info.allocationSize = std::clamp(IM_MAX(v->MinAllocationSize, req.size), g_IMGUI_ImageBufferMemoryAllocationSize, UINT64_MAX);
-        //~ End: Clamp the memory allocation size to avoid performance warnings
+        alloc_info.allocationSize = IM_MAX(v->MinAllocationSize, req.size);
         alloc_info.memoryTypeIndex = ImGui_ImplVulkan_MemoryType(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, req.memoryTypeBits);
         err = vkAllocateMemory(v->Device, &alloc_info, v->Allocator, &bd->FontMemory);
         check_vk_result(err);
@@ -765,9 +752,7 @@ bool ImGui_ImplVulkan_CreateFontsTexture()
         bd->BufferMemoryAlignment = (bd->BufferMemoryAlignment > req.alignment) ? bd->BufferMemoryAlignment : req.alignment;
         VkMemoryAllocateInfo alloc_info = {};
         alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        //~ Begin: Clamp the memory allocation size to avoid performance warnings
-        alloc_info.allocationSize = std::clamp(IM_MAX(v->MinAllocationSize, req.size), g_IMGUI_ImageBufferMemoryAllocationSize, UINT64_MAX);
-        //~ End: Clamp the memory allocation size to avoid performance warnings
+        alloc_info.allocationSize = IM_MAX(v->MinAllocationSize, req.size);
         alloc_info.memoryTypeIndex = ImGui_ImplVulkan_MemoryType(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, req.memoryTypeBits);
         err = vkAllocateMemory(v->Device, &alloc_info, v->Allocator, &upload_buffer_memory);
         check_vk_result(err);
@@ -1025,10 +1010,8 @@ bool ImGui_ImplVulkan_CreateDeviceObjects()
         info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        //~ Begin: Set LOD to [0.F, FLT_MAX]
-        info.minLod = 0.F;
-        info.maxLod = FLT_MAX;
-        //~ End: Set LOD to [0, FLT_MAX]
+        info.minLod = -1000;
+        info.maxLod = 1000;
         info.maxAnisotropy = 1.0f;
         err = vkCreateSampler(v->Device, &info, v->Allocator, &bd->FontSampler);
         check_vk_result(err);
@@ -1103,11 +1086,16 @@ bool    ImGui_ImplVulkan_LoadFunctions(PFN_vkVoidFunction(*loader_func)(const ch
 #undef IMGUI_VULKAN_FUNC_LOAD
 
 #ifdef IMGUI_IMPL_VULKAN_HAS_DYNAMIC_RENDERING
-        // Manually load those two (see #5446)
-        //~ Begin: Load vkCmdBeginRendering/vkCmdEndRendering instead of vkCmdBeginRenderingKHR/vkCmdEndRenderingKHR to avoid crashes due to volk loader. Removed 'KHR' from the function names.
-        ImGuiImplVulkanFuncs_vkCmdBeginRenderingKHR = reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(loader_func("vkCmdBeginRendering", user_data));
-        ImGuiImplVulkanFuncs_vkCmdEndRenderingKHR = reinterpret_cast<PFN_vkCmdEndRenderingKHR>(loader_func("vkCmdEndRendering", user_data));
-        //~ End: Load vkCmdBeginRendering/vkCmdEndRendering instead of vkCmdBeginRenderingKHR/vkCmdEndRenderingKHR to avoid crashes due to volk loader. Removed 'KHR' from the function names.
+    // Manually load those two (see #5446)
+    #if 1
+    // Load vkCmdBeginRendering/vkCmdEndRendering instead of vkCmdBeginRenderingKHR/vkCmdEndRenderingKHR to avoid crashes due to volk loader.
+    // Removed 'KHR' from the function names.
+    ImGuiImplVulkanFuncs_vkCmdBeginRenderingKHR = reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(loader_func("vkCmdBeginRendering", user_data));
+    ImGuiImplVulkanFuncs_vkCmdEndRenderingKHR = reinterpret_cast<PFN_vkCmdEndRenderingKHR>(loader_func("vkCmdEndRendering", user_data));
+    #else
+    ImGuiImplVulkanFuncs_vkCmdBeginRenderingKHR = reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(loader_func("vkCmdBeginRenderingKHR", user_data));
+    ImGuiImplVulkanFuncs_vkCmdEndRenderingKHR = reinterpret_cast<PFN_vkCmdEndRenderingKHR>(loader_func("vkCmdEndRenderingKHR", user_data));
+    #endif
 #endif
 #else
     IM_UNUSED(loader_func);
@@ -1379,7 +1367,7 @@ void ImGui_ImplVulkanH_CreateWindowCommandBuffers(VkPhysicalDevice physical_devi
         {
             VkCommandPoolCreateInfo info = {};
             info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-            info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+            info.flags = 0;
             info.queueFamilyIndex = queue_family;
             err = vkCreateCommandPool(device, &info, allocator, &fd->CommandPool);
             check_vk_result(err);

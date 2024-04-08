@@ -35,7 +35,7 @@ export namespace RenderCore
 
     [[nodiscard]] std::vector<std::uint32_t> GetUniqueQueueFamilyIndicesU32();
 
-    [[nodiscard]] VkDeviceSize GetMinUniformBufferOffsetAlignment();
+    [[nodiscard]] VkPhysicalDeviceProperties const &GetPhysicalDeviceProperties();
 
     [[nodiscard]] std::vector<VkPhysicalDevice> GetAvailablePhysicalDevices();
 

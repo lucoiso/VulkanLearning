@@ -7,6 +7,7 @@ module;
 #include <Volk/volk.h>
 #include <glm/ext.hpp>
 #include <string>
+#include <array>
 
 module RenderCore.Types.Object;
 
@@ -14,6 +15,7 @@ import RenderCore.Renderer;
 import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Pipeline;
 import RenderCore.Runtime.Scene;
+import RenderCore.Runtime.Device;
 import RenderCore.Utils.Constants;
 import RenderCore.Types.UniformBufferObject;
 
@@ -172,21 +174,119 @@ std::vector<std::uint32_t> const &Object::GetIndices() const
     return m_Indices;
 }
 
+std::uint32_t Object::GetNumVertices() const
+{
+    return static_cast<std::uint32_t>(std::size(m_Vertices));
+}
+
+std::uint32_t Object::GetNumIndices() const
+{
+    return static_cast<std::uint32_t>(std::size(m_Indices));
+}
+
 std::uint32_t Object::GetNumTriangles() const
 {
-    return static_cast<uint32_t>(std::size(m_Indices) / 3U);
+    return GetNumIndices() / 3U;
+}
+
+std::size_t Object::GetVertexBufferSize() const
+{
+    return GetNumVertices() * sizeof(Vertex);
+}
+
+std::size_t Object::GetIndexBufferSize() const
+{
+    return GetNumIndices() * sizeof(std::uint32_t);
+}
+
+std::size_t Object::GetModelUniformBufferSize() const
+{
+    return sizeof(ModelUniformData);
+}
+
+std::size_t Object::GetMaterialUniformBufferSize() const
+{
+    return sizeof(MaterialUniformData);
+}
+
+std::size_t Object::GetAllocationSize() const
+{
+    std::size_t Output = GetVertexBufferSize() + GetIndexBufferSize() + GetModelUniformBufferSize() + GetMaterialUniformBufferSize();
+    if (GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment > 0U)
+    {
+        Output = Output + GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment - 1U & ~(
+                     GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment - 1U);
+    }
+
+    return Output;
+}
+
+std::size_t Object::GetVertexBufferStart() const
+{
+    return 0U;
+}
+
+std::size_t Object::GetVertexBufferEnd() const
+{
+    return GetVertexBufferStart() + GetVertexBufferSize();
+}
+
+std::size_t Object::GetIndexBufferStart() const
+{
+    return GetVertexBufferEnd();
+}
+
+std::size_t Object::GetIndexBufferEnd() const
+{
+    return GetVertexBufferEnd() + GetIndexBufferSize();
+}
+
+std::size_t Object::GetModelUniformStart() const
+{
+    std::size_t Output = GetIndexBufferEnd();
+    if (GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment > 0U)
+    {
+        Output = Output + GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment - 1U & ~(
+                     GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment - 1U);
+    }
+
+    return Output;
+}
+
+std::size_t Object::GetModelUniformEnd() const
+{
+    return GetIndexBufferEnd() + GetModelUniformBufferSize();
+}
+
+std::size_t Object::GetMaterialUniformStart() const
+{
+    std::size_t Output = GetModelUniformEnd();
+    if (GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment > 0U)
+    {
+        Output = Output + GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment - 1U & ~(
+                     GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment - 1U);
+    }
+
+    return Output;
+}
+
+std::size_t Object::GetMaterialUniformEnd() const
+{
+    return GetModelUniformEnd() + GetMaterialUniformBufferSize();
 }
 
 void Object::UpdateUniformBuffers() const
 {
-    if (m_IsModelRenderDirty && m_Allocation.ModelBufferAllocation.MappedData)
+    if (m_IsModelRenderDirty && m_Allocation.BufferAllocation.MappedData)
     {
         ModelUniformData const UpdatedModelUBO { .Model = m_Transform.GetMatrix() };
-        std::memcpy(m_Allocation.ModelBufferAllocation.MappedData, &UpdatedModelUBO, sizeof(ModelUniformData));
+        std::memcpy(static_cast<char *>(m_Allocation.BufferAllocation.MappedData) + GetModelUniformStart(),
+                    &UpdatedModelUBO,
+                    GetModelUniformBufferSize());
         m_IsModelRenderDirty = false;
     }
 
-    if (m_IsMaterialRenderDirty && m_Allocation.MaterialBufferAllocation.MappedData)
+    if (m_IsMaterialRenderDirty && m_Allocation.BufferAllocation.MappedData)
     {
         MaterialUniformData const UpdatedMaterialUBO {
                 .BaseColorFactor = m_MaterialData.BaseColorFactor,
@@ -200,7 +300,9 @@ void Object::UpdateUniformBuffers() const
                 .DoubleSided = static_cast<int>(m_MaterialData.DoubleSided)
         };
 
-        std::memcpy(m_Allocation.MaterialBufferAllocation.MappedData, &UpdatedMaterialUBO, sizeof(MaterialUniformData));
+        std::memcpy(static_cast<char *>(m_Allocation.BufferAllocation.MappedData) + GetMaterialUniformStart(),
+                    &UpdatedMaterialUBO,
+                    GetMaterialUniformBufferSize());
         m_IsMaterialRenderDirty = false;
     }
 }
@@ -261,22 +363,11 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer) const
                               static_cast<std::uint32_t>(std::size(WriteDescriptors)),
                               std::data(WriteDescriptors));
 
-    bool ActiveVertexBinding = false;
-    if (m_Allocation.VertexBufferAllocation.Buffer != VK_NULL_HANDLE)
+    if (m_Allocation.BufferAllocation.IsValid())
     {
-        vkCmdBindVertexBuffers(CommandBuffer, 0U, 1U, &m_Allocation.VertexBufferAllocation.Buffer, std::data(g_Offsets));
-        ActiveVertexBinding = true;
-    }
-
-    bool ActiveIndexBinding = false;
-    if (m_Allocation.IndexBufferAllocation.Buffer != VK_NULL_HANDLE)
-    {
-        vkCmdBindIndexBuffer(CommandBuffer, m_Allocation.IndexBufferAllocation.Buffer, 0U, VK_INDEX_TYPE_UINT32);
-        ActiveIndexBinding = true;
-    }
-
-    if (ActiveVertexBinding && ActiveIndexBinding)
-    {
+        std::array<VkDeviceSize, 1U> const VertexOffsets { GetVertexBufferStart() };
+        vkCmdBindVertexBuffers(CommandBuffer, 0U, 1U, &m_Allocation.BufferAllocation.Buffer, std::data(VertexOffsets));
+        vkCmdBindIndexBuffer(CommandBuffer, m_Allocation.BufferAllocation.Buffer, GetIndexBufferStart(), VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(CommandBuffer, static_cast<std::uint32_t>(std::size(m_Indices)), 1U, 0U, 0U, 0U);
     }
 }

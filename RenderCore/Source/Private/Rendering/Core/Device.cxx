@@ -22,6 +22,7 @@ import RenderCore.Utils.DebugHelpers;
 using namespace RenderCore;
 
 VkPhysicalDevice                 g_PhysicalDevice { VK_NULL_HANDLE };
+VkPhysicalDeviceProperties       g_PhysicalDeviceProperties {};
 VkDevice                         g_Device { VK_NULL_HANDLE };
 std::pair<std::uint8_t, VkQueue> g_GraphicsQueue {};
 std::pair<std::uint8_t, VkQueue> g_PresentationQueue {};
@@ -96,6 +97,8 @@ void PickPhysicalDevice()
             break;
         }
     }
+
+    vkGetPhysicalDeviceProperties(g_PhysicalDevice, &g_PhysicalDeviceProperties);
 }
 
 void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
@@ -433,10 +436,7 @@ std::vector<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePrese
     return Output;
 }
 
-VkDeviceSize RenderCore::GetMinUniformBufferOffsetAlignment()
+VkPhysicalDeviceProperties const &RenderCore::GetPhysicalDeviceProperties()
 {
-    VkPhysicalDeviceProperties SurfaceProperties;
-    vkGetPhysicalDeviceProperties(g_PhysicalDevice, &SurfaceProperties);
-
-    return SurfaceProperties.limits.minUniformBufferOffsetAlignment;
+    return g_PhysicalDeviceProperties;
 }

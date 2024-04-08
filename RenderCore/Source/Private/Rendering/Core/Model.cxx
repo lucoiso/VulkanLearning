@@ -195,16 +195,9 @@ void RenderCore::SetPrimitiveTransform(Object &Object, tinygltf::Node const &Nod
     }
 }
 
-std::unordered_map<VkBuffer, VmaAllocation> RenderCore::AllocateObjectBuffers(VkCommandBuffer const &CommandBuffer, Object &Object)
+std::pair<VkBuffer, VmaAllocation> RenderCore::AllocateObjectBuffers(VkCommandBuffer const &CommandBuffer, Object &Object)
 {
-    std::unordered_map Output {
-            CreateVertexBuffers(CommandBuffer, Object.GetMutableAllocationData(), Object.GetVertices()),
-            CreateIndexBuffers(CommandBuffer, Object.GetMutableAllocationData(), Object.GetIndices())
-    };
-
-    CreateModelUniformBuffers(Object);
-
-    return Output;
+    return AllocateModelBuffers(CommandBuffer, Object);
 }
 
 std::unordered_map<VkBuffer, VmaAllocation> RenderCore::AllocateObjectMaterials(VkCommandBuffer &          CommandBuffer,
@@ -244,13 +237,13 @@ std::unordered_map<VkBuffer, VmaAllocation> RenderCore::AllocateObjectMaterials(
                                            GetSwapChainImageFormat(),
                                            std::size(Model.images.at(Model.textures.at(Material.pbrMetallicRoughness.baseColorTexture.index).source).
                                                            image),
-                                           Object.GetMutableAllocationData().TextureImageAllocations.emplace_back()));
+                                           Object.GetMutableAllocationData().ImageAllocations.emplace_back()));
 
             Object.GetMutableAllocationData().TextureDescriptors.emplace(TextureType::BaseColor,
                                                                          VkDescriptorImageInfo {
                                                                                  .sampler = GetSampler(),
-                                                                                 .imageView = Object.GetMutableAllocationData().
-                                                                                 TextureImageAllocations.back().View,
+                                                                                 .imageView = Object.GetMutableAllocationData().ImageAllocations.
+                                                                                 back().View,
                                                                                  .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR
                                                                          });
         }
@@ -263,13 +256,13 @@ std::unordered_map<VkBuffer, VmaAllocation> RenderCore::AllocateObjectMaterials(
                                            Model.images.at(Model.textures.at(Material.normalTexture.index).source).height,
                                            GetSwapChainImageFormat(),
                                            std::size(Model.images.at(Model.textures.at(Material.normalTexture.index).source).image),
-                                           Object.GetMutableAllocationData().TextureImageAllocations.emplace_back()));
+                                           Object.GetMutableAllocationData().ImageAllocations.emplace_back()));
 
             Object.GetMutableAllocationData().TextureDescriptors.emplace(TextureType::Normal,
                                                                          VkDescriptorImageInfo {
                                                                                  .sampler = GetSampler(),
-                                                                                 .imageView = Object.GetMutableAllocationData().
-                                                                                 TextureImageAllocations.back().View,
+                                                                                 .imageView = Object.GetMutableAllocationData().ImageAllocations.
+                                                                                 back().View,
                                                                                  .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR
                                                                          });
         }
@@ -282,13 +275,13 @@ std::unordered_map<VkBuffer, VmaAllocation> RenderCore::AllocateObjectMaterials(
                                            Model.images.at(Model.textures.at(Material.occlusionTexture.index).source).height,
                                            GetSwapChainImageFormat(),
                                            std::size(Model.images.at(Model.textures.at(Material.occlusionTexture.index).source).image),
-                                           Object.GetMutableAllocationData().TextureImageAllocations.emplace_back()));
+                                           Object.GetMutableAllocationData().ImageAllocations.emplace_back()));
 
             Object.GetMutableAllocationData().TextureDescriptors.emplace(TextureType::Occlusion,
                                                                          VkDescriptorImageInfo {
                                                                                  .sampler = GetSampler(),
-                                                                                 .imageView = Object.GetMutableAllocationData().
-                                                                                 TextureImageAllocations.back().View,
+                                                                                 .imageView = Object.GetMutableAllocationData().ImageAllocations.
+                                                                                 back().View,
                                                                                  .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR
                                                                          });
         }
@@ -301,13 +294,13 @@ std::unordered_map<VkBuffer, VmaAllocation> RenderCore::AllocateObjectMaterials(
                                            Model.images.at(Model.textures.at(Material.emissiveTexture.index).source).height,
                                            GetSwapChainImageFormat(),
                                            std::size(Model.images.at(Model.textures.at(Material.emissiveTexture.index).source).image),
-                                           Object.GetMutableAllocationData().TextureImageAllocations.emplace_back()));
+                                           Object.GetMutableAllocationData().ImageAllocations.emplace_back()));
 
             Object.GetMutableAllocationData().TextureDescriptors.emplace(TextureType::Emissive,
                                                                          VkDescriptorImageInfo {
                                                                                  .sampler = GetSampler(),
-                                                                                 .imageView = Object.GetMutableAllocationData().
-                                                                                 TextureImageAllocations.back().View,
+                                                                                 .imageView = Object.GetMutableAllocationData().ImageAllocations.
+                                                                                 back().View,
                                                                                  .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR
                                                                          });
         }
@@ -324,13 +317,13 @@ std::unordered_map<VkBuffer, VmaAllocation> RenderCore::AllocateObjectMaterials(
                                            GetSwapChainImageFormat(),
                                            std::size(Model.images.at(Model.textures.at(Material.pbrMetallicRoughness.metallicRoughnessTexture.index).
                                                                            source).image),
-                                           Object.GetMutableAllocationData().TextureImageAllocations.emplace_back()));
+                                           Object.GetMutableAllocationData().ImageAllocations.emplace_back()));
 
             Object.GetMutableAllocationData().TextureDescriptors.emplace(TextureType::MetallicRoughness,
                                                                          VkDescriptorImageInfo {
                                                                                  .sampler = GetSampler(),
-                                                                                 .imageView = Object.GetMutableAllocationData().
-                                                                                 TextureImageAllocations.back().View,
+                                                                                 .imageView = Object.GetMutableAllocationData().ImageAllocations.
+                                                                                 back().View,
                                                                                  .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR
                                                                          });
         }

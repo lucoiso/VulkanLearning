@@ -85,7 +85,23 @@ namespace RenderCore
         void                                            SetIndexBuffer(std::vector<std::uint32_t> const &);
         [[nodiscard]] std::vector<std::uint32_t> const &GetIndices() const;
 
+        [[nodiscard]] std::uint32_t GetNumVertices() const;
+        [[nodiscard]] std::uint32_t GetNumIndices() const;
         [[nodiscard]] std::uint32_t GetNumTriangles() const;
+
+        [[nodiscard]] std::size_t GetVertexBufferSize() const;
+        [[nodiscard]] std::size_t GetIndexBufferSize() const;
+        [[nodiscard]] std::size_t GetModelUniformBufferSize() const;
+        [[nodiscard]] std::size_t GetMaterialUniformBufferSize() const;
+        [[nodiscard]] std::size_t GetAllocationSize() const;
+        [[nodiscard]] std::size_t GetVertexBufferStart() const;
+        [[nodiscard]] std::size_t GetVertexBufferEnd() const;
+        [[nodiscard]] std::size_t GetIndexBufferStart() const;
+        [[nodiscard]] std::size_t GetIndexBufferEnd() const;
+        [[nodiscard]] std::size_t GetModelUniformStart() const;
+        [[nodiscard]] std::size_t GetModelUniformEnd() const;
+        [[nodiscard]] std::size_t GetMaterialUniformStart() const;
+        [[nodiscard]] std::size_t GetMaterialUniformEnd() const;
 
         void UpdateUniformBuffers() const;
         void DrawObject(VkCommandBuffer const &) const;

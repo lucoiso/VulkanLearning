@@ -7,7 +7,7 @@ layout(location = 3) in vec4 inColor;
 layout(location = 4) in vec4 inTangent;
 
 layout(std140, set = 0, binding = 0) uniform UBOCamera {
-    mat4 projection_view; // Combined projection and view matrix
+    mat4 projection_view;
 } uboCamera;
 
 layout(std140, set = 0, binding = 2) uniform UBOModel {

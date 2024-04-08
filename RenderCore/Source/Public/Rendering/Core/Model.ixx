@@ -27,7 +27,7 @@ export namespace RenderCore
 
     void SetPrimitiveTransform(Object &, tinygltf::Node const &);
 
-    std::unordered_map<VkBuffer, VmaAllocation> AllocateObjectBuffers(VkCommandBuffer const &, Object &);
+    std::pair<VkBuffer, VmaAllocation> AllocateObjectBuffers(VkCommandBuffer const &, Object &);
 
     std::unordered_map<VkBuffer, VmaAllocation> AllocateObjectMaterials(VkCommandBuffer &,
                                                                         Object &,

@@ -48,11 +48,8 @@ namespace RenderCore
 
     export struct ObjectAllocationData
     {
-        BufferAllocation                                        VertexBufferAllocation {};
-        BufferAllocation                                        IndexBufferAllocation {};
-        BufferAllocation                                        ModelBufferAllocation {};
-        BufferAllocation                                        MaterialBufferAllocation {};
-        std::vector<ImageAllocation>                            TextureImageAllocations {};
+        BufferAllocation                                        BufferAllocation {};
+        std::vector<ImageAllocation>                            ImageAllocations {};
         std::unordered_map<UniformType, VkDescriptorBufferInfo> ModelDescriptors {};
         std::unordered_map<TextureType, VkDescriptorImageInfo>  TextureDescriptors {};
 

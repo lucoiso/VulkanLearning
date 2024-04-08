@@ -186,7 +186,7 @@ void RenderCore::LoadObject(std::string_view const ModelPath)
         VkCommandBuffer &CommandBuffer = CommandBuffers.at(0U);
         for (Object &ObjectIter : g_Objects)
         {
-            BufferAllocations.merge(AllocateObjectBuffers(CommandBuffer, ObjectIter));
+            BufferAllocations.emplace(AllocateObjectBuffers(CommandBuffer, ObjectIter));
             BufferAllocations.merge(AllocateObjectMaterials(CommandBuffer, ObjectIter, CachedPrimitiveRelationship.at(ObjectIter.GetID()), Model));
         }
     }

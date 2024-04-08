@@ -1,6 +1,3 @@
 [submodule "cpp-submodules"]
 	path = cpp-submodules
 	url = https://github.com/lucoiso/cpp-submodules.git
-[submodule "RenderCore/Resources/Assets/glTF-Sample-Assets"]
-	path = RenderCore/Resources/Assets/glTF-Sample-Assets
-	url = https://github.com/KhronosGroup/glTF-Sample-Assets.git
