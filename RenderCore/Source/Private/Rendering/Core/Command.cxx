@@ -99,18 +99,22 @@ ThreadPool::Pool                                  g_ThreadPool {};
 std::unordered_map<std::uint8_t, ThreadResources> g_CommandResources {};
 std::pair<VkCommandPool, VkCommandBuffer>         g_PrimaryCommandBuffer {};
 
-void RenderCore::AllocateCommandBuffers(std::uint32_t const QueueFamily, std::uint32_t const NumberOfBuffers)
+void RenderCore::AllocateCommandBuffers(std::uint32_t const QueueFamily, std::uint32_t const NumObjects)
 {
-    g_ObjectsPerThread = NumberOfBuffers == 0U ? 0U : std::clamp(NumberOfBuffers / g_NumThreads, 1U, NumberOfBuffers);
-
-    for (std::uint8_t ThreadIndex = 0U; ThreadIndex < g_NumThreads; ++ThreadIndex)
+    if (NumObjects > 0U)
     {
-        if (NumberOfBuffers > 0U && NumberOfBuffers <= ThreadIndex)
-        {
-            break;
-        }
+        g_ObjectsPerThread = static_cast<std::uint32_t>(std::ceil(static_cast<float>(NumObjects) / static_cast<float>(g_NumThreads)));
 
-        g_CommandResources.at(ThreadIndex).Allocate(QueueFamily, g_ObjectsPerThread);
+        for (std::uint8_t ThreadIndex = 0U; ThreadIndex < g_NumThreads; ++ThreadIndex)
+        {
+            if (ThreadIndex * g_ObjectsPerThread >= NumObjects)
+            {
+                break;
+            }
+
+            std::uint32_t const ObjectsToAllocate = std::min(g_ObjectsPerThread, NumObjects - ThreadIndex * g_ObjectsPerThread);
+            g_CommandResources.at(ThreadIndex).Allocate(QueueFamily, ObjectsToAllocate);
+        }
     }
 
     g_PrimaryCommandBuffer = std::make_pair(CreateCommandPool(QueueFamily, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT), VK_NULL_HANDLE);
@@ -127,6 +131,8 @@ void RenderCore::AllocateCommandBuffers(std::uint32_t const QueueFamily, std::ui
 
 void RenderCore::FreeCommandBuffers()
 {
+    g_ThreadPool.Wait();
+
     for (auto &[_, CommandResources] : g_CommandResources)
     {
         CommandResources.Free();
@@ -148,6 +154,8 @@ void RenderCore::InitializeCommandsResources()
 
 void RenderCore::ReleaseCommandsResources()
 {
+    g_ThreadPool.Wait();
+
     for (auto &[_, CommandResources] : g_CommandResources)
     {
         CommandResources.Destroy();
@@ -306,22 +314,26 @@ std::vector<VkCommandBuffer> RecordSceneCommands()
 
         for (std::uint32_t ObjectIndex = 0U; ObjectIndex < g_ObjectsPerThread; ++ObjectIndex)
         {
-            VkCommandBuffer const &CommandBuffer = CommandResources.CommandBuffers.at(ObjectIndex);
+            if (std::uint32_t const ObjectAccessIndex = ThreadIndex * g_ObjectsPerThread + ObjectIndex;
+                std::size(Objects) > ObjectAccessIndex)
+            {
+                VkCommandBuffer const &CommandBuffer = CommandResources.CommandBuffers.at(ObjectIndex);
 
-            g_ThreadPool.AddTask([ThreadIndex, ObjectIndex, &CommandBuffer, &SecondaryBeginInfo, &Pipeline, &Objects]
-                                 {
-                                     CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
+                g_ThreadPool.AddTask([ObjectAccessIndex, &CommandBuffer, &SecondaryBeginInfo, &Pipeline, &Objects]
                                      {
-                                         SetViewport(CommandBuffer, GetSwapChainExtent());
-                                         vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
+                                         CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
+                                         {
+                                             SetViewport(CommandBuffer, GetSwapChainExtent());
+                                             vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
 
-                                         Object const &Object = Objects.at(ThreadIndex * g_ObjectsPerThread + ObjectIndex);
-                                         Object.UpdateUniformBuffers();
-                                         Object.DrawObject(CommandBuffer);
-                                     }
-                                     CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
-                                 },
-                                 ThreadIndex);
+                                             Object const &Object = Objects.at(ObjectAccessIndex);
+                                             Object.UpdateUniformBuffers();
+                                             Object.DrawObject(CommandBuffer);
+                                         }
+                                         CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
+                                     },
+                                     ThreadIndex);
+            }
         }
     }
 

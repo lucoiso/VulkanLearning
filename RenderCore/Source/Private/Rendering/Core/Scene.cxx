@@ -230,13 +230,10 @@ void RenderCore::DestroyObjects()
 {
     std::lock_guard Lock { g_ObjectMutex };
 
-    std::for_each(std::execution::par_unseq,
-                  std::begin(g_Objects),
-                  std::end(g_Objects),
-                  [&](Object &ObjectIter)
-                  {
-                      ObjectIter.Destroy();
-                  });
+    for (Object &Object : g_Objects)
+    {
+        Object.Destroy();
+    }
 
     g_Objects.clear();
     g_ObjectIDCounter = 0U;
