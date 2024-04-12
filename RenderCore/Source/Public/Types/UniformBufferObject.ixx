@@ -10,13 +10,9 @@ export module RenderCore.Types.UniformBufferObject;
 
 namespace RenderCore
 {
-    export struct CameraUniformData
+    export struct SceneUniformData
     {
         alignas(16) glm::mat4 ProjectionView {};
-    };
-
-    export struct LightUniformData
-    {
         alignas(16) glm::vec3 LightPosition {};
         alignas(16) glm::vec3 LightColor {};
     };
@@ -24,10 +20,6 @@ namespace RenderCore
     export struct ModelUniformData
     {
         alignas(16) glm::mat4 Model {};
-    };
-
-    export struct MaterialUniformData
-    {
         alignas(16) glm::vec4 BaseColorFactor {};
         alignas(16) glm::vec3 EmissiveFactor {};
         alignas(8) double     MetallicFactor {};

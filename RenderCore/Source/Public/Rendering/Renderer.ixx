@@ -78,11 +78,11 @@ export namespace RenderCore
 
         [[nodiscard]] RENDERCOREMODULE_API std::optional<std::int32_t> const &GetImageIndex();
 
-        [[nodiscard]] RENDERCOREMODULE_API std::vector<Object> const &GetObjects();
+        [[nodiscard]] RENDERCOREMODULE_API std::vector<std::shared_ptr<Object>> const &GetObjects();
 
-        [[nodiscard]] RENDERCOREMODULE_API std::vector<Object> &GetMutableObjects();
+        [[nodiscard]] RENDERCOREMODULE_API std::vector<std::shared_ptr<Object>> &GetMutableObjects();
 
-        [[nodiscard]] RENDERCOREMODULE_API Object GetObjectByID(std::uint32_t);
+        [[nodiscard]] RENDERCOREMODULE_API std::shared_ptr<Object> GetObjectByID(std::uint32_t);
 
         [[nodiscard]] RENDERCOREMODULE_API std::uint32_t GetNumObjects();
 

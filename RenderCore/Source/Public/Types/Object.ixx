@@ -6,34 +6,27 @@ module;
 
 #include <Volk/volk.h>
 #include <glm/ext.hpp>
-#include <string>
-#include <vector>
 #include <bitset>
+#include <memory>
+#include <vector>
 
 #include "RenderCoreModule.hpp"
 
 export module RenderCore.Types.Object;
 
 import RenderCore.Types.Transform;
-import RenderCore.Types.Vertex;
-import RenderCore.Types.Allocation;
-import RenderCore.Types.Material;
+import RenderCore.Types.Resource;
+import RenderCore.Types.Mesh;
 
 namespace RenderCore
 {
-    export class RENDERCOREMODULE_API Object
+    export class RENDERCOREMODULE_API Object : public Resource
     {
-        bool                       m_IsPendingDestroy { false };
-        mutable bool               m_IsModelRenderDirty { true };
-        mutable bool               m_IsMaterialRenderDirty { true };
-        std::uint32_t              m_ID {};
-        std::string                m_Path {};
-        std::string                m_Name {};
-        Transform                  m_Transform {};
-        std::vector<Vertex>        m_Vertices {};
-        std::vector<std::uint32_t> m_Indices {};
-        MaterialData               m_MaterialData {};
-        ObjectAllocationData       m_Allocation {};
+        mutable bool           m_IsRenderDirty { true };
+        Transform              m_Transform {};
+        std::shared_ptr<Mesh>  m_Mesh { nullptr };
+        std::uint32_t          m_UniformOffset {};
+        VkDescriptorBufferInfo m_UniformBufferInfo {};
 
     public:
         Object()          = delete;
@@ -46,10 +39,6 @@ namespace RenderCore
 
         Object(std::uint32_t, std::string_view);
         Object(std::uint32_t, std::string_view, std::string_view);
-
-        [[nodiscard]] std::uint32_t      GetID() const;
-        [[nodiscard]] std::string const &GetPath() const;
-        [[nodiscard]] std::string const &GetName() const;
 
         [[nodiscard]] Transform const &GetTransform() const;
         void                           SetTransform(Transform const &);
@@ -66,44 +55,25 @@ namespace RenderCore
         [[nodiscard]] glm::mat4 GetMatrix() const;
         void                    SetMatrix(glm::mat4 const &);
 
-        [[nodiscard]] MaterialData const &GetMaterialData() const;
-        void                              SetMaterialData(MaterialData const &);
-
         virtual void Tick(double)
         {
         }
 
-        [[nodiscard]] bool IsPendingDestroy() const;
-        void               Destroy();
+        void Destroy() override;
 
-        [[nodiscard]] ObjectAllocationData const &GetAllocationData() const;
-        [[nodiscard]] ObjectAllocationData &      GetMutableAllocationData();
+        [[nodiscard]] std::uint32_t GetUniformOffset() const;
+        void                        SetUniformOffset(std::uint32_t const &);
 
-        void                                     SetVertexBuffer(std::vector<Vertex> const &);
-        [[nodiscard]] std::vector<Vertex> const &GetVertices() const;
-
-        void                                            SetIndexBuffer(std::vector<std::uint32_t> const &);
-        [[nodiscard]] std::vector<std::uint32_t> const &GetIndices() const;
-
-        [[nodiscard]] std::uint32_t GetNumVertices() const;
-        [[nodiscard]] std::uint32_t GetNumIndices() const;
-        [[nodiscard]] std::uint32_t GetNumTriangles() const;
-
-        [[nodiscard]] std::size_t GetVertexBufferSize() const;
-        [[nodiscard]] std::size_t GetIndexBufferSize() const;
-        [[nodiscard]] std::size_t GetModelUniformBufferSize() const;
-        [[nodiscard]] std::size_t GetMaterialUniformBufferSize() const;
-        [[nodiscard]] std::size_t GetAllocationSize() const;
-        [[nodiscard]] std::size_t GetVertexBufferStart() const;
-        [[nodiscard]] std::size_t GetVertexBufferEnd() const;
-        [[nodiscard]] std::size_t GetIndexBufferStart() const;
-        [[nodiscard]] std::size_t GetIndexBufferEnd() const;
-        [[nodiscard]] std::size_t GetModelUniformStart() const;
-        [[nodiscard]] std::size_t GetModelUniformEnd() const;
-        [[nodiscard]] std::size_t GetMaterialUniformStart() const;
-        [[nodiscard]] std::size_t GetMaterialUniformEnd() const;
+        void SetupUniformDescriptor();
 
         void UpdateUniformBuffers() const;
         void DrawObject(VkCommandBuffer const &) const;
+
+        [[nodiscard]] std::shared_ptr<Mesh> GetMesh() const;
+        void                                SetMesh(std::shared_ptr<Mesh> const &);
+
+        [[nodiscard]] bool IsRenderDirty() const;
+
+        [[nodiscard]] std::vector<VkWriteDescriptorSet> GetWriteDescriptorSet() const override;
     };
 } // namespace RenderCore

@@ -17,11 +17,6 @@ import RenderCore.Types.UniformBufferObject;
 
 using namespace RenderCore;
 
-void Camera::Destroy()
-{
-    m_UniformBufferAllocation.first.DestroyResources(GetAllocator());
-}
-
 glm::vec3 Camera::GetPosition() const
 {
     return m_Position;
@@ -231,50 +226,27 @@ bool Camera::IsInAllowedDistance(glm::vec3 const &TestLocation) const
     return DistanceToTestLocation <= GetDrawDistance();
 }
 
-bool Camera::CanDrawObject(Object const &Object) const
+bool Camera::CanDrawObject(std::shared_ptr<Object> const &Object) const
 {
-    if (Object.IsPendingDestroy())
+    if (Object->IsPendingDestroy())
     {
         return false;
     }
 
     if constexpr (g_EnableExperimentalFrustumCulling)
     {
-        return IsInsideCameraFrustum(Object.GetPosition()) && IsInAllowedDistance(Object.GetPosition());
+        return IsInsideCameraFrustum(Object->GetPosition()) && IsInAllowedDistance(Object->GetPosition());
     }
 
     return true;
 }
 
-void *Camera::GetUniformData() const
+bool Camera::IsRenderDirty() const
 {
-    return m_UniformBufferAllocation.first.MappedData;
+    return m_IsRenderDirty;
 }
 
-VkDescriptorBufferInfo const &Camera::GetUniformDescriptor() const
+void Camera::SetRenderDirty(bool const Value) const
 {
-    return m_UniformBufferAllocation.second;
-}
-
-void Camera::UpdateUniformBuffers() const
-{
-    if (!m_IsRenderDirty)
-    {
-        return;
-    }
-
-    if (m_UniformBufferAllocation.first.MappedData)
-    {
-        CameraUniformData const UpdatedUBO { .ProjectionView = GetProjectionMatrix() * GetViewMatrix() };
-        std::memcpy(m_UniformBufferAllocation.first.MappedData, &UpdatedUBO, sizeof(CameraUniformData));
-    }
-
-    m_IsRenderDirty = false;
-}
-
-void Camera::AllocateUniformBuffer()
-{
-    constexpr VkDeviceSize BufferSize = sizeof(CameraUniformData);
-    CreateUniformBuffers(m_UniformBufferAllocation.first, BufferSize, "CAMERA_UNIFORM");
-    m_UniformBufferAllocation.second = { .buffer = m_UniformBufferAllocation.first.Buffer, .offset = 0U, .range = BufferSize };
+    m_IsRenderDirty = Value;
 }

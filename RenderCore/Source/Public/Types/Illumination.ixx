@@ -17,7 +17,7 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Illumination
     {
-        bool                                                m_IsRenderDirty { true };
+        mutable bool                                        m_IsRenderDirty { true };
         float                                               m_Intensity { 1.F };
         glm::vec3                                           m_Position { 100.F, 100.F, 100.F };
         glm::vec3                                           m_Color { 1.F, 1.F, 1.F };
@@ -25,7 +25,6 @@ namespace RenderCore
 
     public:
         Illumination() = default;
-        void Destroy();
 
         void                           SetPosition(glm::vec3 const &);
         [[nodiscard]] glm::vec3 const &GetPosition() const;
@@ -36,12 +35,7 @@ namespace RenderCore
         void                SetIntensity(float);
         [[nodiscard]] float GetIntensity() const;
 
-        [[nodiscard]] void *GetUniformData() const;
-
-        [[nodiscard]] VkDescriptorBufferInfo const &GetUniformDescriptor() const;
-
-        void UpdateUniformBuffers();
-
-        void AllocateUniformBuffer();
+        [[nodiscard]] bool IsRenderDirty() const;
+        void               SetRenderDirty(bool) const;
     };
 } // namespace RenderCore

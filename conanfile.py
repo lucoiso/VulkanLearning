@@ -49,6 +49,9 @@ class VulkanRendererRecipe(ConanFile):
 
         for dep in self.dependencies.values():
             if dep.cpp_info.bindirs:
-                copy(pattern="*.dll", dst=os.path.join(self.build_folder, str(self.settings.build_type), "bin"), src=dep.cpp_info.bindirs[0], conanfile=self)
-                copy(pattern="*.dylib", dst=os.path.join(self.build_folder, str(self.settings.build_type), "bin"), src=dep.cpp_info.bindirs[0], conanfile=self)
-                copy(pattern="*.so", dst=os.path.join(self.build_folder, str(self.settings.build_type), "bin"), src=dep.cpp_info.bindirs[0], conanfile=self)
+                copy(pattern="*.dll", dst=os.path.join(self.build_folder, str(self.settings.build_type), "bin"),
+                     src=dep.cpp_info.bindirs[0], conanfile=self)
+                copy(pattern="*.dylib", dst=os.path.join(self.build_folder, str(self.settings.build_type), "bin"),
+                     src=dep.cpp_info.bindirs[0], conanfile=self)
+                copy(pattern="*.so", dst=os.path.join(self.build_folder, str(self.settings.build_type), "bin"),
+                     src=dep.cpp_info.bindirs[0], conanfile=self)

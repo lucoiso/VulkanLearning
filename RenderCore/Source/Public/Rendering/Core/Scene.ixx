@@ -20,7 +20,7 @@ import RenderCore.Types.Illumination;
 
 export namespace RenderCore
 {
-    void CreateSceneUniformBuffers();
+    void CreateSceneUniformBuffer();
 
     void CreateImageSampler();
 
@@ -28,7 +28,7 @@ export namespace RenderCore
 
     void AllocateEmptyTexture(VkFormat);
 
-    void LoadObject(std::string_view);
+    void LoadScene(std::string_view);
 
     void UnloadObjects(std::vector<std::uint32_t> const &);
 
@@ -46,11 +46,15 @@ export namespace RenderCore
 
     [[nodiscard]] ImageAllocation const &GetEmptyImage();
 
-    [[nodiscard]] std::vector<Object> &GetObjects();
+    [[nodiscard]] std::vector<std::shared_ptr<Object>> &GetObjects();
 
     [[nodiscard]] std::uint32_t GetNumAllocations();
 
-    void UpdateSceneUniformBuffers();
+    [[nodiscard]] void *GetSceneUniformData();
+
+    [[nodiscard]] VkDescriptorBufferInfo const &GetSceneUniformDescriptor();
+
+    void UpdateSceneUniformBuffer();
 
     [[nodiscard]] Camera &GetCamera();
 

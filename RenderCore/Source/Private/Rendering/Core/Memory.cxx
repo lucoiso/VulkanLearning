@@ -31,6 +31,7 @@ import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Runtime.Command;
 import RenderCore.Runtime.Device;
+import RenderCore.Runtime.Scene;
 import RenderCore.Types.Object;
 import RenderCore.Types.UniformBufferObject;
 
@@ -40,6 +41,14 @@ VmaPool      g_StagingBufferPool { VK_NULL_HANDLE };
 VmaPool      g_BufferPool { VK_NULL_HANDLE };
 VmaPool      g_ImagePool { VK_NULL_HANDLE };
 VmaAllocator g_Allocator { VK_NULL_HANDLE };
+
+std::atomic<std::uint64_t>                          g_BufferAllocationIDCounter { 0U };
+std::unordered_map<std::uint32_t, BufferAllocation> g_AllocatedBuffers {};
+std::unordered_map<std::uint32_t, std::uint32_t>    g_BufferAllocationCounter {};
+
+std::atomic<std::uint64_t>                         g_ImageAllocationIDCounter { 0U };
+std::unordered_map<std::uint32_t, ImageAllocation> g_AllocatedImages {};
+std::unordered_map<std::uint32_t, std::uint32_t>   g_ImageAllocationCounter {};
 
 void RenderCore::CreateMemoryAllocator(VkPhysicalDevice const &PhysicalDevice)
 {
@@ -128,6 +137,18 @@ void RenderCore::CreateMemoryAllocator(VkPhysicalDevice const &PhysicalDevice)
 
 void RenderCore::ReleaseMemoryResources()
 {
+    for (auto &[_, Buffer] : g_AllocatedBuffers)
+    {
+        Buffer.DestroyResources(g_Allocator);
+    }
+    g_AllocatedBuffers.clear();
+
+    for (auto &[_, ImageIter] : g_AllocatedImages)
+    {
+        ImageIter.DestroyResources(g_Allocator);
+    }
+    g_AllocatedImages.clear();
+
     vmaDestroyPool(g_Allocator, g_StagingBufferPool);
     g_StagingBufferPool = VK_NULL_HANDLE;
 
@@ -270,90 +291,153 @@ void RenderCore::CopyBufferToImage(VkCommandBuffer const &CommandBuffer, VkBuffe
     vkCmdCopyBufferToImage(CommandBuffer, Source, Destination, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1U, &BufferImageCopy);
 }
 
-std::pair<VkBuffer, VmaAllocation> RenderCore::AllocateTexture(VkCommandBuffer &    CommandBuffer,
-                                                               unsigned char const *Data,
-                                                               std::uint32_t const  Width,
-                                                               std::uint32_t const  Height,
-                                                               VkFormat const       ImageFormat,
-                                                               std::size_t const    AllocationSize,
-                                                               ImageAllocation &    ImageAllocation)
+std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(VkCommandBuffer &    CommandBuffer,
+                                                                               unsigned char const *Data,
+                                                                               std::uint32_t const  Width,
+                                                                               std::uint32_t const  Height,
+                                                                               VkFormat const       ImageFormat,
+                                                                               VkDeviceSize const   AllocationSize)
 {
+    if (std::empty(g_AllocatedImages))
+    {
+        g_ImageAllocationIDCounter.fetch_sub(g_ImageAllocationIDCounter.load());
+    }
+
     std::pair<VkBuffer, VmaAllocation> Output;
     VmaAllocationInfo                  StagingInfo = CreateBuffer(AllocationSize, g_ModelMemoryUsage, "STAGING_TEXTURE", Output.first, Output.second);
 
     CheckVulkanResult(vmaMapMemory(GetAllocator(), Output.second, &StagingInfo.pMappedData));
     std::memcpy(StagingInfo.pMappedData, Data, AllocationSize);
 
-    ImageAllocation.Extent = { .width = Width, .height = Height };
-    ImageAllocation.Format = ImageFormat;
+    ImageAllocation NewAllocation {};
+    NewAllocation.Extent = { .width = Width, .height = Height };
+    NewAllocation.Format = ImageFormat;
 
     CreateImage(ImageFormat,
-                ImageAllocation.Extent,
+                NewAllocation.Extent,
                 g_ImageTiling,
                 VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                 g_TextureMemoryUsage,
                 "TEXTURE",
-                ImageAllocation.Image,
-                ImageAllocation.Allocation);
+                NewAllocation.Image,
+                NewAllocation.Allocation);
 
     MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer,
-        ImageAllocation.Image,
-        ImageAllocation.Format);
+        NewAllocation.Image,
+        NewAllocation.Format);
 
-    CopyBufferToImage(CommandBuffer, Output.first, ImageAllocation.Image, ImageAllocation.Extent);
+    CopyBufferToImage(CommandBuffer, Output.first, NewAllocation.Image, NewAllocation.Extent);
 
     MoveImageLayout<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer,
-        ImageAllocation.Image,
-        ImageAllocation.Format);
+        NewAllocation.Image,
+        NewAllocation.Format);
 
-    CreateImageView(ImageAllocation.Image, ImageAllocation.Format, VK_IMAGE_ASPECT_COLOR_BIT, ImageAllocation.View);
+    CreateImageView(NewAllocation.Image, NewAllocation.Format, VK_IMAGE_ASPECT_COLOR_BIT, NewAllocation.View);
     vmaUnmapMemory(GetAllocator(), Output.second);
 
-    return Output;
+    std::uint32_t const BufferID = g_ImageAllocationIDCounter.fetch_add(1U);
+    g_AllocatedImages.emplace(BufferID, std::move(NewAllocation));
+
+    if (g_ImageAllocationCounter.contains(BufferID))
+    {
+        g_ImageAllocationCounter.at(BufferID) += 1U;
+    }
+    else
+    {
+        g_ImageAllocationCounter.emplace(BufferID, 1U);
+    }
+
+    return { BufferID, Output.first, Output.second };
 }
 
-void RenderCore::AllocateModelBuffers(Object &Object)
+void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> const &Objects)
 {
-    ObjectAllocationData &            ObjectAllocation = Object.GetMutableAllocationData();
-    std::vector<Vertex> const &       Vertices         = Object.GetVertices();
-    std::vector<std::uint32_t> const &Indices          = Object.GetIndices();
-    std::size_t const                 AllocationSize   = Object.GetAllocationSize();
+    if (std::empty(g_AllocatedBuffers))
+    {
+        g_BufferAllocationIDCounter.fetch_sub(g_BufferAllocationIDCounter.load());
+    }
 
-    CreateBuffer(AllocationSize,
-                 g_ModelMemoryFlags,
-                 "MODEL_UNIFIED_BUFFER",
-                 ObjectAllocation.BufferAllocation.Buffer,
-                 ObjectAllocation.BufferAllocation.Allocation);
+    std::vector<Vertex>        Vertices;
+    std::vector<std::uint32_t> Indices;
 
-    CheckVulkanResult(vmaMapMemory(GetAllocator(), ObjectAllocation.BufferAllocation.Allocation, &ObjectAllocation.BufferAllocation.MappedData));
-    std::memcpy(static_cast<char *>(ObjectAllocation.BufferAllocation.MappedData) + Object.GetVertexBufferStart(),
-                std::data(Vertices),
-                Object.GetVertexBufferSize());
-    std::memcpy(static_cast<char *>(ObjectAllocation.BufferAllocation.MappedData) + Object.GetIndexBufferStart(),
-                std::data(Indices),
-                Object.GetIndexBufferSize());
-    CheckVulkanResult(vmaFlushAllocation(GetAllocator(),
-                                         ObjectAllocation.BufferAllocation.Allocation,
-                                         Object.GetIndexBufferStart(),
-                                         Object.GetIndexBufferSize()));
+    for (auto const &ObjectIter : Objects)
+    {
+        auto const &Mesh = ObjectIter->GetMesh();
 
-    ObjectAllocation.ModelDescriptors = {
-            {
-                    UniformType::Model,
-                    VkDescriptorBufferInfo {
-                            .buffer = ObjectAllocation.BufferAllocation.Buffer,
-                            .offset = Object.GetModelUniformStart(),
-                            .range = Object.GetModelUniformBufferSize()
-                    }
-            },
-            {
-                    UniformType::Material,
-                    VkDescriptorBufferInfo {
-                            .buffer = ObjectAllocation.BufferAllocation.Buffer,
-                            .offset = Object.GetMaterialUniformStart(),
-                            .range = Object.GetMaterialUniformBufferSize()
-                    }
-            }
+        Mesh->SetVertexOffset(std::size(Vertices) * sizeof(Vertex));
+        Mesh->SetIndexOffset(std::size(Indices) * sizeof(std::uint32_t));
+
+        Vertices.insert(std::end(Vertices), std::begin(Mesh->GetVertices()), std::end(Mesh->GetVertices()));
+        Indices.insert(std::end(Indices), std::begin(Mesh->GetIndices()), std::end(Mesh->GetIndices()));
+    }
+
+    VkDeviceSize const VertexBufferSize = std::size(Vertices) * sizeof(Vertex);
+    VkDeviceSize const IndexBufferSize  = std::size(Indices) * sizeof(std::uint32_t);
+    VkDeviceSize       UniformOffset    = VertexBufferSize + IndexBufferSize;
+
+    if (VkDeviceSize const MinAlignment = GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
+        MinAlignment > 0U)
+    {
+        UniformOffset = UniformOffset + MinAlignment - 1U & ~(MinAlignment - 1U);
+    }
+
+    std::uint32_t const BufferID      = g_BufferAllocationIDCounter.fetch_add(1U);
+    BufferAllocation    NewAllocation = {};
+
+    VkDeviceSize const BufferSize = UniformOffset + sizeof(ModelUniformData) * std::size(Objects);
+
+    CreateBuffer(BufferSize, g_ModelMemoryFlags, "MODEL_UNIFIED_BUFFER", NewAllocation.Buffer, NewAllocation.Allocation);
+
+    CheckVulkanResult(vmaMapMemory(GetAllocator(), NewAllocation.Allocation, &NewAllocation.MappedData));
+
+    std::memcpy(NewAllocation.MappedData, std::data(Vertices), VertexBufferSize);
+    std::memcpy(static_cast<char *>(NewAllocation.MappedData) + VertexBufferSize, std::data(Indices), IndexBufferSize);
+
+    CheckVulkanResult(vmaFlushAllocation(GetAllocator(), NewAllocation.Allocation, VertexBufferSize, IndexBufferSize));
+    g_AllocatedBuffers.emplace(BufferID, std::move(NewAllocation));
+
+    for (auto const &ObjectIter : Objects)
+    {
+        auto const &Mesh = ObjectIter->GetMesh();
+
+        Mesh->SetIndexOffset(Mesh->GetIndexOffset() + VertexBufferSize);
+
+        ObjectIter->SetBufferIndex(BufferID);
+        ObjectIter->SetUniformOffset(UniformOffset + sizeof(ModelUniformData) * std::distance(std::data(Objects), &ObjectIter));
+        ObjectIter->SetupUniformDescriptor();
+    }
+
+    if (g_BufferAllocationCounter.contains(BufferID))
+    {
+        g_BufferAllocationCounter.at(BufferID) += static_cast<std::uint32_t>(std::size(Objects));
+    }
+    else
+    {
+        g_BufferAllocationCounter.emplace(BufferID, static_cast<std::uint32_t>(std::size(Objects)));
+    }
+}
+
+VkBuffer const &RenderCore::GetAllocationBuffer(std::uint32_t const Index)
+{
+    return g_AllocatedBuffers.at(Index).Buffer;
+}
+
+void *RenderCore::GetAllocationMappedData(std::uint32_t const Index)
+{
+    return g_AllocatedBuffers.at(Index).MappedData;
+}
+
+VkDescriptorBufferInfo RenderCore::GetAllocationBufferDescriptor(std::uint32_t const Index, std::uint32_t const Offset, std::uint32_t const Range)
+{
+    return VkDescriptorBufferInfo { .buffer = GetAllocationBuffer(Index), .offset = Offset, .range = Range };
+}
+
+VkDescriptorImageInfo RenderCore::GetAllocationImageDescriptor(std::uint32_t const Index)
+{
+    return VkDescriptorImageInfo {
+            .sampler = GetSampler(),
+            .imageView = g_AllocatedImages.at(Index).View,
+            .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR
     };
 }
 
@@ -460,4 +544,43 @@ void RenderCore::SaveImageToFile(VkImage const &Image, std::string_view const Pa
 
     vmaUnmapMemory(g_Allocator, Allocation);
     vmaDestroyBuffer(g_Allocator, Buffer, Allocation);
+}
+
+void ObjectDeleter::operator()(Object *const Object) const
+{
+    std::uint32_t const BufferIndex = Object->GetBufferIndex();
+    g_BufferAllocationCounter.at(BufferIndex) -= 1U;
+
+    if (g_BufferAllocationCounter.at(BufferIndex) == 0U)
+    {
+        g_AllocatedBuffers.at(BufferIndex).DestroyResources(g_Allocator);
+        g_AllocatedBuffers.erase(BufferIndex);
+        g_BufferAllocationCounter.erase(BufferIndex);
+    }
+}
+
+void TextureDeleter::operator()(Texture *const Texture) const
+{
+    std::uint32_t const BufferIndex = Texture->GetBufferIndex();
+    g_ImageAllocationCounter.at(BufferIndex) -= 1U;
+
+    if (g_ImageAllocationCounter.at(BufferIndex) == 0U)
+    {
+        g_AllocatedImages.at(BufferIndex).DestroyResources(g_Allocator);
+        g_AllocatedImages.erase(BufferIndex);
+        g_ImageAllocationCounter.erase(BufferIndex);
+    }
+}
+
+void MeshDeleter::operator()(Mesh *const Mesh) const
+{
+    std::uint32_t const BufferIndex = Mesh->GetBufferIndex();
+    g_BufferAllocationCounter.at(BufferIndex) -= 1U;
+
+    if (g_BufferAllocationCounter.at(BufferIndex) == 0U)
+    {
+        g_AllocatedBuffers.at(BufferIndex).DestroyResources(g_Allocator);
+        g_AllocatedBuffers.erase(BufferIndex);
+        g_BufferAllocationCounter.erase(BufferIndex);
+    }
 }

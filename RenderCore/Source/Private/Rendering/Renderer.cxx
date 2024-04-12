@@ -132,7 +132,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         {
             auto const Lock = LockScene();
 
-            UpdateSceneUniformBuffers();
+            UpdateSceneUniformBuffer();
             RecordCommandBuffers(g_ImageIndex.value());
             SubmitCommandBuffers();
             PresentFrame(g_ImageIndex.value());
@@ -194,7 +194,7 @@ void RenderCore::CheckObjectManagementFlags()
     {
         for (auto const &ModelPath : g_ModelsToLoad)
         {
-            LoadObject(ModelPath);
+            LoadScene(ModelPath);
         }
 
         g_ModelsToLoad.clear();
@@ -224,7 +224,7 @@ bool RenderCore::Initialize(GLFWwindow *const Window)
 
     InitializeCommandsResources();
     CreateMemoryAllocator(GetPhysicalDevice());
-    CreateSceneUniformBuffers();
+    CreateSceneUniformBuffer();
     CreateImageSampler();
     [[maybe_unused]] auto const _2                = CompileDefaultShaders();
     auto const                  SurfaceProperties = GetSurfaceProperties(Window);
@@ -355,22 +355,22 @@ std::optional<std::int32_t> const &Renderer::GetImageIndex()
     return g_ImageIndex;
 }
 
-std::vector<Object> const &Renderer::GetObjects()
+std::vector<std::shared_ptr<Object>> const &Renderer::GetObjects()
 {
     return RenderCore::GetObjects();
 }
 
-std::vector<Object> &Renderer::GetMutableObjects()
+std::vector<std::shared_ptr<Object>> &Renderer::GetMutableObjects()
 {
     return RenderCore::GetObjects();
 }
 
-Object Renderer::GetObjectByID(std::uint32_t const ObjectID)
+std::shared_ptr<Object> Renderer::GetObjectByID(std::uint32_t const ObjectID)
 {
     return *std::ranges::find_if(RenderCore::GetObjects(),
-                                 [ObjectID](Object const &ObjectIter)
+                                 [ObjectID](std::shared_ptr<Object> const &ObjectIter)
                                  {
-                                     return ObjectIter.GetID() == ObjectID;
+                                     return ObjectIter->GetID() == ObjectID;
                                  });
 }
 

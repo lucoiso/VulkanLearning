@@ -7,6 +7,7 @@ module;
 #include <Volk/volk.h>
 #include <string_view>
 #include <vector>
+#include <memory>
 #include <vma/vk_mem_alloc.h>
 
 export module RenderCore.Runtime.Memory;
@@ -14,6 +15,8 @@ export module RenderCore.Runtime.Memory;
 import RenderCore.Types.Allocation;
 import RenderCore.Types.Vertex;
 import RenderCore.Types.Object;
+import RenderCore.Types.Mesh;
+import RenderCore.Types.Texture;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
 
@@ -48,15 +51,19 @@ export namespace RenderCore
 
     void CopyBufferToImage(VkCommandBuffer const &, VkBuffer const &, VkImage const &, VkExtent2D const &);
 
-    [[nodiscard]] std::pair<VkBuffer, VmaAllocation> AllocateTexture(VkCommandBuffer &,
-                                                                     unsigned char const *,
-                                                                     std::uint32_t,
-                                                                     std::uint32_t,
-                                                                     VkFormat,
-                                                                     std::size_t,
-                                                                     ImageAllocation &);
+    [[nodiscard]] std::tuple<std::uint32_t, VkBuffer, VmaAllocation> AllocateTexture(VkCommandBuffer &,
+                                                                                     unsigned char const *,
+                                                                                     std::uint32_t,
+                                                                                     std::uint32_t,
+                                                                                     VkFormat,
+                                                                                     VkDeviceSize);
 
-    void AllocateModelBuffers(Object &);
+    void AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> const &);
+
+    [[nodiscard]] VkBuffer const &       GetAllocationBuffer(std::uint32_t);
+    [[nodiscard]] void *                 GetAllocationMappedData(std::uint32_t);
+    [[nodiscard]] VkDescriptorBufferInfo GetAllocationBufferDescriptor(std::uint32_t, std::uint32_t, std::uint32_t);
+    [[nodiscard]] VkDescriptorImageInfo  GetAllocationImageDescriptor(std::uint32_t);
 
     template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
     constexpr void MoveImageLayout(VkCommandBuffer &   CommandBuffer,
@@ -148,4 +155,19 @@ export namespace RenderCore
     }
 
     void SaveImageToFile(VkImage const &, std::string_view, VkExtent2D const &);
+
+    struct ObjectDeleter
+    {
+        void operator()(Object *Object) const;
+    };
+
+    struct TextureDeleter
+    {
+        void operator()(Texture *Texture) const;
+    };
+
+    struct MeshDeleter
+    {
+        void operator()(Mesh *Mesh) const;
+    };
 } // namespace RenderCore

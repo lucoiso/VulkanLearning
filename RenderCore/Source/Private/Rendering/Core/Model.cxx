@@ -15,6 +15,7 @@ import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Runtime.Scene;
 import RenderCore.Types.Transform;
+import RenderCore.Types.Mesh;
 
 using namespace RenderCore;
 
@@ -64,7 +65,7 @@ float const *RenderCore::GetPrimitiveData(std::string_view const &   ID,
     return nullptr;
 }
 
-void RenderCore::SetVertexAttributes(Object &Object, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
+void RenderCore::SetVertexAttributes(std::shared_ptr<Mesh> const &Mesh, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
 {
     std::vector<Vertex> Vertices;
     {
@@ -131,10 +132,10 @@ void RenderCore::SetVertexAttributes(Object &Object, tinygltf::Model const &Mode
         }
     }
 
-    Object.SetVertexBuffer(Vertices);
+    Mesh->SetVertices(Vertices);
 }
 
-void RenderCore::AllocatePrimitiveIndices(Object &Object, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
+void RenderCore::AllocatePrimitiveIndices(std::shared_ptr<Mesh> const &Mesh, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
 {
     std::vector<std::uint32_t> Indices;
 
@@ -169,173 +170,32 @@ void RenderCore::AllocatePrimitiveIndices(Object &Object, tinygltf::Model const 
         }
     }
 
-    Object.SetIndexBuffer(Indices);
+    Mesh->SetIndices(Indices);
 }
 
-void RenderCore::SetPrimitiveTransform(Object &Object, tinygltf::Node const &Node)
+void RenderCore::SetPrimitiveTransform(std::shared_ptr<Mesh> const &Mesh, tinygltf::Node const &Node)
 {
+    Transform Transform {};
+
     if (!std::empty(Node.translation))
     {
-        Object.SetPosition(glm::make_vec3(std::data(Node.translation)));
+        Transform.SetPosition(glm::make_vec3(std::data(Node.translation)));
     }
 
     if (!std::empty(Node.scale))
     {
-        Object.SetScale(glm::make_vec3(std::data(Node.scale)));
+        Transform.SetScale(glm::make_vec3(std::data(Node.scale)));
     }
 
     if (!std::empty(Node.rotation))
     {
-        Object.SetRotation(degrees(eulerAngles(glm::make_quat(std::data(Node.rotation)))));
+        Transform.SetRotation(degrees(eulerAngles(glm::make_quat(std::data(Node.rotation)))));
     }
 
     if (!Node.matrix.empty())
     {
-        Object.SetMatrix(glm::make_mat4(std::data(Node.matrix)));
-    }
-}
-
-std::unordered_map<VkBuffer, VmaAllocation> RenderCore::AllocateObjectMaterials(VkCommandBuffer &          CommandBuffer,
-                                                                                Object &                   Object,
-                                                                                tinygltf::Primitive const &Primitive,
-                                                                                tinygltf::Model const &    Model)
-{
-    std::unordered_map<VkBuffer, VmaAllocation> Output;
-
-    if (Primitive.material >= 0)
-    {
-        tinygltf::Material const &Material = Model.materials.at(Primitive.material);
-
-        Object.SetMaterialData({
-                                       .BaseColorFactor = glm::make_vec4(std::data(Material.pbrMetallicRoughness.baseColorFactor)),
-                                       .EmissiveFactor = glm::make_vec3(std::data(Material.emissiveFactor)),
-                                       .MetallicFactor = static_cast<float>(Material.pbrMetallicRoughness.metallicFactor),
-                                       .RoughnessFactor = static_cast<float>(Material.pbrMetallicRoughness.roughnessFactor),
-                                       .AlphaCutoff = static_cast<float>(Material.alphaCutoff),
-                                       .NormalScale = static_cast<float>(Material.normalTexture.scale),
-                                       .OcclusionStrength = static_cast<float>(Material.occlusionTexture.strength),
-                                       .AlphaMode = Material.alphaMode == "OPAQUE"
-                                                        ? AlphaMode::ALPHA_OPAQUE
-                                                        : Material.alphaMode == "MASK"
-                                                              ? AlphaMode::ALPHA_MASK
-                                                              : AlphaMode::ALPHA_BLEND,
-                                       .DoubleSided = Material.doubleSided
-                               });
-
-        if (Material.pbrMetallicRoughness.baseColorTexture.index >= 0)
-        {
-            Output.emplace(AllocateTexture(CommandBuffer,
-                                           std::data(Model.images.at(Model.textures.at(Material.pbrMetallicRoughness.baseColorTexture.index).source).
-                                                           image),
-                                           Model.images.at(Model.textures.at(Material.pbrMetallicRoughness.baseColorTexture.index).source).width,
-                                           Model.images.at(Model.textures.at(Material.pbrMetallicRoughness.baseColorTexture.index).source).height,
-                                           GetSwapChainImageFormat(),
-                                           std::size(Model.images.at(Model.textures.at(Material.pbrMetallicRoughness.baseColorTexture.index).source).
-                                                           image),
-                                           Object.GetMutableAllocationData().ImageAllocations.emplace_back()));
-
-            Object.GetMutableAllocationData().TextureDescriptors.emplace(TextureType::BaseColor,
-                                                                         VkDescriptorImageInfo {
-                                                                                 .sampler = GetSampler(),
-                                                                                 .imageView = Object.GetMutableAllocationData().ImageAllocations.
-                                                                                 back().View,
-                                                                                 .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR
-                                                                         });
-        }
-
-        if (Material.normalTexture.index >= 0)
-        {
-            Output.emplace(AllocateTexture(CommandBuffer,
-                                           std::data(Model.images.at(Model.textures.at(Material.normalTexture.index).source).image),
-                                           Model.images.at(Model.textures.at(Material.normalTexture.index).source).width,
-                                           Model.images.at(Model.textures.at(Material.normalTexture.index).source).height,
-                                           GetSwapChainImageFormat(),
-                                           std::size(Model.images.at(Model.textures.at(Material.normalTexture.index).source).image),
-                                           Object.GetMutableAllocationData().ImageAllocations.emplace_back()));
-
-            Object.GetMutableAllocationData().TextureDescriptors.emplace(TextureType::Normal,
-                                                                         VkDescriptorImageInfo {
-                                                                                 .sampler = GetSampler(),
-                                                                                 .imageView = Object.GetMutableAllocationData().ImageAllocations.
-                                                                                 back().View,
-                                                                                 .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR
-                                                                         });
-        }
-
-        if (Material.occlusionTexture.index >= 0)
-        {
-            Output.emplace(AllocateTexture(CommandBuffer,
-                                           std::data(Model.images.at(Model.textures.at(Material.occlusionTexture.index).source).image),
-                                           Model.images.at(Model.textures.at(Material.occlusionTexture.index).source).width,
-                                           Model.images.at(Model.textures.at(Material.occlusionTexture.index).source).height,
-                                           GetSwapChainImageFormat(),
-                                           std::size(Model.images.at(Model.textures.at(Material.occlusionTexture.index).source).image),
-                                           Object.GetMutableAllocationData().ImageAllocations.emplace_back()));
-
-            Object.GetMutableAllocationData().TextureDescriptors.emplace(TextureType::Occlusion,
-                                                                         VkDescriptorImageInfo {
-                                                                                 .sampler = GetSampler(),
-                                                                                 .imageView = Object.GetMutableAllocationData().ImageAllocations.
-                                                                                 back().View,
-                                                                                 .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR
-                                                                         });
-        }
-
-        if (Material.emissiveTexture.index >= 0)
-        {
-            Output.emplace(AllocateTexture(CommandBuffer,
-                                           std::data(Model.images.at(Model.textures.at(Material.emissiveTexture.index).source).image),
-                                           Model.images.at(Model.textures.at(Material.emissiveTexture.index).source).width,
-                                           Model.images.at(Model.textures.at(Material.emissiveTexture.index).source).height,
-                                           GetSwapChainImageFormat(),
-                                           std::size(Model.images.at(Model.textures.at(Material.emissiveTexture.index).source).image),
-                                           Object.GetMutableAllocationData().ImageAllocations.emplace_back()));
-
-            Object.GetMutableAllocationData().TextureDescriptors.emplace(TextureType::Emissive,
-                                                                         VkDescriptorImageInfo {
-                                                                                 .sampler = GetSampler(),
-                                                                                 .imageView = Object.GetMutableAllocationData().ImageAllocations.
-                                                                                 back().View,
-                                                                                 .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR
-                                                                         });
-        }
-
-        if (Material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
-        {
-            Output.emplace(AllocateTexture(CommandBuffer,
-                                           std::data(Model.images.at(Model.textures.at(Material.pbrMetallicRoughness.metallicRoughnessTexture.index).
-                                                                           source).image),
-                                           Model.images.at(Model.textures.at(Material.pbrMetallicRoughness.metallicRoughnessTexture.index).source).
-                                                 width,
-                                           Model.images.at(Model.textures.at(Material.pbrMetallicRoughness.metallicRoughnessTexture.index).source).
-                                                 height,
-                                           GetSwapChainImageFormat(),
-                                           std::size(Model.images.at(Model.textures.at(Material.pbrMetallicRoughness.metallicRoughnessTexture.index).
-                                                                           source).image),
-                                           Object.GetMutableAllocationData().ImageAllocations.emplace_back()));
-
-            Object.GetMutableAllocationData().TextureDescriptors.emplace(TextureType::MetallicRoughness,
-                                                                         VkDescriptorImageInfo {
-                                                                                 .sampler = GetSampler(),
-                                                                                 .imageView = Object.GetMutableAllocationData().ImageAllocations.
-                                                                                 back().View,
-                                                                                 .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR
-                                                                         });
-        }
+        Transform.SetMatrix(glm::make_mat4(std::data(Node.matrix)));
     }
 
-    for (std::uint8_t TextTypeIter = 0U; TextTypeIter <= static_cast<std::uint8_t>(TextureType::MetallicRoughness); ++TextTypeIter)
-    {
-        if (!Object.GetMutableAllocationData().TextureDescriptors.contains(static_cast<TextureType>(TextTypeIter)))
-        {
-            Object.GetMutableAllocationData().TextureDescriptors.emplace(static_cast<TextureType>(TextTypeIter),
-                                                                         VkDescriptorImageInfo {
-                                                                                 .sampler = GetSampler(),
-                                                                                 .imageView = GetEmptyImage().View,
-                                                                                 .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR
-                                                                         });
-        }
-    }
-
-    return Output;
+    Mesh->SetTransform(Transform);
 }

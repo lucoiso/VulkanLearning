@@ -5,8 +5,6 @@
 module;
 
 #include <Volk/volk.h>
-#include <algorithm>
-#include <execution>
 #include <vma/vk_mem_alloc.h>
 
 module RenderCore.Types.Allocation;
@@ -58,21 +56,4 @@ void BufferAllocation::DestroyResources(VmaAllocator const &Allocator)
         Allocation = VK_NULL_HANDLE;
         Buffer     = VK_NULL_HANDLE;
     }
-}
-
-bool ObjectAllocationData::IsValid() const
-{
-    return BufferAllocation.IsValid();
-}
-
-void ObjectAllocationData::DestroyResources(VmaAllocator const &Allocator)
-{
-    for (ImageAllocation &TextureAllocationIter : ImageAllocations)
-    {
-        TextureAllocationIter.DestroyResources(Allocator);
-    }
-    TextureDescriptors.clear();
-
-    BufferAllocation.DestroyResources(Allocator);
-    ModelDescriptors.clear();
 }

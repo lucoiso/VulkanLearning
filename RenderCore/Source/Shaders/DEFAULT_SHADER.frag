@@ -1,45 +1,39 @@
 #version 450
 
-layout(std140, set = 0, binding = 1) uniform UBOLight {
-    vec3 position;
-    vec3 color;
-} uboLight;
-
-layout(std140, set = 0, binding = 3) uniform UBOMaterial {
-    vec4 baseColorFactor;
-    vec3 emissiveFactor;
-    float metallicFactor;
-    float roughnessFactor;
-    float alphaCutoff;
-    float normalScale;
-    float occlusionStrength;
-    int alphaMode;
-    int doubleSided;
-} uboMaterial;
-
-layout(set = 0, binding = 4) uniform sampler2D samplerColorMap;
-layout(set = 0, binding = 5) uniform sampler2D samplerNormalMap;
-layout(set = 0, binding = 6) uniform sampler2D samplerOcclusionMap;
-layout(set = 0, binding = 7) uniform sampler2D samplerEmissiveMap;
-layout(set = 0, binding = 8) uniform sampler2D samplerMetallicRoughnessMap;
+layout(set = 0, binding = 2) uniform sampler2D samplerColorMap;
+layout(set = 0, binding = 3) uniform sampler2D samplerNormalMap;
+layout(set = 0, binding = 4) uniform sampler2D samplerOcclusionMap;
+layout(set = 0, binding = 5) uniform sampler2D samplerEmissiveMap;
+layout(set = 0, binding = 6) uniform sampler2D samplerMetallicRoughnessMap;
 
 layout(location = 0) out vec4 outFragColor;
 
 layout(location = 1) in FragmentData {
-    vec2 model_uv;
-    vec3 model_view;
-    vec3 model_normal;
-    vec4 model_color;
-    vec4 model_tangent;
+    vec2  model_uv;
+    vec3  model_view;
+    vec3  model_normal;
+    vec4  model_color;
+    vec4  model_tangent;
+    vec4  material_baseColorFactor;
+    vec3  material_emissiveFactor;
+    float material_metallicFactor;
+    float material_roughnessFactor;
+    float material_alphaCutoff;
+    float material_normalScale;
+    float material_occlusionStrength;
+    int   material_alphaMode;
+    int   material_doubleSided;
+    vec3  light_position;
+    vec3  light_color;
 } fragData;
 
 void main() {
-    vec4 baseColor = texture(samplerColorMap, fragData.model_uv);
+    vec4 baseColor = texture(samplerColorMap, fragData.model_uv) * fragData.model_color;
     vec3 normal = normalize(texture(samplerNormalMap, fragData.model_uv).rgb * 2.0 - 1.0);
     normal = normalize(fragData.model_normal);
 
-    vec3 lightDir = normalize(uboLight.position - fragData.model_view.xyz);
-    vec3 lightColor = uboLight.color;
+    vec3 lightDir = normalize(fragData.light_position - fragData.model_view.xyz);
+    vec3 lightColor = fragData.light_color;
 
     float NdotL = max(dot(normal, lightDir), 0.0);
 
@@ -48,8 +42,8 @@ void main() {
     float occlusion = texture(samplerOcclusionMap, fragData.model_uv).r;
     vec3 ambient = baseColor.rgb * (0.1 + 0.9 * occlusion);
 
-    vec3 emissive = texture(samplerEmissiveMap, fragData.model_uv).rgb * uboMaterial.emissiveFactor;
+    vec3 emissive = texture(samplerEmissiveMap, fragData.model_uv).rgb * fragData.material_emissiveFactor;
 
-    vec3 result = ambient + diffuse + emissive;
+    vec3 result = baseColor.xyz * (ambient + diffuse + emissive);
     outFragColor = vec4(result, baseColor.a);
 }

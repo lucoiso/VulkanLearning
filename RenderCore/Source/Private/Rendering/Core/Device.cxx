@@ -158,32 +158,37 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
                                   });
     }
 
-    VkPhysicalDeviceMeshShaderFeaturesEXT MeshShaderFeatures { // Required
+    VkPhysicalDeviceMeshShaderFeaturesEXT MeshShaderFeatures {
+            // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
             .pNext = nullptr,
             .taskShader = VK_TRUE,
             .meshShader = VK_TRUE
     };
 
-    VkPhysicalDeviceSynchronization2Features Synchronization2Features { // Required
+    VkPhysicalDeviceSynchronization2Features Synchronization2Features {
+            // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
             .pNext = &MeshShaderFeatures,
             .synchronization2 = VK_TRUE
     };
 
-    VkPhysicalDeviceDynamicRenderingFeatures DynamicRenderingFeatures { // Required
+    VkPhysicalDeviceDynamicRenderingFeatures DynamicRenderingFeatures {
+            // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
             .pNext = &Synchronization2Features,
             .dynamicRendering = VK_TRUE
     };
 
-    VkPhysicalDeviceRobustness2FeaturesEXT RobustnessFeatures { // Required
+    VkPhysicalDeviceRobustness2FeaturesEXT RobustnessFeatures {
+            // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
             .pNext = &DynamicRenderingFeatures,
             .nullDescriptor = VK_TRUE
     };
 
-    VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT UnusedAttachmentsFeatures { // Optional
+    VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT UnusedAttachmentsFeatures {
+            // Optional
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT,
             .pNext = &RobustnessFeatures,
             .dynamicRenderingUnusedAttachments = Contains(AvailableExtensions, VK_EXT_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_EXTENSION_NAME)

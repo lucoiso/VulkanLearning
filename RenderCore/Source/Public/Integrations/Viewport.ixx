@@ -13,11 +13,11 @@ import RenderCore.Types.SurfaceProperties;
 
 export namespace RenderCore
 {
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
+    #ifdef VULKAN_RENDERER_ENABLE_IMGUI
     void CreateViewportResources(SurfaceProperties const &);
 
     [[nodiscard]] std::vector<ImageAllocation> const &GetViewportImages();
 
     void DestroyViewportImages();
-#endif
+    #endif
 } // namespace RenderCore

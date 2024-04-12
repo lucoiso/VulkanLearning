@@ -326,9 +326,9 @@ std::vector<VkCommandBuffer> RecordSceneCommands()
                                              SetViewport(CommandBuffer, GetSwapChainExtent());
                                              vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
 
-                                             Object const &Object = Objects.at(ObjectAccessIndex);
-                                             Object.UpdateUniformBuffers();
-                                             Object.DrawObject(CommandBuffer);
+                                             std::shared_ptr<Object> const &Object = Objects.at(ObjectAccessIndex);
+                                             Object->UpdateUniformBuffers();
+                                             Object->DrawObject(CommandBuffer);
                                          }
                                          CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
                                      },
@@ -412,6 +412,7 @@ void RenderCore::SubmitCommandBuffers()
 
     CheckVulkanResult(vkQueueSubmit2(GraphicsQueue, 1U, &SubmitInfo, GetFence()));
     WaitAndResetFences();
+    vkResetCommandPool(volkGetLoadedDevice(), g_PrimaryCommandBuffer.first, 0U);
 }
 
 void RenderCore::InitializeSingleCommandQueue(VkCommandPool &               CommandPool,

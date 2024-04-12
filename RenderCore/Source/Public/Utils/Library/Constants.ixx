@@ -39,9 +39,9 @@ export namespace RenderCore
 
     constexpr std::array g_DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH };
 
-    constexpr std::uint64_t g_MinMemoryBlock             = 4U;
-    constexpr std::uint64_t g_BufferMemoryAllocationSize = 4'194'304U;
-    constexpr std::uint64_t g_ImageMemoryAllocationSize  = g_BufferMemoryAllocationSize * 5U;
+    constexpr std::uint64_t g_MinMemoryBlock             = 2U;
+    constexpr std::uint64_t g_BufferMemoryAllocationSize = 2U * 1024U * 1024U; // 2MB
+    constexpr std::uint64_t g_ImageMemoryAllocationSize  = g_BufferMemoryAllocationSize * 8U;
 
     constexpr auto g_ModelMemoryUsage   = VMA_MEMORY_USAGE_CPU_TO_GPU;
     constexpr auto g_ModelMemoryFlags   = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -54,7 +54,7 @@ export namespace RenderCore
 
     constexpr std::uint32_t g_Timeout = std::numeric_limits<std::uint32_t>::max();
 
-    RENDERCOREMODULE_API constexpr std::array g_ClearValues {
+    constexpr std::array g_ClearValues {
             VkClearValue { .color = { { 0.F, 0.F, 0.F, 1.F } } },
             VkClearValue { .color = { { 0.01F, 0.01F, 0.01F, 1.F } } },
             VkClearValue { .depthStencil = { 1.F, 0U } }

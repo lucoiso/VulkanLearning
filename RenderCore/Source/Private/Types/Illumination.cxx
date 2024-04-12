@@ -13,11 +13,6 @@ import RenderCore.Types.UniformBufferObject;
 
 using namespace RenderCore;
 
-void Illumination::Destroy()
-{
-    m_UniformBufferAllocation.first.DestroyResources(GetAllocator());
-}
-
 void Illumination::SetPosition(glm::vec3 const &Value)
 {
     if (m_Position != Value)
@@ -60,35 +55,12 @@ float Illumination::GetIntensity() const
     return m_Intensity;
 }
 
-void *Illumination::GetUniformData() const
+bool Illumination::IsRenderDirty() const
 {
-    return m_UniformBufferAllocation.first.MappedData;
+    return m_IsRenderDirty;
 }
 
-VkDescriptorBufferInfo const &Illumination::GetUniformDescriptor() const
+void Illumination::SetRenderDirty(bool const Value) const
 {
-    return m_UniformBufferAllocation.second;
-}
-
-void Illumination::UpdateUniformBuffers()
-{
-    if (!m_IsRenderDirty)
-    {
-        return;
-    }
-
-    if (m_UniformBufferAllocation.first.MappedData)
-    {
-        LightUniformData const UpdatedUBO { .LightPosition = GetPosition(), .LightColor = GetColor() * GetIntensity() };
-        std::memcpy(m_UniformBufferAllocation.first.MappedData, &UpdatedUBO, sizeof(LightUniformData));
-    }
-
-    m_IsRenderDirty = false;
-}
-
-void Illumination::AllocateUniformBuffer()
-{
-    constexpr VkDeviceSize BufferSize = sizeof(LightUniformData);
-    CreateUniformBuffers(m_UniformBufferAllocation.first, BufferSize, "LIGHT_UNIFORM");
-    m_UniformBufferAllocation.second = { .buffer = m_UniformBufferAllocation.first.Buffer, .offset = 0U, .range = BufferSize };
+    m_IsRenderDirty = Value;
 }
