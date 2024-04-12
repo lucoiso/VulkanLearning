@@ -8,7 +8,6 @@ module;
 #include <cstdint>
 #include <limits>
 #include <vma/vk_mem_alloc.h>
-#include "RenderCoreModule.hpp"
 
 export module RenderCore.Utils.Constants;
 
