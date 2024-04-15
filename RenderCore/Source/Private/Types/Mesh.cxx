@@ -6,6 +6,7 @@ module;
 
 #include <string_view>
 #include <Volk/volk.h>
+#include <glm/ext.hpp>
 
 module RenderCore.Types.Mesh;
 
@@ -32,6 +33,37 @@ Transform const &Mesh::GetTransform() const
 void Mesh::SetTransform(Transform const &Transform)
 {
     m_Transform = Transform;
+}
+
+glm::vec3 Mesh::GetCenter() const
+{
+    return (m_Bounds.Min + m_Bounds.Max) / 2.0f;
+}
+
+float Mesh::GetSize() const
+{
+    return distance(m_Bounds.Min, m_Bounds.Max);
+}
+
+Bounds const &Mesh::GetBounds() const
+{
+    return m_Bounds;
+}
+
+void Mesh::SetupBounds()
+{
+    for (const auto &VertexIter : m_Vertices)
+    {
+        glm::vec4 const TransformedVertex = glm::vec4(VertexIter.Position, 1.0f) * m_Transform.GetMatrix();
+
+        m_Bounds.Min.x = std::min(m_Bounds.Min.x, TransformedVertex.x);
+        m_Bounds.Min.y = std::min(m_Bounds.Min.y, TransformedVertex.y);
+        m_Bounds.Min.z = std::min(m_Bounds.Min.z, TransformedVertex.z);
+
+        m_Bounds.Max.x = std::max(m_Bounds.Max.x, TransformedVertex.x);
+        m_Bounds.Max.y = std::max(m_Bounds.Max.y, TransformedVertex.y);
+        m_Bounds.Max.z = std::max(m_Bounds.Max.z, TransformedVertex.z);
+    }
 }
 
 std::vector<Vertex> const &Mesh::GetVertices() const

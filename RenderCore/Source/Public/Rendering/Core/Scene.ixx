@@ -38,8 +38,6 @@ export namespace RenderCore
 
     void TickObjects(float);
 
-    std::lock_guard<std::mutex> LockScene();
-
     [[nodiscard]] ImageAllocation const &GetDepthImage();
 
     [[nodiscard]] VkSampler const &GetSampler();

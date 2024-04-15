@@ -14,6 +14,12 @@ export module RenderCore.Types.Transform;
 
 namespace RenderCore
 {
+    export struct RENDERCOREMODULE_API Bounds
+    {
+        glm::vec3 Min { FLT_MAX };
+        glm::vec3 Max { FLT_MIN };
+    };
+
     export class RENDERCOREMODULE_API Transform
     {
         glm::vec3 m_Position { 0.F };

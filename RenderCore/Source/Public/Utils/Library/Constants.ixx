@@ -13,8 +13,6 @@ export module RenderCore.Utils.Constants;
 
 export namespace RenderCore
 {
-    constexpr bool g_EnableExperimentalFrustumCulling = false;
-
     constexpr std::array<char const *, 0U> g_RequiredInstanceLayers = {};
 
     constexpr std::array<char const *, 0U> g_RequiredDeviceLayers = {};

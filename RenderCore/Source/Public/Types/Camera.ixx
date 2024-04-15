@@ -80,9 +80,11 @@ namespace RenderCore
         void                                   SetCameraMovementStateFlags(CameraMovementStateFlags);
         void                                   UpdateCameraMovement(float);
 
-        [[nodiscard]] bool IsInsideCameraFrustum(glm::vec3 const &) const;
-        [[nodiscard]] bool IsInAllowedDistance(glm::vec3 const &) const;
-        [[nodiscard]] bool CanDrawObject(std::shared_ptr<Object> const &) const;
+        [[nodiscard]] bool        IsInsideCameraFrustum(std::shared_ptr<Object> const &) const;
+        static void               CalculateFrustumPlanes(glm::mat4 const &, std::array<glm::vec4, 6U> &);
+        [[nodiscard]] static bool BoxIntersectsPlane(Bounds const &, glm::vec4 const &);
+        [[nodiscard]] bool        IsInAllowedDistance(std::shared_ptr<Object> const &) const;
+        [[nodiscard]] bool        CanDrawObject(std::shared_ptr<Object> const &) const;
 
         [[nodiscard]] bool IsRenderDirty() const;
         void               SetRenderDirty(bool) const;

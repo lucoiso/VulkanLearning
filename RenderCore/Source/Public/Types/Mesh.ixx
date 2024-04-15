@@ -8,6 +8,7 @@ module;
 #include <string_view>
 #include <vector>
 #include <memory>
+#include <glm/ext.hpp>
 
 #include "RenderCoreModule.hpp"
 
@@ -23,6 +24,7 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Mesh : public Resource
     {
+        Bounds                     m_Bounds {};
         Transform                  m_Transform {};
         std::vector<Vertex>        m_Vertices {};
         std::vector<std::uint32_t> m_Indices {};
@@ -41,6 +43,11 @@ namespace RenderCore
 
         [[nodiscard]] Transform const &GetTransform() const;
         void                           SetTransform(Transform const &Transform);
+
+        [[nodiscard]] glm::vec3     GetCenter() const;
+        [[nodiscard]] float         GetSize() const;
+        [[nodiscard]] Bounds const &GetBounds() const;
+        void                        SetupBounds();
 
         [[nodiscard]] std::vector<Vertex> const &GetVertices() const;
         void                                     SetVertices(std::vector<Vertex> const &Vertices);

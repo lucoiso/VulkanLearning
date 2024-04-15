@@ -145,8 +145,8 @@ void RenderCore::LoadScene(std::string_view const ModelPath)
     VkCommandPool                CopyCommandPool { VK_NULL_HANDLE };
     std::vector<VkCommandBuffer> CommandBuffers { VK_NULL_HANDLE };
 
-    auto const &                                [QueueIndex, Queue] = GetGraphicsQueue();
-    std::unordered_map<VkBuffer, VmaAllocation> BufferAllocations {};
+    auto const &                                                [QueueIndex, Queue] = GetGraphicsQueue();
+    std::unordered_map<VkBuffer, VmaAllocation>                 BufferAllocations {};
     std::unordered_map<std::uint32_t, std::shared_ptr<Texture>> TextureMap {};
 
     InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, QueueIndex);
@@ -390,11 +390,6 @@ void RenderCore::TickObjects(float const DeltaTime)
                           ObjectIter->Tick(DeltaTime);
                       }
                   });
-}
-
-std::lock_guard<std::mutex> RenderCore::LockScene()
-{
-    return std::lock_guard { g_ObjectMutex };
 }
 
 ImageAllocation const &RenderCore::GetDepthImage()

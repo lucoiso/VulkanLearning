@@ -198,4 +198,5 @@ void RenderCore::SetPrimitiveTransform(std::shared_ptr<Mesh> const &Mesh, tinygl
     }
 
     Mesh->SetTransform(Transform);
+    Mesh->SetupBounds();
 }

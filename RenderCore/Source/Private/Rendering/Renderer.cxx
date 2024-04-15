@@ -130,8 +130,6 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
 
         if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender) && g_ImageIndex.has_value())
         {
-            auto const Lock = LockScene();
-
             UpdateSceneUniformBuffer();
             RecordCommandBuffers(g_ImageIndex.value());
             SubmitCommandBuffers();

@@ -6,6 +6,7 @@ module;
 
 #include <glm/ext.hpp>
 #include <Volk/volk.h>
+#include <array>
 
 module RenderCore.Types.Camera;
 
@@ -13,6 +14,7 @@ import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Utils.EnumHelpers;
 import RenderCore.Utils.Constants;
+import RenderCore.Types.Mesh;
 import RenderCore.Types.UniformBufferObject;
 
 using namespace RenderCore;
@@ -207,20 +209,87 @@ void Camera::UpdateCameraMovement(float const DeltaTime)
     SetPosition(NewPosition);
 }
 
-bool Camera::IsInsideCameraFrustum(glm::vec3 const &TestLocation) const
+bool Camera::IsInsideCameraFrustum(std::shared_ptr<Object> const &Object) const
 {
-    glm::mat4 const ViewProjectionMatrix = GetProjectionMatrix() * GetViewMatrix();
+    std::shared_ptr<Mesh> const &Mesh = Object->GetMesh();
 
-    auto const      HomogeneousTestLocation = glm::vec4(TestLocation, 1.F);
-    glm::vec4 const ClipSpaceTestLocation   = ViewProjectionMatrix * HomogeneousTestLocation;
+    if (!Mesh)
+    {
+        return false;
+    }
 
-    return std::abs(ClipSpaceTestLocation.x) <= std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.y) <=
-           std::abs(ClipSpaceTestLocation.w) && std::abs(ClipSpaceTestLocation.z) <= std::abs(ClipSpaceTestLocation.w);
+    Bounds const &MeshBounds = Mesh->GetBounds();
+
+    std::array<glm::vec4, 6U> FrustumPlanes;
+    CalculateFrustumPlanes(GetProjectionMatrix() * GetViewMatrix(), FrustumPlanes);
+
+    for (auto const &plane : FrustumPlanes)
+    {
+        if (!BoxIntersectsPlane(MeshBounds, plane))
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
-bool Camera::IsInAllowedDistance(glm::vec3 const &TestLocation) const
+void Camera::CalculateFrustumPlanes(glm::mat4 const &viewProjectionMatrix, std::array<glm::vec4, 6U> &FrustumPlanes)
 {
-    glm::vec3 const CameraToTestLocation   = TestLocation - GetPosition();
+    FrustumPlanes = {
+            row(viewProjectionMatrix, 3) + row(viewProjectionMatrix, 0),
+            row(viewProjectionMatrix, 3) - row(viewProjectionMatrix, 0),
+            row(viewProjectionMatrix, 3) + row(viewProjectionMatrix, 1),
+            row(viewProjectionMatrix, 3) - row(viewProjectionMatrix, 1),
+            row(viewProjectionMatrix, 3) + row(viewProjectionMatrix, 2),
+            row(viewProjectionMatrix, 3) - row(viewProjectionMatrix, 2)
+    };
+
+    for (auto &PlaneIter : FrustumPlanes)
+    {
+        PlaneIter /= length(glm::vec3(PlaneIter));
+    }
+}
+
+bool Camera::BoxIntersectsPlane(Bounds const &Bounds, glm::vec4 const &Plane)
+{
+    glm::vec3 const Min(Bounds.Min.x, Bounds.Min.y, Bounds.Min.z);
+    glm::vec3 const Max(Bounds.Max.x, Bounds.Max.y, Bounds.Max.z);
+
+    glm::vec3 PositiveVertex(Max);
+    glm::vec3 NegativeVertex(Min);
+
+    if (Plane.x < 0.0f)
+    {
+        std::swap(PositiveVertex.x, NegativeVertex.x);
+    }
+
+    if (Plane.y < 0.0f)
+    {
+        std::swap(PositiveVertex.y, NegativeVertex.y);
+    }
+
+    if (Plane.z < 0.0f)
+    {
+        std::swap(PositiveVertex.z, NegativeVertex.z);
+    }
+
+    float const PositiveDistance = dot(glm::vec3(Plane), PositiveVertex) + Plane.w;
+    float const NegativeDistance = dot(glm::vec3(Plane), NegativeVertex) + Plane.w;
+
+    return PositiveDistance >= 0.0f || NegativeDistance >= 0.0f;
+}
+
+bool Camera::IsInAllowedDistance(std::shared_ptr<Object> const &Object) const
+{
+    std::shared_ptr<Mesh> const &Mesh = Object->GetMesh();
+
+    if (!Mesh)
+    {
+        return false;
+    }
+
+    glm::vec3 const CameraToTestLocation   = Mesh->GetCenter() - GetPosition();
     float const     DistanceToTestLocation = length(CameraToTestLocation);
 
     return DistanceToTestLocation <= GetDrawDistance();
@@ -233,12 +302,7 @@ bool Camera::CanDrawObject(std::shared_ptr<Object> const &Object) const
         return false;
     }
 
-    if constexpr (g_EnableExperimentalFrustumCulling)
-    {
-        return IsInsideCameraFrustum(Object->GetPosition()) && IsInAllowedDistance(Object->GetPosition());
-    }
-
-    return true;
+    return IsInsideCameraFrustum(Object) && IsInAllowedDistance(Object);
 }
 
 bool Camera::IsRenderDirty() const

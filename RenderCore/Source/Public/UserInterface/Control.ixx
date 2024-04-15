@@ -6,6 +6,7 @@ module;
 
 #include <memory>
 #include <algorithm>
+#include <execution>
 #include <vector>
 #include "RenderCoreModule.hpp"
 
@@ -94,14 +95,16 @@ namespace RenderCore
         template <typename Functor>
         static constexpr void Process(std::vector<std::shared_ptr<Control>> &Children, Functor &&Call)
         {
-            std::ranges::for_each(Children,
-                                  [&Call](auto const &Child)
-                                  {
-                                      if (Child)
-                                      {
-                                          (Child.get()->*Call)();
-                                      }
-                                  });
+            std::for_each(std::execution::unseq,
+                std::begin(Children),
+                std::end(Children),
+                          [&Call](auto const &Child)
+                          {
+                              if (Child)
+                              {
+                                  (Child.get()->*Call)();
+                              }
+                          });
         }
     };
 } // namespace RenderCore

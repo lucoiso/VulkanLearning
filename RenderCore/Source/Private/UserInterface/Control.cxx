@@ -74,9 +74,6 @@ void Control::RefreshResources()
 
 void Control::PreUpdate()
 {
-    RemoveInvalid(m_Children);
-    RemoveInvalid(m_IndependentChildren);
-
     PreRender();
     Process(m_Children, &Control::PreRender);
     Process(m_IndependentChildren, &Control::PreRender);
