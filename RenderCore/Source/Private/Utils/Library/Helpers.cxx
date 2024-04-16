@@ -4,11 +4,11 @@
 
 module;
 
-#include <GLFW/glfw3.h>
-#include <boost/log/trivial.hpp>
-#include <Volk/volk.h>
 #include <filesystem>
 #include <span>
+#include <boost/log/trivial.hpp>
+#include <GLFW/glfw3.h>
+#include <Volk/volk.h>
 
 #ifndef GLM_FORCE_RADIANS
     #define GLM_FORCE_RADIANS

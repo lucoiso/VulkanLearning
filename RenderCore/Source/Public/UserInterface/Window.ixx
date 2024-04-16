@@ -32,13 +32,11 @@ namespace RenderCore
 
         Window &operator=(Window const &) = delete;
 
-        ~Window() override;
+        ~Window() override = default;
 
         bool Initialize(std::uint16_t, std::uint16_t, std::string_view, InitializationFlags Flags = InitializationFlags::NONE);
 
         void Shutdown();
-
-        [[nodiscard]] bool IsInitialized() const;
 
         [[nodiscard]] bool IsOpen() const;
 
@@ -50,7 +48,6 @@ namespace RenderCore
         }
 
     private:
-        void RequestDraw();
         void Draw();
     };
 } // namespace RenderCore

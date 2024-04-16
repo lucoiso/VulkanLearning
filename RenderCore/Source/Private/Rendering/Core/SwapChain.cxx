@@ -3,9 +3,9 @@
 // Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
-#include <Volk/volk.h>
 #include <algorithm>
 #include <vector>
+#include <Volk/volk.h>
 
 #ifdef GLFW_INCLUDE_VULKAN
     #undef GLFW_INCLUDE_VULKAN

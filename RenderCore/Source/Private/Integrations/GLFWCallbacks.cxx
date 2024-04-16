@@ -4,8 +4,8 @@
 
 module;
 
-#include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
+#include <GLFW/glfw3.h>
 #include <glm/ext.hpp>
 
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI

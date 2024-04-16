@@ -4,11 +4,11 @@
 
 module;
 
-#include <Volk/volk.h>
-#include <glm/ext.hpp>
 #include <bitset>
 #include <memory>
 #include <vector>
+#include <glm/ext.hpp>
+#include <Volk/volk.h>
 
 #include "RenderCoreModule.hpp"
 
@@ -29,8 +29,8 @@ namespace RenderCore
         VkDescriptorBufferInfo m_UniformBufferInfo {};
 
     public:
-        Object()          = delete;
-        virtual ~Object() = default;
+        Object()           = delete;
+        ~Object() override = default;
 
         inline bool operator==(Object const &Rhs) const
         {

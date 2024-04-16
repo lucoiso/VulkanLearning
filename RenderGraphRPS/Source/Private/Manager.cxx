@@ -4,10 +4,10 @@
 
 module;
 
-#include <Volk/volk.h>
 #include <array>
-#include <rps/rps.h>
 #include <span>
+#include <rps/rps.h>
+#include <Volk/volk.h>
 
 module RenderGraphRPS.Manager;
 

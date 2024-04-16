@@ -4,9 +4,9 @@
 
 module;
 
+#include <memory>
 #include <tiny_gltf.h>
 #include <unordered_map>
-#include <memory>
 #include <vma/vk_mem_alloc.h>
 
 export module RenderCore.Runtime.Model;

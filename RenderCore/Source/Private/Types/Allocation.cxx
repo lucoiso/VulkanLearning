@@ -4,8 +4,8 @@
 
 module;
 
-#include <Volk/volk.h>
 #include <vma/vk_mem_alloc.h>
+#include <Volk/volk.h>
 
 module RenderCore.Types.Allocation;
 

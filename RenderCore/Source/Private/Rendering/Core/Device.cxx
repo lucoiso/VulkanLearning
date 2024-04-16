@@ -4,13 +4,13 @@
 
 module;
 
-#include <GLFW/glfw3.h>
-#include <Volk/volk.h>
+#include <algorithm>
 #include <format>
 #include <optional>
 #include <ranges>
-#include <algorithm>
 #include <unordered_map>
+#include <GLFW/glfw3.h>
+#include <Volk/volk.h>
 
 module RenderCore.Runtime.Device;
 
@@ -269,7 +269,7 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow *const Window)
 
     Output.Mode = VK_PRESENT_MODE_IMMEDIATE_KHR; // VK_PRESENT_MODE_FIFO_KHR;
 
-    for (constexpr std::array PreferredDepthFormats = { VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT };
+    for (constexpr std::array PreferredDepthFormats { VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT };
          VkFormat const &     FormatIter : PreferredDepthFormats)
     {
         VkFormatProperties FormatProperties;

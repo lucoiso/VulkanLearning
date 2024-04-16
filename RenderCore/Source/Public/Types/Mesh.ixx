@@ -4,11 +4,11 @@
 
 module;
 
-#include <Volk/volk.h>
+#include <memory>
 #include <string_view>
 #include <vector>
-#include <memory>
 #include <glm/ext.hpp>
+#include <Volk/volk.h>
 
 #include "RenderCoreModule.hpp"
 
@@ -28,6 +28,7 @@ namespace RenderCore
         Transform                  m_Transform {};
         std::vector<Vertex>        m_Vertices {};
         std::vector<std::uint32_t> m_Indices {};
+        std::uint32_t              m_NumTriangles { 0U };
 
         VkDeviceSize m_VertexOffset { 0U };
         VkDeviceSize m_IndexOffset { 0U };
@@ -36,7 +37,8 @@ namespace RenderCore
         std::vector<std::shared_ptr<Texture>> m_Textures {};
 
     public:
-        Mesh() = delete;
+        ~Mesh() override = default;
+        Mesh()           = delete;
 
         Mesh(std::uint32_t, std::string_view);
         Mesh(std::uint32_t, std::string_view, std::string_view);

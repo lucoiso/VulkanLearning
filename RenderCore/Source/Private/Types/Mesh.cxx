@@ -5,8 +5,8 @@
 module;
 
 #include <string_view>
-#include <Volk/volk.h>
 #include <glm/ext.hpp>
+#include <Volk/volk.h>
 
 module RenderCore.Types.Mesh;
 
@@ -83,12 +83,13 @@ std::vector<std::uint32_t> const &Mesh::GetIndices() const
 
 void Mesh::SetIndices(std::vector<std::uint32_t> const &Indices)
 {
-    m_Indices = Indices;
+    m_Indices      = Indices;
+    m_NumTriangles = static_cast<std::uint32_t>(std::size(m_Indices) / 3U);
 }
 
 std::uint32_t Mesh::GetNumTriangles() const
 {
-    return static_cast<std::uint32_t>(std::size(m_Indices) / 3U);
+    return m_NumTriangles;
 }
 
 VkDeviceSize Mesh::GetVertexOffset() const

@@ -4,8 +4,8 @@
 
 module;
 
-#include <Volk/volk.h>
 #include <glm/ext.hpp>
+#include <Volk/volk.h>
 
 export module RenderCore.Types.Vertex;
 

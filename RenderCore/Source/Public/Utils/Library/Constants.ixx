@@ -13,28 +13,28 @@ export module RenderCore.Utils.Constants;
 
 export namespace RenderCore
 {
-    constexpr std::array<char const *, 0U> g_RequiredInstanceLayers = {};
+    constexpr std::array<char const *, 0U> g_RequiredInstanceLayers {};
 
-    constexpr std::array<char const *, 0U> g_RequiredDeviceLayers = {};
+    constexpr std::array<char const *, 0U> g_RequiredDeviceLayers {};
 
-    constexpr std::array<char const *, 0U> g_RequiredInstanceExtensions = {};
+    constexpr std::array<char const *, 0U> g_RequiredInstanceExtensions {};
 
-    constexpr std::array g_RequiredDeviceExtensions = {
+    constexpr std::array g_RequiredDeviceExtensions {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
             VK_EXT_ROBUSTNESS_2_EXTENSION_NAME,
             VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
             VK_EXT_MESH_SHADER_EXTENSION_NAME
     };
 
-    constexpr std::array<char const *, 0U> g_OptionalInstanceLayers = {};
+    constexpr std::array<char const *, 0U> g_OptionalInstanceLayers {};
 
-    constexpr std::array<char const *, 0U> g_OptionalDeviceLayers = {};
+    constexpr std::array<char const *, 0U> g_OptionalDeviceLayers {};
 
-    constexpr std::array<char const *, 0U> g_OptionalInstanceExtensions = {};
+    constexpr std::array<char const *, 0U> g_OptionalInstanceExtensions {};
 
-    constexpr std::array g_OptionalDeviceExtensions = { VK_EXT_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_EXTENSION_NAME };
+    constexpr std::array g_OptionalDeviceExtensions { VK_EXT_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_EXTENSION_NAME };
 
-    constexpr std::array g_DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH };
+    constexpr std::array g_DynamicStates { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH };
 
     constexpr std::uint64_t g_MinMemoryBlock             = 2U;
     constexpr std::uint64_t g_BufferMemoryAllocationSize = 2U * 1024U * 1024U; // 2MB

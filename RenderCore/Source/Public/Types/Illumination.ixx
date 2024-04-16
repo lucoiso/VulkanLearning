@@ -4,9 +4,9 @@
 
 module;
 
-#include "RenderCoreModule.hpp"
 #include <glm/ext.hpp>
 #include <Volk/volk.h>
+#include "RenderCoreModule.hpp"
 
 export module RenderCore.Types.Illumination;
 

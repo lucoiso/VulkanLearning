@@ -5,13 +5,13 @@
 module;
 
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-#include <Volk/volk.h>
 #include <array>
-#include <boost/log/trivial.hpp>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <vector>
+#include <boost/log/trivial.hpp>
+#include <Volk/volk.h>
 #endif
 
 module RenderCore.Integrations.ImGuiOverlay;
@@ -132,20 +132,20 @@ void RenderCore::ReleaseImGuiResources()
     }
 }
 
-void RenderCore::DrawImGuiFrame(std::function<void()> &&PreDraw, std::function<void()> &&Draw, std::function<void()> &&PostDraw)
+void RenderCore::DrawImGuiFrame(Control *Control)
 {
     if (!ImGui::GetCurrentContext() || !IsImGuiInitialized())
     {
         return;
     }
 
-    PreDraw();
+    Control->PreUpdate();
     {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         {
-            Draw();
+            Control->Update();
         }
         ImGui::Render();
 
@@ -155,7 +155,7 @@ void RenderCore::DrawImGuiFrame(std::function<void()> &&PreDraw, std::function<v
             ImGui::RenderPlatformWindowsDefault();
         }
     }
-    PostDraw();
+    Control->PostUpdate();
 }
 
 bool RenderCore::IsImGuiInitialized()
@@ -169,12 +169,12 @@ void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
 {
     if (IsImGuiInitialized())
     {
-        ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
-
         if (ImDrawData *const ImGuiDrawData = ImGui::GetDrawData())
         {
-            VkRenderingAttachmentInfoKHR const ColorAttachmentInfo {
-                    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+            ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
+
+            VkRenderingAttachmentInfo const ColorAttachmentInfo {
+                    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
                     .imageView = SwapchainAllocation.View,
                     .imageLayout = SwapChainMidLayout,
                     .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -183,7 +183,7 @@ void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
             };
 
             VkRenderingInfo const RenderingInfo {
-                    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+                    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
                     .renderArea = { .offset = { 0, 0 }, .extent = SwapchainAllocation.Extent },
                     .layerCount = 1U,
                     .colorAttachmentCount = 1U,

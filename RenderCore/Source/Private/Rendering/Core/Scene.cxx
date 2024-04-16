@@ -4,10 +4,10 @@
 
 module;
 
-#include <Volk/volk.h>
-#include <vma/vk_mem_alloc.h>
 #include <boost/log/trivial.hpp>
 #include <glm/ext.hpp>
+#include <vma/vk_mem_alloc.h>
+#include <Volk/volk.h>
 
 #ifndef TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_IMPLEMENTATION
@@ -373,12 +373,6 @@ void RenderCore::DestroyObjects()
 void RenderCore::TickObjects(float const DeltaTime)
 {
     std::lock_guard Lock { g_ObjectMutex };
-
-    std::erase_if(g_Objects,
-                  [](std::shared_ptr<Object> const &ObjectIter)
-                  {
-                      return ObjectIter->IsPendingDestroy();
-                  });
 
     std::for_each(std::execution::par_unseq,
                   std::begin(g_Objects),

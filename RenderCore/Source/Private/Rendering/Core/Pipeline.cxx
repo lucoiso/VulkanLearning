@@ -4,10 +4,10 @@
 
 module;
 
-#include <Volk/volk.h>
 #include <array>
-#include <vector>
 #include <ranges>
+#include <vector>
+#include <Volk/volk.h>
 
 module RenderCore.Runtime.Pipeline;
 
@@ -27,7 +27,7 @@ VkDescriptorSetLayout g_DescriptorSetLayout { VK_NULL_HANDLE };
 
 void RenderCore::CreatePipeline()
 {
-    VkPipelineLayoutCreateInfo const PipelineLayoutCreateInfo {
+    constexpr VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount = 1U,
             .pSetLayouts = &g_DescriptorSetLayout
@@ -178,8 +178,8 @@ void RenderCore::CreatePipeline()
 
     VkFormat const DepthFormat = GetDepthImage().Format;
 
-    VkPipelineRenderingCreateInfoKHR const RenderingCreateInfo {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+    VkPipelineRenderingCreateInfo const RenderingCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
             .pNext = &AttachmentCountInfo,
             .colorAttachmentCount = static_cast<std::uint32_t>(std::size(ColorAttachments)),
             .pColorAttachmentFormats = std::data(ColorAttachments),

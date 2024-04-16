@@ -4,8 +4,8 @@
 
 module;
 
-#include <GLFW/glfw3.h>
 #include <chrono>
+#include <GLFW/glfw3.h>
 
 module RenderCore.UserInterface.Window;
 
@@ -18,14 +18,9 @@ Window::Window()
 {
 }
 
-Window::~Window()
-{
-    Shutdown();
-}
-
 bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, InitializationFlags const Flags)
 {
-    if (IsInitialized())
+    if (Renderer::IsInitialized())
     {
         return false;
     }
@@ -50,7 +45,7 @@ void Window::Shutdown()
 {
     DestroyChildren();
 
-    if (IsInitialized())
+    if (Renderer::IsInitialized())
     {
         RenderCore::Shutdown(m_GLFWHandler.GetWindow());
     }
@@ -61,14 +56,15 @@ void Window::Shutdown()
     }
 }
 
-bool Window::IsInitialized() const
-{
-    return Renderer::IsInitialized();
-}
-
 bool Window::IsOpen() const
 {
     return m_GLFWHandler.IsOpen();
+}
+
+
+double ToNanoSeconds(std::chrono::time_point<std::chrono::system_clock> const &TimePoint)
+{
+    return static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(TimePoint.time_since_epoch()).count());
 }
 
 void Window::PollEvents()
@@ -82,18 +78,8 @@ void Window::PollEvents()
     Draw();
 }
 
-double ToNanoSeconds(std::chrono::time_point<std::chrono::system_clock> const &TimePoint)
-{
-    return static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(TimePoint.time_since_epoch()).count());
-}
-
 void Window::Draw()
 {
-    if (!IsInitialized() || !IsOpen())
-    {
-        return;
-    }
-
     static auto LastTime    = ToNanoSeconds(std::chrono::system_clock::now());
     auto const  CurrentTime = ToNanoSeconds(std::chrono::system_clock::now());
 
@@ -101,10 +87,6 @@ void Window::Draw()
         DeltaTime >= Renderer::GetFrameRateCap())
     {
         LastTime = CurrentTime;
-
-        if (IsInitialized() && IsOpen())
-        {
-            DrawFrame(m_GLFWHandler.GetWindow(), DeltaTime, this);
-        }
+        DrawFrame(m_GLFWHandler.GetWindow(), DeltaTime, this);
     }
 }

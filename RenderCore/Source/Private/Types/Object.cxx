@@ -5,10 +5,10 @@
 module;
 
 #include <algorithm>
-#include <Volk/volk.h>
-#include <glm/ext.hpp>
 #include <string>
 #include <vector>
+#include <glm/ext.hpp>
+#include <Volk/volk.h>
 
 module RenderCore.Types.Object;
 

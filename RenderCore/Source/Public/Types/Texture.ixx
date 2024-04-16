@@ -23,7 +23,8 @@ namespace RenderCore
         VkDescriptorImageInfo    m_ImageDescriptor {};
 
     public:
-        Texture() = delete;
+        ~Texture() override = default;
+        Texture()           = delete;
 
         Texture(std::uint32_t, std::string_view);
         Texture(std::uint32_t, std::string_view, std::string_view);

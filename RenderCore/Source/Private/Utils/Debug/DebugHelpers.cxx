@@ -6,8 +6,8 @@ module;
 
 
 #ifdef _DEBUG
-#include <Volk/volk.h>
 #include <boost/log/trivial.hpp>
+#include <Volk/volk.h>
 #endif
 
 module RenderCore.Utils.DebugHelpers;
@@ -18,7 +18,7 @@ using namespace RenderCore;
 
 #ifdef _DEBUG
 VKAPI_ATTR VkBool32 VKAPI_CALL RenderCore::ValidationLayerDebugCallback([[maybe_unused]] VkDebugUtilsMessageSeverityFlagBitsEXT const MessageSeverity,
-                                                                        [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT              MessageType,
+                                                                        [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT const        MessageType,
                                                                         VkDebugUtilsMessengerCallbackDataEXT const *const             CallbackData,
                                                                         [[maybe_unused]] void *                                       UserData)
 {

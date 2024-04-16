@@ -14,10 +14,10 @@ module;
 
 module RenderCore.Integrations.GLFWHandler;
 
-using namespace RenderCore;
-
 import RenderCore.Integrations.GLFWCallbacks;
 import RenderCore.Utils.EnumHelpers;
+
+using namespace RenderCore;
 
 bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, InitializationFlags const Flags)
 {
@@ -26,7 +26,8 @@ bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Heig
         return false;
     }
 
-    if (static bool GLFWErrorCallbacksSet = false; !GLFWErrorCallbacksSet)
+    if (static bool GLFWErrorCallbacksSet = false;
+        !GLFWErrorCallbacksSet)
     {
         glfwSetErrorCallback(&GLFWErrorCallback);
         GLFWErrorCallbacksSet = true;

@@ -4,10 +4,10 @@
 
 module;
 
-#include <Volk/volk.h>
-#include <glm/matrix.hpp>
 #include <ranges>
 #include <stb_image_write.h>
+#include <glm/matrix.hpp>
+#include <Volk/volk.h>
 
 #ifndef VMA_IMPLEMENTATION
 #include <boost/log/trivial.hpp>
@@ -137,13 +137,13 @@ void RenderCore::CreateMemoryAllocator(VkPhysicalDevice const &PhysicalDevice)
 
 void RenderCore::ReleaseMemoryResources()
 {
-    for (auto &[_, Buffer] : g_AllocatedBuffers)
+    for (auto &Buffer : g_AllocatedBuffers | std::views::values)
     {
         Buffer.DestroyResources(g_Allocator);
     }
     g_AllocatedBuffers.clear();
 
-    for (auto &[_, ImageIter] : g_AllocatedImages)
+    for (auto &ImageIter : g_AllocatedImages | std::views::values)
     {
         ImageIter.DestroyResources(g_Allocator);
     }
@@ -309,9 +309,10 @@ std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(V
     CheckVulkanResult(vmaMapMemory(GetAllocator(), Output.second, &StagingInfo.pMappedData));
     std::memcpy(StagingInfo.pMappedData, Data, AllocationSize);
 
-    ImageAllocation NewAllocation {};
-    NewAllocation.Extent = { .width = Width, .height = Height };
-    NewAllocation.Format = ImageFormat;
+    ImageAllocation NewAllocation {
+        .Extent = { .width = Width, .height = Height },
+        .Format = ImageFormat
+    };
 
     CreateImage(ImageFormat,
                 NewAllocation.Extent,
@@ -382,7 +383,7 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
     }
 
     std::uint32_t const BufferID      = g_BufferAllocationIDCounter.fetch_add(1U);
-    BufferAllocation    NewAllocation = {};
+    BufferAllocation    NewAllocation {};
 
     VkDeviceSize const BufferSize = UniformOffset + sizeof(ModelUniformData) * std::size(Objects);
 
@@ -437,7 +438,7 @@ VkDescriptorImageInfo RenderCore::GetAllocationImageDescriptor(std::uint32_t con
     return VkDescriptorImageInfo {
             .sampler = GetSampler(),
             .imageView = g_AllocatedImages.at(Index).View,
-            .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR
+            .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL
     };
 }
 
@@ -480,10 +481,10 @@ void RenderCore::SaveImageToFile(VkImage const &Image, std::string_view const Pa
         };
 
         VkImageMemoryBarrier2 PreCopyBarrier {
-                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR,
+                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                 .pNext = nullptr,
-                .srcStageMask = VK_PIPELINE_STAGE_2_NONE_KHR,
-                .srcAccessMask = VK_ACCESS_2_NONE_KHR,
+                .srcStageMask = VK_PIPELINE_STAGE_2_NONE,
+                .srcAccessMask = VK_ACCESS_2_NONE,
                 .dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
                 .dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
                 .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -546,7 +547,7 @@ void RenderCore::SaveImageToFile(VkImage const &Image, std::string_view const Pa
     vmaDestroyBuffer(g_Allocator, Buffer, Allocation);
 }
 
-void ObjectDeleter::operator()(Object *const Object) const
+void ObjectDeleter::operator()(Object const *const Object) const
 {
     std::uint32_t const BufferIndex = Object->GetBufferIndex();
     g_BufferAllocationCounter.at(BufferIndex) -= 1U;
@@ -559,7 +560,7 @@ void ObjectDeleter::operator()(Object *const Object) const
     }
 }
 
-void TextureDeleter::operator()(Texture *const Texture) const
+void TextureDeleter::operator()(Texture const *const Texture) const
 {
     std::uint32_t const BufferIndex = Texture->GetBufferIndex();
     g_ImageAllocationCounter.at(BufferIndex) -= 1U;
@@ -572,7 +573,7 @@ void TextureDeleter::operator()(Texture *const Texture) const
     }
 }
 
-void MeshDeleter::operator()(Mesh *const Mesh) const
+void MeshDeleter::operator()(Mesh const *const Mesh) const
 {
     std::uint32_t const BufferIndex = Mesh->GetBufferIndex();
     g_BufferAllocationCounter.at(BufferIndex) -= 1U;

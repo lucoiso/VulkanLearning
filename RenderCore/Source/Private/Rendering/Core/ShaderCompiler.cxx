@@ -4,16 +4,16 @@
 
 module;
 
-#include <Volk/volk.h>
 #include <array>
-#include <boost/log/trivial.hpp>
 #include <filesystem>
 #include <fstream>
+#include <ranges>
+#include <boost/log/trivial.hpp>
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <glslang/SPIRV/Logger.h>
-#include <ranges>
+#include <Volk/volk.h>
 
 #ifdef _DEBUG
 #include <spirv-tools/libspirv.hpp>

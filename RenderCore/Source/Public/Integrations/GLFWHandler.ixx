@@ -4,9 +4,9 @@
 
 module;
 
-#include <GLFW/glfw3.h>
 #include <cstdint>
 #include <string>
+#include <GLFW/glfw3.h>
 
 export module RenderCore.Integrations.GLFWHandler;
 

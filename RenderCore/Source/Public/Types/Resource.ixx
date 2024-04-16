@@ -4,9 +4,9 @@
 
 module;
 
-#include <Volk/volk.h>
 #include <string_view>
 #include <vector>
+#include <Volk/volk.h>
 
 #include "RenderCoreModule.hpp"
 
@@ -23,7 +23,8 @@ namespace RenderCore
         std::uint32_t m_BufferIndex { 0U };
 
     public:
-        Resource() = delete;
+        virtual ~Resource() = default;
+        Resource()          = delete;
 
         Resource(std::uint32_t, std::string_view);
         Resource(std::uint32_t, std::string_view, std::string_view);

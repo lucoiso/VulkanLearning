@@ -4,11 +4,11 @@
 
 module;
 
-#include <Volk/volk.h>
+#include <memory>
 #include <string_view>
 #include <vector>
-#include <memory>
 #include <vma/vk_mem_alloc.h>
+#include <Volk/volk.h>
 
 export module RenderCore.Runtime.Memory;
 
@@ -158,16 +158,16 @@ export namespace RenderCore
 
     struct ObjectDeleter
     {
-        void operator()(Object *Object) const;
+        void operator()(Object const *Object) const;
     };
 
     struct TextureDeleter
     {
-        void operator()(Texture *Texture) const;
+        void operator()(Texture const *Texture) const;
     };
 
     struct MeshDeleter
     {
-        void operator()(Mesh *Mesh) const;
+        void operator()(Mesh const *Mesh) const;
     };
 } // namespace RenderCore

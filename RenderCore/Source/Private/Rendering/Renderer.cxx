@@ -40,13 +40,13 @@ import RenderCore.Types.Allocation;
 
 using namespace RenderCore;
 
-RendererStateFlags                  g_StateFlags { RendererStateFlags::NONE };
-RendererObjectsManagementStateFlags g_ObjectsManagementStateFlags { RendererObjectsManagementStateFlags::NONE };
-std::vector<std::string>            g_ModelsToLoad {};
-std::vector<std::uint32_t>          g_ModelsToUnload {};
-double                              g_FrameTime { 0.F };
-double                              g_FrameRateCap { 0.016667F };
-std::optional<std::int32_t>         g_ImageIndex {};
+auto                        g_StateFlags { RendererStateFlags::NONE };
+auto                        g_ObjectsManagementStateFlags { RendererObjectsManagementStateFlags::NONE };
+std::vector<std::string>    g_ModelsToLoad {};
+std::vector<std::uint32_t>  g_ModelsToUnload {};
+double                      g_FrameTime { 0.F };
+double                      g_FrameRateCap { 0.016667F };
+std::optional<std::int32_t> g_ImageIndex {};
 
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
                                                        RendererStateFlags::PENDING_RESOURCES_DESTRUCTION |
@@ -54,13 +54,7 @@ constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDI
 
 void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Control *const Owner)
 {
-    if (!Renderer::IsInitialized())
-    {
-        return;
-    }
-
     g_FrameTime = DeltaTime;
-
     CheckObjectManagementFlags();
 
     if (HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
@@ -114,18 +108,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         Tick();
 
         #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-        DrawImGuiFrame([Owner]
-                       {
-                           Owner->PreUpdate();
-                       },
-                       [Owner]
-                       {
-                           Owner->Update();
-                       },
-                       [Owner]
-                       {
-                           Owner->PostUpdate();
-                       });
+        DrawImGuiFrame(Owner);
         #endif
 
         if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender) && g_ImageIndex.has_value())

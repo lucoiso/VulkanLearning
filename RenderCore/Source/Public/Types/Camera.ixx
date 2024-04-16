@@ -5,8 +5,8 @@
 module;
 
 #include <memory>
-#include <Volk/volk.h>
 #include <glm/ext.hpp>
+#include <Volk/volk.h>
 #include "RenderCoreModule.hpp"
 
 export module RenderCore.Types.Camera;

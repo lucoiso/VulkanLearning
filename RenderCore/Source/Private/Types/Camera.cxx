@@ -4,9 +4,9 @@
 
 module;
 
+#include <array>
 #include <glm/ext.hpp>
 #include <Volk/volk.h>
-#include <array>
 
 module RenderCore.Types.Camera;
 

@@ -4,8 +4,8 @@
 
 module;
 
-#include <Volk/volk.h>
 #include <string_view>
+#include <Volk/volk.h>
 
 module RenderCore.Types.Texture;
 
@@ -51,7 +51,7 @@ void Texture::SetupTexture()
         m_ImageDescriptor = VkDescriptorImageInfo {
                 .sampler = GetSampler(),
                 .imageView = GetEmptyImage().View,
-                .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR
+                .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL
         };
     }
     else
