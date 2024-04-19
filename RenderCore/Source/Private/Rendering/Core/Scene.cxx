@@ -411,6 +411,11 @@ std::uint32_t RenderCore::GetNumAllocations()
     return static_cast<std::uint32_t>(std::size(g_Objects));
 }
 
+BufferAllocation const &RenderCore::GetSceneUniformBuffer()
+{
+    return m_UniformBufferAllocation.first;
+}
+
 void *RenderCore::GetSceneUniformData()
 {
     return m_UniformBufferAllocation.first.MappedData;

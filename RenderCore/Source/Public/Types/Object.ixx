@@ -67,13 +67,11 @@ namespace RenderCore
         void SetupUniformDescriptor();
 
         void UpdateUniformBuffers() const;
-        void DrawObject(VkCommandBuffer const &) const;
+        void DrawObject(VkCommandBuffer const &, VkPipelineLayout const &, std::uint32_t) const;
 
         [[nodiscard]] std::shared_ptr<Mesh> GetMesh() const;
         void                                SetMesh(std::shared_ptr<Mesh> const &);
 
         [[nodiscard]] bool IsRenderDirty() const;
-
-        [[nodiscard]] std::vector<VkWriteDescriptorSet> GetWriteDescriptorSet() const override;
     };
 } // namespace RenderCore

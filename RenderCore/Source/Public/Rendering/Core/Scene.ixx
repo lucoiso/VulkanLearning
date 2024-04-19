@@ -48,6 +48,8 @@ export namespace RenderCore
 
     [[nodiscard]] std::uint32_t GetNumAllocations();
 
+    [[nodiscard]] BufferAllocation const &GetSceneUniformBuffer();
+
     [[nodiscard]] void *GetSceneUniformData();
 
     [[nodiscard]] VkDescriptorBufferInfo const &GetSceneUniformDescriptor();

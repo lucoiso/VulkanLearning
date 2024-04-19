@@ -4,7 +4,9 @@
 
 module;
 
+#include <array>
 #include <algorithm>
+#include <numeric>
 #include <string>
 #include <vector>
 #include <glm/ext.hpp>
@@ -20,6 +22,7 @@ import RenderCore.Runtime.Scene;
 import RenderCore.Utils.Constants;
 import RenderCore.Types.UniformBufferObject;
 import RenderCore.Types.Material;
+import RenderCore.Types.Texture;
 
 using namespace RenderCore;
 
@@ -151,42 +154,76 @@ void Object::UpdateUniformBuffers() const
     }
 }
 
-void Object::DrawObject(VkCommandBuffer const &CommandBuffer) const
+void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout const &PipelineLayout, std::uint32_t const ObjectIndex) const
 {
     if (!m_Mesh)
     {
         return;
     }
 
-    std::vector WriteDescriptors {
-            VkWriteDescriptorSet {
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .dstSet = VK_NULL_HANDLE,
-                    .dstBinding = 0U,
-                    .dstArrayElement = 0U,
-                    .descriptorCount = 1U,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .pBufferInfo = &GetSceneUniformDescriptor(),
+    auto const &[SceneData, ModelData, TextureData] = GetPipelineDescriptorData();
+
+    std::array const BufferBindingInfos {
+            VkDescriptorBufferBindingInfoEXT {
+                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+                    .address = SceneData.BufferDeviceAddress.deviceAddress,
+                    .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
             },
-            VkWriteDescriptorSet {
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .dstSet = VK_NULL_HANDLE,
-                    .dstBinding = 1U,
-                    .dstArrayElement = 0U,
-                    .descriptorCount = 1U,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .pBufferInfo = &m_UniformBufferInfo,
+            VkDescriptorBufferBindingInfoEXT {
+                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+                    .address = ModelData.BufferDeviceAddress.deviceAddress,
+                    .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
+            },
+            VkDescriptorBufferBindingInfoEXT {
+                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+                    .address = TextureData.BufferDeviceAddress.deviceAddress,
+                    .usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
             }
     };
 
-    WriteDescriptors.append_range(m_Mesh->GetWriteDescriptorSet());
+    vkCmdBindDescriptorBuffersEXT(CommandBuffer, static_cast<std::uint32_t>(std::size(BufferBindingInfos)), std::data(BufferBindingInfos));
 
-    vkCmdPushDescriptorSetKHR(CommandBuffer,
-                              VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              GetPipelineLayout(),
-                              0U,
-                              static_cast<std::uint32_t>(std::size(WriteDescriptors)),
-                              std::data(WriteDescriptors));
+    {
+        // Scene buffer
+        constexpr std::uint32_t SceneBufferIndex  = 0U;
+        VkDeviceSize const      SceneBufferOffset = SceneData.LayoutOffset;
+
+        vkCmdSetDescriptorBufferOffsetsEXT(CommandBuffer,
+                                           VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                           PipelineLayout,
+                                           0U,
+                                           1U,
+                                           &SceneBufferIndex,
+                                           &SceneBufferOffset);
+    }
+
+    {
+        // Model buffer
+        constexpr std::uint32_t ModelBufferIndex  = 1U;
+        VkDeviceSize const      ModelBufferOffset = ObjectIndex * ModelData.LayoutSize + ModelData.LayoutOffset;
+
+        vkCmdSetDescriptorBufferOffsetsEXT(CommandBuffer,
+                                           VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                           PipelineLayout,
+                                           1U,
+                                           1U,
+                                           &ModelBufferIndex,
+                                           &ModelBufferOffset);
+    }
+
+    {
+        // Texture buffer
+        constexpr std::uint32_t TextureBufferIndex  = 2U;
+        VkDeviceSize const      TextureBufferOffset = ObjectIndex * TextureData.LayoutSize + TextureData.LayoutOffset;
+
+        vkCmdSetDescriptorBufferOffsetsEXT(CommandBuffer,
+                                           VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                           PipelineLayout,
+                                           2U,
+                                           1U,
+                                           &TextureBufferIndex,
+                                           &TextureBufferOffset);
+    }
 
     m_Mesh->BindBuffers(CommandBuffer);
 }
@@ -204,9 +241,4 @@ void Object::SetMesh(std::shared_ptr<Mesh> const &Value)
 bool Object::IsRenderDirty() const
 {
     return m_IsRenderDirty;
-}
-
-std::vector<VkWriteDescriptorSet> Object::GetWriteDescriptorSet() const
-{
-    return Resource::GetWriteDescriptorSet();
 }

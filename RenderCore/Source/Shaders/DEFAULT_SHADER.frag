@@ -1,10 +1,10 @@
 #version 450
 
-layout(set = 0, binding = 2) uniform sampler2D samplerColorMap;
-layout(set = 0, binding = 3) uniform sampler2D samplerNormalMap;
-layout(set = 0, binding = 4) uniform sampler2D samplerOcclusionMap;
-layout(set = 0, binding = 5) uniform sampler2D samplerEmissiveMap;
-layout(set = 0, binding = 6) uniform sampler2D samplerMetallicRoughnessMap;
+layout(set = 2, binding = 0) uniform sampler2D samplerColorMap;
+layout(set = 2, binding = 1) uniform sampler2D samplerNormalMap;
+layout(set = 2, binding = 2) uniform sampler2D samplerOcclusionMap;
+layout(set = 2, binding = 3) uniform sampler2D samplerEmissiveMap;
+layout(set = 2, binding = 4) uniform sampler2D samplerMetallicRoughnessMap;
 
 layout(location = 0) out vec4 outFragColor;
 
@@ -44,6 +44,5 @@ void main() {
 
     vec3 emissive = texture(samplerEmissiveMap, fragData.model_uv).rgb * fragData.material_emissiveFactor;
 
-    vec3 result = baseColor.xyz * (ambient + diffuse + emissive);
-    outFragColor = vec4(result, baseColor.a);
+    outFragColor = vec4(baseColor.xyz * (ambient + diffuse + emissive), baseColor.a);
 }

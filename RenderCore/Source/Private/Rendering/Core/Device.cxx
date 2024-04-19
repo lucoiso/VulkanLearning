@@ -158,10 +158,31 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
                                   });
     }
 
+    VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT PipelineLibraryProperties {
+            // Required
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT,
+            .pNext = nullptr,
+            .graphicsPipelineLibrary = VK_TRUE,
+    };
+
+    VkPhysicalDeviceBufferDeviceAddressFeatures BufferDeviceAddressFeatures {
+            // Required
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
+            .pNext = &PipelineLibraryProperties,
+            .bufferDeviceAddress = VK_TRUE
+    };
+
+    VkPhysicalDeviceDescriptorBufferFeaturesEXT DescriptorBufferFeatures {
+            // Required
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT,
+            .pNext = &BufferDeviceAddressFeatures,
+            .descriptorBuffer = VK_TRUE
+    };
+
     VkPhysicalDeviceMeshShaderFeaturesEXT MeshShaderFeatures {
             // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
-            .pNext = nullptr,
+            .pNext = &DescriptorBufferFeatures,
             .taskShader = VK_TRUE,
             .meshShader = VK_TRUE
     };

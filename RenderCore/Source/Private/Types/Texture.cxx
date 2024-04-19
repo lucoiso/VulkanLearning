@@ -60,23 +60,7 @@ void Texture::SetupTexture()
     }
 }
 
-std::vector<VkWriteDescriptorSet> Texture::GetWriteDescriptorSet() const
+VkDescriptorImageInfo Texture::GetImageDescriptor() const
 {
-    std::vector<VkWriteDescriptorSet> Output;
-    Output.reserve(std::size(m_Types));
-
-    for (TextureType const TypeIter : m_Types)
-    {
-        Output.push_back(VkWriteDescriptorSet {
-                                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                 .dstSet = VK_NULL_HANDLE,
-                                 .dstBinding = 2U + static_cast<std::uint32_t>(TypeIter),
-                                 .dstArrayElement = 0U,
-                                 .descriptorCount = 1U,
-                                 .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                 .pImageInfo = &m_ImageDescriptor,
-                         });
-    }
-
-    return Output;
+    return m_ImageDescriptor;
 }

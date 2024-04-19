@@ -61,7 +61,6 @@ bool Window::IsOpen() const
     return m_GLFWHandler.IsOpen();
 }
 
-
 double ToNanoSeconds(std::chrono::time_point<std::chrono::system_clock> const &TimePoint)
 {
     return static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(TimePoint.time_since_epoch()).count());

@@ -35,6 +35,6 @@ namespace RenderCore
 
         void SetupTexture();
 
-        [[nodiscard]] std::vector<VkWriteDescriptorSet> GetWriteDescriptorSet() const override;
+        [[nodiscard]] VkDescriptorImageInfo GetImageDescriptor() const;
     };
 } // namespace RenderCore

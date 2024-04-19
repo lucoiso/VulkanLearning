@@ -97,8 +97,13 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         }
         else if (HasFlag(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH))
         {
-            CreateDescriptorSetLayout();
+            SetupPipelineLayouts();
+            CreatePipelineLibraries();
             CreatePipeline();
+            PipelineDescriptorData &PipelineDescriptor = GetPipelineDescriptorData();
+            PipelineDescriptor.SetupSceneBuffer(GetSceneUniformBuffer());
+            PipelineDescriptor.SetupModelsBuffer(GetObjects());
+
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
         }
     }
@@ -198,7 +203,7 @@ bool RenderCore::Initialize(GLFWwindow *const Window)
 
     CheckVulkanResult(volkInitialize());
 
-    [[maybe_unused]] bool const _1 = CreateVulkanInstance();
+    [[maybe_unused]] bool const _ = CreateVulkanInstance();
     CreateVulkanSurface(Window);
     InitializeDevice(GetSurface());
     volkLoadDevice(GetLogicalDevice());
@@ -207,8 +212,8 @@ bool RenderCore::Initialize(GLFWwindow *const Window)
     CreateMemoryAllocator(GetPhysicalDevice());
     CreateSceneUniformBuffer();
     CreateImageSampler();
-    [[maybe_unused]] auto const _2                = CompileDefaultShaders();
-    auto const                  SurfaceProperties = GetSurfaceProperties(Window);
+    CompileDefaultShaders();
+    auto const SurfaceProperties = GetSurfaceProperties(Window);
     AllocateEmptyTexture(SurfaceProperties.Format.format);
 
     #ifdef VULKAN_RENDERER_ENABLE_IMGUI
@@ -240,8 +245,8 @@ void RenderCore::Shutdown([[maybe_unused]] GLFWwindow *const Window)
     ReleaseCommandsResources();
     ReleaseSynchronizationObjects();
     ReleaseSceneResources();
-    ReleaseMemoryResources();
     ReleasePipelineResources();
+    ReleaseMemoryResources();
     ReleaseDeviceResources();
     DestroyVulkanInstance();
 }

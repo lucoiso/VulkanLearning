@@ -39,10 +39,5 @@ namespace RenderCore
         [[nodiscard]] bool IsPendingDestroy() const;
 
         virtual void Destroy();
-
-        [[nodiscard]] virtual std::vector<VkWriteDescriptorSet> GetWriteDescriptorSet() const
-        {
-            return {};
-        }
     };
 } // namespace RenderCore

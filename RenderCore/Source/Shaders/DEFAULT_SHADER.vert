@@ -12,7 +12,7 @@ layout(std140, set = 0, binding = 0) uniform UBOCamera {
     vec3 light_color;
 } uboCamera;
 
-layout(std140, set = 0, binding = 1) uniform UBOModel {
+layout(std140, set = 1, binding = 0) uniform UBOModel {
     mat4  model;
     vec4  material_baseColorFactor;
     vec3  material_emissiveFactor;

@@ -57,3 +57,29 @@ void BufferAllocation::DestroyResources(VmaAllocator const &Allocator)
         Buffer     = VK_NULL_HANDLE;
     }
 }
+
+bool DescriptorData::IsValid() const
+{
+    return Buffer.IsValid() && SetLayout != VK_NULL_HANDLE;
+}
+
+void DescriptorData::DestroyResources(VmaAllocator const &Allocator)
+{
+    if (SetLayout != VK_NULL_HANDLE)
+    {
+        vkDestroyDescriptorSetLayout(volkGetLoadedDevice(), SetLayout, nullptr);
+        SetLayout = VK_NULL_HANDLE;
+    }
+
+    Buffer.DestroyResources(Allocator);
+    LayoutOffset = 0U;
+    LayoutSize   = 0U;
+}
+
+void DescriptorData::SetDescriptorLayoutSize(VkDeviceSize const &MinAlignment)
+{
+    vkGetDescriptorSetLayoutSizeEXT(volkGetLoadedDevice(), SetLayout, &LayoutSize);
+    LayoutSize = LayoutSize + MinAlignment - 1 & ~(MinAlignment - 1);
+
+    vkGetDescriptorSetLayoutBindingOffsetEXT(volkGetLoadedDevice(), SetLayout, 0U, &LayoutOffset);
+}

@@ -311,6 +311,7 @@ std::vector<VkCommandBuffer> RecordSceneCommands()
 
     auto const &Camera          = GetCamera();
     auto const &SwapChainExtent = GetSwapChainExtent();
+    auto const &PipelineLayout  = GetPipelineLayout();
 
     for (std::uint32_t ThreadIndex = 0U; ThreadIndex < g_NumThreads; ++ThreadIndex)
     {
@@ -334,7 +335,8 @@ std::vector<VkCommandBuffer> RecordSceneCommands()
             VkCommandBuffer const &CommandBuffer = CommandBuffers.at(ObjectIndex);
             Output.push_back(CommandBuffer);
 
-            g_ThreadPool.AddTask([Object = std::move(Object), CommandBuffer, &Pipeline, &SecondaryBeginInfo, &SwapChainExtent]
+            g_ThreadPool.AddTask([Object = std::move(Object), CommandBuffer, ObjectAccessIndex, &Pipeline, &PipelineLayout, &SecondaryBeginInfo, &
+                                     SwapChainExtent]
                                  {
                                      CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
                                      {
@@ -342,7 +344,7 @@ std::vector<VkCommandBuffer> RecordSceneCommands()
                                          vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
 
                                          Object->UpdateUniformBuffers();
-                                         Object->DrawObject(CommandBuffer);
+                                         Object->DrawObject(CommandBuffer, PipelineLayout, ObjectAccessIndex);
                                      }
                                      CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
                                  },
