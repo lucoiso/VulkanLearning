@@ -61,12 +61,6 @@ bool Window::IsOpen() const
     return m_GLFWHandler.IsOpen();
 }
 
-
-double ToNanoSeconds(std::chrono::time_point<std::chrono::system_clock> const &TimePoint)
-{
-    return static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(TimePoint.time_since_epoch()).count());
-}
-
 void Window::PollEvents()
 {
     if (!IsOpen())
@@ -80,10 +74,14 @@ void Window::PollEvents()
 
 void Window::Draw()
 {
-    static auto LastTime    = ToNanoSeconds(std::chrono::system_clock::now());
-    auto const  CurrentTime = ToNanoSeconds(std::chrono::system_clock::now());
+    static auto LastTime    = std::chrono::system_clock::now();
+    auto const  CurrentTime = std::chrono::system_clock::now();
 
-    if (double const DeltaTime = (CurrentTime - LastTime) / static_cast<double>(std::nano::den);
+    auto const     Difference  = CurrentTime - LastTime;
+    auto const     Nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(Difference);
+    constexpr auto Denominator = static_cast<double>(std::nano::den);
+
+    if (auto const DeltaTime = static_cast<double>(Nanoseconds.count()) / Denominator;
         DeltaTime >= Renderer::GetFrameRateCap())
     {
         LastTime = CurrentTime;

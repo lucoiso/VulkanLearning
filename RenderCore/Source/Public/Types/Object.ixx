@@ -27,6 +27,7 @@ namespace RenderCore
         std::shared_ptr<Mesh>  m_Mesh { nullptr };
         std::uint32_t          m_UniformOffset {};
         VkDescriptorBufferInfo m_UniformBufferInfo {};
+        void *                 m_MappedData { nullptr };
 
     public:
         Object()           = delete;

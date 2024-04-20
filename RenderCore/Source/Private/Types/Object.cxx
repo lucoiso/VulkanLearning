@@ -118,13 +118,12 @@ void Object::SetUniformOffset(std::uint32_t const &Offset)
 void Object::SetupUniformDescriptor()
 {
     m_UniformBufferInfo = GetAllocationBufferDescriptor(GetBufferIndex(), m_UniformOffset, sizeof(ModelUniformData));
+    m_MappedData        = GetAllocationMappedData(GetBufferIndex());
 }
 
 void Object::UpdateUniformBuffers() const
 {
-    void *AllocationData = GetAllocationMappedData(GetBufferIndex());
-
-    if (!AllocationData)
+    if (!m_MappedData)
     {
         return;
     }
@@ -146,7 +145,7 @@ void Object::UpdateUniformBuffers() const
                 .DoubleSided = static_cast<int>(m_Mesh->GetMaterialData().DoubleSided)
         };
 
-        std::memcpy(static_cast<char *>(AllocationData) + GetUniformOffset(), &UpdatedModelUBO, ModelUBOSize);
+        std::memcpy(static_cast<char *>(m_MappedData) + GetUniformOffset(), &UpdatedModelUBO, ModelUBOSize);
         m_IsRenderDirty = false;
     }
 }
