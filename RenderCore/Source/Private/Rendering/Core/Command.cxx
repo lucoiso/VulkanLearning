@@ -48,8 +48,8 @@ constexpr VkCommandBufferBeginInfo g_CommandBufferBeginInfo {
 
 struct ThreadResources
 {
-    VkCommandPool                CommandPool { VK_NULL_HANDLE };
-    std::vector<VkCommandBuffer> CommandBuffers {};
+    VkCommandPool   CommandPool { VK_NULL_HANDLE };
+    VkCommandBuffer CommandBuffer { VK_NULL_HANDLE };
 
     void Allocate(std::uint8_t const QueueFamilyIndex, std::uint8_t const NumberOfBuffers)
     {
@@ -59,27 +59,26 @@ struct ThreadResources
         }
 
         CommandPool = CreateCommandPool(QueueFamilyIndex, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-        CommandBuffers.resize(NumberOfBuffers);
 
         VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
                 .commandPool = CommandPool,
                 .level = VK_COMMAND_BUFFER_LEVEL_SECONDARY,
-                .commandBufferCount = static_cast<std::uint32_t>(std::size(CommandBuffers))
+                .commandBufferCount = 1U
         };
 
-        CheckVulkanResult(vkAllocateCommandBuffers(volkGetLoadedDevice(), &CommandBufferAllocateInfo, std::data(CommandBuffers)));
+        CheckVulkanResult(vkAllocateCommandBuffers(volkGetLoadedDevice(), &CommandBufferAllocateInfo, &CommandBuffer));
     }
 
     void Free()
     {
-        if (std::empty(CommandBuffers))
+        if (CommandBuffer == VK_NULL_HANDLE)
         {
             return;
         }
 
-        vkFreeCommandBuffers(volkGetLoadedDevice(), CommandPool, static_cast<std::uint32_t>(std::size(CommandBuffers)), std::data(CommandBuffers));
-        CommandBuffers.clear();
+        vkFreeCommandBuffers(volkGetLoadedDevice(), CommandPool, 1U, &CommandBuffer);
+        CommandBuffer = VK_NULL_HANDLE;
     }
 
     void Destroy()
@@ -315,41 +314,45 @@ std::vector<VkCommandBuffer> RecordSceneCommands()
 
     for (std::uint32_t ThreadIndex = 0U; ThreadIndex < g_NumThreads; ++ThreadIndex)
     {
-        auto const &[CommandPool, CommandBuffers] = g_CommandResources.at(ThreadIndex);
+        auto const &[CommandPool, CommandBuffer] = g_CommandResources.at(ThreadIndex);
 
-        for (std::uint32_t ObjectIndex = 0U; ObjectIndex < g_ObjectsPerThread; ++ObjectIndex)
+        if (CommandBuffer == VK_NULL_HANDLE)
         {
-            if (std::size(CommandBuffers) <= ObjectIndex)
-            {
-                break;
-            }
+            break;
+        }
 
-            std::uint32_t const            ObjectAccessIndex = ThreadIndex * g_ObjectsPerThread + ObjectIndex;
-            std::shared_ptr<Object> const &Object            = Objects.at(ObjectAccessIndex);
+        Output.push_back(CommandBuffer);
 
-            if (!Camera.CanDrawObject(Object))
-            {
-                continue;
-            }
-
-            VkCommandBuffer const &CommandBuffer = CommandBuffers.at(ObjectIndex);
-            Output.push_back(CommandBuffer);
-
-            g_ThreadPool.AddTask([Object = std::move(Object), CommandBuffer, ObjectAccessIndex, &Pipeline, &PipelineLayout, &SecondaryBeginInfo, &
-                                     SwapChainExtent]
+        g_ThreadPool.AddTask([CommandBuffer, ThreadIndex, &Objects, &Camera, &Pipeline, &PipelineLayout, &SecondaryBeginInfo, &SwapChainExtent]
+                             {
+                                 CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
                                  {
-                                     CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
+                                     SetViewport(CommandBuffer, SwapChainExtent);
+                                     vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
+
+                                     for (std::uint32_t ObjectIndex = 0U; ObjectIndex < g_ObjectsPerThread; ++ObjectIndex)
                                      {
-                                         SetViewport(CommandBuffer, SwapChainExtent);
-                                         vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
+                                         std::uint32_t const ObjectAccessIndex = ThreadIndex * g_ObjectsPerThread + ObjectIndex;
+
+                                         if (ObjectAccessIndex >= std::size(Objects))
+                                         {
+                                             break;
+                                         }
+
+                                         std::shared_ptr<Object> const &Object = Objects.at(ObjectAccessIndex);
+
+                                         if (!Camera.CanDrawObject(Object))
+                                         {
+                                             continue;
+                                         }
 
                                          Object->UpdateUniformBuffers();
                                          Object->DrawObject(CommandBuffer, PipelineLayout, ObjectAccessIndex);
                                      }
-                                     CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
-                                 },
-                                 ThreadIndex);
-        }
+                                 }
+                                 CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
+                             },
+                             ThreadIndex);
     }
 
     g_ThreadPool.Wait();
