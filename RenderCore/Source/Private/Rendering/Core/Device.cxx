@@ -15,6 +15,7 @@ module;
 module RenderCore.Runtime.Device;
 
 import RenderCore.Runtime.SwapChain;
+import RenderCore.Runtime.Instance;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.DebugHelpers;
@@ -201,23 +202,9 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
             .dynamicRendering = VK_TRUE
     };
 
-    VkPhysicalDeviceRobustness2FeaturesEXT RobustnessFeatures {
-            // Required
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
-            .pNext = &DynamicRenderingFeatures,
-            .nullDescriptor = VK_TRUE
-    };
-
-    VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT UnusedAttachmentsFeatures {
-            // Optional
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT,
-            .pNext = &RobustnessFeatures,
-            .dynamicRenderingUnusedAttachments = Contains(AvailableExtensions, VK_EXT_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_EXTENSION_NAME)
-    };
-
     VkPhysicalDeviceFeatures2 DeviceFeatures {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-            .pNext = &UnusedAttachmentsFeatures,
+            .pNext = &DynamicRenderingFeatures,
             .features = VkPhysicalDeviceFeatures {
                     .independentBlend = VK_TRUE,
                     .drawIndirectFirstInstance = true,
@@ -357,7 +344,7 @@ void RenderCore::ReleaseDeviceResources()
 
 std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
 {
-    VkInstance const &VulkanInstance = volkGetLoadedInstance();
+    VkInstance const &VulkanInstance = GetInstance();
 
     std::uint32_t DeviceCount = 0U;
     CheckVulkanResult(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, nullptr));

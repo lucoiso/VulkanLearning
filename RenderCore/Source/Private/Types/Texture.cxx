@@ -46,18 +46,7 @@ void Texture::AppendType(TextureType const Type)
 
 void Texture::SetupTexture()
 {
-    if (GetID() == UINT32_MAX)
-    {
-        m_ImageDescriptor = VkDescriptorImageInfo {
-                .sampler = GetSampler(),
-                .imageView = GetEmptyImage().View,
-                .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL
-        };
-    }
-    else
-    {
-        m_ImageDescriptor = GetAllocationImageDescriptor(GetBufferIndex());
-    }
+    m_ImageDescriptor = GetAllocationImageDescriptor(GetID() == UINT32_MAX ? 0U : GetBufferIndex());
 }
 
 VkDescriptorImageInfo Texture::GetImageDescriptor() const

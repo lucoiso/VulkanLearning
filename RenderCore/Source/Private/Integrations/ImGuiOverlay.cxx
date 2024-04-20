@@ -22,6 +22,7 @@ import RenderCore.Runtime.Device;
 import RenderCore.Runtime.Pipeline;
 import RenderCore.Runtime.Command;
 import RenderCore.Runtime.SwapChain;
+import RenderCore.Runtime.Instance;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Types.Camera;
@@ -88,7 +89,7 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, SurfacePropert
     auto const &[QueueFamilyIndex, Queue] = GetGraphicsQueue();
 
     ImGui_ImplVulkan_InitInfo ImGuiVulkanInitInfo {
-            .Instance = volkGetLoadedInstance(),
+            .Instance = GetInstance(),
             .PhysicalDevice = GetPhysicalDevice(),
             .Device = GetLogicalDevice(),
             .QueueFamily = QueueFamilyIndex,
@@ -127,7 +128,8 @@ void RenderCore::ReleaseImGuiResources()
 
     if (g_ImGuiDescriptorPool != VK_NULL_HANDLE)
     {
-        vkDestroyDescriptorPool(volkGetLoadedDevice(), g_ImGuiDescriptorPool, nullptr);
+        VkDevice const &LogicalDevice = GetLogicalDevice();
+        vkDestroyDescriptorPool(LogicalDevice, g_ImGuiDescriptorPool, nullptr);
         g_ImGuiDescriptorPool = VK_NULL_HANDLE;
     }
 }
@@ -164,15 +166,13 @@ bool RenderCore::IsImGuiInitialized()
 }
 
 void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
-                                          std::uint32_t const    ImageIndex,
+                                          ImageAllocation const &SwapchainAllocation,
                                           VkImageLayout const    SwapChainMidLayout)
 {
     if (IsImGuiInitialized())
     {
         if (ImDrawData *const ImGuiDrawData = ImGui::GetDrawData())
         {
-            ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
-
             VkRenderingAttachmentInfo const ColorAttachmentInfo {
                     .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
                     .imageView = SwapchainAllocation.View,

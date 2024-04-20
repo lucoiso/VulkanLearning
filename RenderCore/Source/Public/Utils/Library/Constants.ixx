@@ -21,9 +21,8 @@ export namespace RenderCore
 
     constexpr std::array g_RequiredDeviceExtensions {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-            VK_EXT_ROBUSTNESS_2_EXTENSION_NAME,
-            VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
             VK_EXT_MESH_SHADER_EXTENSION_NAME,
+            VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
             VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME,
             VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME,
             VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME
@@ -35,7 +34,7 @@ export namespace RenderCore
 
     constexpr std::array<char const *, 0U> g_OptionalInstanceExtensions {};
 
-    constexpr std::array g_OptionalDeviceExtensions { VK_EXT_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_EXTENSION_NAME };
+    constexpr std::array<char const *, 0U> g_OptionalDeviceExtensions {};
 
     constexpr std::array g_DynamicStates { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH };
 
@@ -55,9 +54,5 @@ export namespace RenderCore
 
     constexpr std::uint32_t g_Timeout = std::numeric_limits<std::uint32_t>::max();
 
-    constexpr std::array g_ClearValues {
-            VkClearValue { .color = { { 0.F, 0.F, 0.F, 1.F } } },
-            VkClearValue { .color = { { 0.01F, 0.01F, 0.01F, 1.F } } },
-            VkClearValue { .depthStencil = { 1.F, 0U } }
-    };
+    constexpr std::array g_ClearValues { VkClearValue { .color = { { 0.F, 0.F, 0.F, 0.F } } }, VkClearValue { .depthStencil = { 1.F, 0U } } };
 } // namespace RenderCore

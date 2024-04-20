@@ -74,14 +74,13 @@ void Window::PollEvents()
 
 void Window::Draw()
 {
-    static auto LastTime    = std::chrono::system_clock::now();
-    auto const  CurrentTime = std::chrono::system_clock::now();
+    static auto LastTime    = std::chrono::high_resolution_clock::now();
+    auto const  CurrentTime = std::chrono::high_resolution_clock::now();
 
-    auto const     Difference  = CurrentTime - LastTime;
-    auto const     Nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(Difference);
-    constexpr auto Denominator = static_cast<double>(std::nano::den);
+    auto const     Milliseconds = std::chrono::duration<double, std::milli>(CurrentTime - LastTime).count();
+    constexpr auto Denominator  = static_cast<double>(std::milli::den);
 
-    if (auto const DeltaTime = static_cast<double>(Nanoseconds.count()) / Denominator;
+    if (auto const DeltaTime = static_cast<double>(Milliseconds) / Denominator;
         DeltaTime >= Renderer::GetFrameRateCap())
     {
         LastTime = CurrentTime;

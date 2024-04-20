@@ -79,19 +79,6 @@ constexpr VkPipelineColorBlendAttachmentState g_RenderColorBlendAttachmentStates
         .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
 };
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
-constexpr VkPipelineColorBlendAttachmentState g_ViewportColorBlendAttachmentStates {
-        .blendEnable = VK_TRUE,
-        .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
-        .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
-        .colorBlendOp = VK_BLEND_OP_ADD,
-        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-        .alphaBlendOp = VK_BLEND_OP_ADD,
-        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
-};
-#endif
-
 constexpr VkPipelineCacheCreateInfo g_PipelineCacheCreateInfo { .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
 
 bool PipelineDescriptorData::IsValid() const
@@ -119,17 +106,21 @@ void PipelineDescriptorData::SetDescriptorLayoutSize()
 
 void PipelineDescriptorData::SetupSceneBuffer(BufferAllocation const &SceneAllocation)
 {
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+
     {
+        VmaAllocator const &Allocator = GetAllocator();
+
         constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
         CreateBuffer(SceneData.LayoutSize, BufferUsage, "Scene Descriptor Buffer", SceneData.Buffer.Buffer, SceneData.Buffer.Allocation);
-        vmaMapMemory(GetAllocator(), SceneData.Buffer.Allocation, &SceneData.Buffer.MappedData);
+        vmaMapMemory(Allocator, SceneData.Buffer.Allocation, &SceneData.Buffer.MappedData);
 
         VkBufferDeviceAddressInfo const BufferDeviceAddressInfo {
                 .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
                 .buffer = SceneData.Buffer.Buffer
         };
 
-        SceneData.BufferDeviceAddress.deviceAddress = vkGetBufferDeviceAddress(volkGetLoadedDevice(), &BufferDeviceAddressInfo);
+        SceneData.BufferDeviceAddress.deviceAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
     }
 
     {
@@ -138,7 +129,7 @@ void PipelineDescriptorData::SetupSceneBuffer(BufferAllocation const &SceneAlloc
                 .buffer = SceneAllocation.Buffer
         };
 
-        VkDeviceSize const SceneUniformAddress = vkGetBufferDeviceAddress(volkGetLoadedDevice(), &BufferDeviceAddressInfo);
+        VkDeviceSize const SceneUniformAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
 
         VkDescriptorAddressInfoEXT SceneDescriptorAddressInfo {
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT,
@@ -153,7 +144,7 @@ void PipelineDescriptorData::SetupSceneBuffer(BufferAllocation const &SceneAlloc
                 .data = VkDescriptorDataEXT { .pUniformBuffer = &SceneDescriptorAddressInfo }
         };
 
-        vkGetDescriptorEXT(volkGetLoadedDevice(),
+        vkGetDescriptorEXT(LogicalDevice,
                            &SceneDescriptorInfo,
                            g_DescriptorBufferProperties.uniformBufferDescriptorSize,
                            static_cast<unsigned char *>(SceneData.Buffer.MappedData) + SceneData.LayoutOffset);
@@ -167,6 +158,9 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
         return;
     }
 
+    VkDevice const &    LogicalDevice = GetLogicalDevice();
+    VmaAllocator const &Allocator     = GetAllocator();
+
     {
         constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
@@ -176,14 +170,14 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
                      ModelData.Buffer.Buffer,
                      ModelData.Buffer.Allocation);
 
-        vmaMapMemory(GetAllocator(), ModelData.Buffer.Allocation, &ModelData.Buffer.MappedData);
+        vmaMapMemory(Allocator, ModelData.Buffer.Allocation, &ModelData.Buffer.MappedData);
 
         VkBufferDeviceAddressInfo const BufferDeviceAddressInfo {
                 .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
                 .buffer = ModelData.Buffer.Buffer
         };
 
-        ModelData.BufferDeviceAddress.deviceAddress = vkGetBufferDeviceAddress(volkGetLoadedDevice(), &BufferDeviceAddressInfo);
+        ModelData.BufferDeviceAddress.deviceAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
     }
 
     {
@@ -196,14 +190,14 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
                      TextureData.Buffer.Buffer,
                      TextureData.Buffer.Allocation);
 
-        vmaMapMemory(GetAllocator(), TextureData.Buffer.Allocation, &TextureData.Buffer.MappedData);
+        vmaMapMemory(Allocator, TextureData.Buffer.Allocation, &TextureData.Buffer.MappedData);
 
         VkBufferDeviceAddressInfo const BufferDeviceAddressInfo {
                 .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
                 .buffer = TextureData.Buffer.Buffer
         };
 
-        TextureData.BufferDeviceAddress.deviceAddress = vkGetBufferDeviceAddress(volkGetLoadedDevice(), &BufferDeviceAddressInfo);
+        TextureData.BufferDeviceAddress.deviceAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
     }
 
     std::uint32_t ObjectCount  = 0U;
@@ -216,7 +210,7 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
                     .buffer = GetAllocationBuffer(ObjectIter->GetBufferIndex())
             };
 
-            VkDeviceSize const ModelUniformAddress = vkGetBufferDeviceAddress(volkGetLoadedDevice(), &BufferDeviceAddressInfo);
+            VkDeviceSize const ModelUniformAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
 
             VkDescriptorAddressInfoEXT ModelDescriptorAddressInfo {
                     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT,
@@ -232,7 +226,7 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
             VkDeviceSize const BufferOffset = ObjectCount * ModelData.LayoutSize + ModelData.LayoutOffset;
 
-            vkGetDescriptorEXT(volkGetLoadedDevice(),
+            vkGetDescriptorEXT(LogicalDevice,
                                &ModelDescriptorInfo,
                                g_DescriptorBufferProperties.uniformBufferDescriptorSize,
                                static_cast<unsigned char *>(ModelData.Buffer.MappedData) + BufferOffset);
@@ -264,7 +258,7 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
             VkDeviceSize const BufferOffset = (ObjectCount + TextureCount) * TextureData.LayoutSize + TextureData.LayoutOffset;
 
-            vkGetDescriptorEXT(volkGetLoadedDevice(),
+            vkGetDescriptorEXT(LogicalDevice,
                                &TextureDescriptorInfo,
                                g_DescriptorBufferProperties.combinedImageSamplerDescriptorSize,
                                static_cast<unsigned char *>(TextureData.Buffer.MappedData) + BufferOffset);
@@ -278,24 +272,17 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
 void RenderCore::CreatePipeline()
 {
-    CheckVulkanResult(vkCreatePipelineCache(volkGetLoadedDevice(), &g_PipelineCacheCreateInfo, nullptr, &g_PipelineCache));
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    CheckVulkanResult(vkCreatePipelineCache(LogicalDevice, &g_PipelineCacheCreateInfo, nullptr, &g_PipelineCache));
 
-    VkFormat const                                   SwapChainImageFormat = GetSwapChainImageFormat();
-    VkFormat const                                   DepthFormat          = GetDepthImage().Format;
-    std::vector                                      ColorAttachments { SwapChainImageFormat };
-    std::vector<VkPipelineColorBlendAttachmentState> ColorBlendStates {};
-    ColorBlendStates.reserve(2U);
-    #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-    ColorAttachments.push_back(SwapChainImageFormat);
-    ColorBlendStates.push_back(g_ViewportColorBlendAttachmentStates);
-    #endif
-    ColorBlendStates.push_back(g_RenderColorBlendAttachmentStates);
+    VkFormat const SwapChainImageFormat = GetSwapChainImageFormat();
+    VkFormat const DepthFormat          = GetDepthImage().Format;
 
     VkPipelineRenderingCreateInfo const RenderingCreateInfo {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
             .pNext = nullptr,
-            .colorAttachmentCount = static_cast<std::uint32_t>(std::size(ColorAttachments)),
-            .pColorAttachmentFormats = std::data(ColorAttachments),
+            .colorAttachmentCount = 1U,
+            .pColorAttachmentFormats = &SwapChainImageFormat,
             .depthAttachmentFormat = DepthFormat,
             .stencilAttachmentFormat = DepthFormat
     };
@@ -339,7 +326,7 @@ void RenderCore::CreatePipeline()
                 .layout = g_PipelineLayout
         };
 
-        CheckVulkanResult(vkCreateGraphicsPipelines(volkGetLoadedDevice(),
+        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice,
                                                     g_PipelineCache,
                                                     1U,
                                                     &FragmentShaderPipelineCreateInfo,
@@ -365,18 +352,14 @@ void RenderCore::CreatePipeline()
                 .layout = g_PipelineLayout
         };
 
-        CheckVulkanResult(vkCreateGraphicsPipelines(volkGetLoadedDevice(),
-                                                    g_PipelineCache,
-                                                    1U,
-                                                    &GraphicsPipelineCreateInfo,
-                                                    nullptr,
-                                                    &g_MainPipeline));
+        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice, g_PipelineCache, 1U, &GraphicsPipelineCreateInfo, nullptr, &g_MainPipeline));
     }
 }
 
 void RenderCore::CreatePipelineLibraries()
 {
-    CheckVulkanResult(vkCreatePipelineCache(volkGetLoadedDevice(), &g_PipelineCacheCreateInfo, nullptr, &g_PipelineLibraryCache));
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    CheckVulkanResult(vkCreatePipelineCache(LogicalDevice, &g_PipelineCacheCreateInfo, nullptr, &g_PipelineLibraryCache));
 
     // Vertex input library
     {
@@ -417,7 +400,7 @@ void RenderCore::CreatePipelineLibraries()
                 .pInputAssemblyState = &InputAssemblyState
         };
 
-        CheckVulkanResult(vkCreateGraphicsPipelines(volkGetLoadedDevice(),
+        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice,
                                                     g_PipelineLibraryCache,
                                                     1U,
                                                     &VertexInputCreateInfo,
@@ -505,7 +488,7 @@ void RenderCore::CreatePipelineLibraries()
                 .layout = g_PipelineLayout
         };
 
-        CheckVulkanResult(vkCreateGraphicsPipelines(volkGetLoadedDevice(),
+        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice,
                                                     g_PipelineLibraryCache,
                                                     1U,
                                                     &PreRasterizationInfo,
@@ -515,22 +498,14 @@ void RenderCore::CreatePipelineLibraries()
 
     // Fragment output library
     {
-        VkFormat const                                   SwapChainImageFormat = GetSwapChainImageFormat();
-        VkFormat const                                   DepthFormat          = GetDepthImage().Format;
-        std::vector                                      ColorAttachments { SwapChainImageFormat };
-        std::vector<VkPipelineColorBlendAttachmentState> ColorBlendStates {};
-        ColorBlendStates.reserve(2U);
-        #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-        ColorAttachments.push_back(SwapChainImageFormat);
-        ColorBlendStates.push_back(g_ViewportColorBlendAttachmentStates);
-        #endif
-        ColorBlendStates.push_back(g_RenderColorBlendAttachmentStates);
+        VkFormat const SwapChainImageFormat = GetSwapChainImageFormat();
+        VkFormat const DepthFormat          = GetDepthImage().Format;
 
         VkPipelineRenderingCreateInfo const RenderingCreateInfo {
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
                 .pNext = nullptr,
-                .colorAttachmentCount = static_cast<std::uint32_t>(std::size(ColorAttachments)),
-                .pColorAttachmentFormats = std::data(ColorAttachments),
+                .colorAttachmentCount = 1U,
+                .pColorAttachmentFormats = &SwapChainImageFormat,
                 .depthAttachmentFormat = DepthFormat,
                 .stencilAttachmentFormat = DepthFormat
         };
@@ -545,8 +520,8 @@ void RenderCore::CreatePipelineLibraries()
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
                 .logicOpEnable = VK_FALSE,
                 .logicOp = VK_LOGIC_OP_COPY,
-                .attachmentCount = static_cast<std::uint32_t>(std::size(ColorBlendStates)),
-                .pAttachments = std::data(ColorBlendStates),
+                .attachmentCount = 1U,
+                .pAttachments = &g_RenderColorBlendAttachmentStates,
                 .blendConstants = { 0.F, 0.F, 0.F, 0.F }
         };
 
@@ -559,7 +534,7 @@ void RenderCore::CreatePipelineLibraries()
                 .layout = g_PipelineLayout
         };
 
-        CheckVulkanResult(vkCreateGraphicsPipelines(volkGetLoadedDevice(),
+        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice,
                                                     g_PipelineLibraryCache,
                                                     1U,
                                                     &FragmentOutputCreateInfo,
@@ -583,7 +558,8 @@ void CreateDescriptorSetLayout(VkDescriptorSetLayoutBinding const &Binding, std:
             .pBindings = std::data(LayoutBindings)
     };
 
-    CheckVulkanResult(vkCreateDescriptorSetLayout(volkGetLoadedDevice(), &DescriptorSetLayoutInfo, nullptr, &DescriptorSetLayout));
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    CheckVulkanResult(vkCreateDescriptorSetLayout(LogicalDevice, &DescriptorSetLayoutInfo, nullptr, &DescriptorSetLayout));
 }
 
 void RenderCore::SetupPipelineLayouts()
@@ -623,66 +599,65 @@ void RenderCore::SetupPipelineLayouts()
             .pSetLayouts = std::data(DescriptorLayouts)
     };
 
-    CheckVulkanResult(vkCreatePipelineLayout(volkGetLoadedDevice(), &PipelineLayoutCreateInfo, nullptr, &g_PipelineLayout));
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    CheckVulkanResult(vkCreatePipelineLayout(LogicalDevice, &PipelineLayoutCreateInfo, nullptr, &g_PipelineLayout));
     g_DescriptorData.SetDescriptorLayoutSize();
 }
 
 void RenderCore::ReleasePipelineResources()
 {
-    ReleaseDynamicPipelineResources();
-}
+    VkDevice const &LogicalDevice = GetLogicalDevice();
 
-void RenderCore::ReleaseDynamicPipelineResources()
-{
     if (g_MainPipeline != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(volkGetLoadedDevice(), g_MainPipeline, nullptr);
+        vkDestroyPipeline(LogicalDevice, g_MainPipeline, nullptr);
         g_MainPipeline = VK_NULL_HANDLE;
     }
 
     if (g_VertexInputPipeline != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(volkGetLoadedDevice(), g_VertexInputPipeline, nullptr);
+        vkDestroyPipeline(LogicalDevice, g_VertexInputPipeline, nullptr);
         g_VertexInputPipeline = VK_NULL_HANDLE;
     }
 
     if (g_PreRasterizationPipeline != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(volkGetLoadedDevice(), g_PreRasterizationPipeline, nullptr);
+        vkDestroyPipeline(LogicalDevice, g_PreRasterizationPipeline, nullptr);
         g_PreRasterizationPipeline = VK_NULL_HANDLE;
     }
 
     if (g_FragmentOutputPipeline != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(volkGetLoadedDevice(), g_FragmentOutputPipeline, nullptr);
+        vkDestroyPipeline(LogicalDevice, g_FragmentOutputPipeline, nullptr);
         g_FragmentOutputPipeline = VK_NULL_HANDLE;
     }
 
     if (g_FragmentShaderPipeline != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(volkGetLoadedDevice(), g_FragmentShaderPipeline, nullptr);
+        vkDestroyPipeline(LogicalDevice, g_FragmentShaderPipeline, nullptr);
         g_FragmentShaderPipeline = VK_NULL_HANDLE;
     }
 
     if (g_PipelineLayout != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineLayout(volkGetLoadedDevice(), g_PipelineLayout, nullptr);
+        vkDestroyPipelineLayout(LogicalDevice, g_PipelineLayout, nullptr);
         g_PipelineLayout = VK_NULL_HANDLE;
     }
 
     if (g_PipelineCache != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineCache(volkGetLoadedDevice(), g_PipelineCache, nullptr);
+        vkDestroyPipelineCache(LogicalDevice, g_PipelineCache, nullptr);
         g_PipelineCache = VK_NULL_HANDLE;
     }
 
     if (g_PipelineLibraryCache != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineCache(volkGetLoadedDevice(), g_PipelineLibraryCache, nullptr);
+        vkDestroyPipelineCache(LogicalDevice, g_PipelineLibraryCache, nullptr);
         g_PipelineLibraryCache = VK_NULL_HANDLE;
     }
 
-    g_DescriptorData.DestroyResources(GetAllocator());
+    VmaAllocator const &Allocator = GetAllocator();
+    g_DescriptorData.DestroyResources(Allocator);
 }
 
 VkPipeline const &RenderCore::GetMainPipeline()

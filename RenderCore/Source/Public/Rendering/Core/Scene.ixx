@@ -42,8 +42,6 @@ export namespace RenderCore
 
     [[nodiscard]] VkSampler const &GetSampler();
 
-    [[nodiscard]] ImageAllocation const &GetEmptyImage();
-
     [[nodiscard]] std::vector<std::shared_ptr<Object>> &GetObjects();
 
     [[nodiscard]] std::uint32_t GetNumAllocations();

@@ -6,6 +6,7 @@ module;
 
 #include <algorithm>
 #include <cassert>
+#include <execution>
 #include <format>
 #include <stdexcept>
 #include <string>
@@ -15,6 +16,7 @@ module;
 
 export module RenderCore.Utils.Helpers;
 
+import RenderCore.Runtime.Instance;
 
 export namespace RenderCore
 {
@@ -48,23 +50,27 @@ export namespace RenderCore
     template <typename Out, typename Opt, typename Avail>
     constexpr void GetAvailableResources(std::string_view const Identifier, Out &Resource, Opt const &Optional, Avail const &Available)
     {
-        std::ranges::for_each(Resource,
-                              [&Available, Identifier](auto const &ResIter)
-                              {
-                                  if (std::ranges::find(Available, ResIter) == std::cend(Available))
-                                  {
-                                      throw std::runtime_error(std::format("Required {} not available: {}", Identifier, ResIter));
-                                  }
-                              });
+        std::for_each(std::execution::unseq,
+                      std::cbegin(Resource),
+                      std::cend(Resource),
+                      [&Available, &Identifier](auto const &ResIter)
+                      {
+                          if (std::ranges::find(Available, ResIter) == std::cend(Available))
+                          {
+                              throw std::runtime_error(std::format("Required {} not available: {}", Identifier, ResIter));
+                          }
+                      });
 
-        std::ranges::for_each(Optional,
-                              [&Available, &Resource](auto const &OptIter)
-                              {
-                                  if (std::ranges::find(Available, OptIter) != std::cend(Available))
-                                  {
-                                      Resource.emplace_back(OptIter);
-                                  }
-                              });
+        std::for_each(std::execution::unseq,
+                      std::cbegin(Optional),
+                      std::cend(Optional),
+                      [&Available, &Resource](auto const &OptIter)
+                      {
+                          if (std::ranges::find(Available, OptIter) != std::cend(Available))
+                          {
+                              Resource.emplace_back(OptIter);
+                          }
+                      });
     }
 
     template <typename T>
@@ -89,6 +95,6 @@ export namespace RenderCore
     template <typename T>
     constexpr T LoadVulkanProcedure(std::string_view const ProcedureName)
     {
-        return reinterpret_cast<T>(vkGetInstanceProcAddr(volkGetLoadedInstance(), ProcedureName.data()));
+        return reinterpret_cast<T>(vkGetInstanceProcAddr(GetInstance(), ProcedureName.data()));
     }
 } // namespace RenderCore

@@ -45,7 +45,6 @@ std::pair<BufferAllocation, VkDescriptorBufferInfo> m_UniformBufferAllocation {}
 
 VkSampler                            g_Sampler { VK_NULL_HANDLE };
 ImageAllocation                      g_DepthImage {};
-ImageAllocation                      g_EmptyImage {};
 std::atomic<std::uint64_t>           g_ObjectAllocationIDCounter { 0U };
 std::vector<std::shared_ptr<Object>> g_Objects {};
 std::mutex                           g_ObjectMutex {};
@@ -66,7 +65,8 @@ void RenderCore::CreateDepthResources(SurfaceProperties const &SurfaceProperties
 {
     if (g_DepthImage.IsValid())
     {
-        g_DepthImage.DestroyResources(GetAllocator());
+        VmaAllocator const &Allocator = GetAllocator();
+        g_DepthImage.DestroyResources(Allocator);
     }
 
     constexpr VkImageUsageFlagBits Usage  = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -110,7 +110,8 @@ void RenderCore::AllocateEmptyTexture(VkFormat const TextureFormat)
 
     FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);
 
-    vmaDestroyBuffer(GetAllocator(), Buffer, Allocation);
+    VmaAllocator const &Allocator = GetAllocator();
+    vmaDestroyBuffer(Allocator, Buffer, Allocation);
 }
 
 void RenderCore::LoadScene(std::string_view const ModelPath)
@@ -309,9 +310,10 @@ void RenderCore::LoadScene(std::string_view const ModelPath)
     }
     FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);
 
+    VmaAllocator const &Allocator = GetAllocator();
     for (auto &[Buffer, Allocation] : BufferAllocations)
     {
-        vmaDestroyBuffer(GetAllocator(), Buffer, Allocation);
+        vmaDestroyBuffer(Allocator, Buffer, Allocation);
     }
 }
 
@@ -319,7 +321,7 @@ void RenderCore::UnloadObjects(std::vector<std::uint32_t> const &ObjectIDs)
 {
     std::lock_guard Lock { g_ObjectMutex };
 
-    std::for_each(std::execution::par_unseq,
+    std::for_each(std::execution::unseq,
                   std::begin(ObjectIDs),
                   std::end(ObjectIDs),
                   [&](std::uint32_t const ObjectIDIter)
@@ -344,15 +346,17 @@ void RenderCore::UnloadObjects(std::vector<std::uint32_t> const &ObjectIDs)
 
 void RenderCore::ReleaseSceneResources()
 {
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+
     if (g_Sampler != VK_NULL_HANDLE)
     {
-        vkDestroySampler(volkGetLoadedDevice(), g_Sampler, nullptr);
+        vkDestroySampler(LogicalDevice, g_Sampler, nullptr);
         g_Sampler = VK_NULL_HANDLE;
     }
 
-    m_UniformBufferAllocation.first.DestroyResources(GetAllocator());
-    g_EmptyImage.DestroyResources(GetAllocator());
-    g_DepthImage.DestroyResources(GetAllocator());
+    VmaAllocator const &Allocator = GetAllocator();
+    m_UniformBufferAllocation.first.DestroyResources(Allocator);
+    g_DepthImage.DestroyResources(Allocator);
 
     DestroyObjects();
 }
@@ -374,7 +378,7 @@ void RenderCore::TickObjects(float const DeltaTime)
 {
     std::lock_guard Lock { g_ObjectMutex };
 
-    std::for_each(std::execution::par_unseq,
+    std::for_each(std::execution::unseq,
                   std::begin(g_Objects),
                   std::end(g_Objects),
                   [&, DeltaTime](std::shared_ptr<Object> const &ObjectIter)
@@ -394,11 +398,6 @@ ImageAllocation const &RenderCore::GetDepthImage()
 VkSampler const &RenderCore::GetSampler()
 {
     return g_Sampler;
-}
-
-ImageAllocation const &RenderCore::GetEmptyImage()
-{
-    return g_EmptyImage;
 }
 
 std::vector<std::shared_ptr<Object>> &RenderCore::GetObjects()

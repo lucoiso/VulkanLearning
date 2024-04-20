@@ -5,7 +5,9 @@
 module;
 #include <algorithm>
 #include <vector>
+#include <execution>
 #include <Volk/volk.h>
+#include <vma/vk_mem_alloc.h>
 
 #ifdef GLFW_INCLUDE_VULKAN
     #undef GLFW_INCLUDE_VULKAN
@@ -17,6 +19,7 @@ module RenderCore.Runtime.SwapChain;
 import RenderCore.Runtime.Device;
 import RenderCore.Runtime.Synchronization;
 import RenderCore.Runtime.Memory;
+import RenderCore.Runtime.Instance;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 
@@ -29,7 +32,7 @@ std::vector<ImageAllocation> g_SwapChainImages {};
 
 void RenderCore::CreateVulkanSurface(GLFWwindow *const Window)
 {
-    CheckVulkanResult(glfwCreateWindowSurface(volkGetLoadedInstance(), Window, nullptr, &g_Surface));
+    CheckVulkanResult(glfwCreateWindowSurface(GetInstance(), Window, nullptr, &g_Surface));
 }
 
 void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkSurfaceCapabilitiesKHR const &SurfaceCapabilities)
@@ -58,19 +61,21 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
             .oldSwapchain = g_OldSwapChain
     };
 
-    CheckVulkanResult(vkCreateSwapchainKHR(volkGetLoadedDevice(), &SwapChainCreateInfo, nullptr, &g_SwapChain));
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+
+    CheckVulkanResult(vkCreateSwapchainKHR(LogicalDevice, &SwapChainCreateInfo, nullptr, &g_SwapChain));
 
     if (g_OldSwapChain != VK_NULL_HANDLE)
     {
-        vkDestroySwapchainKHR(volkGetLoadedDevice(), g_OldSwapChain, nullptr);
+        vkDestroySwapchainKHR(LogicalDevice, g_OldSwapChain, nullptr);
         g_OldSwapChain = VK_NULL_HANDLE;
     }
 
     std::uint32_t Count = 0U;
-    CheckVulkanResult(vkGetSwapchainImagesKHR(volkGetLoadedDevice(), g_SwapChain, &Count, nullptr));
+    CheckVulkanResult(vkGetSwapchainImagesKHR(LogicalDevice, g_SwapChain, &Count, nullptr));
 
     std::vector<VkImage> SwapChainImages(Count, VK_NULL_HANDLE);
-    CheckVulkanResult(vkGetSwapchainImagesKHR(volkGetLoadedDevice(), g_SwapChain, &Count, std::data(SwapChainImages)));
+    CheckVulkanResult(vkGetSwapchainImagesKHR(LogicalDevice, g_SwapChain, &Count, std::data(SwapChainImages)));
 
     g_SwapChainImages.resize(Count, ImageAllocation());
     std::ranges::transform(SwapChainImages,
@@ -89,16 +94,10 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
 
 std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
 {
-    std::uint32_t  Output          = 0U;
-    VkResult const OperationResult = vkAcquireNextImageKHR(volkGetLoadedDevice(),
-                                                           g_SwapChain,
-                                                           g_Timeout,
-                                                           GetImageAvailableSemaphore(),
-                                                           GetFence(),
-                                                           &Output);
-    WaitAndResetFences();
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    std::uint32_t   Output        = 0U;
 
-    if (OperationResult != VK_SUCCESS)
+    if (vkAcquireNextImageKHR(LogicalDevice, g_SwapChain, g_Timeout, GetImageAvailableSemaphore(), VK_NULL_HANDLE, &Output) != VK_SUCCESS)
     {
         return std::nullopt;
     }
@@ -108,11 +107,13 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
 
 void RenderCore::CreateSwapChainImageViews(std::vector<ImageAllocation> &Images)
 {
-    std::ranges::for_each(Images,
-                          [&](ImageAllocation &ImageIter)
-                          {
-                              CreateImageView(ImageIter.Image, ImageIter.Format, VK_IMAGE_ASPECT_COLOR_BIT, ImageIter.View);
-                          });
+    std::for_each(std::execution::unseq,
+                  std::begin(Images),
+                  std::end(Images),
+                  [&](ImageAllocation &ImageIter)
+                  {
+                      CreateImageView(ImageIter.Image, ImageIter.Format, VK_IMAGE_ASPECT_COLOR_BIT, ImageIter.View);
+                  });
 }
 
 void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
@@ -123,8 +124,7 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
             .pWaitSemaphores = &GetRenderFinishedSemaphore(),
             .swapchainCount = 1U,
             .pSwapchains = &g_SwapChain,
-            .pImageIndices = &ImageIndice,
-            .pResults = nullptr
+            .pImageIndices = &ImageIndice
     };
 
     CheckVulkanResult(vkQueuePresentKHR(GetPresentationQueue().second, &PresentInfo));
@@ -132,31 +132,35 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
 
 void RenderCore::ReleaseSwapChainResources()
 {
+    VkDevice const &LogicalDevice = GetLogicalDevice();
     DestroySwapChainImages();
 
     if (g_SwapChain != VK_NULL_HANDLE)
     {
-        vkDestroySwapchainKHR(volkGetLoadedDevice(), g_SwapChain, nullptr);
+        vkDestroySwapchainKHR(LogicalDevice, g_SwapChain, nullptr);
         g_SwapChain = VK_NULL_HANDLE;
     }
 
     if (g_OldSwapChain != VK_NULL_HANDLE)
     {
-        vkDestroySwapchainKHR(volkGetLoadedDevice(), g_OldSwapChain, nullptr);
+        vkDestroySwapchainKHR(LogicalDevice, g_OldSwapChain, nullptr);
         g_OldSwapChain = VK_NULL_HANDLE;
     }
 
-    vkDestroySurfaceKHR(volkGetLoadedInstance(), g_Surface, nullptr);
+    vkDestroySurfaceKHR(GetInstance(), g_Surface, nullptr);
     g_Surface = VK_NULL_HANDLE;
 }
 
 void RenderCore::DestroySwapChainImages()
 {
-    std::ranges::for_each(g_SwapChainImages,
-                          [&](ImageAllocation &ImageIter)
-                          {
-                              ImageIter.DestroyResources(GetAllocator());
-                          });
+    VmaAllocator const &Allocator = GetAllocator();
+    std::for_each(std::execution::unseq,
+                  std::begin(g_SwapChainImages),
+                  std::end(g_SwapChainImages),
+                  [&](ImageAllocation &ImageIter)
+                  {
+                      ImageIter.DestroyResources(Allocator);
+                  });
     g_SwapChainImages.clear();
 }
 

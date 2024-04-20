@@ -10,6 +10,7 @@ module RenderCore.Runtime.Synchronization;
 
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
+import RenderCore.Runtime.Device;
 
 using namespace RenderCore;
 
@@ -24,8 +25,9 @@ void RenderCore::WaitAndResetFences()
         return;
     }
 
-    CheckVulkanResult(vkWaitForFences(volkGetLoadedDevice(), 1U, &g_Fence, VK_TRUE, g_Timeout));
-    CheckVulkanResult(vkResetFences(volkGetLoadedDevice(), 1U, &g_Fence));
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &g_Fence, VK_TRUE, g_Timeout));
+    CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &g_Fence));
 }
 
 void RenderCore::CreateSynchronizationObjects()
@@ -34,32 +36,34 @@ void RenderCore::CreateSynchronizationObjects()
 
     constexpr VkFenceCreateInfo FenceCreateInfo { .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT };
 
-    CheckVulkanResult(vkCreateSemaphore(volkGetLoadedDevice(), &SemaphoreCreateInfo, nullptr, &g_ImageAvailableSemaphore));
-    CheckVulkanResult(vkCreateSemaphore(volkGetLoadedDevice(), &SemaphoreCreateInfo, nullptr, &g_RenderFinishedSemaphore));
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    CheckVulkanResult(vkCreateSemaphore(LogicalDevice, &SemaphoreCreateInfo, nullptr, &g_ImageAvailableSemaphore));
+    CheckVulkanResult(vkCreateSemaphore(LogicalDevice, &SemaphoreCreateInfo, nullptr, &g_RenderFinishedSemaphore));
 
-    CheckVulkanResult(vkCreateFence(volkGetLoadedDevice(), &FenceCreateInfo, nullptr, &g_Fence));
-    CheckVulkanResult(vkResetFences(volkGetLoadedDevice(), 1U, &g_Fence));
+    CheckVulkanResult(vkCreateFence(LogicalDevice, &FenceCreateInfo, nullptr, &g_Fence));
+    CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &g_Fence));
 }
 
 void RenderCore::ReleaseSynchronizationObjects()
 {
-    vkDeviceWaitIdle(volkGetLoadedDevice());
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    vkDeviceWaitIdle(LogicalDevice);
 
     if (g_ImageAvailableSemaphore != VK_NULL_HANDLE)
     {
-        vkDestroySemaphore(volkGetLoadedDevice(), g_ImageAvailableSemaphore, nullptr);
+        vkDestroySemaphore(LogicalDevice, g_ImageAvailableSemaphore, nullptr);
         g_ImageAvailableSemaphore = VK_NULL_HANDLE;
     }
 
     if (g_RenderFinishedSemaphore != VK_NULL_HANDLE)
     {
-        vkDestroySemaphore(volkGetLoadedDevice(), g_RenderFinishedSemaphore, nullptr);
+        vkDestroySemaphore(LogicalDevice, g_RenderFinishedSemaphore, nullptr);
         g_RenderFinishedSemaphore = VK_NULL_HANDLE;
     }
 
     if (g_Fence != VK_NULL_HANDLE)
     {
-        vkDestroyFence(volkGetLoadedDevice(), g_Fence, nullptr);
+        vkDestroyFence(LogicalDevice, g_Fence, nullptr);
         g_Fence = VK_NULL_HANDLE;
     }
 }

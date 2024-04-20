@@ -9,6 +9,8 @@ module;
 
 module RenderCore.Types.Allocation;
 
+import RenderCore.Runtime.Device;
+
 using namespace RenderCore;
 
 bool ImageAllocation::IsValid() const
@@ -18,6 +20,8 @@ bool ImageAllocation::IsValid() const
 
 void ImageAllocation::DestroyResources(VmaAllocator const &Allocator)
 {
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+
     if (Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
     {
         vmaDestroyImage(Allocator, Image, Allocation);
@@ -27,7 +31,7 @@ void ImageAllocation::DestroyResources(VmaAllocator const &Allocator)
 
     if (View != VK_NULL_HANDLE)
     {
-        vkDestroyImageView(volkGetLoadedDevice(), View, nullptr);
+        vkDestroyImageView(LogicalDevice, View, nullptr);
         View = VK_NULL_HANDLE;
 
         if (Image != VK_NULL_HANDLE)
@@ -65,9 +69,11 @@ bool DescriptorData::IsValid() const
 
 void DescriptorData::DestroyResources(VmaAllocator const &Allocator)
 {
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+
     if (SetLayout != VK_NULL_HANDLE)
     {
-        vkDestroyDescriptorSetLayout(volkGetLoadedDevice(), SetLayout, nullptr);
+        vkDestroyDescriptorSetLayout(LogicalDevice, SetLayout, nullptr);
         SetLayout = VK_NULL_HANDLE;
     }
 
@@ -78,8 +84,10 @@ void DescriptorData::DestroyResources(VmaAllocator const &Allocator)
 
 void DescriptorData::SetDescriptorLayoutSize(VkDeviceSize const &MinAlignment)
 {
-    vkGetDescriptorSetLayoutSizeEXT(volkGetLoadedDevice(), SetLayout, &LayoutSize);
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+
+    vkGetDescriptorSetLayoutSizeEXT(LogicalDevice, SetLayout, &LayoutSize);
     LayoutSize = LayoutSize + MinAlignment - 1 & ~(MinAlignment - 1);
 
-    vkGetDescriptorSetLayoutBindingOffsetEXT(volkGetLoadedDevice(), SetLayout, 0U, &LayoutOffset);
+    vkGetDescriptorSetLayoutBindingOffsetEXT(LogicalDevice, SetLayout, 0U, &LayoutOffset);
 }
