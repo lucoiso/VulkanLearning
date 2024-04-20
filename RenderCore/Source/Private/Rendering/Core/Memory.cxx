@@ -50,14 +50,18 @@ std::atomic<std::uint64_t>                         g_ImageAllocationIDCounter { 
 std::unordered_map<std::uint32_t, ImageAllocation> g_AllocatedImages {};
 std::unordered_map<std::uint32_t, std::uint32_t>   g_ImageAllocationCounter {};
 
-void RenderCore::CreateMemoryAllocator(VkPhysicalDevice const &PhysicalDevice)
+void RenderCore::CreateMemoryAllocator()
 {
+    VkPhysicalDevice const &PhysicalDevice = GetPhysicalDevice();
+    VkDevice const &        LogicalDevice  = GetLogicalDevice();
+
     VmaVulkanFunctions const VulkanFunctions { .vkGetInstanceProcAddr = vkGetInstanceProcAddr, .vkGetDeviceProcAddr = vkGetDeviceProcAddr };
 
     VmaAllocatorCreateInfo const AllocatorInfo {
-            .flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT | VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT,
+            .flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT | VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT |
+                     VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT,
             .physicalDevice = PhysicalDevice,
-            .device = volkGetLoadedDevice(),
+            .device = LogicalDevice,
             .preferredLargeHeapBlockSize = 0U /*Default: 256 MiB*/,
             .pAllocationCallbacks = nullptr,
             .pDeviceMemoryCallbacks = nullptr,
@@ -180,10 +184,12 @@ VmaAllocationInfo RenderCore::CreateBuffer(VkDeviceSize const &     Size,
 
     VkBufferCreateInfo const BufferCreateInfo { .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = Size, .usage = Usage };
 
-    VmaAllocationInfo MemoryAllocationInfo;
-    CheckVulkanResult(vmaCreateBuffer(GetAllocator(), &BufferCreateInfo, &AllocationCreateInfo, &Buffer, &Allocation, &MemoryAllocationInfo));
+    VmaAllocator const &Allocator = GetAllocator();
 
-    vmaSetAllocationName(GetAllocator(), Allocation, std::data(std::format("Buffer: {}", Identifier)));
+    VmaAllocationInfo MemoryAllocationInfo;
+    CheckVulkanResult(vmaCreateBuffer(Allocator, &BufferCreateInfo, &AllocationCreateInfo, &Buffer, &Allocation, &MemoryAllocationInfo));
+
+    vmaSetAllocationName(Allocator, Allocation, std::data(std::format("Buffer: {}", Identifier)));
 
     return MemoryAllocationInfo;
 }
@@ -196,9 +202,10 @@ void RenderCore::CopyBuffer(VkCommandBuffer const &CommandBuffer, VkBuffer const
 
 void RenderCore::CreateUniformBuffers(BufferAllocation &BufferAllocation, VkDeviceSize const BufferSize, std::string_view const Identifier)
 {
+    VmaAllocator const &         Allocator             = GetAllocator();
     constexpr VkBufferUsageFlags DestinationUsageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     CreateBuffer(BufferSize, DestinationUsageFlags, Identifier, BufferAllocation.Buffer, BufferAllocation.Allocation);
-    vmaMapMemory(GetAllocator(), BufferAllocation.Allocation, &BufferAllocation.MappedData);
+    vmaMapMemory(Allocator, BufferAllocation.Allocation, &BufferAllocation.MappedData);
 }
 
 void RenderCore::CreateImage(VkFormat const &        ImageFormat,
@@ -226,10 +233,12 @@ void RenderCore::CreateImage(VkFormat const &        ImageFormat,
 
     VmaAllocationCreateInfo const ImageCreateInfo { .usage = MemoryUsage, .pool = g_ImagePool, .priority = 1.F };
 
-    VmaAllocationInfo AllocationInfo;
-    CheckVulkanResult(vmaCreateImage(GetAllocator(), &ImageViewCreateInfo, &ImageCreateInfo, &Image, &Allocation, &AllocationInfo));
+    VmaAllocator const &Allocator = GetAllocator();
 
-    vmaSetAllocationName(GetAllocator(), Allocation, std::data(std::format("Image: {}", Identifier)));
+    VmaAllocationInfo AllocationInfo;
+    CheckVulkanResult(vmaCreateImage(Allocator, &ImageViewCreateInfo, &ImageCreateInfo, &Image, &Allocation, &AllocationInfo));
+
+    vmaSetAllocationName(Allocator, Allocation, std::data(std::format("Image: {}", Identifier)));
 }
 
 void RenderCore::CreateTextureSampler(VkPhysicalDevice const &Device, VkSampler &Sampler)
@@ -256,7 +265,8 @@ void RenderCore::CreateTextureSampler(VkPhysicalDevice const &Device, VkSampler 
             .unnormalizedCoordinates = VK_FALSE
     };
 
-    CheckVulkanResult(vkCreateSampler(volkGetLoadedDevice(), &SamplerCreateInfo, nullptr, &Sampler));
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    CheckVulkanResult(vkCreateSampler(LogicalDevice, &SamplerCreateInfo, nullptr, &Sampler));
 }
 
 void RenderCore::CreateImageView(VkImage const &Image, VkFormat const &Format, VkImageAspectFlags const &AspectFlags, VkImageView &ImageView)
@@ -269,7 +279,8 @@ void RenderCore::CreateImageView(VkImage const &Image, VkFormat const &Format, V
             .subresourceRange = { .aspectMask = AspectFlags, .baseMipLevel = 0U, .levelCount = 1U, .baseArrayLayer = 0U, .layerCount = 1U }
     };
 
-    CheckVulkanResult(vkCreateImageView(volkGetLoadedDevice(), &ImageViewCreateInfo, nullptr, &ImageView));
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    CheckVulkanResult(vkCreateImageView(LogicalDevice, &ImageViewCreateInfo, nullptr, &ImageView));
 }
 
 void RenderCore::CreateTextureImageView(ImageAllocation &Allocation, VkFormat const ImageFormat)
@@ -306,13 +317,12 @@ std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(V
     std::pair<VkBuffer, VmaAllocation> Output;
     VmaAllocationInfo                  StagingInfo = CreateBuffer(AllocationSize, g_ModelMemoryUsage, "STAGING_TEXTURE", Output.first, Output.second);
 
-    CheckVulkanResult(vmaMapMemory(GetAllocator(), Output.second, &StagingInfo.pMappedData));
+    VmaAllocator const &Allocator = GetAllocator();
+
+    CheckVulkanResult(vmaMapMemory(Allocator, Output.second, &StagingInfo.pMappedData));
     std::memcpy(StagingInfo.pMappedData, Data, AllocationSize);
 
-    ImageAllocation NewAllocation {
-        .Extent = { .width = Width, .height = Height },
-        .Format = ImageFormat
-    };
+    ImageAllocation NewAllocation { .Extent = { .width = Width, .height = Height }, .Format = ImageFormat };
 
     CreateImage(ImageFormat,
                 NewAllocation.Extent,
@@ -323,18 +333,17 @@ std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(V
                 NewAllocation.Image,
                 NewAllocation.Allocation);
 
-    MoveImageLayout<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer,
+    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer,
         NewAllocation.Image,
         NewAllocation.Format);
 
     CopyBufferToImage(CommandBuffer, Output.first, NewAllocation.Image, NewAllocation.Extent);
 
-    MoveImageLayout<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer,
-        NewAllocation.Image,
-        NewAllocation.Format);
+    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR,
+                                 VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer, NewAllocation.Image, NewAllocation.Format);
 
     CreateImageView(NewAllocation.Image, NewAllocation.Format, VK_IMAGE_ASPECT_COLOR_BIT, NewAllocation.View);
-    vmaUnmapMemory(GetAllocator(), Output.second);
+    vmaUnmapMemory(Allocator, Output.second);
 
     std::uint32_t const BufferID = g_ImageAllocationIDCounter.fetch_add(1U);
     g_AllocatedImages.emplace(BufferID, std::move(NewAllocation));
@@ -382,19 +391,20 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
         UniformOffset = UniformOffset + MinAlignment - 1U & ~(MinAlignment - 1U);
     }
 
-    std::uint32_t const BufferID      = g_BufferAllocationIDCounter.fetch_add(1U);
+    std::uint32_t const BufferID = g_BufferAllocationIDCounter.fetch_add(1U);
     BufferAllocation    NewAllocation {};
 
     VkDeviceSize const BufferSize = UniformOffset + sizeof(ModelUniformData) * std::size(Objects);
 
     CreateBuffer(BufferSize, g_ModelMemoryFlags, "MODEL_UNIFIED_BUFFER", NewAllocation.Buffer, NewAllocation.Allocation);
 
-    CheckVulkanResult(vmaMapMemory(GetAllocator(), NewAllocation.Allocation, &NewAllocation.MappedData));
+    VmaAllocator const &Allocator = GetAllocator();
+    CheckVulkanResult(vmaMapMemory(Allocator, NewAllocation.Allocation, &NewAllocation.MappedData));
 
     std::memcpy(NewAllocation.MappedData, std::data(Vertices), VertexBufferSize);
     std::memcpy(static_cast<char *>(NewAllocation.MappedData) + VertexBufferSize, std::data(Indices), IndexBufferSize);
 
-    CheckVulkanResult(vmaFlushAllocation(GetAllocator(), NewAllocation.Allocation, VertexBufferSize, IndexBufferSize));
+    CheckVulkanResult(vmaFlushAllocation(Allocator, NewAllocation.Allocation, VertexBufferSize, IndexBufferSize));
     g_AllocatedBuffers.emplace(BufferID, std::move(NewAllocation));
 
     for (auto const &ObjectIter : Objects)
@@ -458,7 +468,8 @@ void RenderCore::SaveImageToFile(VkImage const &Image, std::string_view const Pa
     {
         VkImageSubresource SubResource { .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .mipLevel = 0, .arrayLayer = 0 };
 
-        vkGetImageSubresourceLayout(volkGetLoadedDevice(), Image, &SubResource, &Layout);
+        VkDevice const &LogicalDevice = GetLogicalDevice();
+        vkGetImageSubresourceLayout(LogicalDevice, Image, &SubResource, &Layout);
 
         VkBufferCreateInfo BufferInfo {
                 .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,

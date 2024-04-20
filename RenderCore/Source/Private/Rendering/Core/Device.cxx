@@ -187,16 +187,9 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
             .nullDescriptor = VK_TRUE
     };
 
-    VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT UnusedAttachmentsFeatures {
-            // Optional
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT,
-            .pNext = &RobustnessFeatures,
-            .dynamicRenderingUnusedAttachments = Contains(AvailableExtensions, VK_EXT_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_EXTENSION_NAME)
-    };
-
     VkPhysicalDeviceFeatures2 DeviceFeatures {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-            .pNext = &UnusedAttachmentsFeatures,
+            .pNext = &RobustnessFeatures,
             .features = VkPhysicalDeviceFeatures {
                     .independentBlend = VK_TRUE,
                     .drawIndirectFirstInstance = true,

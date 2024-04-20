@@ -68,7 +68,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             #ifdef VULKAN_RENDERER_ENABLE_IMGUI
             DestroyViewportImages();
             #endif
-            ReleaseDynamicPipelineResources();
+            ReleasePipelineResources();
 
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
             AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
@@ -102,7 +102,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
         }
     }
-    else if (g_ImageIndex = RequestImageIndex(Window);
+    else if (g_ImageIndex = RequestImageIndex();
         g_ImageIndex.has_value())
     {
         Tick();
@@ -113,30 +113,23 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
 
         if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender) && g_ImageIndex.has_value())
         {
+            std::int32_t const ImageIndex = g_ImageIndex.value();
+
             UpdateSceneUniformBuffer();
-            RecordCommandBuffers(g_ImageIndex.value());
+            RecordCommandBuffers(ImageIndex);
             SubmitCommandBuffers();
-            PresentFrame(g_ImageIndex.value());
+            PresentFrame(ImageIndex);
         }
     }
 }
 
-std::optional<std::int32_t> RenderCore::RequestImageIndex(GLFWwindow *const Window)
+std::optional<std::int32_t> RenderCore::RequestImageIndex()
 {
     std::optional<std::int32_t> Output {};
 
     if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
     {
         Output = RequestSwapChainImage();
-    }
-
-    if (!GetSurfaceProperties(Window).IsValid())
-    {
-        AddFlags(g_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
-    }
-    else
-    {
-        RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
     }
 
     if (!Output.has_value())
@@ -204,7 +197,7 @@ bool RenderCore::Initialize(GLFWwindow *const Window)
     volkLoadDevice(GetLogicalDevice());
 
     InitializeCommandsResources();
-    CreateMemoryAllocator(GetPhysicalDevice());
+    CreateMemoryAllocator();
     CreateSceneUniformBuffer();
     CreateImageSampler();
     [[maybe_unused]] auto const _2                = CompileDefaultShaders();

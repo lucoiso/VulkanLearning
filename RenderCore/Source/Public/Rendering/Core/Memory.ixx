@@ -22,7 +22,7 @@ import RenderCore.Utils.EnumHelpers;
 
 export namespace RenderCore
 {
-    void CreateMemoryAllocator(VkPhysicalDevice const &);
+    void CreateMemoryAllocator();
 
     void ReleaseMemoryResources();
 
@@ -66,11 +66,10 @@ export namespace RenderCore
     [[nodiscard]] VkDescriptorImageInfo  GetAllocationImageDescriptor(std::uint32_t);
 
     template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
-    constexpr void MoveImageLayout(VkCommandBuffer &   CommandBuffer,
-                                   VkImage const &     Image,
-                                   VkFormat const &    Format,
-                                   std::uint32_t const FromQueueIndex = VK_QUEUE_FAMILY_IGNORED,
-                                   std::uint32_t const ToQueueIndex   = VK_QUEUE_FAMILY_IGNORED)
+    constexpr VkImageMemoryBarrier2 MountImageBarrier(VkImage const &     Image,
+                                                      VkFormat const &    Format,
+                                                      std::uint32_t const FromQueueIndex = VK_QUEUE_FAMILY_IGNORED,
+                                                      std::uint32_t const ToQueueIndex   = VK_QUEUE_FAMILY_IGNORED)
     {
         VkImageMemoryBarrier2 ImageBarrier {
                 .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -81,7 +80,13 @@ export namespace RenderCore
                 .srcQueueFamilyIndex = FromQueueIndex,
                 .dstQueueFamilyIndex = ToQueueIndex,
                 .image = Image,
-                .subresourceRange = { .aspectMask = Aspect, .baseMipLevel = 0U, .levelCount = 1U, .baseArrayLayer = 0U, .layerCount = 1U }
+                .subresourceRange = {
+                        .aspectMask = Aspect,
+                        .baseMipLevel = 0U,
+                        .levelCount = VK_REMAINING_MIP_LEVELS,
+                        .baseArrayLayer = 0U,
+                        .layerCount = VK_REMAINING_ARRAY_LAYERS
+                }
         };
 
         if constexpr (HasFlag<VkImageAspectFlags>(Aspect, VK_IMAGE_ASPECT_DEPTH_BIT))
@@ -97,15 +102,15 @@ export namespace RenderCore
             if constexpr (HasFlag<VkImageAspectFlags>(Aspect, VK_IMAGE_ASPECT_DEPTH_BIT))
             {
                 ImageBarrier.srcAccessMask = VK_ACCESS_2_NONE;
-                ImageBarrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-                ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+                ImageBarrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
                 ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
             }
             else
             {
                 ImageBarrier.srcAccessMask = VK_ACCESS_2_NONE;
                 ImageBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-                ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_NONE;
+                ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
                 ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
             }
         }
@@ -128,7 +133,7 @@ export namespace RenderCore
             ImageBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
             ImageBarrier.dstAccessMask = VK_ACCESS_2_NONE;
             ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-            ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_NONE;
+            ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
         }
         else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
         {
@@ -144,6 +149,18 @@ export namespace RenderCore
             ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
             ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
         }
+
+        return ImageBarrier;
+    }
+
+    template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
+    constexpr void RequestImageLayoutTransition(VkCommandBuffer &   CommandBuffer,
+                                                VkImage const &     Image,
+                                                VkFormat const &    Format,
+                                                std::uint32_t const FromQueueIndex = VK_QUEUE_FAMILY_IGNORED,
+                                                std::uint32_t const ToQueueIndex   = VK_QUEUE_FAMILY_IGNORED)
+    {
+        VkImageMemoryBarrier2 ImageBarrier = MountImageBarrier<OldLayout, NewLayout, Aspect>(Image, Format, FromQueueIndex, ToQueueIndex);
 
         VkDependencyInfo const DependencyInfo {
                 .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,

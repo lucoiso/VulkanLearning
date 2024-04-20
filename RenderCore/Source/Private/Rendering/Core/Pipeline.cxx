@@ -17,6 +17,7 @@ import RenderCore.Types.Vertex;
 import RenderCore.Runtime.ShaderCompiler;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Runtime.Scene;
+import RenderCore.Runtime.Device;
 
 using namespace RenderCore;
 
@@ -33,11 +34,13 @@ void RenderCore::CreatePipeline()
             .pSetLayouts = &g_DescriptorSetLayout
     };
 
-    CheckVulkanResult(vkCreatePipelineLayout(volkGetLoadedDevice(), &PipelineLayoutCreateInfo, nullptr, &g_PipelineLayout));
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+
+    CheckVulkanResult(vkCreatePipelineLayout(LogicalDevice, &PipelineLayoutCreateInfo, nullptr, &g_PipelineLayout));
 
     constexpr VkPipelineCacheCreateInfo PipelineCacheCreateInfo { .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
 
-    CheckVulkanResult(vkCreatePipelineCache(volkGetLoadedDevice(), &PipelineCacheCreateInfo, nullptr, &g_PipelineCache));
+    CheckVulkanResult(vkCreatePipelineCache(LogicalDevice, &PipelineCacheCreateInfo, nullptr, &g_PipelineCache));
 
     auto const BindingDescription    = GetBindingDescriptors(0U);
     auto const AttributeDescriptions = GetAttributeDescriptions(0U,
@@ -129,18 +132,18 @@ void RenderCore::CreatePipeline()
             .maxDepthBounds = 1.F
     };
 
-    constexpr VkPipelineColorBlendAttachmentState RenderColorBlendAttachmentStates {
-            .blendEnable = VK_TRUE,
-            .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
-            .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
-            .colorBlendOp = VK_BLEND_OP_ADD,
-            .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-            .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
-            .alphaBlendOp = VK_BLEND_OP_ADD,
-            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+    VkFormat const SwapChainImageFormat = GetSwapChainImageFormat();
+    VkFormat const DepthFormat          = GetDepthImage().Format;
+
+    VkPipelineRenderingCreateInfo const RenderingCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+            .colorAttachmentCount = 1U,
+            .pColorAttachmentFormats = &SwapChainImageFormat,
+            .depthAttachmentFormat = DepthFormat,
+            .stencilAttachmentFormat = DepthFormat
     };
 
-    constexpr VkPipelineColorBlendAttachmentState ViewportColorBlendAttachmentStates {
+    constexpr VkPipelineColorBlendAttachmentState ColorBlendAttachmentStates {
             .blendEnable = VK_TRUE,
             .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
             .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
@@ -151,48 +154,12 @@ void RenderCore::CreatePipeline()
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
     };
 
-    VkFormat const SwapChainImageFormat = GetSwapChainImageFormat();
-    std::vector    ColorAttachments { SwapChainImageFormat };
-
-    std::vector SamplesAttachments { g_MSAASamples };
-
-    std::vector<VkPipelineColorBlendAttachmentState> ColorBlendStates {};
-    ColorBlendStates.reserve(2U);
-
-    #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-    ColorAttachments.push_back(SwapChainImageFormat);
-    SamplesAttachments.push_back(g_MSAASamples);
-    ColorBlendStates.push_back(ViewportColorBlendAttachmentStates);
-    #endif
-
-    ColorBlendStates.push_back(RenderColorBlendAttachmentStates);
-    ColorBlendStates.shrink_to_fit();
-
-    VkAttachmentSampleCountInfoAMD const AttachmentCountInfo {
-            .sType = VK_STRUCTURE_TYPE_ATTACHMENT_SAMPLE_COUNT_INFO_AMD,
-            .pNext = nullptr,
-            .colorAttachmentCount = static_cast<std::uint32_t>(std::size(SamplesAttachments)),
-            .pColorAttachmentSamples = std::data(SamplesAttachments),
-            .depthStencilAttachmentSamples = g_MSAASamples
-    };
-
-    VkFormat const DepthFormat = GetDepthImage().Format;
-
-    VkPipelineRenderingCreateInfo const RenderingCreateInfo {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-            .pNext = &AttachmentCountInfo,
-            .colorAttachmentCount = static_cast<std::uint32_t>(std::size(ColorAttachments)),
-            .pColorAttachmentFormats = std::data(ColorAttachments),
-            .depthAttachmentFormat = DepthFormat,
-            .stencilAttachmentFormat = DepthFormat
-    };
-
     VkPipelineColorBlendStateCreateInfo const ColorBlendState {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
             .logicOpEnable = VK_FALSE,
             .logicOp = VK_LOGIC_OP_COPY,
-            .attachmentCount = static_cast<std::uint32_t>(std::size(ColorBlendStates)),
-            .pAttachments = std::data(ColorBlendStates),
+            .attachmentCount = 1U,
+            .pAttachments = &ColorBlendAttachmentStates,
             .blendConstants = { 0.F, 0.F, 0.F, 0.F }
     };
 
@@ -230,7 +197,7 @@ void RenderCore::CreatePipeline()
             .basePipelineIndex = -1
     };
 
-    CheckVulkanResult(vkCreateGraphicsPipelines(volkGetLoadedDevice(), g_PipelineCache, 1U, &GraphicsPipelineCreateInfo, nullptr, &g_Pipeline));
+    CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice, g_PipelineCache, 1U, &GraphicsPipelineCreateInfo, nullptr, &g_Pipeline));
 }
 
 void RenderCore::CreateDescriptorSetLayout()
@@ -301,37 +268,35 @@ void RenderCore::CreateDescriptorSetLayout()
             .pBindings = std::data(LayoutBindings)
     };
 
-    CheckVulkanResult(vkCreateDescriptorSetLayout(volkGetLoadedDevice(), &DescriptorSetLayoutInfo, nullptr, &g_DescriptorSetLayout));
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    CheckVulkanResult(vkCreateDescriptorSetLayout(LogicalDevice, &DescriptorSetLayoutInfo, nullptr, &g_DescriptorSetLayout));
 }
 
 void RenderCore::ReleasePipelineResources()
 {
-    ReleaseDynamicPipelineResources();
-}
+    VkDevice const &LogicalDevice = GetLogicalDevice();
 
-void RenderCore::ReleaseDynamicPipelineResources()
-{
     if (g_Pipeline != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(volkGetLoadedDevice(), g_Pipeline, nullptr);
+        vkDestroyPipeline(LogicalDevice, g_Pipeline, nullptr);
         g_Pipeline = VK_NULL_HANDLE;
     }
 
     if (g_PipelineLayout != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineLayout(volkGetLoadedDevice(), g_PipelineLayout, nullptr);
+        vkDestroyPipelineLayout(LogicalDevice, g_PipelineLayout, nullptr);
         g_PipelineLayout = VK_NULL_HANDLE;
     }
 
     if (g_PipelineCache != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineCache(volkGetLoadedDevice(), g_PipelineCache, nullptr);
+        vkDestroyPipelineCache(LogicalDevice, g_PipelineCache, nullptr);
         g_PipelineCache = VK_NULL_HANDLE;
     }
 
     if (g_DescriptorSetLayout != VK_NULL_HANDLE)
     {
-        vkDestroyDescriptorSetLayout(volkGetLoadedDevice(), g_DescriptorSetLayout, nullptr);
+        vkDestroyDescriptorSetLayout(LogicalDevice, g_DescriptorSetLayout, nullptr);
         g_DescriptorSetLayout = VK_NULL_HANDLE;
     }
 }
@@ -344,9 +309,4 @@ VkPipeline const &RenderCore::GetMainPipeline()
 VkPipelineLayout const &RenderCore::GetPipelineLayout()
 {
     return g_PipelineLayout;
-}
-
-VkDescriptorSetLayout const &RenderCore::GetDescriptorSetLayout()
-{
-    return g_DescriptorSetLayout;
 }

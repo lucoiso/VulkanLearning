@@ -32,7 +32,7 @@ export namespace RenderCore
 {
     void DrawFrame(GLFWwindow *, double, Control *);
 
-    std::optional<std::int32_t> RequestImageIndex(GLFWwindow *);
+    std::optional<std::int32_t> RequestImageIndex();
 
     void CheckObjectManagementFlags();
 

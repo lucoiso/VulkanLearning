@@ -5,6 +5,8 @@
 module;
 
 #include <algorithm>
+#include <chrono>
+#include <functional>
 #include <ranges>
 #include <thread>
 #include <unordered_map>
@@ -67,7 +69,8 @@ struct ThreadResources
                 .commandBufferCount = 1U
         };
 
-        CheckVulkanResult(vkAllocateCommandBuffers(volkGetLoadedDevice(), &CommandBufferAllocateInfo, &CommandBuffer));
+        VkDevice const &LogicalDevice = GetLogicalDevice();
+        CheckVulkanResult(vkAllocateCommandBuffers(LogicalDevice, &CommandBufferAllocateInfo, &CommandBuffer));
     }
 
     void Free()
@@ -77,7 +80,8 @@ struct ThreadResources
             return;
         }
 
-        vkFreeCommandBuffers(volkGetLoadedDevice(), CommandPool, 1U, &CommandBuffer);
+        VkDevice const &LogicalDevice = GetLogicalDevice();
+        vkFreeCommandBuffers(LogicalDevice, CommandPool, 1U, &CommandBuffer);
         CommandBuffer = VK_NULL_HANDLE;
     }
 
@@ -89,7 +93,8 @@ struct ThreadResources
         }
 
         Free();
-        vkDestroyCommandPool(volkGetLoadedDevice(), CommandPool, nullptr);
+        VkDevice const &LogicalDevice = GetLogicalDevice();
+        vkDestroyCommandPool(LogicalDevice, CommandPool, nullptr);
     }
 };
 
@@ -127,7 +132,8 @@ void RenderCore::AllocateCommandBuffers(std::uint32_t const QueueFamily, std::ui
                 .commandBufferCount = 1U
         };
 
-        CheckVulkanResult(vkAllocateCommandBuffers(volkGetLoadedDevice(), &CommandBufferAllocateInfo, &g_PrimaryCommandBuffer.second));
+        VkDevice const &LogicalDevice = GetLogicalDevice();
+        CheckVulkanResult(vkAllocateCommandBuffers(LogicalDevice, &CommandBufferAllocateInfo, &g_PrimaryCommandBuffer.second));
     }
 }
 
@@ -138,7 +144,8 @@ void RenderCore::FreeCommandBuffers()
         CommandResources.Free();
     }
 
-    vkFreeCommandBuffers(volkGetLoadedDevice(), g_PrimaryCommandBuffer.first, 1U, &g_PrimaryCommandBuffer.second);
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    vkFreeCommandBuffers(LogicalDevice, g_PrimaryCommandBuffer.first, 1U, &g_PrimaryCommandBuffer.second);
 }
 
 void RenderCore::InitializeCommandsResources()
@@ -162,7 +169,8 @@ void RenderCore::ReleaseCommandsResources()
     }
     g_CommandResources.clear();
 
-    vkDestroyCommandPool(volkGetLoadedDevice(), g_PrimaryCommandBuffer.first, nullptr);
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    vkDestroyCommandPool(LogicalDevice, g_PrimaryCommandBuffer.first, nullptr);
 }
 
 VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex, VkCommandPoolCreateFlags const Flags)
@@ -173,8 +181,10 @@ VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex,
             .queueFamilyIndex = static_cast<std::uint32_t>(FamilyQueueIndex)
     };
 
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+
     VkCommandPool Output = VK_NULL_HANDLE;
-    CheckVulkanResult(vkCreateCommandPool(volkGetLoadedDevice(), &CommandPoolCreateInfo, nullptr, &Output));
+    CheckVulkanResult(vkCreateCommandPool(LogicalDevice, &CommandPoolCreateInfo, nullptr, &Output));
 
     return Output;
 }
@@ -196,18 +206,20 @@ void SetViewport(VkCommandBuffer const &CommandBuffer, VkExtent2D const &SwapCha
     vkCmdSetScissor(CommandBuffer, 0U, 1U, &Scissor);
 }
 
-void BeginRendering(std::uint32_t const ImageIndex, VkExtent2D const &SwapChainExtent)
+void BeginRendering(std::uint32_t const ImageIndex, ImageAllocation const &SwapchainAllocation)
 {
-    ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
-    RenderCore::MoveImageLayout<g_UndefinedLayout, g_SwapChainMidLayout, g_ImageAspect>(g_PrimaryCommandBuffer.second,
-                                                                                        SwapchainAllocation.Image,
-                                                                                        SwapchainAllocation.Format);
+    ImageAllocation const &DepthAllocation = GetDepthImage();
+
+    std::vector ImageBarriers {
+            RenderCore::MountImageBarrier<g_UndefinedLayout, g_SwapChainMidLayout, g_ImageAspect>(SwapchainAllocation.Image,
+                                                                                                  SwapchainAllocation.Format),
+            RenderCore::MountImageBarrier<g_UndefinedLayout, g_DepthLayout, g_DepthAspect>(DepthAllocation.Image, DepthAllocation.Format)
+    };
 
     #ifdef VULKAN_RENDERER_ENABLE_IMGUI
     ImageAllocation const &ViewportAllocation = GetViewportImages().at(ImageIndex);
-    RenderCore::MoveImageLayout<g_UndefinedLayout, g_ViewportMidLayout, g_ImageAspect>(g_PrimaryCommandBuffer.second,
-                                                                                       ViewportAllocation.Image,
-                                                                                       SwapchainAllocation.Format);
+    ImageBarriers.push_back(RenderCore::MountImageBarrier<g_UndefinedLayout, g_ViewportMidLayout, g_ImageAspect>(ViewportAllocation.Image,
+                                SwapchainAllocation.Format));
 
     VkRenderingAttachmentInfo ColorAttachment {
             .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -228,10 +240,13 @@ void BeginRendering(std::uint32_t const ImageIndex, VkExtent2D const &SwapChainE
     };
     #endif
 
-    ImageAllocation const &DepthAllocation = GetDepthImage();
-    RenderCore::MoveImageLayout<g_UndefinedLayout, g_DepthLayout, g_DepthAspect>(g_PrimaryCommandBuffer.second,
-                                                                                 DepthAllocation.Image,
-                                                                                 DepthAllocation.Format);
+    VkDependencyInfo const DependencyInfo {
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .imageMemoryBarrierCount = static_cast<std::uint32_t>(std::size(ImageBarriers)),
+            .pImageMemoryBarriers = std::data(ImageBarriers)
+    };
+
+    vkCmdPipelineBarrier2(g_PrimaryCommandBuffer.second, &DependencyInfo);
 
     VkRenderingAttachmentInfo const DepthAttachmentInfo {
             .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -239,14 +254,14 @@ void BeginRendering(std::uint32_t const ImageIndex, VkExtent2D const &SwapChainE
             .imageLayout = g_DepthLayout,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .clearValue = g_ClearValues.at(2U)
+            .clearValue = g_ClearValues.at(1U)
     };
 
     VkRenderingInfo const RenderingInfo {
             .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
             .pNext = nullptr,
             .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
-            .renderArea = { .offset = { 0, 0 }, .extent = SwapChainExtent },
+            .renderArea = { .offset = { 0, 0 }, .extent = SwapchainAllocation.Extent },
             .layerCount = 1U,
             .colorAttachmentCount = 1U,
             .pColorAttachments = &ColorAttachment,
@@ -261,27 +276,24 @@ void EndRendering(std::uint32_t const ImageIndex)
 {
     vkCmdEndRendering(g_PrimaryCommandBuffer.second);
 
-    ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
-
     #ifdef VULKAN_RENDERER_ENABLE_IMGUI
     ImageAllocation const &ViewportAllocation = GetViewportImages().at(ImageIndex);
-    RenderCore::MoveImageLayout<g_ViewportMidLayout, g_ViewportFinalLayout, g_ImageAspect>(g_PrimaryCommandBuffer.second,
-                                                                                           ViewportAllocation.Image,
-                                                                                           SwapchainAllocation.Format);
+    RenderCore::RequestImageLayoutTransition<g_ViewportMidLayout, g_ViewportFinalLayout, g_ImageAspect>(g_PrimaryCommandBuffer.second,
+        ViewportAllocation.Image,
+        GetSwapChainImages().at(ImageIndex).Format);
     #endif
 }
 
-std::vector<VkCommandBuffer> RecordSceneCommands()
+std::vector<VkCommandBuffer> RecordSceneCommands(ImageAllocation const &SwapchainAllocation)
 {
-    std::vector const ColorAttachmentFormat { GetSwapChainImageFormat() };
-    VkFormat const    DepthFormat = GetDepthImage().Format;
+    VkFormat const &DepthFormat = GetDepthImage().Format;
 
     VkCommandBufferInheritanceRenderingInfo const InheritanceRenderingInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO,
             .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
-            .viewMask = 0,
-            .colorAttachmentCount = static_cast<std::uint32_t>(std::size(ColorAttachmentFormat)),
-            .pColorAttachmentFormats = std::data(ColorAttachmentFormat),
+            .viewMask = 0U,
+            .colorAttachmentCount = 1U,
+            .pColorAttachmentFormats = &SwapchainAllocation.Format,
             .depthAttachmentFormat = DepthFormat,
             .stencilAttachmentFormat = DepthFormat,
             .rasterizationSamples = g_MSAASamples,
@@ -289,8 +301,7 @@ std::vector<VkCommandBuffer> RecordSceneCommands()
 
     VkCommandBufferInheritanceInfo const InheritanceInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
-            .pNext = &InheritanceRenderingInfo,
-            .renderPass = VK_NULL_HANDLE
+            .pNext = &InheritanceRenderingInfo
     };
 
     VkCommandBufferBeginInfo SecondaryBeginInfo = g_CommandBufferBeginInfo;
@@ -306,10 +317,9 @@ std::vector<VkCommandBuffer> RecordSceneCommands()
     }
 
     std::vector<VkCommandBuffer> Output {};
-    Output.reserve(std::size(Objects));
+    Output.reserve(g_NumThreads);
 
-    auto const &Camera          = GetCamera();
-    auto const &SwapChainExtent = GetSwapChainExtent();
+    auto const &Camera = GetCamera();
 
     for (std::uint32_t ThreadIndex = 0U; ThreadIndex < g_NumThreads; ++ThreadIndex)
     {
@@ -320,13 +330,11 @@ std::vector<VkCommandBuffer> RecordSceneCommands()
             break;
         }
 
-        Output.push_back(CommandBuffer);
-
-        g_ThreadPool.AddTask([CommandBuffer, ThreadIndex, &Objects, &Camera, &Pipeline, &SecondaryBeginInfo, &SwapChainExtent]
+        g_ThreadPool.AddTask([CommandBuffer, ThreadIndex, &Objects, &Camera, &Pipeline, &SecondaryBeginInfo, &SwapchainAllocation]
                              {
                                  CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
                                  {
-                                     SetViewport(CommandBuffer, SwapChainExtent);
+                                     SetViewport(CommandBuffer, SwapchainAllocation.Extent);
                                      vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
 
                                      for (std::uint32_t ObjectIndex = 0U; ObjectIndex < g_ObjectsPerThread; ++ObjectIndex)
@@ -345,13 +353,15 @@ std::vector<VkCommandBuffer> RecordSceneCommands()
                                              continue;
                                          }
 
-                                         Object->UpdateUniformBuffers();
                                          Object->DrawObject(CommandBuffer);
+                                         Object->UpdateUniformBuffers();
                                      }
                                  }
                                  CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
                              },
                              ThreadIndex);
+
+        Output.push_back(CommandBuffer);
     }
 
     g_ThreadPool.Wait();
@@ -363,13 +373,12 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
 {
     CheckVulkanResult(vkBeginCommandBuffer(g_PrimaryCommandBuffer.second, &g_CommandBufferBeginInfo));
     {
-        std::vector<VkCommandBuffer> CommandBuffers {};
-        CommandBuffers.reserve(g_NumThreads);
+        ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
 
-        BeginRendering(ImageIndex, GetSwapChainExtent());
-        CommandBuffers.append_range(RecordSceneCommands());
+        BeginRendering(ImageIndex, SwapchainAllocation);
 
-        if (!std::empty(CommandBuffers))
+        if (std::vector<VkCommandBuffer> const CommandBuffers = RecordSceneCommands(SwapchainAllocation);
+            !std::empty(CommandBuffers))
         {
             vkCmdExecuteCommands(g_PrimaryCommandBuffer.second, static_cast<std::uint32_t>(std::size(CommandBuffers)), std::data(CommandBuffers));
         }
@@ -377,13 +386,12 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
         EndRendering(ImageIndex);
 
         #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-        RecordImGuiCommandBuffer(g_PrimaryCommandBuffer.second, ImageIndex, g_SwapChainMidLayout);
+        RecordImGuiCommandBuffer(g_PrimaryCommandBuffer.second, SwapchainAllocation, g_SwapChainMidLayout);
         #endif
 
-        ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
-        RenderCore::MoveImageLayout<g_SwapChainMidLayout, g_SwapChainFinalLayout, g_ImageAspect>(g_PrimaryCommandBuffer.second,
-                                                                                                 SwapchainAllocation.Image,
-                                                                                                 SwapchainAllocation.Format);
+        RenderCore::RequestImageLayoutTransition<g_SwapChainMidLayout, g_SwapChainFinalLayout, g_ImageAspect>(g_PrimaryCommandBuffer.second,
+            SwapchainAllocation.Image,
+            SwapchainAllocation.Format);
     }
     CheckVulkanResult(vkEndCommandBuffer(g_PrimaryCommandBuffer.second));
 }
@@ -394,20 +402,19 @@ void RenderCore::SubmitCommandBuffers()
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
             .semaphore = GetImageAvailableSemaphore(),
             .value = 1U,
-            .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            .deviceIndex = 0U
+            .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
     };
 
     VkSemaphoreSubmitInfo const SignalSemaphoreInfo {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
             .semaphore = GetRenderFinishedSemaphore(),
-            .value = 1U
+            .value = 1U,
+            .stageMask = VK_PIPELINE_STAGE_2_NONE
     };
 
     VkCommandBufferSubmitInfo const PrimarySubmission {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-            .commandBuffer = g_PrimaryCommandBuffer.second,
-            .deviceMask = 0U
+            .commandBuffer = g_PrimaryCommandBuffer.second
     };
 
     VkSubmitInfo2 const SubmitInfo {
@@ -449,7 +456,9 @@ void RenderCore::InitializeSingleCommandQueue(VkCommandPool &               Comm
             .commandBufferCount = static_cast<std::uint32_t>(std::size(CommandBuffers)),
     };
 
-    CheckVulkanResult(vkAllocateCommandBuffers(volkGetLoadedDevice(), &CommandBufferAllocateInfo, std::data(CommandBuffers)));
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+
+    CheckVulkanResult(vkAllocateCommandBuffers(LogicalDevice, &CommandBufferAllocateInfo, std::data(CommandBuffers)));
     for (VkCommandBuffer const &CommandBufferIter : CommandBuffers)
     {
         CheckVulkanResult(vkBeginCommandBuffer(CommandBufferIter, &CommandBufferBeginInfo));
@@ -486,6 +495,8 @@ void RenderCore::FinishSingleCommandQueue(VkQueue const &Queue, VkCommandPool co
     CheckVulkanResult(vkQueueSubmit2(Queue, 1U, &SubmitInfo, VK_NULL_HANDLE));
     CheckVulkanResult(vkQueueWaitIdle(Queue));
 
-    vkFreeCommandBuffers(volkGetLoadedDevice(), CommandPool, static_cast<std::uint32_t>(std::size(CommandBuffers)), std::data(CommandBuffers));
-    vkDestroyCommandPool(volkGetLoadedDevice(), CommandPool, nullptr);
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+
+    vkFreeCommandBuffers(LogicalDevice, CommandPool, static_cast<std::uint32_t>(std::size(CommandBuffers)), std::data(CommandBuffers));
+    vkDestroyCommandPool(LogicalDevice, CommandPool, nullptr);
 }

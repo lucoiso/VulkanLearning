@@ -6,6 +6,7 @@ module;
 
 #include <algorithm>
 #include <cassert>
+#include <execution>
 #include <format>
 #include <stdexcept>
 #include <string>
@@ -49,23 +50,27 @@ namespace RenderCore
     export template <typename Out, typename Opt, typename Avail>
     constexpr void GetAvailableResources(std::string_view const Identifier, Out &Resource, Opt const &Optional, Avail const &Available)
     {
-        std::ranges::for_each(Resource,
-                              [&Available, Identifier](auto const &ResIter)
-                              {
-                                  if (std::ranges::find(Available, ResIter) == std::cend(Available))
-                                  {
-                                      throw std::runtime_error(std::format("Required {} not available: {}", Identifier, ResIter));
-                                  }
-                              });
+        std::for_each(std::execution::unseq,
+                      std::cbegin(Resource),
+                      std::cend(Resource),
+                      [&Available, &Identifier](auto const &ResIter)
+                      {
+                          if (std::ranges::find(Available, ResIter) == std::cend(Available))
+                          {
+                              throw std::runtime_error(std::format("Required {} not available: {}", Identifier, ResIter));
+                          }
+                      });
 
-        std::ranges::for_each(Optional,
-                              [&Available, &Resource](auto const &OptIter)
-                              {
-                                  if (std::ranges::find(Available, OptIter) != std::cend(Available))
-                                  {
-                                      Resource.emplace_back(OptIter);
-                                  }
-                              });
+        std::for_each(std::execution::unseq,
+                      std::cbegin(Optional),
+                      std::cend(Optional),
+                      [&Available, &Resource](auto const &OptIter)
+                      {
+                          if (std::ranges::find(Available, OptIter) != std::cend(Available))
+                          {
+                              Resource.emplace_back(OptIter);
+                          }
+                      });
     }
 
     export template <typename T>

@@ -16,11 +16,7 @@ export namespace RenderCore
 
     void ReleasePipelineResources();
 
-    void ReleaseDynamicPipelineResources();
-
     [[nodiscard]] VkPipeline const &GetMainPipeline();
 
     [[nodiscard]] VkPipelineLayout const &GetPipelineLayout();
-
-    [[nodiscard]] VkDescriptorSetLayout const &GetDescriptorSetLayout();
 } // namespace RenderCore

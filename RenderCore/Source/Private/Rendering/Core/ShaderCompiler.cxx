@@ -21,6 +21,7 @@ module;
 
 module RenderCore.Runtime.ShaderCompiler;
 
+import RenderCore.Runtime.Device;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.DebugHelpers;
 
@@ -309,8 +310,10 @@ VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const &SPIRVC
             .pCode = std::data(SPIRVCode)
     };
 
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+
     VkShaderModule Output = nullptr;
-    CheckVulkanResult(vkCreateShaderModule(volkGetLoadedDevice(), &CreateInfo, nullptr, &Output));
+    CheckVulkanResult(vkCreateShaderModule(LogicalDevice, &CreateInfo, nullptr, &Output));
 
     StageInfo(Output, Language, EntryPoint);
 
@@ -346,11 +349,13 @@ std::vector<VkPipelineShaderStageCreateInfo> RenderCore::GetStageInfos()
 
 void RenderCore::ReleaseShaderResources()
 {
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+
     for (auto const &ShaderModule : g_StageInfos | std::views::keys)
     {
         if (ShaderModule != VK_NULL_HANDLE)
         {
-            vkDestroyShaderModule(volkGetLoadedDevice(), ShaderModule, nullptr);
+            vkDestroyShaderModule(LogicalDevice, ShaderModule, nullptr);
         }
     }
     g_StageInfos.clear();
@@ -358,11 +363,13 @@ void RenderCore::ReleaseShaderResources()
 
 void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const &StagedModules)
 {
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+
     for (const auto &[Type, Next, Flags, Stage, Module, Name, Info] : StagedModules)
     {
         if (Module != VK_NULL_HANDLE)
         {
-            vkDestroyShaderModule(volkGetLoadedDevice(), Module, nullptr);
+            vkDestroyShaderModule(LogicalDevice, Module, nullptr);
         }
 
         if (g_StageInfos.contains(Module))
