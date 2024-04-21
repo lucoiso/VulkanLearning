@@ -33,5 +33,5 @@ export namespace RenderCore
     [[nodiscard]] std::vector<ShaderStageData> const &GetStageData();
     void                                              ReleaseShaderResources();
 
-    [[nodiscard]] void CompileDefaultShaders();
+    void CompileDefaultShaders();
 } // namespace RenderCore

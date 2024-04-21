@@ -4,8 +4,8 @@
 
 module;
 
-#include <vector>
 #include <memory>
+#include <vector>
 #include <vma/vk_mem_alloc.h>
 
 export module RenderCore.Runtime.Pipeline;

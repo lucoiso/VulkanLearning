@@ -62,9 +62,15 @@ export namespace RenderCore
 
         RENDERCOREMODULE_API void RequestDestroyObjects();
 
+        RENDERCOREMODULE_API void RequestUpdateResources();
+
         [[nodiscard]] RENDERCOREMODULE_API double GetFrameTime();
 
         RENDERCOREMODULE_API void SetFrameRateCap(double);
+
+        [[nodiscard]] RENDERCOREMODULE_API bool GetUseVSync();
+
+        RENDERCOREMODULE_API void SetUseVSync(bool);
 
         [[nodiscard]] RENDERCOREMODULE_API double GetFrameRateCap();
 

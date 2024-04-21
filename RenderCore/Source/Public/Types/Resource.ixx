@@ -5,8 +5,6 @@
 module;
 
 #include <string_view>
-#include <vector>
-#include <Volk/volk.h>
 
 #include "RenderCoreModule.hpp"
 

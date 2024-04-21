@@ -5,10 +5,7 @@
 module;
 
 #include <array>
-#include <algorithm>
-#include <numeric>
 #include <string>
-#include <vector>
 #include <glm/ext.hpp>
 #include <Volk/volk.h>
 
@@ -182,47 +179,23 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
 
     vkCmdBindDescriptorBuffersEXT(CommandBuffer, static_cast<std::uint32_t>(std::size(BufferBindingInfos)), std::data(BufferBindingInfos));
 
-    {
-        // Scene buffer
-        constexpr std::uint32_t SceneBufferIndex  = 0U;
-        VkDeviceSize const      SceneBufferOffset = SceneData.LayoutOffset;
+    constexpr std::array BufferIndices { 0U, 1U, 2U };
 
-        vkCmdSetDescriptorBufferOffsetsEXT(CommandBuffer,
-                                           VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                           PipelineLayout,
-                                           0U,
-                                           1U,
-                                           &SceneBufferIndex,
-                                           &SceneBufferOffset);
-    }
+    constexpr std::uint8_t NumTextures = static_cast<std::uint8_t>(TextureType::Count);
 
-    {
-        // Model buffer
-        constexpr std::uint32_t ModelBufferIndex  = 1U;
-        VkDeviceSize const      ModelBufferOffset = ObjectIndex * ModelData.LayoutSize + ModelData.LayoutOffset;
+    std::array const BufferOffsets {
+            SceneData.LayoutOffset,
+            ObjectIndex * ModelData.LayoutSize + ModelData.LayoutOffset,
+            ObjectIndex * NumTextures * TextureData.LayoutSize + TextureData.LayoutOffset
+    };
 
-        vkCmdSetDescriptorBufferOffsetsEXT(CommandBuffer,
-                                           VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                           PipelineLayout,
-                                           1U,
-                                           1U,
-                                           &ModelBufferIndex,
-                                           &ModelBufferOffset);
-    }
-
-    {
-        // Texture buffer
-        constexpr std::uint32_t TextureBufferIndex  = 2U;
-        VkDeviceSize const      TextureBufferOffset = ObjectIndex * TextureData.LayoutSize + TextureData.LayoutOffset;
-
-        vkCmdSetDescriptorBufferOffsetsEXT(CommandBuffer,
-                                           VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                           PipelineLayout,
-                                           2U,
-                                           1U,
-                                           &TextureBufferIndex,
-                                           &TextureBufferOffset);
-    }
+    vkCmdSetDescriptorBufferOffsetsEXT(CommandBuffer,
+                                       VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                       PipelineLayout,
+                                       0U,
+                                       static_cast<std::uint32_t>(std::size(BufferBindingInfos)),
+                                       std::data(BufferIndices),
+                                       std::data(BufferOffsets));
 
     m_Mesh->BindBuffers(CommandBuffer);
 }

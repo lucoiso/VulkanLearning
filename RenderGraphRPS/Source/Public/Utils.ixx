@@ -20,7 +20,8 @@ namespace RenderGraphRPS
     }
 
     export template <typename T>
-        requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, RpsResult> || std::is_same_v<std::invoke_result_t<T>, RpsResult &>)
+        requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, RpsResult> || std::is_same_v<
+                                                std::invoke_result_t<T>, RpsResult &>)
     constexpr void CheckRPSResult(T &&InputOperation)
     {
         CheckRPSResult(InputOperation());

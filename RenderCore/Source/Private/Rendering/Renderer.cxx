@@ -46,6 +46,7 @@ std::vector<std::string>    g_ModelsToLoad {};
 std::vector<std::uint32_t>  g_ModelsToUnload {};
 double                      g_FrameTime { 0.F };
 double                      g_FrameRateCap { 0.016667F };
+bool                        g_UseVSync { true };
 std::optional<std::int32_t> g_ImageIndex {};
 
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
@@ -291,6 +292,11 @@ void Renderer::RequestDestroyObjects()
     AddFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_CLEAR);
 }
 
+void Renderer::RequestUpdateResources()
+{
+    AddStateFlag(RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+}
+
 double Renderer::GetFrameTime()
 {
     return g_FrameTime;
@@ -302,6 +308,16 @@ void Renderer::SetFrameRateCap(double const FrameRateCap)
     {
         g_FrameRateCap = 1.0 / FrameRateCap;
     }
+}
+
+bool Renderer::GetUseVSync()
+{
+    return g_UseVSync;
+}
+
+void Renderer::SetUseVSync(bool const Value)
+{
+    g_UseVSync = Value;
 }
 
 double Renderer::GetFrameRateCap()
@@ -355,7 +371,7 @@ std::shared_ptr<Object> Renderer::GetObjectByID(std::uint32_t const ObjectID)
 
 std::uint32_t Renderer::GetNumObjects()
 {
-    return std::size(RenderCore::GetObjects());
+    return static_cast<std::uint32_t>(std::size(RenderCore::GetObjects()));
 }
 
 VkSampler Renderer::GetSampler()

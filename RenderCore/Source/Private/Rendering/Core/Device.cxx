@@ -14,6 +14,7 @@ module;
 
 module RenderCore.Runtime.Device;
 
+import RenderCore.Renderer;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Runtime.Instance;
 import RenderCore.Utils.Helpers;
@@ -275,7 +276,7 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow *const Window)
         Output.Format = *MatchingFormat;
     }
 
-    Output.Mode = VK_PRESENT_MODE_IMMEDIATE_KHR; // VK_PRESENT_MODE_FIFO_KHR;
+    Output.Mode = Renderer::GetUseVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
 
     for (constexpr std::array PreferredDepthFormats { VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT };
          VkFormat const &     FormatIter : PreferredDepthFormats)

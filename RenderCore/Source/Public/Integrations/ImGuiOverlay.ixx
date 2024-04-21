@@ -4,7 +4,6 @@
 
 module;
 
-#include <cstdint>
 #include <GLFW/glfw3.h>
 #include <Volk/volk.h>
 

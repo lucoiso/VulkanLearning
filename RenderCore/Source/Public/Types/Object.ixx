@@ -6,7 +6,6 @@ module;
 
 #include <bitset>
 #include <memory>
-#include <vector>
 #include <glm/ext.hpp>
 #include <Volk/volk.h>
 

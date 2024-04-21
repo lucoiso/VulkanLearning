@@ -4,7 +4,6 @@
 
 module;
 
-#include <array>
 #include <filesystem>
 #include <fstream>
 #include <ranges>

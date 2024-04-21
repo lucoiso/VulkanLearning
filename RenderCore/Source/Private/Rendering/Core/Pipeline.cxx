@@ -131,7 +131,7 @@ void PipelineDescriptorData::SetupSceneBuffer(BufferAllocation const &SceneAlloc
 
         VkDeviceSize const SceneUniformAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
 
-        VkDescriptorAddressInfoEXT SceneDescriptorAddressInfo {
+        VkDescriptorAddressInfoEXT const SceneDescriptorAddressInfo {
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT,
                 .address = SceneUniformAddress,
                 .range = sizeof(SceneUniformData),
@@ -180,11 +180,13 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
         ModelData.BufferDeviceAddress.deviceAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
     }
 
+    constexpr std::uint8_t NumTextures = static_cast<std::uint8_t>(TextureType::Count);
+
     {
         constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
                                                    VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-        CreateBuffer(static_cast<std::uint32_t>(std::size(Objects)) * TextureData.LayoutSize,
+        CreateBuffer(NumTextures * static_cast<std::uint32_t>(std::size(Objects)) * TextureData.LayoutSize,
                      BufferUsage,
                      "Texture Descriptor Buffer",
                      TextureData.Buffer.Buffer,
@@ -200,8 +202,10 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
         TextureData.BufferDeviceAddress.deviceAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
     }
 
-    std::uint32_t ObjectCount  = 0U;
-    std::uint32_t TextureCount = 0U;
+    auto const ModelBuffer   = static_cast<unsigned char *>(ModelData.Buffer.MappedData);
+    auto const TextureBuffer = static_cast<unsigned char *>(TextureData.Buffer.MappedData);
+
+    std::uint32_t ObjectCount = 0U;
     for (std::shared_ptr<Object> const &ObjectIter : Objects)
     {
         {
@@ -229,13 +233,13 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
             vkGetDescriptorEXT(LogicalDevice,
                                &ModelDescriptorInfo,
                                g_DescriptorBufferProperties.uniformBufferDescriptorSize,
-                               static_cast<unsigned char *>(ModelData.Buffer.MappedData) + BufferOffset);
+                               ModelBuffer + BufferOffset);
         }
 
-        auto const &Textures = ObjectIter->GetMesh()->GetTextures();
+        auto const &  Textures     = ObjectIter->GetMesh()->GetTextures();
+        std::uint32_t TextureCount = 0U;
 
-        for (std::uint8_t TypeIter = static_cast<std::uint8_t>(TextureType::BaseColor);
-             TypeIter <= static_cast<std::uint8_t>(TextureType::MetallicRoughness); ++TypeIter)
+        for (std::uint8_t TypeIter = 0U; TypeIter < NumTextures; ++TypeIter)
         {
             auto MatchingTexture = std::ranges::find_if(Textures,
                                                         [TypeIter](std::shared_ptr<Texture> const &Texture)
@@ -256,12 +260,12 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
                     .data = VkDescriptorDataEXT { .pCombinedImageSampler = &ImageDescriptor }
             };
 
-            VkDeviceSize const BufferOffset = (ObjectCount + TextureCount) * TextureData.LayoutSize + TextureData.LayoutOffset;
+            VkDeviceSize const BufferOffset = (TextureCount + ObjectCount * NumTextures) * TextureData.LayoutSize + TextureData.LayoutOffset;
 
             vkGetDescriptorEXT(LogicalDevice,
                                &TextureDescriptorInfo,
                                g_DescriptorBufferProperties.combinedImageSamplerDescriptorSize,
-                               static_cast<unsigned char *>(TextureData.Buffer.MappedData) + BufferOffset);
+                               TextureBuffer + BufferOffset);
 
             ++TextureCount;
         }
@@ -280,7 +284,6 @@ void RenderCore::CreatePipeline()
 
     VkPipelineRenderingCreateInfo const RenderingCreateInfo {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-            .pNext = nullptr,
             .colorAttachmentCount = 1U,
             .pColorAttachmentFormats = &SwapChainImageFormat,
             .depthAttachmentFormat = DepthFormat,
@@ -304,12 +307,11 @@ void RenderCore::CreatePipeline()
         {
             if (StageInfo.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
             {
+                auto const CodeSize                            = static_cast<std::uint32_t>(std::size(ShaderCode) * sizeof(std::uint32_t));
                 ShaderStagesInfo.emplace_back(StageInfo).pNext = &ShaderModuleInfo.emplace_back(VkShaderModuleCreateInfo {
                                                                                                         .sType =
                                                                                                         VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-                                                                                                        .codeSize = static_cast<std::uint32_t>(
-                                                                                                            std::size(ShaderCode) * sizeof(
-                                                                                                                std::uint32_t)),
+                                                                                                        .codeSize = CodeSize,
                                                                                                         .pCode = std::data(ShaderCode)
                                                                                                 });
             }
@@ -424,12 +426,11 @@ void RenderCore::CreatePipelineLibraries()
         {
             if (StageInfo.stage == VK_SHADER_STAGE_VERTEX_BIT)
             {
+                auto const CodeSize                            = static_cast<std::uint32_t>(std::size(ShaderCode) * sizeof(std::uint32_t));
                 ShaderStagesInfo.emplace_back(StageInfo).pNext = &ShaderModuleInfo.emplace_back(VkShaderModuleCreateInfo {
                                                                                                         .sType =
                                                                                                         VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-                                                                                                        .codeSize = static_cast<std::uint32_t>(
-                                                                                                            std::size(ShaderCode) * sizeof(
-                                                                                                                std::uint32_t)),
+                                                                                                        .codeSize = CodeSize,
                                                                                                         .pCode = std::data(ShaderCode)
                                                                                                 });
             }

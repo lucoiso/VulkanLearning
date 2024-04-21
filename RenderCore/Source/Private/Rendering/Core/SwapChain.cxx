@@ -3,11 +3,12 @@
 // Repo : https://github.com/lucoiso/vulkan-renderer
 
 module;
+
 #include <algorithm>
-#include <vector>
 #include <execution>
-#include <Volk/volk.h>
+#include <vector>
 #include <vma/vk_mem_alloc.h>
+#include <Volk/volk.h>
 
 #ifdef GLFW_INCLUDE_VULKAN
     #undef GLFW_INCLUDE_VULKAN
@@ -97,7 +98,10 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
     VkDevice const &LogicalDevice = GetLogicalDevice();
     std::uint32_t   Output        = 0U;
 
-    if (vkAcquireNextImageKHR(LogicalDevice, g_SwapChain, g_Timeout, GetImageAvailableSemaphore(), VK_NULL_HANDLE, &Output) != VK_SUCCESS)
+    VkResult const Result = vkAcquireNextImageKHR(LogicalDevice, g_SwapChain, g_Timeout, GetImageAvailableSemaphore(), GetFence(), &Output);
+    WaitAndResetFences();
+
+    if (Result != VK_SUCCESS)
     {
         return std::nullopt;
     }
