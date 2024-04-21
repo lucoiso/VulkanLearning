@@ -69,17 +69,17 @@ bool DescriptorData::IsValid() const
 
 void DescriptorData::DestroyResources(VmaAllocator const &Allocator)
 {
-    VkDevice const &LogicalDevice = GetLogicalDevice();
-
     if (SetLayout != VK_NULL_HANDLE)
     {
+        VkDevice const &LogicalDevice = GetLogicalDevice();
         vkDestroyDescriptorSetLayout(LogicalDevice, SetLayout, nullptr);
         SetLayout = VK_NULL_HANDLE;
     }
 
+    BufferDeviceAddress.deviceAddress = 0U;
+    LayoutOffset                      = 0U;
+    LayoutSize                        = 0U;
     Buffer.DestroyResources(Allocator);
-    LayoutOffset = 0U;
-    LayoutSize   = 0U;
 }
 
 void DescriptorData::SetDescriptorLayoutSize(VkDeviceSize const &MinAlignment)

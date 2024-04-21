@@ -234,7 +234,6 @@ void RenderCore::LoadScene(std::string_view const ModelPath)
                                                  .DoubleSided = MeshMaterial.doubleSided
                                          });
 
-                auto                                  EmptyTexture = std::make_shared<Texture>(UINT32_MAX, "EMPTY_TEXT", "EMPTY_TEXT");
                 std::vector<std::shared_ptr<Texture>> Textures {};
 
                 if (MeshMaterial.pbrMetallicRoughness.baseColorTexture.index >= 0)
@@ -243,20 +242,12 @@ void RenderCore::LoadScene(std::string_view const ModelPath)
                     Texture->AppendType(TextureType::BaseColor);
                     Textures.push_back(Texture);
                 }
-                else
-                {
-                    EmptyTexture->AppendType(TextureType::BaseColor);
-                }
 
                 if (MeshMaterial.normalTexture.index >= 0)
                 {
                     auto Texture = TextureMap.at(MeshMaterial.normalTexture.index);
                     Texture->AppendType(TextureType::Normal);
                     Textures.push_back(Texture);
-                }
-                else
-                {
-                    EmptyTexture->AppendType(TextureType::Normal);
                 }
 
                 if (MeshMaterial.occlusionTexture.index >= 0)
@@ -265,10 +256,6 @@ void RenderCore::LoadScene(std::string_view const ModelPath)
                     Texture->AppendType(TextureType::Occlusion);
                     Textures.push_back(Texture);
                 }
-                else
-                {
-                    EmptyTexture->AppendType(TextureType::Occlusion);
-                }
 
                 if (MeshMaterial.emissiveTexture.index >= 0)
                 {
@@ -276,25 +263,12 @@ void RenderCore::LoadScene(std::string_view const ModelPath)
                     Texture->AppendType(TextureType::Emissive);
                     Textures.push_back(Texture);
                 }
-                else
-                {
-                    EmptyTexture->AppendType(TextureType::Emissive);
-                }
 
                 if (MeshMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
                 {
                     auto Texture = TextureMap.at(MeshMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index);
                     Texture->AppendType(TextureType::MetallicRoughness);
                     Textures.push_back(Texture);
-                }
-                else
-                {
-                    EmptyTexture->AppendType(TextureType::MetallicRoughness);
-                }
-
-                if (!std::empty(EmptyTexture->GetTypes()))
-                {
-                    Textures.push_back(std::move(EmptyTexture));
                 }
 
                 NewMesh->SetTextures(std::move(Textures));

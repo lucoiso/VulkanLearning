@@ -38,6 +38,9 @@ export namespace RenderCore
 
     constexpr std::array g_DynamicStates { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH };
 
+    constexpr std::array g_PreferredImageFormats { VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_A8B8G8R8_UNORM_PACK32 };
+    constexpr std::array g_PreferredDepthFormats { VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT };
+
     constexpr std::uint64_t g_MinMemoryBlock             = 2U;
     constexpr std::uint64_t g_BufferMemoryAllocationSize = 2U * 1024U * 1024U; // 2MB
     constexpr std::uint64_t g_ImageMemoryAllocationSize  = g_BufferMemoryAllocationSize * 8U;

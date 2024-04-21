@@ -96,7 +96,6 @@ void PipelineDescriptorData::DestroyResources(VmaAllocator const &Allocator)
 void PipelineDescriptorData::SetDescriptorLayoutSize()
 {
     VkPhysicalDeviceProperties2 DeviceProperties { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2, .pNext = &g_DescriptorBufferProperties };
-
     vkGetPhysicalDeviceProperties2(GetPhysicalDevice(), &DeviceProperties);
 
     SceneData.SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
@@ -252,7 +251,9 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
                                                                                         }) != std::end(Types);
                                                         });
 
-            auto const &ImageDescriptor = (*MatchingTexture)->GetImageDescriptor();
+            auto const &ImageDescriptor = MatchingTexture != std::cend(Textures)
+                                              ? (*MatchingTexture)->GetImageDescriptor()
+                                              : GetAllocationImageDescriptor(0U);
 
             VkDescriptorGetInfoEXT const TextureDescriptorInfo {
                     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,

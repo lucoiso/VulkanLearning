@@ -44,5 +44,5 @@ void main() {
 
     vec3 emissive = texture(samplerEmissiveMap, fragData.model_uv).rgb * fragData.material_emissiveFactor;
 
-    outFragColor = vec4(baseColor.xyz * (ambient + diffuse + emissive), baseColor.a);
+    outFragColor = vec4(ambient + diffuse + emissive, baseColor.a);
 }

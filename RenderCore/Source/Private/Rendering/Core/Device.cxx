@@ -265,21 +265,23 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow *const Window)
 
     SurfaceProperties Output { .Format = SupportedFormats.front(), .Extent = GetWindowExtent(Window, GetSurfaceCapabilities()) };
 
-    if (auto const MatchingFormat = std::ranges::find_if(SupportedFormats,
-                                                         [](VkSurfaceFormatKHR const &Iter)
+    if (auto const MatchingFormat = std::ranges::find_if(g_PreferredImageFormats,
+                                                         [&SupportedFormats](VkFormat const &Format)
                                                          {
-                                                             return Iter.format == VK_FORMAT_R8G8B8A8_SRGB && Iter.colorSpace ==
-                                                                    VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+                                                             return std::ranges::find_if(SupportedFormats,
+                                                                                         [Format](VkSurfaceFormatKHR const &SurfaceFormat)
+                                                                                         {
+                                                                                             return SurfaceFormat.format == Format;
+                                                                                         }) != std::cend(SupportedFormats);
                                                          });
-        MatchingFormat != std::cend(SupportedFormats))
+        MatchingFormat != std::cend(g_PreferredImageFormats))
     {
-        Output.Format = *MatchingFormat;
+        Output.Format = SupportedFormats.at(std::distance(std::cbegin(g_PreferredImageFormats), MatchingFormat));
     }
 
     Output.Mode = Renderer::GetUseVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
 
-    for (constexpr std::array PreferredDepthFormats { VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT };
-         VkFormat const &     FormatIter : PreferredDepthFormats)
+    for (VkFormat const &FormatIter : g_PreferredDepthFormats)
     {
         VkFormatProperties FormatProperties;
         vkGetPhysicalDeviceFormatProperties(g_PhysicalDevice, FormatIter, &FormatProperties);

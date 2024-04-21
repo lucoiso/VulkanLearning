@@ -259,7 +259,6 @@ void BeginRendering(std::uint32_t const ImageIndex, ImageAllocation const &Swapc
 
     VkRenderingInfo const RenderingInfo {
             .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-            .pNext = nullptr,
             .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
             .renderArea = { .offset = { 0, 0 }, .extent = SwapchainAllocation.Extent },
             .layerCount = 1U,

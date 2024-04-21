@@ -98,10 +98,7 @@ std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
     VkDevice const &LogicalDevice = GetLogicalDevice();
     std::uint32_t   Output        = 0U;
 
-    VkResult const Result = vkAcquireNextImageKHR(LogicalDevice, g_SwapChain, g_Timeout, GetImageAvailableSemaphore(), GetFence(), &Output);
-    WaitAndResetFences();
-
-    if (Result != VK_SUCCESS)
+    if (vkAcquireNextImageKHR(LogicalDevice, g_SwapChain, g_Timeout, GetImageAvailableSemaphore(), VK_NULL_HANDLE, &Output) != VK_SUCCESS)
     {
         return std::nullopt;
     }
