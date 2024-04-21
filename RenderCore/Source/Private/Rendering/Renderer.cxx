@@ -52,7 +52,7 @@ std::optional<std::int32_t> g_ImageIndex {};
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
                                                        RendererStateFlags::PENDING_RESOURCES_DESTRUCTION |
                                                        RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::PENDING_PIPELINE_REFRESH |
-                                                       RendererStateFlags::PENDING_COMMANDS_RECORD;
+                                                       RendererStateFlags::PENDING_COMMANDS_ALLOCATION;
 
 void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Control *const Owner)
 {
@@ -101,26 +101,17 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             PipelineDescriptor.SetupModelsBuffer(GetObjects());
 
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
-            AddFlags(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_RECORD);
+            AddFlags(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_ALLOCATION);
         }
-        else if (HasFlag(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_RECORD))
+        else if (HasFlag(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_ALLOCATION))
         {
             AllocateCommandBuffers(GetGraphicsQueue().first, GetNumAllocations());
-
-            for (std::uint32_t Iterator = 0U; Iterator < g_MinImageCount; ++Iterator)
-            {
-                RecordCommandBuffers(Iterator);
-            }
-
-            RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_RECORD);
+            RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_ALLOCATION);
         }
     }
     else if (g_ImageIndex = RequestImageIndex();
         g_ImageIndex.has_value())
     {
-        UpdateSceneUniformBuffer();
-        UpdateObjectsUniformBuffer();
-
         Tick();
 
         #ifdef VULKAN_RENDERER_ENABLE_IMGUI
@@ -130,6 +121,8 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender) && g_ImageIndex.has_value())
         {
             std::int32_t const ImageIndex = g_ImageIndex.value();
+            UpdateSceneUniformBuffer();
+            RecordCommandBuffers(ImageIndex);
             SubmitCommandBuffers(ImageIndex);
             PresentFrame(ImageIndex);
         }
