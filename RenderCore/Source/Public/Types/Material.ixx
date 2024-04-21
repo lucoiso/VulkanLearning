@@ -19,6 +19,8 @@ namespace RenderCore
         Occlusion,
         Emissive,
         MetallicRoughness,
+
+        Count
     };
 
     export enum class AlphaMode : std::uint8_t { ALPHA_OPAQUE, ALPHA_MASK, ALPHA_BLEND };

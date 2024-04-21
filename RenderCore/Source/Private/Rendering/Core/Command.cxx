@@ -308,8 +308,9 @@ std::vector<VkCommandBuffer> RecordSceneCommands(ImageAllocation const &Swapchai
     SecondaryBeginInfo.flags                    = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
     SecondaryBeginInfo.pInheritanceInfo         = &InheritanceInfo;
 
-    VkPipeline const &Pipeline = GetMainPipeline();
-    auto const &      Objects  = GetObjects();
+    VkPipeline const &      Pipeline       = GetMainPipeline();
+    VkPipelineLayout const &PipelineLayout = GetPipelineLayout();
+    auto const &            Objects        = GetObjects();
 
     if (std::empty(Objects))
     {
@@ -330,7 +331,7 @@ std::vector<VkCommandBuffer> RecordSceneCommands(ImageAllocation const &Swapchai
             break;
         }
 
-        g_ThreadPool.AddTask([CommandBuffer, ThreadIndex, &Objects, &Camera, &Pipeline, &SecondaryBeginInfo, &SwapchainAllocation]
+        g_ThreadPool.AddTask([CommandBuffer, ThreadIndex, &Objects, &Camera, &Pipeline, &PipelineLayout, &SecondaryBeginInfo, &SwapchainAllocation]
                              {
                                  CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
                                  {
@@ -353,7 +354,7 @@ std::vector<VkCommandBuffer> RecordSceneCommands(ImageAllocation const &Swapchai
                                              continue;
                                          }
 
-                                         Object->DrawObject(CommandBuffer);
+                                         Object->DrawObject(CommandBuffer, PipelineLayout, ObjectAccessIndex);
                                          Object->UpdateUniformBuffers();
                                      }
                                  }

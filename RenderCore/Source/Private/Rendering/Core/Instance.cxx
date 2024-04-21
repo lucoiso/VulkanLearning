@@ -97,3 +97,8 @@ void RenderCore::DestroyVulkanInstance()
     vkDestroyInstance(g_Instance, nullptr);
     g_Instance = VK_NULL_HANDLE;
 }
+
+VkInstance const &RenderCore::GetInstance()
+{
+    return g_Instance;
+}

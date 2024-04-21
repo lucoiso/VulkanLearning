@@ -83,8 +83,7 @@ void Window::Draw()
     if (auto const DeltaTime = static_cast<double>(Milliseconds) / Denominator;
         DeltaTime >= Renderer::GetFrameRateCap())
     {
+        LastTime = CurrentTime;
         DrawFrame(m_GLFWHandler.GetWindow(), DeltaTime, this);
     }
-
-    LastTime = CurrentTime;
 }

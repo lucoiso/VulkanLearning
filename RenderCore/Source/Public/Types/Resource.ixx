@@ -5,8 +5,6 @@
 module;
 
 #include <string_view>
-#include <vector>
-#include <Volk/volk.h>
 
 #include "RenderCoreModule.hpp"
 
@@ -39,10 +37,5 @@ namespace RenderCore
         [[nodiscard]] bool IsPendingDestroy() const;
 
         virtual void Destroy();
-
-        [[nodiscard]] virtual std::vector<VkWriteDescriptorSet> GetWriteDescriptorSet() const
-        {
-            return {};
-        }
     };
 } // namespace RenderCore

@@ -46,37 +46,10 @@ void Texture::AppendType(TextureType const Type)
 
 void Texture::SetupTexture()
 {
-    if (GetID() == UINT32_MAX)
-    {
-        m_ImageDescriptor = VkDescriptorImageInfo {
-                .sampler = GetSampler(),
-                .imageView = GetEmptyImage().View,
-                .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL
-        };
-    }
-    else
-    {
-        m_ImageDescriptor = GetAllocationImageDescriptor(GetBufferIndex());
-    }
+    m_ImageDescriptor = GetAllocationImageDescriptor(GetID() == UINT32_MAX ? 0U : GetBufferIndex());
 }
 
-std::vector<VkWriteDescriptorSet> Texture::GetWriteDescriptorSet() const
+VkDescriptorImageInfo Texture::GetImageDescriptor() const
 {
-    std::vector<VkWriteDescriptorSet> Output;
-    Output.reserve(std::size(m_Types));
-
-    for (TextureType const TypeIter : m_Types)
-    {
-        Output.push_back(VkWriteDescriptorSet {
-                                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                 .dstSet = VK_NULL_HANDLE,
-                                 .dstBinding = 2U + static_cast<std::uint32_t>(TypeIter),
-                                 .dstArrayElement = 0U,
-                                 .descriptorCount = 1U,
-                                 .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                 .pImageInfo = &m_ImageDescriptor,
-                         });
-    }
-
-    return Output;
+    return m_ImageDescriptor;
 }

@@ -137,20 +137,6 @@ void Mesh::SetTextures(std::vector<std::shared_ptr<Texture>> const &Textures)
     }
 }
 
-std::vector<VkWriteDescriptorSet> Mesh::GetWriteDescriptorSet() const
-{
-    std::vector<VkWriteDescriptorSet> Output {};
-    Output.reserve(std::size(m_Textures));
-
-    for (auto const &Texture : m_Textures)
-    {
-        auto const WriteDescriptorSet = Texture->GetWriteDescriptorSet();
-        Output.insert(std::end(Output), std::begin(WriteDescriptorSet), std::end(WriteDescriptorSet));
-    }
-
-    return Output;
-}
-
 void Mesh::BindBuffers(VkCommandBuffer const &CommandBuffer) const
 {
     VkBuffer const &AllocationBuffer = GetAllocationBuffer(GetBufferIndex());

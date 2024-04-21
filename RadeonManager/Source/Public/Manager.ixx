@@ -30,7 +30,8 @@ export namespace RadeonManager
     }
 
     template <typename T>
-        requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, ADLX_RESULT> || std::is_same_v<std::invoke_result_t<T>, ADLX_RESULT &>)
+        requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, ADLX_RESULT> || std::is_same_v<
+                                                std::invoke_result_t<T>, ADLX_RESULT &>)
     constexpr bool CheckADLXResult(T &&InputOperation)
     {
         return CheckVulkanResult(InputOperation());

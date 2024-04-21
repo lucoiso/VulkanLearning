@@ -46,6 +46,7 @@ std::vector<std::string>    g_ModelsToLoad {};
 std::vector<std::uint32_t>  g_ModelsToUnload {};
 double                      g_FrameTime { 0.F };
 double                      g_FrameRateCap { 0.016667F };
+bool                        g_UseVSync { true };
 std::optional<std::int32_t> g_ImageIndex {};
 
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
@@ -97,8 +98,13 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         }
         else if (HasFlag(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH))
         {
-            CreateDescriptorSetLayout();
+            SetupPipelineLayouts();
+            CreatePipelineLibraries();
             CreatePipeline();
+            PipelineDescriptorData &PipelineDescriptor = GetPipelineDescriptorData();
+            PipelineDescriptor.SetupSceneBuffer(GetSceneUniformBuffer());
+            PipelineDescriptor.SetupModelsBuffer(GetObjects());
+
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
         }
     }
@@ -191,7 +197,7 @@ bool RenderCore::Initialize(GLFWwindow *const Window)
 
     CheckVulkanResult(volkInitialize());
 
-    [[maybe_unused]] bool const _1 = CreateVulkanInstance();
+    [[maybe_unused]] bool const _ = CreateVulkanInstance();
     CreateVulkanSurface(Window);
     InitializeDevice(GetSurface());
     volkLoadDevice(GetLogicalDevice());
@@ -200,8 +206,8 @@ bool RenderCore::Initialize(GLFWwindow *const Window)
     CreateMemoryAllocator();
     CreateSceneUniformBuffer();
     CreateImageSampler();
-    [[maybe_unused]] auto const _2                = CompileDefaultShaders();
-    auto const                  SurfaceProperties = GetSurfaceProperties(Window);
+    CompileDefaultShaders();
+    auto const SurfaceProperties = GetSurfaceProperties(Window);
     AllocateEmptyTexture(SurfaceProperties.Format.format);
 
     #ifdef VULKAN_RENDERER_ENABLE_IMGUI
@@ -233,8 +239,8 @@ void RenderCore::Shutdown([[maybe_unused]] GLFWwindow *const Window)
     ReleaseCommandsResources();
     ReleaseSynchronizationObjects();
     ReleaseSceneResources();
-    ReleaseMemoryResources();
     ReleasePipelineResources();
+    ReleaseMemoryResources();
     ReleaseDeviceResources();
     DestroyVulkanInstance();
 }
@@ -286,6 +292,11 @@ void Renderer::RequestDestroyObjects()
     AddFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_CLEAR);
 }
 
+void Renderer::RequestUpdateResources()
+{
+    AddStateFlag(RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+}
+
 double Renderer::GetFrameTime()
 {
     return g_FrameTime;
@@ -297,6 +308,16 @@ void Renderer::SetFrameRateCap(double const FrameRateCap)
     {
         g_FrameRateCap = 1.0 / FrameRateCap;
     }
+}
+
+bool Renderer::GetUseVSync()
+{
+    return g_UseVSync;
+}
+
+void Renderer::SetUseVSync(bool const Value)
+{
+    g_UseVSync = Value;
 }
 
 double Renderer::GetFrameRateCap()
@@ -350,7 +371,7 @@ std::shared_ptr<Object> Renderer::GetObjectByID(std::uint32_t const ObjectID)
 
 std::uint32_t Renderer::GetNumObjects()
 {
-    return std::size(RenderCore::GetObjects());
+    return static_cast<std::uint32_t>(std::size(RenderCore::GetObjects()));
 }
 
 VkSampler Renderer::GetSampler()

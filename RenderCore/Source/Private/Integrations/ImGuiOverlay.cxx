@@ -22,6 +22,7 @@ import RenderCore.Runtime.Device;
 import RenderCore.Runtime.Pipeline;
 import RenderCore.Runtime.Command;
 import RenderCore.Runtime.SwapChain;
+import RenderCore.Runtime.Instance;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Types.Camera;
@@ -88,7 +89,7 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, SurfacePropert
     auto const &[QueueFamilyIndex, Queue] = GetGraphicsQueue();
 
     ImGui_ImplVulkan_InitInfo ImGuiVulkanInitInfo {
-            .Instance = volkGetLoadedInstance(),
+            .Instance = GetInstance(),
             .PhysicalDevice = GetPhysicalDevice(),
             .Device = GetLogicalDevice(),
             .QueueFamily = QueueFamilyIndex,
@@ -176,9 +177,8 @@ void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
                     .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
                     .imageView = SwapchainAllocation.View,
                     .imageLayout = SwapChainMidLayout,
-                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                    .clearValue = g_ClearValues.at(0U)
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE
             };
 
             VkRenderingInfo const RenderingInfo {

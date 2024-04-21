@@ -23,7 +23,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL RenderCore::ValidationLayerDebugCallback([[maybe_
                                                                         [[maybe_unused]] void *                                       UserData)
 {
     // if (MessageSeverity > VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) // - uncomment to print only warnings and errors
-    if (!HasFlag<VkDebugUtilsMessageTypeFlagsEXT>(MessageType, VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)) // - uncomment to avoid imgui performance warnings
+    // if (!HasFlag<VkDebugUtilsMessageTypeFlagsEXT>(MessageType, VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)) // - uncomment to avoid imgui performance warnings
     {
         BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Message: " << CallbackData->pMessage;
     }

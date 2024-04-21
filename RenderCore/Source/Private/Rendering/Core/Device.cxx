@@ -14,7 +14,9 @@ module;
 
 module RenderCore.Runtime.Device;
 
+import RenderCore.Renderer;
 import RenderCore.Runtime.SwapChain;
+import RenderCore.Runtime.Instance;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.DebugHelpers;
@@ -158,10 +160,31 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
                                   });
     }
 
+    VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT PipelineLibraryProperties {
+            // Required
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT,
+            .pNext = nullptr,
+            .graphicsPipelineLibrary = VK_TRUE,
+    };
+
+    VkPhysicalDeviceBufferDeviceAddressFeatures BufferDeviceAddressFeatures {
+            // Required
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
+            .pNext = &PipelineLibraryProperties,
+            .bufferDeviceAddress = VK_TRUE
+    };
+
+    VkPhysicalDeviceDescriptorBufferFeaturesEXT DescriptorBufferFeatures {
+            // Required
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT,
+            .pNext = &BufferDeviceAddressFeatures,
+            .descriptorBuffer = VK_TRUE
+    };
+
     VkPhysicalDeviceMeshShaderFeaturesEXT MeshShaderFeatures {
             // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
-            .pNext = nullptr,
+            .pNext = &DescriptorBufferFeatures,
             .taskShader = VK_TRUE,
             .meshShader = VK_TRUE
     };
@@ -180,16 +203,9 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
             .dynamicRendering = VK_TRUE
     };
 
-    VkPhysicalDeviceRobustness2FeaturesEXT RobustnessFeatures {
-            // Required
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
-            .pNext = &DynamicRenderingFeatures,
-            .nullDescriptor = VK_TRUE
-    };
-
     VkPhysicalDeviceFeatures2 DeviceFeatures {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-            .pNext = &RobustnessFeatures,
+            .pNext = &DynamicRenderingFeatures,
             .features = VkPhysicalDeviceFeatures {
                     .independentBlend = VK_TRUE,
                     .drawIndirectFirstInstance = true,
@@ -260,7 +276,7 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow *const Window)
         Output.Format = *MatchingFormat;
     }
 
-    Output.Mode = VK_PRESENT_MODE_IMMEDIATE_KHR; // VK_PRESENT_MODE_FIFO_KHR;
+    Output.Mode = Renderer::GetUseVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
 
     for (constexpr std::array PreferredDepthFormats { VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT };
          VkFormat const &     FormatIter : PreferredDepthFormats)
@@ -329,7 +345,7 @@ void RenderCore::ReleaseDeviceResources()
 
 std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()
 {
-    VkInstance const &VulkanInstance = volkGetLoadedInstance();
+    VkInstance const &VulkanInstance = GetInstance();
 
     std::uint32_t DeviceCount = 0U;
     CheckVulkanResult(vkEnumeratePhysicalDevices(VulkanInstance, &DeviceCount, nullptr));

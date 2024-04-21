@@ -36,4 +36,18 @@ namespace RenderCore
         [[nodiscard]] bool IsValid() const;
         void               DestroyResources(VmaAllocator const &);
     };
+
+    export struct DescriptorData
+    {
+        VkDescriptorSetLayout         SetLayout { VK_NULL_HANDLE };
+        VkDeviceOrHostAddressConstKHR BufferDeviceAddress {};
+        VkDeviceSize                  LayoutOffset { 0U };
+        VkDeviceSize                  LayoutSize { 0U };
+        BufferAllocation              Buffer {};
+
+        [[nodiscard]] bool IsValid() const;
+        void               DestroyResources(VmaAllocator const &);
+
+        void SetDescriptorLayoutSize(VkDeviceSize const &);
+    };
 } // namespace RenderCore

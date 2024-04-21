@@ -45,7 +45,6 @@ std::pair<BufferAllocation, VkDescriptorBufferInfo> m_UniformBufferAllocation {}
 
 VkSampler                            g_Sampler { VK_NULL_HANDLE };
 ImageAllocation                      g_DepthImage {};
-ImageAllocation                      g_EmptyImage {};
 std::atomic<std::uint64_t>           g_ObjectAllocationIDCounter { 0U };
 std::vector<std::shared_ptr<Object>> g_Objects {};
 std::mutex                           g_ObjectMutex {};
@@ -357,7 +356,6 @@ void RenderCore::ReleaseSceneResources()
 
     VmaAllocator const &Allocator = GetAllocator();
     m_UniformBufferAllocation.first.DestroyResources(Allocator);
-    g_EmptyImage.DestroyResources(Allocator);
     g_DepthImage.DestroyResources(Allocator);
 
     DestroyObjects();
@@ -402,11 +400,6 @@ VkSampler const &RenderCore::GetSampler()
     return g_Sampler;
 }
 
-ImageAllocation const &RenderCore::GetEmptyImage()
-{
-    return g_EmptyImage;
-}
-
 std::vector<std::shared_ptr<Object>> &RenderCore::GetObjects()
 {
     return g_Objects;
@@ -415,6 +408,11 @@ std::vector<std::shared_ptr<Object>> &RenderCore::GetObjects()
 std::uint32_t RenderCore::GetNumAllocations()
 {
     return static_cast<std::uint32_t>(std::size(g_Objects));
+}
+
+BufferAllocation const &RenderCore::GetSceneUniformBuffer()
+{
+    return m_UniformBufferAllocation.first;
 }
 
 void *RenderCore::GetSceneUniformData()

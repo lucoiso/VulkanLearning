@@ -16,38 +16,38 @@ module;
 
 export module RenderCore.Utils.Helpers;
 
+import RenderCore.Runtime.Instance;
 
-namespace RenderCore
+export namespace RenderCore
 {
-    export [[nodiscard]] VkExtent2D GetWindowExtent(GLFWwindow *, VkSurfaceCapabilitiesKHR const &);
+    [[nodiscard]] VkExtent2D GetWindowExtent(GLFWwindow *, VkSurfaceCapabilitiesKHR const &);
 
-    export [[nodiscard]] std::vector<std::string> GetGLFWExtensions();
+    [[nodiscard]] std::vector<std::string> GetGLFWExtensions();
 
-    export [[nodiscard]] std::vector<VkLayerProperties> GetAvailableInstanceLayers();
+    [[nodiscard]] std::vector<VkLayerProperties> GetAvailableInstanceLayers();
 
-    export [[nodiscard]] std::vector<std::string> GetAvailableInstanceLayersNames();
+    [[nodiscard]] std::vector<std::string> GetAvailableInstanceLayersNames();
 
-    export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceExtensions();
+    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceExtensions();
 
-    export [[nodiscard]] std::vector<std::string> GetAvailableInstanceExtensionsNames();
+    [[nodiscard]] std::vector<std::string> GetAvailableInstanceExtensionsNames();
 
-    export [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceLayerExtensions(std::string_view);
+    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceLayerExtensions(std::string_view);
 
-    export [[nodiscard]] std::vector<std::string> GetAvailableInstanceLayerExtensionsNames(std::string_view);
+    [[nodiscard]] std::vector<std::string> GetAvailableInstanceLayerExtensionsNames(std::string_view);
 
-    export [[nodiscard]] VkVertexInputBindingDescription GetBindingDescriptors(std::uint32_t);
+    [[nodiscard]] VkVertexInputBindingDescription GetBindingDescriptors(std::uint32_t);
 
-    export [[nodiscard]] std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(std::uint32_t,
-                                                                                                 std::vector<VkVertexInputAttributeDescription> const
-                                                                                                 &);
+    [[nodiscard]] std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(std::uint32_t,
+                                                                                          std::vector<VkVertexInputAttributeDescription> const &);
 
-    export template <typename ItemType, typename ContainerType>
+    template <typename ItemType, typename ContainerType>
     constexpr bool Contains(ContainerType const &Container, ItemType const &Item)
     {
         return std::ranges::find(Container, Item) != std::cend(Container);
     }
 
-    export template <typename Out, typename Opt, typename Avail>
+    template <typename Out, typename Opt, typename Avail>
     constexpr void GetAvailableResources(std::string_view const Identifier, Out &Resource, Opt const &Optional, Avail const &Available)
     {
         std::for_each(std::execution::unseq,
@@ -73,28 +73,28 @@ namespace RenderCore
                       });
     }
 
-    export template <typename T>
+    template <typename T>
         requires std::is_same_v<T, VkResult> || std::is_same_v<T, VkResult &>
     constexpr void CheckVulkanResult(T &&InputOperation)
     {
         assert(InputOperation == VK_SUCCESS);
     }
 
-    export template <typename T>
+    template <typename T>
         requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, VkResult> || std::is_same_v<std::invoke_result_t<T>, VkResult &>)
     constexpr void CheckVulkanResult(T &&InputOperation)
     {
         CheckVulkanResult(InputOperation());
     }
 
-    export constexpr bool DepthHasStencil(VkFormat const &Format)
+    constexpr bool DepthHasStencil(VkFormat const &Format)
     {
         return Format >= VK_FORMAT_D16_UNORM_S8_UINT && Format <= VK_FORMAT_D32_SFLOAT_S8_UINT;
     }
 
-    export template <typename T>
+    template <typename T>
     constexpr T LoadVulkanProcedure(std::string_view const ProcedureName)
     {
-        return reinterpret_cast<T>(vkGetInstanceProcAddr(volkGetLoadedInstance(), ProcedureName.data()));
+        return reinterpret_cast<T>(vkGetInstanceProcAddr(GetInstance(), ProcedureName.data()));
     }
 } // namespace RenderCore

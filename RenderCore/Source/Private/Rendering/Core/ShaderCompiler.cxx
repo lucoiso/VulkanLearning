@@ -4,7 +4,6 @@
 
 module;
 
-#include <array>
 #include <filesystem>
 #include <fstream>
 #include <ranges>
@@ -21,13 +20,12 @@ module;
 
 module RenderCore.Runtime.ShaderCompiler;
 
-import RenderCore.Runtime.Device;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.DebugHelpers;
 
 using namespace RenderCore;
 
-std::unordered_map<VkShaderModule, VkPipelineShaderStageCreateInfo> g_StageInfos {};
+std::vector<ShaderStageData> g_StageInfos;
 
 bool CompileInternal(ShaderType const            ShaderType,
                      std::string_view const      Source,
@@ -89,71 +87,6 @@ bool CompileInternal(ShaderType const            ShaderType,
     }
 
     return !std::empty(OutSPIRVCode);
-}
-
-void StageInfo(VkShaderModule const &Module, EShLanguage const Language, std::string_view const EntryPoint)
-{
-    VkPipelineShaderStageCreateInfo StageInfo {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .module = Module,
-            .pName = std::data(EntryPoint)
-    };
-
-    switch (Language)
-    {
-        case EShLangVertex:
-            StageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-            break;
-
-        case EShLangFragment:
-            StageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-            break;
-
-        case EShLangCompute:
-            StageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-            break;
-
-        case EShLangGeometry:
-            StageInfo.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
-            break;
-
-        case EShLangTessControl:
-            StageInfo.stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
-            break;
-
-        case EShLangTessEvaluation:
-            StageInfo.stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
-            break;
-
-        case EShLangRayGen:
-            StageInfo.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-            break;
-
-        case EShLangIntersect:
-            StageInfo.stage = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
-            break;
-
-        case EShLangAnyHit:
-            StageInfo.stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
-            break;
-
-        case EShLangClosestHit:
-            StageInfo.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-            break;
-
-        case EShLangMiss:
-            StageInfo.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
-            break;
-
-        case EShLangCallable:
-            StageInfo.stage = VK_SHADER_STAGE_CALLABLE_BIT_KHR;
-            break;
-
-        default:
-            break;
-    }
-
-    g_StageInfos.emplace(Module, StageInfo);
 }
 
 #ifdef _DEBUG
@@ -295,104 +228,31 @@ bool RenderCore::CompileOrLoadIfExists(std::string_view const      Source,
     return Compile(Source, ShaderType, EntryPoint, Version, Language, OutSPIRVCode);
 }
 
-VkShaderModule RenderCore::CreateModule(std::vector<std::uint32_t> const &SPIRVCode, EShLanguage const Language, std::string_view const EntryPoint)
+std::vector<ShaderStageData> const &RenderCore::GetStageData()
 {
-    #ifdef _DEBUG
-    if (!ValidateSPIRV(SPIRVCode))
-    {
-        return VK_NULL_HANDLE;
-    }
-    #endif
-
-    VkShaderModuleCreateInfo const CreateInfo {
-            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-            .codeSize = std::size(SPIRVCode) * sizeof(std::uint32_t),
-            .pCode = std::data(SPIRVCode)
-    };
-
-    VkDevice const &LogicalDevice = GetLogicalDevice();
-
-    VkShaderModule Output = nullptr;
-    CheckVulkanResult(vkCreateShaderModule(LogicalDevice, &CreateInfo, nullptr, &Output));
-
-    StageInfo(Output, Language, EntryPoint);
-
-    return Output;
-}
-
-VkPipelineShaderStageCreateInfo RenderCore::GetStageInfo(VkShaderModule const &Module)
-{
-    return g_StageInfos.at(Module);
-}
-
-std::vector<VkShaderModule> RenderCore::GetShaderModules()
-{
-    std::vector<VkShaderModule> Output;
-    for (auto const &ShaderModule : g_StageInfos | std::views::keys)
-    {
-        Output.push_back(ShaderModule);
-    }
-
-    return Output;
-}
-
-std::vector<VkPipelineShaderStageCreateInfo> RenderCore::GetStageInfos()
-{
-    std::vector<VkPipelineShaderStageCreateInfo> Output;
-    for (auto const &StageInfo : g_StageInfos | std::views::values)
-    {
-        Output.push_back(StageInfo);
-    }
-
-    return Output;
+    return g_StageInfos;
 }
 
 void RenderCore::ReleaseShaderResources()
 {
-    VkDevice const &LogicalDevice = GetLogicalDevice();
-
-    for (auto const &ShaderModule : g_StageInfos | std::views::keys)
-    {
-        if (ShaderModule != VK_NULL_HANDLE)
-        {
-            vkDestroyShaderModule(LogicalDevice, ShaderModule, nullptr);
-        }
-    }
     g_StageInfos.clear();
 }
 
-void RenderCore::FreeStagedModules(std::vector<VkPipelineShaderStageCreateInfo> const &StagedModules)
-{
-    VkDevice const &LogicalDevice = GetLogicalDevice();
-
-    for (const auto &[Type, Next, Flags, Stage, Module, Name, Info] : StagedModules)
-    {
-        if (Module != VK_NULL_HANDLE)
-        {
-            vkDestroyShaderModule(LogicalDevice, Module, nullptr);
-        }
-
-        if (g_StageInfos.contains(Module))
-        {
-            g_StageInfos.erase(Module);
-        }
-    }
-}
-
-std::vector<VkPipelineShaderStageCreateInfo> RenderCore::CompileDefaultShaders()
+void RenderCore::CompileDefaultShaders()
 {
     constexpr auto GlslVersion = 450;
     constexpr auto EntryPoint  = "main";
 
-    std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
-
-    auto const CompileAndStage = [&ShaderStages, EntryPoint, GlslVersion](std::string_view const Shader, EShLanguage const Language)
+    auto const CompileAndStage = [EntryPoint, GlslVersion](std::string_view const Shader, EShLanguage const Language)
     {
-        if (std::vector<std::uint32_t> ShaderCode;
+        if (auto &[StageInfo, ShaderCode] = g_StageInfos.emplace_back();
             CompileOrLoadIfExists(Shader, ShaderType::GLSL, EntryPoint, GlslVersion, Language, ShaderCode))
         {
-            auto const Module = CreateModule(ShaderCode, Language, EntryPoint);
-            ShaderStages.push_back(GetStageInfo(Module));
+            StageInfo = VkPipelineShaderStageCreateInfo {
+                    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                    .stage = Language == EShLangVertex ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pName = EntryPoint
+            };
         }
     };
 
@@ -411,6 +271,4 @@ std::vector<VkPipelineShaderStageCreateInfo> RenderCore::CompileDefaultShaders()
     constexpr auto FragmentLang { EShLangFragment };
     constexpr auto FragmentShader { DEFAULT_FRAGMENT_SHADER };
     CompileAndStage(FragmentShader, FragmentLang);
-
-    return ShaderStages;
 }
