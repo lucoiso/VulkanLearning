@@ -54,6 +54,8 @@ export namespace RenderCore
 
     void UpdateSceneUniformBuffer();
 
+    void UpdateObjectsUniformBuffer();
+
     [[nodiscard]] Camera &GetCamera();
 
     [[nodiscard]] Illumination &GetIllumination();

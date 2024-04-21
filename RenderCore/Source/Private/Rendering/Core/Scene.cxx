@@ -414,6 +414,17 @@ void RenderCore::UpdateSceneUniformBuffer()
     }
 }
 
+void RenderCore::UpdateObjectsUniformBuffer()
+{
+    std::for_each(std::execution::unseq,
+                  std::begin(g_Objects),
+                  std::end(g_Objects),
+                  [](std::shared_ptr<Object> const &ObjectIter)
+                  {
+                      ObjectIter->UpdateUniformBuffers();
+                  });
+}
+
 Camera &RenderCore::GetCamera()
 {
     return g_Camera;

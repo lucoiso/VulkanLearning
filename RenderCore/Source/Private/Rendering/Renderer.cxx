@@ -51,7 +51,8 @@ std::optional<std::int32_t> g_ImageIndex {};
 
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
                                                        RendererStateFlags::PENDING_RESOURCES_DESTRUCTION |
-                                                       RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::PENDING_PIPELINE_REFRESH;
+                                                       RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::PENDING_PIPELINE_REFRESH |
+                                                       RendererStateFlags::PENDING_COMMANDS_ALLOCATION;
 
 void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Control *const Owner)
 {
@@ -63,8 +64,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         if (!HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION) && HasFlag(g_StateFlags,
                                                                                               RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
-            ReleaseCommandsResources();
-            ReleaseSynchronizationObjects();
+            ResetSemaphores();
             DestroySwapChainImages();
             #ifdef VULKAN_RENDERER_ENABLE_IMGUI
             DestroyViewportImages();
@@ -80,18 +80,13 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             auto const SurfaceProperties   = GetSurfaceProperties(Window);
             auto const SurfaceCapabilities = GetSurfaceCapabilities();
 
-            InitializeCommandsResources();
             CreateSwapChain(SurfaceProperties, SurfaceCapabilities);
-
             #ifdef VULKAN_RENDERER_ENABLE_IMGUI
             CreateViewportResources(SurfaceProperties);
             #endif
 
             CreateDepthResources(SurfaceProperties);
-
             Owner->RefreshResources();
-            CreateSynchronizationObjects();
-            AllocateCommandBuffers(GetGraphicsQueue().first, GetNumAllocations());
 
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
             AddFlags(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
@@ -106,6 +101,12 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             PipelineDescriptor.SetupModelsBuffer(GetObjects());
 
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
+            AddFlags(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_ALLOCATION);
+        }
+        else if (HasFlag(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_ALLOCATION))
+        {
+            AllocateCommandBuffers(GetGraphicsQueue().first, GetNumAllocations());
+            RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_ALLOCATION);
         }
     }
     else if (g_ImageIndex = RequestImageIndex();
@@ -120,10 +121,9 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender) && g_ImageIndex.has_value())
         {
             std::int32_t const ImageIndex = g_ImageIndex.value();
-
             UpdateSceneUniformBuffer();
             RecordCommandBuffers(ImageIndex);
-            SubmitCommandBuffers();
+            SubmitCommandBuffers(ImageIndex);
             PresentFrame(ImageIndex);
         }
     }
@@ -202,7 +202,8 @@ bool RenderCore::Initialize(GLFWwindow *const Window)
     InitializeDevice(GetSurface());
     volkLoadDevice(GetLogicalDevice());
 
-    InitializeCommandsResources();
+    InitializeCommandsResources(GetGraphicsQueue().first);
+    CreateSynchronizationObjects();
     CreateMemoryAllocator();
     CreateSceneUniformBuffer();
     CreateImageSampler();
