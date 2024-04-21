@@ -4,6 +4,7 @@
 
 module;
 
+#include <cstdint>
 #include <Volk/volk.h>
 
 export module RenderCore.Runtime.Synchronization;
@@ -13,15 +14,17 @@ import RenderCore.Types.Camera;
 
 export namespace RenderCore
 {
-    void WaitAndResetFences();
+    void WaitAndResetFence(std::uint32_t);
 
     void CreateSynchronizationObjects();
 
     void ReleaseSynchronizationObjects();
 
+    void ResetSemaphores();
+
     [[nodiscard]] VkSemaphore const &GetImageAvailableSemaphore();
 
     [[nodiscard]] VkSemaphore const &GetRenderFinishedSemaphore();
 
-    [[nodiscard]] VkFence const &GetFence();
+    [[nodiscard]] VkFence const &GetFence(std::uint32_t);
 } // namespace RenderCore

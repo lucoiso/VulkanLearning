@@ -19,7 +19,7 @@ export namespace RenderCore
 
     void FreeCommandBuffers();
 
-    void InitializeCommandsResources();
+    void InitializeCommandsResources(std::uint32_t);
 
     void ReleaseCommandsResources();
 
@@ -27,7 +27,7 @@ export namespace RenderCore
 
     void RecordCommandBuffers(std::uint32_t);
 
-    void SubmitCommandBuffers();
+    void SubmitCommandBuffers(std::uint32_t);
 
     void InitializeSingleCommandQueue(VkCommandPool &, std::vector<VkCommandBuffer> &, std::uint8_t);
 
