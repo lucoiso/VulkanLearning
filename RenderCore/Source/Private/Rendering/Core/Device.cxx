@@ -27,8 +27,6 @@ VkPhysicalDevice                 g_PhysicalDevice { VK_NULL_HANDLE };
 VkPhysicalDeviceProperties       g_PhysicalDeviceProperties {};
 VkDevice                         g_Device { VK_NULL_HANDLE };
 std::pair<std::uint8_t, VkQueue> g_GraphicsQueue {};
-std::pair<std::uint8_t, VkQueue> g_PresentationQueue {};
-std::pair<std::uint8_t, VkQueue> g_ComputeQueue {};
 std::vector<std::uint8_t>        g_UniqueQueueFamilyIndices {};
 
 bool IsPhysicalDeviceSuitable(VkPhysicalDevice const &Device)
@@ -132,15 +130,6 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
 
     std::unordered_map<std::uint8_t, std::uint8_t> QueueFamilyIndices { { g_GraphicsQueue.first, 1U } };
 
-    if (!QueueFamilyIndices.contains(g_ComputeQueue.first))
-    {
-        QueueFamilyIndices.emplace(g_ComputeQueue.first, 1U);
-    }
-    else
-    {
-        ++QueueFamilyIndices.at(g_ComputeQueue.first);
-    }
-
     g_UniqueQueueFamilyIndices.clear();
     g_UniqueQueueFamilyIndices.reserve(std::size(QueueFamilyIndices));
 
@@ -160,10 +149,18 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
                                   });
     }
 
+    VkPhysicalDeviceMeshShaderFeaturesEXT MeshShaderFeatures {
+            // Required
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
+            .pNext = nullptr,
+            .taskShader = VK_TRUE,
+            .meshShader = VK_TRUE
+    };
+
     VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT PipelineLibraryProperties {
             // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT,
-            .pNext = nullptr,
+            .pNext = &MeshShaderFeatures,
             .graphicsPipelineLibrary = VK_TRUE,
     };
 
@@ -181,18 +178,10 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
             .descriptorBuffer = VK_TRUE
     };
 
-    VkPhysicalDeviceMeshShaderFeaturesEXT MeshShaderFeatures {
-            // Required
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
-            .pNext = &DescriptorBufferFeatures,
-            .taskShader = VK_TRUE,
-            .meshShader = VK_TRUE
-    };
-
     VkPhysicalDeviceSynchronization2Features Synchronization2Features {
             // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
-            .pNext = &MeshShaderFeatures,
+            .pNext = &DescriptorBufferFeatures,
             .synchronization2 = VK_TRUE
     };
 
@@ -235,8 +224,6 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
     volkLoadDevice(g_Device);
 
     vkGetDeviceQueue(g_Device, g_GraphicsQueue.first, 0U, &g_GraphicsQueue.second);
-    vkGetDeviceQueue(g_Device, g_PresentationQueue.first, 0U, &g_PresentationQueue.second);
-    vkGetDeviceQueue(g_Device, g_ComputeQueue.first, 0U, &g_ComputeQueue.second);
 }
 
 void RenderCore::InitializeDevice(VkSurfaceKHR const &VulkanSurface)
@@ -311,16 +298,6 @@ std::pair<std::uint8_t, VkQueue> &RenderCore::GetGraphicsQueue()
     return g_GraphicsQueue;
 }
 
-std::pair<std::uint8_t, VkQueue> &RenderCore::GetComputeQueue()
-{
-    return g_ComputeQueue;
-}
-
-std::pair<std::uint8_t, VkQueue> &RenderCore::GetPresentationQueue()
-{
-    return g_PresentationQueue;
-}
-
 std::vector<std::uint32_t> RenderCore::GetUniqueQueueFamilyIndicesU32()
 {
     std::vector<std::uint32_t> QueueFamilyIndicesU32(std::size(g_UniqueQueueFamilyIndices));
@@ -340,9 +317,8 @@ void RenderCore::ReleaseDeviceResources()
     vkDestroyDevice(g_Device, nullptr);
     g_Device = VK_NULL_HANDLE;
 
-    g_PhysicalDevice           = VK_NULL_HANDLE;
-    g_GraphicsQueue.second     = VK_NULL_HANDLE;
-    g_PresentationQueue.second = VK_NULL_HANDLE;
+    g_PhysicalDevice       = VK_NULL_HANDLE;
+    g_GraphicsQueue.second = VK_NULL_HANDLE;
 }
 
 std::vector<VkPhysicalDevice> RenderCore::GetAvailablePhysicalDevices()

@@ -177,11 +177,7 @@ void RenderCore::InitializeCommandsResources(std::uint32_t const QueueFamily)
 void RenderCore::ReleaseCommandsResources()
 {
     FreeCommandBuffers();
-
-    for (auto &CommandResources : g_CommandResources | std::views::values)
-    {
-        CommandResources.Destroy();
-    }
+    ReleaseThreadCommandsResources();
     g_CommandResources.clear();
 
     for (auto &CommandBuffer : g_PrimaryCommandBuffers)
@@ -191,6 +187,14 @@ void RenderCore::ReleaseCommandsResources()
 
     VkDevice const &LogicalDevice = GetLogicalDevice();
     vkDestroyCommandPool(LogicalDevice, g_PrimaryCommandPool, nullptr);
+}
+
+void RenderCore::ReleaseThreadCommandsResources()
+{
+    for (auto &CommandResources : g_CommandResources | std::views::values)
+    {
+        CommandResources.Destroy();
+    }
 }
 
 VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex, VkCommandPoolCreateFlags const Flags)
@@ -255,9 +259,8 @@ void BeginRendering(std::uint32_t const ImageIndex, ImageAllocation const &Swapc
             .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
             .imageView = SwapchainAllocation.View,
             .imageLayout = g_SwapChainMidLayout,
-            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .clearValue = g_ClearValues.at(0U)
+            .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .storeOp = VK_ATTACHMENT_STORE_OP_STORE
     };
     #endif
 
@@ -340,8 +343,6 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const ImageIndex,
     std::vector<VkCommandBuffer> Output {};
     Output.reserve(g_NumThreads);
 
-    Camera const &Camera = GetCamera();
-
     for (std::uint32_t ThreadIndex = 0U; ThreadIndex < g_NumThreads; ++ThreadIndex)
     {
         auto const &[CommandPool, CommandBuffers] = g_CommandResources.at(ThreadIndex);
@@ -357,7 +358,7 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const ImageIndex,
             break;
         }
 
-        g_ThreadPool.AddTask([CommandBuffer, ThreadIndex, &Objects, &Camera, &Pipeline, &PipelineLayout, &SecondaryBeginInfo, &SwapchainAllocation]
+        g_ThreadPool.AddTask([CommandBuffer, ThreadIndex, &Objects, &Pipeline, &PipelineLayout, &SecondaryBeginInfo, &SwapchainAllocation]
                              {
                                  CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
                                  {
@@ -374,12 +375,7 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const ImageIndex,
                                          }
 
                                          std::shared_ptr<Object> const &Object = Objects.at(ObjectAccessIndex);
-
-                                         if (Camera.CanDrawObject(Object))
-                                         {
-                                             Object->UpdateUniformBuffers();
-                                             Object->DrawObject(CommandBuffer, PipelineLayout, ObjectAccessIndex);
-                                         }
+                                         Object->DrawObject(CommandBuffer, PipelineLayout, ObjectAccessIndex);
                                      }
                                  }
                                  CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
@@ -401,8 +397,6 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
     CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &g_CommandBufferBeginInfo));
     {
         ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
-        SetViewport(CommandBuffer, SwapchainAllocation.Extent);
-
         BeginRendering(ImageIndex, SwapchainAllocation);
 
         if (std::vector<VkCommandBuffer> const CommandBuffers = RecordSceneCommands(ImageIndex, SwapchainAllocation);
@@ -437,7 +431,7 @@ void RenderCore::SubmitCommandBuffers(std::uint32_t const ImageIndex)
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
             .semaphore = GetRenderFinishedSemaphore(),
             .value = 1U,
-            .stageMask = VK_PIPELINE_STAGE_2_NONE
+            .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
     };
 
     VkCommandBuffer const &         CommandBuffer = g_PrimaryCommandBuffers.at(ImageIndex);
@@ -454,9 +448,7 @@ void RenderCore::SubmitCommandBuffers(std::uint32_t const ImageIndex)
     };
 
     auto const &GraphicsQueue = GetGraphicsQueue().second;
-
     CheckVulkanResult(vkQueueSubmit2(GraphicsQueue, 1U, &SubmitInfo, GetFence(ImageIndex)));
-    WaitAndResetFence(ImageIndex);
 }
 
 void RenderCore::InitializeSingleCommandQueue(VkCommandPool &               CommandPool,

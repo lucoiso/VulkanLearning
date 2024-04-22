@@ -19,6 +19,7 @@ namespace RenderCore
         PENDING_RESOURCES_CREATION       = 1 << 3,
         PENDING_PIPELINE_REFRESH         = 1 << 4,
         PENDING_COMMANDS_ALLOCATION      = 1 << 5,
+        INVALID_SIZE                     = 1 << 6,
     };
 
     export enum class RendererObjectsManagementStateFlags : std::uint8_t

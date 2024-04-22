@@ -133,7 +133,7 @@ export namespace RenderCore
             ImageBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
             ImageBarrier.dstAccessMask = VK_ACCESS_2_NONE;
             ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-            ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+            ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
         }
         else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
         {
@@ -164,6 +164,7 @@ export namespace RenderCore
 
         VkDependencyInfo const DependencyInfo {
                 .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
                 .imageMemoryBarrierCount = 1U,
                 .pImageMemoryBarriers = &ImageBarrier
         };

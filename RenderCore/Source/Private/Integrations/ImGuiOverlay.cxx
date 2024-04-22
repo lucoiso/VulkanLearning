@@ -178,7 +178,7 @@ void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
                     .imageView = SwapchainAllocation.View,
                     .imageLayout = SwapChainMidLayout,
                     .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                    .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE
+                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE
             };
 
             VkRenderingInfo const RenderingInfo {

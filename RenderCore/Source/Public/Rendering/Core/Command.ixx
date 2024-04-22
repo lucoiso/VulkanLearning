@@ -23,6 +23,8 @@ export namespace RenderCore
 
     void ReleaseCommandsResources();
 
+    void ReleaseThreadCommandsResources();
+
     [[nodiscard]] VkCommandPool CreateCommandPool(std::uint8_t, VkCommandPoolCreateFlags);
 
     void RecordCommandBuffers(std::uint32_t);

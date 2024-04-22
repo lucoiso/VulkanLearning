@@ -30,7 +30,7 @@ export namespace RenderCore
 
     [[nodiscard]] std::vector<ImageAllocation> const &GetSwapChainImages();
 
-    [[nodiscard]] std::optional<std::int32_t> RequestSwapChainImage();
+    void RequestSwapChainImage(std::optional<std::int32_t> &);
 
     void PresentFrame(std::uint32_t);
 

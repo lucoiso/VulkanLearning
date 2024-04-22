@@ -52,7 +52,7 @@ std::optional<std::int32_t> g_ImageIndex {};
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
                                                        RendererStateFlags::PENDING_RESOURCES_DESTRUCTION |
                                                        RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::PENDING_PIPELINE_REFRESH |
-                                                       RendererStateFlags::PENDING_COMMANDS_ALLOCATION;
+                                                       RendererStateFlags::PENDING_COMMANDS_ALLOCATION | RendererStateFlags::INVALID_SIZE;
 
 void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Control *const Owner)
 {
@@ -74,10 +74,17 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
             AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
         }
-        else if (!HasFlag(g_StateFlags, RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE) && HasFlag(g_StateFlags,
-                     RendererStateFlags::PENDING_RESOURCES_CREATION))
+        else if (!HasAnyFlag(g_StateFlags, RendererStateFlags::INVALID_SIZE | RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE) &&
+                 HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION))
         {
-            auto const SurfaceProperties   = GetSurfaceProperties(Window);
+            auto const SurfaceProperties = GetSurfaceProperties(Window);
+
+            if (!SurfaceProperties.IsValid())
+            {
+                AddFlags(g_StateFlags, RendererStateFlags::INVALID_SIZE);
+                return;
+            }
+
             auto const SurfaceCapabilities = GetSurfaceCapabilities();
 
             CreateSwapChain(SurfaceProperties, SurfaceCapabilities);
@@ -88,7 +95,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             CreateDepthResources(SurfaceProperties);
             Owner->RefreshResources();
 
-            RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
+            RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::INVALID_SIZE);
             AddFlags(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
         }
         else if (HasFlag(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH))
@@ -105,24 +112,39 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         }
         else if (HasFlag(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_ALLOCATION))
         {
+            ReleaseThreadCommandsResources();
             AllocateCommandBuffers(GetGraphicsQueue().first, GetNumAllocations());
+
+            #ifndef VULKAN_RENDERER_ENABLE_IMGUI
+            for (std::uint32_t Iterator = 0U; Iterator < g_MinImageCount; ++Iterator)
+            {
+                RecordCommandBuffers(Iterator);
+            }
+            #endif
+
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_ALLOCATION);
         }
     }
     else if (g_ImageIndex = RequestImageIndex();
         g_ImageIndex.has_value())
     {
+        UpdateSceneUniformBuffer();
+        UpdateObjectsUniformBuffer();
+
         Tick();
 
         #ifdef VULKAN_RENDERER_ENABLE_IMGUI
         DrawImGuiFrame(Owner);
         #endif
 
-        if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender) && g_ImageIndex.has_value())
+        if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
         {
             std::int32_t const ImageIndex = g_ImageIndex.value();
-            UpdateSceneUniformBuffer();
+
+            #ifdef VULKAN_RENDERER_ENABLE_IMGUI
             RecordCommandBuffers(ImageIndex);
+            #endif
+
             SubmitCommandBuffers(ImageIndex);
             PresentFrame(ImageIndex);
         }
@@ -135,7 +157,7 @@ std::optional<std::int32_t> RenderCore::RequestImageIndex()
 
     if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
     {
-        Output = RequestSwapChainImage();
+        RequestSwapChainImage(Output);
     }
 
     if (!Output.has_value())
@@ -237,8 +259,8 @@ void RenderCore::Shutdown([[maybe_unused]] GLFWwindow *const Window)
 
     ReleaseSwapChainResources();
     ReleaseShaderResources();
-    ReleaseCommandsResources();
     ReleaseSynchronizationObjects();
+    ReleaseCommandsResources();
     ReleaseSceneResources();
     ReleasePipelineResources();
     ReleaseMemoryResources();

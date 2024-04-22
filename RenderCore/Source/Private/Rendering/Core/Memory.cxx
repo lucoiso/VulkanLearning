@@ -370,8 +370,9 @@ std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(V
 
     CopyBufferToImage(CommandBuffer, Output.first, NewAllocation.Image, NewAllocation.Extent);
 
-    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR,
-                                 VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer, NewAllocation.Image, NewAllocation.Format);
+    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer,
+        NewAllocation.Image,
+        NewAllocation.Format);
 
     CreateImageView(NewAllocation.Image, NewAllocation.Format, VK_IMAGE_ASPECT_COLOR_BIT, NewAllocation.View);
     vmaUnmapMemory(Allocator, Output.second);

@@ -93,17 +93,19 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
     CreateSwapChainImageViews(g_SwapChainImages);
 }
 
-std::optional<std::int32_t> RenderCore::RequestSwapChainImage()
+void RenderCore::RequestSwapChainImage(std::optional<std::int32_t> &Output)
 {
     VkDevice const &LogicalDevice = GetLogicalDevice();
-    std::uint32_t   Output        = 0U;
+    std::uint32_t   ImageIndex    = 0U;
 
-    if (vkAcquireNextImageKHR(LogicalDevice, g_SwapChain, g_Timeout, GetImageAvailableSemaphore(), VK_NULL_HANDLE, &Output) != VK_SUCCESS)
+    if (vkAcquireNextImageKHR(LogicalDevice, g_SwapChain, g_Timeout, GetImageAvailableSemaphore(), VK_NULL_HANDLE, &ImageIndex) != VK_SUCCESS)
     {
-        return std::nullopt;
+        Output.reset();
     }
-
-    return std::optional { static_cast<std::int32_t>(Output) };
+    else
+    {
+        Output.emplace(ImageIndex);
+    }
 }
 
 void RenderCore::CreateSwapChainImageViews(std::vector<ImageAllocation> &Images)
@@ -128,7 +130,8 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
             .pImageIndices = &ImageIndice
     };
 
-    CheckVulkanResult(vkQueuePresentKHR(GetPresentationQueue().second, &PresentInfo));
+    CheckVulkanResult(vkQueuePresentKHR(GetGraphicsQueue().second, &PresentInfo));
+    WaitAndResetFence(ImageIndice);
 }
 
 void RenderCore::ReleaseSwapChainResources()
