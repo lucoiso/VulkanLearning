@@ -6,21 +6,26 @@
 
 module;
 
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 #include <cstdint>
 #include <imgui.h>
 #include <Volk/volk.h>
 #include "RenderCoreModule.hpp"
+#endif
 
 export module RenderCore.Integrations.ImGuiVulkanBackend;
 
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 struct ImGuiVulkanFrameRenderBuffers;
 struct ImGuiVulkanWindowRenderBuffers;
 struct ImGuiVulkanFrame;
 struct ImGuiVulkanFrameSemaphores;
 struct ImGuiVulkanWindow;
+#endif
 
 export namespace RenderCore
 {
+    #ifdef VULKAN_RENDERER_ENABLE_IMGUI
     struct ImGuiVulkanInitInfo
     {
         VkDescriptorPool              DescriptorPool;
@@ -63,4 +68,5 @@ export namespace RenderCore
     VkPresentModeKHR ImGuiVulkanSelectPresentMode(VkSurfaceKHR, const VkPresentModeKHR *, std::int32_t);
 
     std::int32_t ImGuiVulkanGetMinImageCountFromPresentMode(VkPresentModeKHR);
+    #endif
 }

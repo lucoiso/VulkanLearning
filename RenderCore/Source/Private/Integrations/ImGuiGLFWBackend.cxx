@@ -53,9 +53,9 @@ struct ImGuiGLFWData
     GLFWcharfun        PrevUserCallbackChar {};
     GLFWmonitorfun     PrevUserCallbackMonitor {};
 
-    #ifdef _WIN32
+#ifdef _WIN32
     WNDPROC PrevWndProc {};
-    #endif
+#endif
 
     ImGuiGLFWData()
     {
@@ -69,9 +69,9 @@ struct ImGuiGLFWViewportData
     bool         WindowOwned {};
     std::int32_t IgnoreWindowPosEventFrame {};
     std::int32_t IgnoreWindowSizeEventFrame {};
-    #ifdef _WIN32
+#ifdef _WIN32
     WNDPROC PrevWndProc {};
-    #endif
+#endif
 
     ImGuiGLFWViewportData()
     {
@@ -624,24 +624,24 @@ bool ImGuiGLFWInit(GLFWwindow *Window, bool const InstallCallbacks)
 
     ImGuiViewport *MainViewport  = ImGui::GetMainViewport();
     MainViewport->PlatformHandle = static_cast<void *>(Backend->Window);
-    #ifdef _WIN32
+#ifdef _WIN32
     MainViewport->PlatformHandleRaw = glfwGetWin32Window(Backend->Window);
-    #elif defined(__APPLE__)
+#elif defined(__APPLE__)
     MainViewport->PlatformHandleRaw = static_cast<void *>(glfwGetCocoaWindow(Backend->Window));
-    #else
+#else
     IM_UNUSED(MainViewport);
-    #endif
+#endif
 
     if (ImGuiIO.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
         ImGuiGLFWInitPlatformInterface();
     }
 
-    #ifdef _WIN32
+#ifdef _WIN32
     Backend->PrevWndProc = reinterpret_cast<WNDPROC>(GetWindowLongPtrW(static_cast<HWND>(MainViewport->PlatformHandleRaw), GWLP_WNDPROC));
     IM_ASSERT(Backend->PrevWndProc != nullptr);
     SetWindowLongPtrW(static_cast<HWND>(MainViewport->PlatformHandleRaw), GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(ImGuiGLFWWndProc));
-    #endif
+#endif
 
     return true;
 }
@@ -668,11 +668,11 @@ void RenderCore::ImGuiGLFWShutdown()
         glfwDestroyCursor(Backend->MouseCursors.at(CursorIt));
     }
 
-    #ifdef _WIN32
+#ifdef _WIN32
     ImGuiViewport const *MainViewport = ImGui::GetMainViewport();
     SetWindowLongPtrW(static_cast<HWND>(MainViewport->PlatformHandleRaw), GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(Backend->PrevWndProc));
     Backend->PrevWndProc = nullptr;
-    #endif
+#endif
 
     ImGuiIO.BackendPlatformName     = nullptr;
     ImGuiIO.BackendPlatformUserData = nullptr;
@@ -920,11 +920,11 @@ void ImGuiGLFWCreateWindow(ImGuiViewport *Viewport)
     ViewportData->WindowOwned = true;
     Viewport->PlatformHandle  = static_cast<void *>(ViewportData->Window);
 
-    #ifdef _WIN32
+#ifdef _WIN32
     Viewport->PlatformHandleRaw = glfwGetWin32Window(ViewportData->Window);
-    #elif defined(__APPLE__)
+#elif defined(__APPLE__)
     Viewport->PlatformHandleRaw = static_cast<void *>(glfwGetCocoaWindow(ViewportData->Window));
-    #endif
+#endif
 
     glfwSetWindowPos(ViewportData->Window, static_cast<int>(Viewport->Pos.x), static_cast<int>(Viewport->Pos.y));
 
@@ -971,7 +971,7 @@ void ImGuiGLFWShowWindow(ImGuiViewport *Viewport)
 {
     ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
 
-    #ifdef _WIN32
+#ifdef _WIN32
     if (Viewport->Flags & ImGuiViewportFlags_NoTaskBarIcon)
     {
         auto const Handle = static_cast<HWND>(Viewport->PlatformHandleRaw);
@@ -980,7 +980,7 @@ void ImGuiGLFWShowWindow(ImGuiViewport *Viewport)
         Style |= WS_EX_TOOLWINDOW;
         ::SetWindowLong(Handle, GWL_EXSTYLE, Style);
     }
-    #endif
+#endif
 
     glfwShowWindow(ViewportData->Window);
 }
