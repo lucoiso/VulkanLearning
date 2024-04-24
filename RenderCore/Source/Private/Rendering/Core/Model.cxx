@@ -152,7 +152,7 @@ void RenderCore::AllocatePrimitiveIndices(std::shared_ptr<Mesh> const &Mesh, tin
         {
             case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
             {
-                InsertIndiceInContainer(Indices, IndexAccessor, reinterpret_cast<const uint32_t *>(IndicesData));
+                InsertIndiceInContainer(Indices, IndexAccessor, reinterpret_cast<const std::uint32_t *>(IndicesData));
                 break;
             }
             case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT:

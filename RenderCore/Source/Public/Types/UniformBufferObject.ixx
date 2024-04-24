@@ -27,7 +27,7 @@ namespace RenderCore
         alignas(8) double     AlphaCutoff {};
         alignas(8) double     NormalScale {};
         alignas(8) double     OcclusionStrength {};
-        alignas(4) int        AlphaMode {};
-        alignas(4) int        DoubleSided {};
+        alignas(4) std::int32_t        AlphaMode {};
+        alignas(4) std::int32_t        DoubleSided {};
     };
 } // namespace RenderCore

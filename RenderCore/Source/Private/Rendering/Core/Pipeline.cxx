@@ -667,6 +667,11 @@ VkPipeline const &RenderCore::GetMainPipeline()
     return g_MainPipeline;
 }
 
+VkPipelineCache const & RenderCore::GetPipelineCache()
+{
+    return g_PipelineCache;
+}
+
 VkPipelineLayout const &RenderCore::GetPipelineLayout()
 {
     return g_PipelineLayout;

@@ -43,6 +43,8 @@ export namespace RenderCore
 
     [[nodiscard]] VkPipeline const &GetMainPipeline();
 
+    [[nodiscard]] VkPipelineCache const &GetPipelineCache();
+
     [[nodiscard]] VkPipelineLayout const &GetPipelineLayout();
 
     [[nodiscard]] PipelineDescriptorData &GetPipelineDescriptorData();

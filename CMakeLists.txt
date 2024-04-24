@@ -40,9 +40,7 @@ OPTION(VULKAN_RENDERER_ENABLE_IMGUI "Enable ImGui linkage, including support for
 
 # -------------- Directories ---------------
 ADD_SUBDIRECTORY(RenderCore)
-ADD_SUBDIRECTORY(ThirdParty)
 ADD_SUBDIRECTORY(RadeonManager)
-ADD_SUBDIRECTORY(RenderGraphRPS)
 ADD_SUBDIRECTORY(cpp-submodules)
 
 IF (BUILD_TESTS)

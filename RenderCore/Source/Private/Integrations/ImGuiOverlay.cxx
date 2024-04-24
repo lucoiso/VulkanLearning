@@ -7,8 +7,6 @@ module;
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
 #include <array>
 #include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
 #include <vector>
 #include <boost/log/trivial.hpp>
 #include <Volk/volk.h>
@@ -27,6 +25,8 @@ import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Types.Camera;
 import RenderCore.Types.Allocation;
+import RenderCore.Integrations.ImGuiGLFWBackend;
+import RenderCore.Integrations.ImGuiVulkanBackend;
 
 using namespace RenderCore;
 
@@ -35,11 +35,6 @@ VkDescriptorPool g_ImGuiDescriptorPool { VK_NULL_HANDLE };
 void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, SurfaceProperties const &SurfaceProperties)
 {
     IMGUI_CHECKVERSION();
-
-    ImGui_ImplVulkan_LoadFunctions([](const char *FunctionName, void *)
-    {
-        return vkGetInstanceProcAddr(volkGetLoadedInstance(), FunctionName);
-    });
 
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
@@ -54,9 +49,9 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, SurfacePropert
 
     ImIO.ConfigFlags |= /*ImGuiConfigFlags_ViewportsEnable |*/ ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
 
-    ImGui_ImplGlfw_InitForVulkan(Window, false);
-    ImGui_ImplGlfw_SetCallbacksChainForAllWindows(true);
-    ImGui_ImplGlfw_InstallCallbacks(Window);
+    ImGuiGLFWInitForVulkan(Window, false);
+    ImGuiGLFWSetCallbacksChainForAllWindows(true);
+    ImGuiGLFWInstallCallbacks(Window);
 
     constexpr std::uint32_t DescriptorCount = 100U;
 
@@ -86,44 +81,25 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, SurfacePropert
 
     std::vector const ColorAttachmentFormat { SurfaceProperties.Format.format };
 
-    auto const &[QueueFamilyIndex, Queue] = GetGraphicsQueue();
-
-    ImGui_ImplVulkan_InitInfo ImGuiVulkanInitInfo {
-            .Instance = GetInstance(),
-            .PhysicalDevice = GetPhysicalDevice(),
-            .Device = GetLogicalDevice(),
-            .QueueFamily = QueueFamilyIndex,
-            .Queue = Queue,
+    ImGuiVulkanInitInfo ImGuiVulkanInitInfo {
             .DescriptorPool = g_ImGuiDescriptorPool,
-            .RenderPass = VK_NULL_HANDLE,
-            .MinImageCount = g_MinImageCount,
-            .ImageCount = g_MinImageCount,
-            .MSAASamples = g_MSAASamples,
-            .PipelineCache = VK_NULL_HANDLE,
-            .Subpass = 0U,
-            .UseDynamicRendering = true,
             .PipelineRenderingCreateInfo = {
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
                     .colorAttachmentCount = static_cast<std::uint32_t>(std::size(ColorAttachmentFormat)),
                     .pColorAttachmentFormats = std::data(ColorAttachmentFormat),
                     .depthAttachmentFormat = SurfaceProperties.DepthFormat,
                     .stencilAttachmentFormat = VK_FORMAT_UNDEFINED
-            },
-            .Allocator = VK_NULL_HANDLE,
-            .CheckVkResultFn = [](VkResult Result)
-            {
-                CheckVulkanResult(Result);
             }
     };
 
-    ImGui_ImplVulkan_Init(&ImGuiVulkanInitInfo);
-    ImGui_ImplVulkan_CreateFontsTexture();
+    ImGuiVulkanInit(&ImGuiVulkanInitInfo);
+    ImGuiVulkanCreateFontsTexture();
 }
 
 void RenderCore::ReleaseImGuiResources()
 {
-    ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
+    ImGuiVulkanShutdown();
+    ImGuiGLFWShutdown();
     ImGui::DestroyContext();
 
     if (g_ImGuiDescriptorPool != VK_NULL_HANDLE)
@@ -143,8 +119,8 @@ void RenderCore::DrawImGuiFrame(Control *Control)
 
     Control->PreUpdate();
     {
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
+        ImGuiVulkanNewFrame();
+        ImGuiGLFWNewFrame();
         ImGui::NewFrame();
         {
             Control->Update();
@@ -190,7 +166,7 @@ void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
             };
 
             vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
-            ImGui_ImplVulkan_RenderDrawData(ImGuiDrawData, CommandBuffer);
+            ImGuiVulkanRenderDrawData(ImGuiDrawData, CommandBuffer);
             vkCmdEndRendering(CommandBuffer);
         }
     }

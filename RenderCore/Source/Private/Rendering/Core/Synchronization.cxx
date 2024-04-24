@@ -45,7 +45,7 @@ void RenderCore::CreateSynchronizationObjects()
         CheckVulkanResult(vkCreateFence(LogicalDevice, &FenceCreateInfo, nullptr, &Fence));
     }
 
-    CheckVulkanResult(vkResetFences(LogicalDevice, static_cast<std::uint32_t>(size(g_Fences)), data(g_Fences)));
+    CheckVulkanResult(vkResetFences(LogicalDevice, static_cast<std::uint32_t>(std::size(g_Fences)), data(g_Fences)));
 }
 
 void RenderCore::ReleaseSynchronizationObjects()

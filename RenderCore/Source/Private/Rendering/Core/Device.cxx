@@ -109,11 +109,6 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
 
     GetQueueFamilyIndices(VulkanSurface, GraphicsQueueFamilyIndex, PresentationQueueFamilyIndex, ComputeQueueFamilyIndex);
 
-    if (g_PhysicalDevice == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Vulkan physical device is invalid.");
-    }
-
     std::vector Layers(std::cbegin(g_RequiredDeviceLayers), std::cend(g_RequiredDeviceLayers));
     std::vector Extensions(std::cbegin(g_RequiredDeviceExtensions), std::cend(g_RequiredDeviceExtensions));
 
