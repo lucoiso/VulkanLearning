@@ -6,15 +6,18 @@
 
 module;
 
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 #include <algorithm>
 #include <array>
 #include <cstdint>
 #include <imgui.h>
 #include <vector>
 #include <Volk/volk.h>
+#endif
 
 module RenderCore.Integrations.ImGuiVulkanBackend;
 
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Runtime.Device;
@@ -2194,3 +2197,4 @@ void RenderCore::ImGuiVulkanDestroyWindow(ImGuiVulkanWindow *WindowData)
 
     *WindowData = ImGuiVulkanWindow();
 }
+#endif

@@ -6,6 +6,7 @@
 
 module;
 
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 #include <array>
 #include <cstdint>
 #include <imgui.h>
@@ -24,9 +25,11 @@ module;
 #define GLFW_EXPOSE_NATIVE_COCOA
 #include <GLFW/glfw3native.h>
 #endif
+#endif
 
 module RenderCore.Integrations.ImGuiGLFWBackend;
 
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 using namespace RenderCore;
 
 struct ImGuiGLFWData
@@ -1085,3 +1088,4 @@ void RenderCore::ImGuiGLFWShutdownPlatformInterface()
 {
     ImGui::DestroyPlatformWindows();
 }
+#endif
