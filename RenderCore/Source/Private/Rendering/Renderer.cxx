@@ -114,14 +114,6 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         {
             ReleaseThreadCommandsResources();
             AllocateCommandBuffers(GetGraphicsQueue().first, GetNumAllocations());
-
-            #ifndef VULKAN_RENDERER_ENABLE_IMGUI
-            for (std::uint32_t Iterator = 0U; Iterator < g_MinImageCount; ++Iterator)
-            {
-                RecordCommandBuffers(Iterator);
-            }
-            #endif
-
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_ALLOCATION);
         }
     }
@@ -129,7 +121,6 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         g_ImageIndex.has_value())
     {
         UpdateSceneUniformBuffer();
-        UpdateObjectsUniformBuffer();
 
         Tick();
 
@@ -141,10 +132,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         {
             std::int32_t const ImageIndex = g_ImageIndex.value();
 
-            #ifdef VULKAN_RENDERER_ENABLE_IMGUI
             RecordCommandBuffers(ImageIndex);
-            #endif
-
             SubmitCommandBuffers(ImageIndex);
             PresentFrame(ImageIndex);
         }

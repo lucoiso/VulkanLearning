@@ -133,7 +133,7 @@ glm::vec3 Camera::GetFront() const
 glm::vec3 Camera::GetRight() const
 {
     float const Yaw = glm::radians(m_Rotation.x);
-    return glm::vec3 { cos(Yaw - glm::radians(90.0f)), 0.0f, sin(Yaw - glm::radians(90.0f)) };
+    return glm::vec3 { cos(Yaw - glm::radians(90.F)), 0.F, sin(Yaw - glm::radians(90.F)) };
 }
 
 glm::vec3 Camera::GetUp() const
@@ -259,17 +259,17 @@ bool Camera::BoxIntersectsPlane(Bounds const &Bounds, glm::vec4 const &Plane)
     glm::vec3 PositiveVertex(Max);
     glm::vec3 NegativeVertex(Min);
 
-    if (Plane.x < 0.0f)
+    if (Plane.x < 0.F)
     {
         std::swap(PositiveVertex.x, NegativeVertex.x);
     }
 
-    if (Plane.y < 0.0f)
+    if (Plane.y < 0.F)
     {
         std::swap(PositiveVertex.y, NegativeVertex.y);
     }
 
-    if (Plane.z < 0.0f)
+    if (Plane.z < 0.F)
     {
         std::swap(PositiveVertex.z, NegativeVertex.z);
     }
@@ -277,7 +277,7 @@ bool Camera::BoxIntersectsPlane(Bounds const &Bounds, glm::vec4 const &Plane)
     float const PositiveDistance = dot(glm::vec3(Plane), PositiveVertex) + Plane.w;
     float const NegativeDistance = dot(glm::vec3(Plane), NegativeVertex) + Plane.w;
 
-    return PositiveDistance >= 0.0f || NegativeDistance >= 0.0f;
+    return PositiveDistance >= 0.F || NegativeDistance >= 0.F;
 }
 
 bool Camera::IsInAllowedDistance(std::shared_ptr<Object> const &Object) const

@@ -14,6 +14,7 @@ module;
 
 // GLFW after Volk
 #include <GLFW/glfw3.h>
+
 #ifdef _WIN32
 #undef APIENTRY
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -55,8 +56,27 @@ struct ImGuiGLFWData
 
     ImGuiGLFWData()
     {
-        memset(this, 0, sizeof(*this));
+        memset(this, 0U, sizeof(*this));
     }
+};
+
+struct ImGuiGLFWViewportData
+{
+    GLFWwindow * Window {};
+    bool         WindowOwned {};
+    std::int32_t IgnoreWindowPosEventFrame {};
+    std::int32_t IgnoreWindowSizeEventFrame {};
+    #ifdef _WIN32
+    WNDPROC PrevWndProc {};
+    #endif
+
+    ImGuiGLFWViewportData()
+    {
+        memset(this, 0U, sizeof(*this));
+        IgnoreWindowSizeEventFrame = IgnoreWindowPosEventFrame = -1;
+    }
+
+    ~ImGuiGLFWViewportData() = default;
 };
 
 ImGuiGLFWData *ImGuiGLFWGetBackendData()
@@ -501,6 +521,7 @@ void RenderCore::ImGuiGLFWRestoreCallbacks(GLFWwindow *Window)
     glfwSetKeyCallback(Window, Backend->PrevUserCallbackKey);
     glfwSetCharCallback(Window, Backend->PrevUserCallbackChar);
     glfwSetMonitorCallback(Backend->PrevUserCallbackMonitor);
+
     Backend->InstalledCallbacks          = false;
     Backend->PrevUserCallbackWindowFocus = nullptr;
     Backend->PrevUserCallbackCursorEnter = nullptr;
@@ -519,7 +540,43 @@ void RenderCore::ImGuiGLFWSetCallbacksChainForAllWindows(bool const Chain)
 }
 
 #ifdef _WIN32
-LRESULT CALLBACK ImGuiGLFWWndProc(HWND Handle, UINT Message, WPARAM WParam, LPARAM LParam);
+LRESULT CALLBACK ImGuiGLFWWndProc(HWND const Handle, UINT const Message, WPARAM const WParam, LPARAM const LParam)
+{
+    ImGuiGLFWData const *Backend           = ImGuiGLFWGetBackendData();
+    WNDPROC              PreviousProcedure = Backend->PrevWndProc;
+
+    if (ImGuiViewport const *Viewport = static_cast<ImGuiViewport *>(GetPropA(Handle, "IMGUI_VIEWPORT"));
+        Viewport != nullptr)
+    {
+        if (ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData))
+        {
+            PreviousProcedure = ViewportData->PrevWndProc;
+        }
+    }
+
+    switch (Message)
+    {
+        case WM_MOUSEMOVE:
+        case WM_NCMOUSEMOVE:
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONDBLCLK:
+        case WM_LBUTTONUP:
+        case WM_RBUTTONDOWN:
+        case WM_RBUTTONDBLCLK:
+        case WM_RBUTTONUP:
+        case WM_MBUTTONDOWN:
+        case WM_MBUTTONDBLCLK:
+        case WM_MBUTTONUP:
+        case WM_XBUTTONDOWN:
+        case WM_XBUTTONDBLCLK:
+        case WM_XBUTTONUP:
+            ImGui::GetIO().AddMouseSourceEvent(ImGuiMouseSource_Mouse);
+            break;
+        default:
+            break;
+    }
+    return CallWindowProcW(PreviousProcedure, Handle, Message, WParam, LParam);
+}
 #endif
 
 bool ImGuiGLFWInit(GLFWwindow *Window, bool const InstallCallbacks)
@@ -603,7 +660,7 @@ void RenderCore::ImGuiGLFWShutdown()
         ImGuiGLFWRestoreCallbacks(Backend->Window);
     }
 
-    for (ImGuiMouseCursor CursorIt = 0; CursorIt < ImGuiMouseCursor_COUNT; CursorIt++)
+    for (std::uint8_t CursorIt = 0U; CursorIt < ImGuiMouseCursor_COUNT; ++CursorIt)
     {
         glfwDestroyCursor(Backend->MouseCursors.at(CursorIt));
     }
@@ -628,10 +685,10 @@ void ImGuiGLFWUpdateMouseData()
     ImGuiIO &        ImGuiIO    = ImGui::GetIO();
     ImGuiPlatformIO &PlatformIO = ImGui::GetPlatformIO();
 
-    ImGuiID      MouseViewportId = 0;
+    ImGuiID      MouseViewportId = 0U;
     const ImVec2 MousePosPrev    = ImGuiIO.MousePos;
 
-    for (std::uint32_t ViewportSizeIt = 0U; ViewportSizeIt < PlatformIO.Viewports.Size; ViewportSizeIt++)
+    for (std::uint32_t ViewportSizeIt = 0U; ViewportSizeIt < PlatformIO.Viewports.Size; ++ViewportSizeIt)
     {
         ImGuiViewport const *Viewport = PlatformIO.Viewports[static_cast<std::int32_t>(ViewportSizeIt)];
         auto *               Window   = static_cast<GLFWwindow *>(Viewport->PlatformHandle);
@@ -666,7 +723,7 @@ void ImGuiGLFWUpdateMouseData()
             }
         }
 
-        const bool HasNoInputFlag = (Viewport->Flags & ImGuiViewportFlags_NoInputs);
+        const bool HasNoInputFlag = Viewport->Flags & ImGuiViewportFlags_NoInputs;
         glfwSetWindowAttrib(Window, GLFW_MOUSE_PASSTHROUGH, HasNoInputFlag);
 
         if (glfwGetWindowAttrib(Window, GLFW_HOVERED))
@@ -692,7 +749,7 @@ void ImGuiGLFWUpdateMouseCursor()
 
     ImGuiMouseCursor const ImGuiCursor = ImGui::GetMouseCursor();
     ImGuiPlatformIO &      PlatformIO  = ImGui::GetPlatformIO();
-    for (std::uint32_t ViewportIt = 0U; ViewportIt < PlatformIO.Viewports.Size; ViewportIt++)
+    for (std::uint32_t ViewportIt = 0U; ViewportIt < PlatformIO.Viewports.Size; ++ViewportIt)
     {
         auto *Window = static_cast<GLFWwindow *>(PlatformIO.Viewports[static_cast<std::int32_t>(ViewportIt)]->PlatformHandle);
 
@@ -706,6 +763,7 @@ void ImGuiGLFWUpdateMouseCursor()
                           Backend->MouseCursors.at(ImGuiCursor)
                               ? Backend->MouseCursors.at(ImGuiCursor)
                               : Backend->MouseCursors.at(ImGuiMouseCursor_Arrow));
+
             glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
     }
@@ -727,17 +785,21 @@ void RenderCore::ImGuiGLFWUpdateMonitors()
 
     PlatformIO.Monitors.resize(0);
 
-    for (std::uint32_t MonitorIt = 0U; MonitorIt < NumMonitors; MonitorIt++)
+    for (std::uint32_t MonitorIt = 0U; MonitorIt < NumMonitors; ++MonitorIt)
     {
         ImGuiPlatformMonitor PlatformMonitor;
         std::int32_t         PosX;
         std::int32_t         PosY;
         glfwGetMonitorPos(Monitors[MonitorIt], &PosX, &PosY);
-        const GLFWvidmode *vid_mode = glfwGetVideoMode(Monitors[MonitorIt]);
-        if (vid_mode == nullptr)
+
+        const GLFWvidmode *VideoMode = glfwGetVideoMode(Monitors[MonitorIt]);
+        if (VideoMode == nullptr)
+        {
             continue;
+        }
+
         PlatformMonitor.MainPos  = PlatformMonitor.WorkPos  = ImVec2(static_cast<float>(PosX), static_cast<float>(PosY));
-        PlatformMonitor.MainSize = PlatformMonitor.WorkSize = ImVec2(static_cast<float>(vid_mode->width), static_cast<float>(vid_mode->height));
+        PlatformMonitor.MainSize = PlatformMonitor.WorkSize = ImVec2(static_cast<float>(VideoMode->width), static_cast<float>(VideoMode->height));
 
         std::int32_t Width;
         std::int32_t Height;
@@ -752,9 +814,10 @@ void RenderCore::ImGuiGLFWUpdateMonitors()
         float ScaleX;
         float ScaleY;
         glfwGetMonitorContentScale(Monitors[MonitorIt], &ScaleX, &ScaleY);
-        PlatformMonitor.DpiScale = ScaleX;
 
+        PlatformMonitor.DpiScale       = ScaleX;
         PlatformMonitor.PlatformHandle = static_cast<void *>(Monitors[MonitorIt]);
+
         PlatformIO.Monitors.push_back(PlatformMonitor);
     }
 }
@@ -771,7 +834,9 @@ void RenderCore::ImGuiGLFWNewFrame()
 
     glfwGetWindowSize(Backend->Window, &Width, &Height);
     glfwGetFramebufferSize(Backend->Window, &DisplayWidth, &DisplayHeight);
+
     ImGuiIO.DisplaySize = ImVec2(static_cast<float>(Width), static_cast<float>(Height));
+
     if (Width > 0 && Height > 0)
     {
         ImGuiIO.DisplayFramebufferScale = ImVec2(static_cast<float>(DisplayWidth) / static_cast<float>(Width),
@@ -787,34 +852,15 @@ void RenderCore::ImGuiGLFWNewFrame()
 
     if (CurrentTime <= Backend->Time)
     {
-        CurrentTime = Backend->Time + 0.00001f;
+        CurrentTime = Backend->Time + 0.00001F;
     }
 
-    ImGuiIO.DeltaTime = Backend->Time > 0.0 ? static_cast<float>(CurrentTime - Backend->Time) : 1.F / 60.0f;
+    ImGuiIO.DeltaTime = Backend->Time > 0.0 ? static_cast<float>(CurrentTime - Backend->Time) : 1.F / 60.F;
     Backend->Time     = CurrentTime;
 
     ImGuiGLFWUpdateMouseData();
     ImGuiGLFWUpdateMouseCursor();
 }
-
-struct ImGuiGLFWViewportData
-{
-    GLFWwindow * Window {};
-    bool         WindowOwned {};
-    std::int32_t IgnoreWindowPosEventFrame {};
-    std::int32_t IgnoreWindowSizeEventFrame {};
-    #ifdef _WIN32
-    WNDPROC PrevWndProc {};
-    #endif
-
-    ImGuiGLFWViewportData()
-    {
-        memset(this, 0, sizeof(*this));
-        IgnoreWindowSizeEventFrame = IgnoreWindowPosEventFrame = -1;
-    }
-
-    ~ImGuiGLFWViewportData() = default;
-};
 
 void ImGuiGLFWWindowCloseCallback(GLFWwindow *Window)
 {
@@ -867,9 +913,9 @@ void ImGuiGLFWCreateWindow(ImGuiViewport *Viewport)
     glfwWindowHint(GLFW_DECORATED, Viewport->Flags & ImGuiViewportFlags_NoDecoration ? false : true);
     glfwWindowHint(GLFW_FLOATING, Viewport->Flags & ImGuiViewportFlags_TopMost ? true : false);
 
-    ViewportData->Window = glfwCreateWindow(static_cast<int>(Viewport->Size.x), static_cast<int>(Viewport->Size.y), "No Title Yet", nullptr, nullptr);
+    ViewportData->Window      = glfwCreateWindow(static_cast<int>(Viewport->Size.x), static_cast<int>(Viewport->Size.y), "Undef", nullptr, nullptr);
     ViewportData->WindowOwned = true;
-    Viewport->PlatformHandle = static_cast<void *>(ViewportData->Window);
+    Viewport->PlatformHandle  = static_cast<void *>(ViewportData->Window);
 
     #ifdef _WIN32
     Viewport->PlatformHandleRaw = glfwGetWin32Window(ViewportData->Window);
@@ -899,7 +945,7 @@ void ImGuiGLFWDestroyWindow(ImGuiViewport *Viewport)
     {
         if (ViewportData->WindowOwned)
         {
-            for (std::uint32_t KeyIt = 0U; KeyIt < std::size(Backend->KeyOwnerWindows); KeyIt++)
+            for (std::uint32_t KeyIt = 0U; KeyIt < std::size(Backend->KeyOwnerWindows); ++KeyIt)
             {
                 if (Backend->KeyOwnerWindows.at(KeyIt) == ViewportData->Window)
                 {
@@ -956,9 +1002,10 @@ void ImGuiGLFWSetWindowPos(ImGuiViewport *Viewport, ImVec2 const Position)
 ImVec2 ImGuiGLFWGetWindowSize(ImGuiViewport *Viewport)
 {
     ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
-    std::int32_t                 w            = 0, h = 0;
-    glfwGetWindowSize(ViewportData->Window, &w, &h);
-    return { static_cast<float>(w), static_cast<float>(h) };
+    std::int32_t                 Width        = 0;
+    std::int32_t                 Height       = 0;
+    glfwGetWindowSize(ViewportData->Window, &Width, &Height);
+    return { static_cast<float>(Width), static_cast<float>(Height) };
 }
 
 void ImGuiGLFWSetWindowSize(ImGuiViewport *Viewport, ImVec2 const Size)
@@ -1027,7 +1074,7 @@ void RenderCore::ImGuiGLFWInitPlatformInterface()
     PlatformIO.Platform_CreateVkSurface    = ImGuiGLFWCreateVkSurface;
 
     ImGuiViewport *MainViewport    = ImGui::GetMainViewport();
-    auto           ViewportData    = IM_NEW(ImGuiGLFWViewportData)();
+    auto const     ViewportData    = IM_NEW(ImGuiGLFWViewportData)();
     ViewportData->Window           = Backend->Window;
     ViewportData->WindowOwned      = false;
     MainViewport->PlatformUserData = ViewportData;
@@ -1038,59 +1085,3 @@ void RenderCore::ImGuiGLFWShutdownPlatformInterface()
 {
     ImGui::DestroyPlatformWindows();
 }
-
-#ifdef _WIN32
-ImGuiMouseSource GetMouseSourceFromMessageExtraInfo()
-{
-    LPARAM const ExtraInfo = GetMessageExtraInfo();
-    if ((ExtraInfo & 0xFFFFFF80) == 0xFF515700)
-    {
-        return ImGuiMouseSource_Pen;
-    }
-
-    if ((ExtraInfo & 0xFFFFFF80) == 0xFF515780)
-    {
-        return ImGuiMouseSource_TouchScreen;
-    }
-
-    return ImGuiMouseSource_Mouse;
-}
-
-LRESULT CALLBACK ImGuiGLFWWndProc(HWND const Handle, UINT const Message, WPARAM const WParam, LPARAM const LParam)
-{
-    ImGuiGLFWData const *Backend           = ImGuiGLFWGetBackendData();
-    WNDPROC              PreviousProcedure = Backend->PrevWndProc;
-
-    if (ImGuiViewport const *Viewport = static_cast<ImGuiViewport *>(GetPropA(Handle, "IMGUI_VIEWPORT"));
-        Viewport != nullptr)
-    {
-        if (ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData))
-        {
-            PreviousProcedure = ViewportData->PrevWndProc;
-        }
-    }
-
-    switch (Message)
-    {
-        case WM_MOUSEMOVE:
-        case WM_NCMOUSEMOVE:
-        case WM_LBUTTONDOWN:
-        case WM_LBUTTONDBLCLK:
-        case WM_LBUTTONUP:
-        case WM_RBUTTONDOWN:
-        case WM_RBUTTONDBLCLK:
-        case WM_RBUTTONUP:
-        case WM_MBUTTONDOWN:
-        case WM_MBUTTONDBLCLK:
-        case WM_MBUTTONUP:
-        case WM_XBUTTONDOWN:
-        case WM_XBUTTONDBLCLK:
-        case WM_XBUTTONUP:
-            ImGui::GetIO().AddMouseSourceEvent(GetMouseSourceFromMessageExtraInfo());
-            break;
-        default:
-            break;
-    }
-    return CallWindowProcW(PreviousProcedure, Handle, Message, WParam, LParam);
-}
-#endif // #ifdef _WIN32

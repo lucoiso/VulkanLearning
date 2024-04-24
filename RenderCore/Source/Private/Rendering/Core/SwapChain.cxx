@@ -131,7 +131,6 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
     };
 
     CheckVulkanResult(vkQueuePresentKHR(GetGraphicsQueue().second, &PresentInfo));
-    WaitAndResetFence(ImageIndice);
 }
 
 void RenderCore::ReleaseSwapChainResources()
