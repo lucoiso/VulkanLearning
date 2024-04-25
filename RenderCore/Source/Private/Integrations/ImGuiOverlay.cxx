@@ -21,6 +21,7 @@ import RenderCore.Runtime.Pipeline;
 import RenderCore.Runtime.Command;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Runtime.Instance;
+import RenderCore.Runtime.Scene;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Types.Camera;
@@ -32,7 +33,7 @@ using namespace RenderCore;
 
 VkDescriptorPool g_ImGuiDescriptorPool { VK_NULL_HANDLE };
 
-void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, SurfaceProperties const &SurfaceProperties)
+void RenderCore::InitializeImGuiContext(GLFWwindow *const Window)
 {
     IMGUI_CHECKVERSION();
 
@@ -79,7 +80,8 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, SurfacePropert
 
     CheckVulkanResult(vkCreateDescriptorPool(GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &g_ImGuiDescriptorPool));
 
-    std::vector const ColorAttachmentFormat { SurfaceProperties.Format.format };
+    std::vector const ColorAttachmentFormat { GetSwapChainImageFormat() };
+    VkFormat const &  DepthFormat = GetDepthImage().Format;
 
     ImGuiVulkanInitInfo ImGuiVulkanInitInfo {
             .DescriptorPool = g_ImGuiDescriptorPool,
@@ -87,7 +89,7 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, SurfacePropert
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
                     .colorAttachmentCount = static_cast<std::uint32_t>(std::size(ColorAttachmentFormat)),
                     .pColorAttachmentFormats = std::data(ColorAttachmentFormat),
-                    .depthAttachmentFormat = SurfaceProperties.DepthFormat,
+                    .depthAttachmentFormat = DepthFormat,
                     .stencilAttachmentFormat = VK_FORMAT_UNDEFINED
             }
     };

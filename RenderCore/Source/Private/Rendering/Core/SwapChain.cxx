@@ -26,6 +26,7 @@ import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
+SurfaceProperties            g_CachedProperties {};
 VkSurfaceKHR                 g_Surface { VK_NULL_HANDLE };
 VkSwapchainKHR               g_SwapChain { VK_NULL_HANDLE };
 VkSwapchainKHR               g_OldSwapChain { VK_NULL_HANDLE };
@@ -41,7 +42,8 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
     auto const QueueFamilyIndices      = GetUniqueQueueFamilyIndicesU32();
     auto const QueueFamilyIndicesCount = static_cast<std::uint32_t>(std::size(QueueFamilyIndices));
 
-    g_OldSwapChain = g_SwapChain;
+    g_OldSwapChain     = g_SwapChain;
+    g_CachedProperties = SurfaceProperties;
 
     VkSwapchainCreateInfoKHR const SwapChainCreateInfo {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -190,4 +192,9 @@ VkFormat const &RenderCore::GetSwapChainImageFormat()
 std::vector<ImageAllocation> const &RenderCore::GetSwapChainImages()
 {
     return g_SwapChainImages;
+}
+
+SurfaceProperties const &RenderCore::GetCachedSurfaceProperties()
+{
+    return g_CachedProperties;
 }

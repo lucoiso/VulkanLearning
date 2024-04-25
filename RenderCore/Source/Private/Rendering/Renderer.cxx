@@ -87,6 +87,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
 
             auto const SurfaceCapabilities = GetSurfaceCapabilities();
             CreateSwapChain(SurfaceProperties, SurfaceCapabilities);
+            CreateDepthResources(SurfaceProperties);
 
             if (!HasFlag(g_StateFlags, RendererStateFlags::INITIALIZED))
             {
@@ -94,7 +95,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
                 CreatePipelineLibraries();
 
                 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-                InitializeImGuiContext(Window, SurfaceProperties);
+                InitializeImGuiContext(Window);
                 #endif
 
                 AddFlags(g_StateFlags, RendererStateFlags::INITIALIZED);
@@ -104,7 +105,6 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             CreateViewportResources(SurfaceProperties);
             #endif
 
-            CreateDepthResources(SurfaceProperties);
             Owner->RefreshResources();
 
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::INVALID_SIZE);

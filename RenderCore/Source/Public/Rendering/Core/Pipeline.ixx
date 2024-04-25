@@ -61,11 +61,16 @@ export namespace RenderCore
     {
         VkPipelineRasterizationStateCreateInfo         RasterizationState {};
         VkPipelineColorBlendAttachmentState            ColorBlendAttachment {};
+        VkPipelineMultisampleStateCreateInfo           MultisampleState {};
         VkVertexInputBindingDescription                VertexBinding {};
         std::vector<VkVertexInputAttributeDescription> VertexAttributes {};
         std::vector<VkPipelineShaderStageCreateInfo>   ShaderStages {};
     };
 
     void CreatePipelineLibraries(PipelineData &, PipelineLibraryCreationArguments const &, VkPipelineCreateFlags);
-    void CreateMainPipeline(PipelineData &, std::vector<VkPipelineShaderStageCreateInfo> const &, VkPipelineCreateFlags);
+    void CreateMainPipeline(PipelineData &,
+                            std::vector<VkPipelineShaderStageCreateInfo> const &,
+                            VkPipelineCreateFlags,
+                            VkPipelineDepthStencilStateCreateInfo const &,
+                            VkPipelineMultisampleStateCreateInfo const &);
 } // namespace RenderCore

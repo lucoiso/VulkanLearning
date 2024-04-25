@@ -20,6 +20,7 @@ module RenderCore.Integrations.ImGuiVulkanBackend;
 
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
 import RenderCore.Types.Allocation;
+import RenderCore.Types.SurfaceProperties;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Runtime.Memory;
@@ -634,9 +635,6 @@ struct ImGuiVulkanWindow
     std::uint32_t                           Height {};
     VkSwapchainKHR                          Swapchain {};
     VkSurfaceKHR                            Surface {};
-    VkSurfaceFormatKHR                      SurfaceFormat {};
-    VkPresentModeKHR                        PresentMode { VK_PRESENT_MODE_FIFO_KHR };
-    VkPipeline                              Pipeline {};
     std::uint32_t                           FrameIndex {};
     std::uint32_t                           SemaphoreIndex {};
     std::vector<ImGuiVulkanFrame>           Frames {};
@@ -677,21 +675,20 @@ void ImGuiVulkanSetupRenderState(ImDrawData const *      DrawData,
                                  VkCommandBuffer const   CommandBuffer,
                                  BufferAllocation const &RenderBuffers)
 {
+    if (DrawData->TotalVtxCount <= 0)
+    {
+        return;
+    }
+
     ImGuiVulkanData const *Backend = ImGuiVulkanGetBackendData();
 
     vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
 
-    if (DrawData->TotalVtxCount > 0)
-    {
-        constexpr VkDeviceSize VertexOffset    = 0U;
-        VkDeviceSize const     VertexBufferEnd = sizeof(ImDrawVert) * DrawData->TotalVtxCount;
+    constexpr VkDeviceSize VertexOffset    = 0U;
+    VkDeviceSize const     VertexBufferEnd = sizeof(ImDrawVert) * DrawData->TotalVtxCount;
 
-        vkCmdBindVertexBuffers(CommandBuffer, 0U, 1U, &RenderBuffers.Buffer, &VertexOffset);
-        vkCmdBindIndexBuffer(CommandBuffer,
-                             RenderBuffers.Buffer,
-                             VertexBufferEnd,
-                             sizeof(ImDrawIdx) == 2U ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
-    }
+    vkCmdBindVertexBuffers(CommandBuffer, 0U, 1U, &RenderBuffers.Buffer, &VertexOffset);
+    vkCmdBindIndexBuffer(CommandBuffer, RenderBuffers.Buffer, VertexBufferEnd, VK_INDEX_TYPE_UINT16);
 
     float const ScaleX = 2.F / DrawData->DisplaySize.x;
     float const ScaleY = 2.F / DrawData->DisplaySize.y;
@@ -734,9 +731,24 @@ void ImGuiVulkanCreatePipeline()
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
     };
 
+    constexpr VkPipelineMultisampleStateCreateInfo MsInfo {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+            .rasterizationSamples = g_MSAASamples
+    };
+
+    constexpr VkPipelineDepthStencilStateCreateInfo DepthInfo {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+            .depthTestEnable = VK_FALSE,
+            .depthWriteEnable = VK_FALSE,
+            .depthCompareOp = VK_COMPARE_OP_ALWAYS,
+            .depthBoundsTestEnable = VK_FALSE,
+            .stencilTestEnable = VK_FALSE
+    };
+
     PipelineLibraryCreationArguments const Arguments {
             .RasterizationState = RasterInfo,
             .ColorBlendAttachment = ColorAttachment,
+            .MultisampleState = MsInfo,
             .VertexBinding = VertexBindingDescription,
             .VertexAttributes = {
                     VkVertexInputAttributeDescription {
@@ -764,7 +776,7 @@ void ImGuiVulkanCreatePipeline()
     ImGuiVulkanData *Backend = ImGuiVulkanGetBackendData();
 
     CreatePipelineLibraries(Backend->PipelineData, Arguments, 0U);
-    CreateMainPipeline(Backend->PipelineData, { ShaderData::g_FragmentShaderStage }, 0U);
+    CreateMainPipeline(Backend->PipelineData, { ShaderData::g_FragmentShaderStage }, 0U, DepthInfo, MsInfo);
 }
 
 void ImGuiVulkanCreateWindow(ImGuiViewport *Viewport)
@@ -800,12 +812,6 @@ void ImGuiVulkanCreateWindow(ImGuiViewport *Viewport)
     {
         SurfaceFormats.push_back(FormatIt);
     }
-
-    constexpr VkColorSpaceKHR RequestSurfaceColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
-    WindowData.SurfaceFormat = ImGuiVulkanSelectSurfaceFormat(WindowData.Surface, SurfaceFormats.Data, SurfaceFormats.Size, RequestSurfaceColorSpace);
-
-    constexpr std::array PresentModes { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR };
-    WindowData.PresentMode = ImGuiVulkanSelectPresentMode(WindowData.Surface, std::data(PresentModes), std::size(PresentModes));
 
     ImGuiVulkanCreateOrResizeWindow(WindowData, static_cast<std::int32_t>(Viewport->Size.x), static_cast<std::int32_t>(Viewport->Size.y));
     ViewportData->WindowOwned = true;
@@ -874,9 +880,8 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
             .imageView = FrameData.Backbuffer.View,
             .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             .resolveMode = VK_RESOLVE_MODE_NONE,
-            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .clearValue = g_ClearValues.at(0U)
+            .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE
     };
 
     VkRenderingInfo const RenderingInfo = {
@@ -1128,70 +1133,71 @@ void RenderCore::ImGuiVulkanCreateWindowSwapChain(ImGuiVulkanWindow &WindowData,
     }
     WindowData.FrameSemaphores.clear();
 
-    if (WindowData.Pipeline)
+    if (ImGuiVulkanData *Backend = ImGuiVulkanGetBackendData();
+        Backend->PipelineData.MainPipeline)
     {
-        vkDestroyPipeline(LogicalDevice, WindowData.Pipeline, nullptr);
+        Backend->PipelineData.DestroyResources(LogicalDevice, false);
     }
 
+    auto const &[Format, DepthFormat, Mode, Extent] = GetCachedSurfaceProperties();
+
+    VkSwapchainCreateInfoKHR SwapchainCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+            .surface = WindowData.Surface,
+            .minImageCount = g_MinImageCount,
+            .imageFormat = Format.format,
+            .imageColorSpace = Format.colorSpace,
+            .imageArrayLayers = 1,
+            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+            .preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
+            .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            .presentMode = Mode,
+            .clipped = VK_TRUE,
+            .oldSwapchain = OldSwapchain
+    };
+
+    VkSurfaceCapabilitiesKHR SurfaceCapabilities;
+    CheckVulkanResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(PhysicalDevice, WindowData.Surface, &SurfaceCapabilities));
+
+    if (SwapchainCreateInfo.minImageCount < SurfaceCapabilities.minImageCount)
     {
-        VkSwapchainCreateInfoKHR SwapchainCreateInfo {
-                .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-                .surface = WindowData.Surface,
-                .minImageCount = g_MinImageCount,
-                .imageFormat = WindowData.SurfaceFormat.format,
-                .imageColorSpace = WindowData.SurfaceFormat.colorSpace,
-                .imageArrayLayers = 1,
-                .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
-                .preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
-                .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-                .presentMode = WindowData.PresentMode,
-                .clipped = VK_TRUE,
-                .oldSwapchain = OldSwapchain
-        };
+        SwapchainCreateInfo.minImageCount = SurfaceCapabilities.minImageCount;
+    }
+    else if (SurfaceCapabilities.maxImageCount != 0U && SwapchainCreateInfo.minImageCount > SurfaceCapabilities.maxImageCount)
+    {
+        SwapchainCreateInfo.minImageCount = SurfaceCapabilities.maxImageCount;
+    }
 
-        VkSurfaceCapabilitiesKHR SurfaceCapabilities;
-        CheckVulkanResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(PhysicalDevice, WindowData.Surface, &SurfaceCapabilities));
+    if (SurfaceCapabilities.currentExtent.width == 0xffffffff)
+    {
+        SwapchainCreateInfo.imageExtent.width  = WindowWidth;
+        SwapchainCreateInfo.imageExtent.height = WindowHeight;
+        WindowData.Width                       = WindowWidth;
+        WindowData.Height                      = WindowHeight;
+    }
+    else
+    {
+        SwapchainCreateInfo.imageExtent.width  = SurfaceCapabilities.currentExtent.width;
+        SwapchainCreateInfo.imageExtent.height = SurfaceCapabilities.currentExtent.height;
+        WindowData.Width                       = SurfaceCapabilities.currentExtent.width;
+        WindowData.Height                      = SurfaceCapabilities.currentExtent.height;
+    }
 
-        if (SwapchainCreateInfo.minImageCount < SurfaceCapabilities.minImageCount)
-        {
-            SwapchainCreateInfo.minImageCount = SurfaceCapabilities.minImageCount;
-        }
-        else if (SurfaceCapabilities.maxImageCount != 0U && SwapchainCreateInfo.minImageCount > SurfaceCapabilities.maxImageCount)
-        {
-            SwapchainCreateInfo.minImageCount = SurfaceCapabilities.maxImageCount;
-        }
+    std::uint32_t Count = 0U;
+    CheckVulkanResult(vkGetSwapchainImagesKHR(LogicalDevice, WindowData.Swapchain, &Count, nullptr));
 
-        if (SurfaceCapabilities.currentExtent.width == 0xffffffff)
-        {
-            SwapchainCreateInfo.imageExtent.width  = WindowWidth;
-            SwapchainCreateInfo.imageExtent.height = WindowHeight;
-            WindowData.Width                       = WindowWidth;
-            WindowData.Height                      = WindowHeight;
-        }
-        else
-        {
-            SwapchainCreateInfo.imageExtent.width  = SurfaceCapabilities.currentExtent.width;
-            SwapchainCreateInfo.imageExtent.height = SurfaceCapabilities.currentExtent.height;
-            WindowData.Width                       = SurfaceCapabilities.currentExtent.width;
-            WindowData.Height                      = SurfaceCapabilities.currentExtent.height;
-        }
+    std::vector<VkImage> BackBuffers(Count, VK_NULL_HANDLE);
+    CheckVulkanResult(vkGetSwapchainImagesKHR(LogicalDevice, WindowData.Swapchain, &Count, std::data(BackBuffers)));
 
-        std::uint32_t Count = 0U;
-        CheckVulkanResult(vkGetSwapchainImagesKHR(LogicalDevice, WindowData.Swapchain, &Count, nullptr));
+    WindowData.FrameSemaphores.resize(g_MinImageCount);
+    WindowData.Frames.resize(g_MinImageCount);
 
-        std::vector<VkImage> BackBuffers(Count, VK_NULL_HANDLE);
-        CheckVulkanResult(vkGetSwapchainImagesKHR(LogicalDevice, WindowData.Swapchain, &Count, std::data(BackBuffers)));
-
-        WindowData.FrameSemaphores.resize(g_MinImageCount);
-        WindowData.Frames.resize(g_MinImageCount);
-
-        for (std::uint32_t Iterator = 0U; Iterator < g_MinImageCount; Iterator++)
-        {
-            WindowData.Frames.at(Iterator).Backbuffer.Image  = BackBuffers.at(Iterator);
-            WindowData.Frames.at(Iterator).Backbuffer.Extent = SwapchainCreateInfo.imageExtent;
-            WindowData.Frames.at(Iterator).Backbuffer.Format = SwapchainCreateInfo.imageFormat;
-        }
+    for (std::uint32_t Iterator = 0U; Iterator < g_MinImageCount; Iterator++)
+    {
+        WindowData.Frames.at(Iterator).Backbuffer.Image  = BackBuffers.at(Iterator);
+        WindowData.Frames.at(Iterator).Backbuffer.Extent = SwapchainCreateInfo.imageExtent;
+        WindowData.Frames.at(Iterator).Backbuffer.Format = SwapchainCreateInfo.imageFormat;
     }
 
     if (OldSwapchain)
@@ -1218,7 +1224,8 @@ void RenderCore::ImGuiVulkanDestroyFrame(ImGuiVulkanFrame &FrameData)
     FrameData.CommandBuffer = VK_NULL_HANDLE;
     FrameData.CommandPool   = VK_NULL_HANDLE;
 
-    vkDestroyImageView(LogicalDevice, FrameData.Backbuffer.View, nullptr);
+    VmaAllocator const &Allocator = GetAllocator();
+    FrameData.Backbuffer.DestroyResources(Allocator);
 }
 
 void RenderCore::ImGuiVulkanDestroyFrameSemaphores(ImGuiVulkanFrameSemaphores *FrameSemaphore)
@@ -1262,10 +1269,7 @@ void RenderCore::ImGuiVulkanShutdownPlatformInterface()
 
 void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *DrawData, VkCommandBuffer const CommandBuffer)
 {
-    auto const FrameWidth  = static_cast<std::int32_t>(DrawData->DisplaySize.x * DrawData->FramebufferScale.x);
-    auto const FrameHeight = static_cast<std::int32_t>(DrawData->DisplaySize.y * DrawData->FramebufferScale.y);
-
-    if (FrameWidth <= 0U || FrameHeight <= 0U)
+    if (DrawData->DisplaySize.x <= 0U || DrawData->DisplaySize.y <= 0U)
     {
         return;
     }
@@ -1353,14 +1357,14 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *DrawData, VkCommandBuffer
                 MinClip.y = 0.F;
             }
 
-            if (MaxClip.x > static_cast<float>(FrameWidth))
+            if (MaxClip.x > DrawData->DisplaySize.x)
             {
-                MaxClip.x = static_cast<float>(FrameWidth);
+                MaxClip.x = DrawData->DisplaySize.x;
             }
 
-            if (MaxClip.y > static_cast<float>(FrameHeight))
+            if (MaxClip.y > DrawData->DisplaySize.y)
             {
-                MaxClip.y = static_cast<float>(FrameHeight);
+                MaxClip.y = DrawData->DisplaySize.y;
             }
 
             if (MaxClip.x <= MinClip.x || MaxClip.y <= MinClip.y)
@@ -1556,30 +1560,26 @@ VkDescriptorSet RenderCore::ImGuiVulkanAddTexture(VkSampler const Sampler, VkIma
 
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
-    {
-        VkDescriptorSetAllocateInfo const AllocationInfo {
-                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-                .descriptorPool = VulkanInfo.DescriptorPool,
-                .descriptorSetCount = 1U,
-                .pSetLayouts = &Backend->DescriptorSetLayout
-        };
+    VkDescriptorSetAllocateInfo const AllocationInfo {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .descriptorPool = VulkanInfo.DescriptorPool,
+            .descriptorSetCount = 1U,
+            .pSetLayouts = &Backend->DescriptorSetLayout
+    };
 
-        CheckVulkanResult(vkAllocateDescriptorSets(LogicalDevice, &AllocationInfo, &Output));
-    }
+    CheckVulkanResult(vkAllocateDescriptorSets(LogicalDevice, &AllocationInfo, &Output));
 
-    {
-        VkDescriptorImageInfo const ImageDescriptor { .sampler = Sampler, .imageView = ImageView, .imageLayout = ImageLayout };
+    VkDescriptorImageInfo const ImageDescriptor { .sampler = Sampler, .imageView = ImageView, .imageLayout = ImageLayout };
 
-        VkWriteDescriptorSet const WriteDescriptor {
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = Output,
-                .descriptorCount = 1U,
-                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .pImageInfo = &ImageDescriptor
-        };
+    VkWriteDescriptorSet const WriteDescriptor {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = Output,
+            .descriptorCount = 1U,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .pImageInfo = &ImageDescriptor
+    };
 
-        vkUpdateDescriptorSets(LogicalDevice, 1U, &WriteDescriptor, 0U, nullptr);
-    }
+    vkUpdateDescriptorSets(LogicalDevice, 1U, &WriteDescriptor, 0U, nullptr);
 
     return Output;
 }
@@ -1590,71 +1590,6 @@ void RenderCore::ImGuiVulkanRemoveTexture(VkDescriptorSet const DescriptorSet)
     ImGuiVulkanData const *    Backend       = ImGuiVulkanGetBackendData();
     ImGuiVulkanInitInfo const &VulkanInfo    = Backend->VulkanInitInfo;
     vkFreeDescriptorSets(LogicalDevice, VulkanInfo.DescriptorPool, 1U, &DescriptorSet);
-}
-
-VkSurfaceFormatKHR RenderCore::ImGuiVulkanSelectSurfaceFormat(VkSurfaceKHR const    Surface,
-                                                              const VkFormat *      RequestFormats,
-                                                              std::int32_t const    NumRequestFormats,
-                                                              VkColorSpaceKHR const RequestColorSpace)
-{
-    VkPhysicalDevice const &PhysicalDevice = GetPhysicalDevice();
-
-    std::uint32_t AvailableCount = 0U;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(PhysicalDevice, Surface, &AvailableCount, nullptr);
-
-    ImVector<VkSurfaceFormatKHR> AvailableFormats;
-    AvailableFormats.resize(static_cast<std::int32_t>(AvailableCount));
-    vkGetPhysicalDeviceSurfaceFormatsKHR(PhysicalDevice, Surface, &AvailableCount, AvailableFormats.Data);
-
-    if (AvailableCount == 1U)
-    {
-        if (AvailableFormats[0].format == VK_FORMAT_UNDEFINED)
-        {
-            return VkSurfaceFormatKHR { .format = RequestFormats[0], .colorSpace = RequestColorSpace };
-        }
-
-        return AvailableFormats[0];
-    }
-
-    for (std::int32_t RequestIt = 0; RequestIt < NumRequestFormats; ++RequestIt)
-    {
-        for (std::int32_t AvailableIt = 0; AvailableIt < AvailableCount; ++AvailableIt)
-        {
-            if (AvailableFormats[AvailableIt].format == RequestFormats[RequestIt] && AvailableFormats[AvailableIt].colorSpace == RequestColorSpace)
-            {
-                return AvailableFormats[AvailableIt];
-            }
-        }
-    }
-
-    return AvailableFormats[0];
-}
-
-VkPresentModeKHR RenderCore::ImGuiVulkanSelectPresentMode(VkSurfaceKHR const      Surface,
-                                                          const VkPresentModeKHR *RequestModes,
-                                                          std::int32_t const      NumRequestModes)
-{
-    VkPhysicalDevice const &PhysicalDevice = GetPhysicalDevice();
-
-    std::uint32_t AvailableCount = 0;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(PhysicalDevice, Surface, &AvailableCount, nullptr);
-
-    ImVector<VkPresentModeKHR> AvailableModes;
-    AvailableModes.resize(static_cast<std::int32_t>(AvailableCount));
-    vkGetPhysicalDeviceSurfacePresentModesKHR(PhysicalDevice, Surface, &AvailableCount, AvailableModes.Data);
-
-    for (std::int32_t RequestIt = 0; RequestIt < NumRequestModes; ++RequestIt)
-    {
-        for (std::int32_t AvailableIt = 0; AvailableIt < AvailableCount; ++AvailableIt)
-        {
-            if (RequestModes[RequestIt] == AvailableModes[AvailableIt])
-            {
-                return RequestModes[RequestIt];
-            }
-        }
-    }
-
-    return VK_PRESENT_MODE_FIFO_KHR;
 }
 
 void RenderCore::ImGuiVulkanCreateOrResizeWindow(ImGuiVulkanWindow &WindowData, std::int32_t const Width, std::int32_t const Height)
@@ -1678,7 +1613,6 @@ void RenderCore::ImGuiVulkanDestroyWindow(ImGuiVulkanWindow &WindowData)
         ImGuiVulkanDestroyFrameSemaphores(&WindowData.FrameSemaphores[Iterator]);
     }
 
-    vkDestroyPipeline(LogicalDevice, WindowData.Pipeline, nullptr);
     vkDestroySwapchainKHR(LogicalDevice, WindowData.Swapchain, nullptr);
     vkDestroySurfaceKHR(GetInstance(), WindowData.Surface, nullptr);
 }

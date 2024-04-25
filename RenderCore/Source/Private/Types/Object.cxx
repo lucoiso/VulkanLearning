@@ -141,8 +141,8 @@ void Object::UpdateUniformBuffers() const
                 .AlphaCutoff = static_cast<double>(m_Mesh->GetMaterialData().AlphaCutoff),
                 .NormalScale = static_cast<double>(m_Mesh->GetMaterialData().NormalScale),
                 .OcclusionStrength = static_cast<double>(m_Mesh->GetMaterialData().OcclusionStrength),
-                .AlphaMode = static_cast<int>(m_Mesh->GetMaterialData().AlphaMode),
-                .DoubleSided = static_cast<int>(m_Mesh->GetMaterialData().DoubleSided)
+                .AlphaMode = static_cast<std::int32_t>(m_Mesh->GetMaterialData().AlphaMode),
+                .DoubleSided = static_cast<std::int32_t>(m_Mesh->GetMaterialData().DoubleSided)
         };
 
         std::memcpy(static_cast<char *>(m_MappedData) + GetUniformOffset(), &UpdatedModelUBO, ModelUBOSize);

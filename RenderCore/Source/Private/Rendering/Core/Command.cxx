@@ -417,7 +417,6 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
     CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &g_CommandBufferBeginInfo));
     {
         ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
-        SetViewport(CommandBuffer, SwapchainAllocation.Extent);
 
         BeginRendering(ImageIndex, SwapchainAllocation);
 
@@ -428,6 +427,8 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
         }
 
         EndRendering(ImageIndex);
+
+        SetViewport(CommandBuffer, SwapchainAllocation.Extent);
 
         #ifdef VULKAN_RENDERER_ENABLE_IMGUI
         RecordImGuiCommandBuffer(CommandBuffer, SwapchainAllocation, g_SwapChainMidLayout);

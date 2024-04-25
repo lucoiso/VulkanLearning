@@ -63,9 +63,5 @@ namespace RenderCore
     void ImGuiVulkanCreateOrResizeWindow(ImGuiVulkanWindow &, std::int32_t, std::int32_t);
 
     void ImGuiVulkanDestroyWindow(ImGuiVulkanWindow &);
-
-    VkSurfaceFormatKHR ImGuiVulkanSelectSurfaceFormat(VkSurfaceKHR, const VkFormat *, std::int32_t, VkColorSpaceKHR);
-
-    VkPresentModeKHR ImGuiVulkanSelectPresentMode(VkSurfaceKHR, const VkPresentModeKHR *, std::int32_t);
     #endif
 }

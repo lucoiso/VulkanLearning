@@ -9,7 +9,7 @@ module;
 #include <glm/ext.hpp>
 
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-    #include <imgui.h>
+#include <imgui.h>
 #endif
 
 module RenderCore.Integrations.GLFWCallbacks;
@@ -58,7 +58,7 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow *const  Window,
                                  std::int32_t const                  Action,
                                  [[maybe_unused]] std::int32_t const Mods)
 {
-    Camera                  &Camera               = Renderer::GetMutableCamera();
+    Camera &                 Camera               = Renderer::GetMutableCamera();
     CameraMovementStateFlags CurrentMovementState = Camera.GetCameraMovementStateFlags();
 
     if (!g_CanMovementCamera)
@@ -136,13 +136,13 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double con
     {
         glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-        Camera &Camera {Renderer::GetMutableCamera()};
+        Camera &Camera { Renderer::GetMutableCamera() };
 
-        float const Sensitivity {Camera.GetSensitivity() * 0.1F};
-        float const OffsetX {static_cast<float>(LastCursorPosX - NewCursorPosX) * Sensitivity};
-        float const OffsetY {static_cast<float>(LastCursorPosY - NewCursorPosY) * Sensitivity};
+        float const Sensitivity { Camera.GetSensitivity() * 0.1F };
+        float const OffsetX { static_cast<float>(LastCursorPosX - NewCursorPosX) * Sensitivity };
+        float const OffsetY { static_cast<float>(LastCursorPosY - NewCursorPosY) * Sensitivity };
 
-        glm::vec3 Rotation {Camera.GetRotation()};
+        glm::vec3 Rotation { Camera.GetRotation() };
 
         Rotation.x -= OffsetX;
         Rotation.y += OffsetY;
@@ -169,7 +169,7 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double con
 
 void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow *const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)
 {
-    Camera     &Camera = Renderer::GetMutableCamera();
+    Camera &    Camera = Renderer::GetMutableCamera();
     float const Zoom   = static_cast<float>(OffsetY) * 0.1f;
     Camera.SetPosition(Camera.GetPosition() + Camera.GetFront() * Zoom);
 }

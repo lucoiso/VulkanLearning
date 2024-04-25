@@ -46,6 +46,19 @@ constexpr VkPipelineMultisampleStateCreateInfo g_MultisampleState {
         .alphaToOneEnable = VK_FALSE
 };
 
+constexpr VkPipelineDepthStencilStateCreateInfo g_DepthStencilState {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+        .depthTestEnable = VK_TRUE,
+        .depthWriteEnable = VK_TRUE,
+        .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+        .depthBoundsTestEnable = VK_FALSE,
+        .stencilTestEnable = VK_FALSE,
+        .front = {},
+        .back = {},
+        .minDepthBounds = 0.F,
+        .maxDepthBounds = 1.F
+};
+
 constexpr VkPipelineCacheCreateInfo g_PipelineCacheCreateInfo { .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
 
 bool PipelineData::IsValid() const
@@ -338,7 +351,7 @@ void RenderCore::CreatePipelineDynamicResources()
         }
     }
 
-    CreateMainPipeline(g_PipelineData, ShaderStagesInfo, VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
+    CreateMainPipeline(g_PipelineData, ShaderStagesInfo, VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT, g_DepthStencilState, g_MultisampleState);
 }
 
 void RenderCore::CreatePipelineLibraries()
@@ -388,6 +401,7 @@ void RenderCore::CreatePipelineLibraries()
     PipelineLibraryCreationArguments const Arguments {
             .RasterizationState = RasterizationState,
             .ColorBlendAttachment = ColorBlendAttachmentStates,
+            .MultisampleState = g_MultisampleState,
             .VertexBinding = GetBindingDescriptors(0U),
             .VertexAttributes = GetAttributeDescriptions(0U,
                                                          {
@@ -610,7 +624,7 @@ void RenderCore::CreatePipelineLibraries(PipelineData &Data, PipelineLibraryCrea
                 .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                 .pNext = &FragmentOutputLibrary,
                 .flags = g_PipelineFlags | Flags,
-                .pMultisampleState = &g_MultisampleState,
+                .pMultisampleState = &Arguments.MultisampleState,
                 .pColorBlendState = &ColorBlendState,
                 .layout = Data.PipelineLayout
         };
@@ -626,7 +640,9 @@ void RenderCore::CreatePipelineLibraries(PipelineData &Data, PipelineLibraryCrea
 
 void RenderCore::CreateMainPipeline(PipelineData &                                      Data,
                                     std::vector<VkPipelineShaderStageCreateInfo> const &FragmentStages,
-                                    VkPipelineCreateFlags const                         Flags)
+                                    VkPipelineCreateFlags const                         Flags,
+                                    VkPipelineDepthStencilStateCreateInfo const &       DepthStencilState,
+                                    VkPipelineMultisampleStateCreateInfo const &        MultisampleState)
 {
     VkDevice const &LogicalDevice = GetLogicalDevice();
     Data.CreateMainCache(LogicalDevice);
@@ -650,26 +666,13 @@ void RenderCore::CreateMainPipeline(PipelineData &                              
                 .flags = VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT
         };
 
-        constexpr VkPipelineDepthStencilStateCreateInfo DepthStencilState {
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-                .depthTestEnable = VK_TRUE,
-                .depthWriteEnable = VK_TRUE,
-                .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
-                .depthBoundsTestEnable = VK_FALSE,
-                .stencilTestEnable = VK_FALSE,
-                .front = {},
-                .back = {},
-                .minDepthBounds = 0.F,
-                .maxDepthBounds = 1.F
-        };
-
         VkGraphicsPipelineCreateInfo const FragmentShaderPipelineCreateInfo {
                 .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                 .pNext = &FragmentLibrary,
                 .flags = g_PipelineFlags | Flags,
                 .stageCount = static_cast<std::uint32_t>(std::size(FragmentStages)),
                 .pStages = std::data(FragmentStages),
-                .pMultisampleState = &g_MultisampleState,
+                .pMultisampleState = &MultisampleState,
                 .pDepthStencilState = &DepthStencilState,
                 .layout = Data.PipelineLayout
         };

@@ -903,7 +903,11 @@ void ImGuiGLFWCreateWindow(ImGuiViewport *Viewport)
     glfwWindowHint(GLFW_DECORATED, Viewport->Flags & ImGuiViewportFlags_NoDecoration ? false : true);
     glfwWindowHint(GLFW_FLOATING, Viewport->Flags & ImGuiViewportFlags_TopMost ? true : false);
 
-    ViewportData->Window      = glfwCreateWindow(static_cast<int>(Viewport->Size.x), static_cast<int>(Viewport->Size.y), "Undef", nullptr, nullptr);
+    ViewportData->Window = glfwCreateWindow(static_cast<std::int32_t>(Viewport->Size.x),
+                                            static_cast<std::int32_t>(Viewport->Size.y),
+                                            "Undef",
+                                            nullptr,
+                                            nullptr);
     ViewportData->WindowOwned = true;
     Viewport->PlatformHandle  = static_cast<void *>(ViewportData->Window);
 
@@ -913,7 +917,7 @@ void ImGuiGLFWCreateWindow(ImGuiViewport *Viewport)
     Viewport->PlatformHandleRaw = static_cast<void *>(glfwGetCocoaWindow(ViewportData->Window));
     #endif
 
-    glfwSetWindowPos(ViewportData->Window, static_cast<int>(Viewport->Pos.x), static_cast<int>(Viewport->Pos.y));
+    glfwSetWindowPos(ViewportData->Window, static_cast<std::int32_t>(Viewport->Pos.x), static_cast<std::int32_t>(Viewport->Pos.y));
 
     glfwSetWindowFocusCallback(ViewportData->Window, ImGuiGLFWWindowFocusCallback);
     glfwSetCursorEnterCallback(ViewportData->Window, ImGuiGLFWCursorEnterCallback);
@@ -986,7 +990,7 @@ void ImGuiGLFWSetWindowPos(ImGuiViewport *Viewport, ImVec2 const Position)
 {
     auto *ViewportData                      = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
     ViewportData->IgnoreWindowPosEventFrame = ImGui::GetFrameCount();
-    glfwSetWindowPos(ViewportData->Window, static_cast<int>(Position.x), static_cast<int>(Position.y));
+    glfwSetWindowPos(ViewportData->Window, static_cast<std::int32_t>(Position.x), static_cast<std::int32_t>(Position.y));
 }
 
 ImVec2 ImGuiGLFWGetWindowSize(ImGuiViewport *Viewport)
@@ -1002,7 +1006,7 @@ void ImGuiGLFWSetWindowSize(ImGuiViewport *Viewport, ImVec2 const Size)
 {
     auto *ViewportData                       = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
     ViewportData->IgnoreWindowSizeEventFrame = ImGui::GetFrameCount();
-    glfwSetWindowSize(ViewportData->Window, static_cast<int>(Size.x), static_cast<int>(Size.y));
+    glfwSetWindowSize(ViewportData->Window, static_cast<std::int32_t>(Size.x), static_cast<std::int32_t>(Size.y));
 }
 
 void ImGuiGLFWSetWindowTitle(ImGuiViewport *Viewport, const char *Title)

@@ -24,6 +24,7 @@ namespace RenderCore
     export [[nodiscard]] VkExtent2D const &                  GetSwapChainExtent();
     export [[nodiscard]] VkFormat const &                    GetSwapChainImageFormat();
     export [[nodiscard]] std::vector<ImageAllocation> const &GetSwapChainImages();
+    export [[nodiscard]] SurfaceProperties const &           GetCachedSurfaceProperties();
 
     export void RequestSwapChainImage(std::optional<std::int32_t> &);
     export void PresentFrame(std::uint32_t);
