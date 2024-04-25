@@ -33,10 +33,10 @@ namespace RenderCore
         VkPipelineRenderingCreateInfo PipelineRenderingCreateInfo;
     };
 
-    export bool ImGuiVulkanInit(ImGuiVulkanInitInfo const *);
+    export bool ImGuiVulkanInit(ImGuiVulkanInitInfo const &);
     export void ImGuiVulkanShutdown();
     export void ImGuiVulkanNewFrame();
-    export void ImGuiVulkanRenderDrawData(ImDrawData *, VkCommandBuffer);
+    export void ImGuiVulkanRenderDrawData(ImDrawData *const&, VkCommandBuffer);
     export bool ImGuiVulkanCreateFontsTexture();
     export void ImGuiVulkanDestroyFontsTexture();
 
@@ -50,7 +50,7 @@ namespace RenderCore
     void ImGuiVulkanDestroyWindowRenderBuffers(ImGuiVulkanWindowRenderBuffers &);
 
     void ImGuiVulkanDestroyFrame(ImGuiVulkanFrame &);
-    void ImGuiVulkanDestroyFrameSemaphores(ImGuiVulkanFrameSemaphores *);
+    void ImGuiVulkanDestroyFrameSemaphores(ImGuiVulkanFrameSemaphores &);
     void ImGuiVulkanDestroyAllViewportsRenderBuffers();
 
     void ImGuiVulkanCreateWindowSwapChain(ImGuiVulkanWindow &, std::int32_t, std::int32_t);

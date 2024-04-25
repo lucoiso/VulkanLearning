@@ -83,7 +83,7 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window)
     std::vector const ColorAttachmentFormat { GetSwapChainImageFormat() };
     VkFormat const &  DepthFormat = GetDepthImage().Format;
 
-    ImGuiVulkanInitInfo ImGuiVulkanInitInfo {
+    ImGuiVulkanInitInfo const ImGuiVulkanInitInfo {
             .DescriptorPool = g_ImGuiDescriptorPool,
             .PipelineRenderingCreateInfo = {
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
@@ -94,7 +94,7 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window)
             }
     };
 
-    ImGuiVulkanInit(&ImGuiVulkanInitInfo);
+    ImGuiVulkanInit(ImGuiVulkanInitInfo);
     ImGuiVulkanCreateFontsTexture();
 }
 

@@ -617,34 +617,34 @@ namespace ShaderData
 
 struct ImGuiVulkanFrame
 {
-    VkCommandPool   CommandPool;
-    VkCommandBuffer CommandBuffer;
-    VkFence         Fence;
-    ImageAllocation Backbuffer;
+    VkCommandPool   CommandPool { VK_NULL_HANDLE };
+    VkCommandBuffer CommandBuffer { VK_NULL_HANDLE };
+    VkFence         Fence { VK_NULL_HANDLE };
+    ImageAllocation Backbuffer {};
 };
 
 struct ImGuiVulkanFrameSemaphores
 {
-    VkSemaphore ImageAcquiredSemaphore;
-    VkSemaphore RenderCompleteSemaphore;
+    VkSemaphore ImageAcquiredSemaphore { VK_NULL_HANDLE };
+    VkSemaphore RenderCompleteSemaphore { VK_NULL_HANDLE };
 };
 
 struct ImGuiVulkanWindow
 {
-    std::uint32_t                           Width {};
-    std::uint32_t                           Height {};
-    VkSwapchainKHR                          Swapchain {};
-    VkSurfaceKHR                            Surface {};
-    std::uint32_t                           FrameIndex {};
-    std::uint32_t                           SemaphoreIndex {};
-    std::vector<ImGuiVulkanFrame>           Frames {};
-    std::vector<ImGuiVulkanFrameSemaphores> FrameSemaphores {};
+    std::uint32_t                                           Width {};
+    std::uint32_t                                           Height {};
+    VkSwapchainKHR                                          Swapchain { VK_NULL_HANDLE };
+    VkSurfaceKHR                                            Surface { VK_NULL_HANDLE };
+    std::uint32_t                                           FrameIndex {};
+    std::uint32_t                                           SemaphoreIndex {};
+    std::array<ImGuiVulkanFrame, g_MinImageCount>           Frames {};
+    std::array<ImGuiVulkanFrameSemaphores, g_MinImageCount> FrameSemaphores {};
 };
 
 struct ImGuiVulkanWindowRenderBuffers
 {
-    std::uint32_t                 Index;
-    std::vector<BufferAllocation> Buffers {};
+    std::uint32_t                                 Index { 0U };
+    std::array<BufferAllocation, g_MinImageCount> Buffers {};
 };
 
 struct ImGuiVulkanViewportData
@@ -670,10 +670,10 @@ ImGuiVulkanData *ImGuiVulkanGetBackendData()
     return ImGui::GetCurrentContext() ? static_cast<ImGuiVulkanData *>(ImGui::GetIO().BackendRendererUserData) : nullptr;
 }
 
-void ImGuiVulkanSetupRenderState(ImDrawData const *      DrawData,
-                                 VkPipeline const        Pipeline,
-                                 VkCommandBuffer const   CommandBuffer,
-                                 BufferAllocation const &RenderBuffers)
+void ImGuiVulkanSetupRenderState(ImDrawData const *const &DrawData,
+                                 VkPipeline const &       Pipeline,
+                                 VkCommandBuffer const &  CommandBuffer,
+                                 BufferAllocation const & RenderBuffers)
 {
     if (DrawData->TotalVtxCount <= 0)
     {
@@ -740,7 +740,7 @@ void ImGuiVulkanCreatePipeline()
             .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
             .depthTestEnable = VK_FALSE,
             .depthWriteEnable = VK_FALSE,
-            .depthCompareOp = VK_COMPARE_OP_ALWAYS,
+            .depthCompareOp = VK_COMPARE_OP_NEVER,
             .depthBoundsTestEnable = VK_FALSE,
             .stencilTestEnable = VK_FALSE
     };
@@ -789,8 +789,9 @@ void ImGuiVulkanCreateWindow(ImGuiViewport *Viewport)
     ImGuiVulkanData const *Backend      = ImGuiVulkanGetBackendData();
     auto *                 ViewportData = IM_NEW(ImGuiVulkanViewportData)();
 
-    Viewport->RendererUserData            = ViewportData;
-    ImGuiVulkanWindow &        WindowData = ViewportData->Window;
+    Viewport->RendererUserData    = ViewportData;
+    ImGuiVulkanWindow &WindowData = ViewportData->Window;
+
     ImGuiVulkanInitInfo const &VulkanInfo = Backend->VulkanInitInfo;
 
     ImGuiPlatformIO const &PlatformIO = ImGui::GetPlatformIO();
@@ -1125,13 +1126,11 @@ void RenderCore::ImGuiVulkanCreateWindowSwapChain(ImGuiVulkanWindow &WindowData,
     {
         ImGuiVulkanDestroyFrame(WindowData.Frames.at(Iterator));
     }
-    WindowData.Frames.clear();
 
     for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(WindowData.FrameSemaphores)); Iterator++)
     {
-        ImGuiVulkanDestroyFrameSemaphores(&WindowData.FrameSemaphores[Iterator]);
+        ImGuiVulkanDestroyFrameSemaphores(WindowData.FrameSemaphores.at(Iterator));
     }
-    WindowData.FrameSemaphores.clear();
 
     if (ImGuiVulkanData *Backend = ImGuiVulkanGetBackendData();
         Backend->PipelineData.MainPipeline)
@@ -1190,9 +1189,6 @@ void RenderCore::ImGuiVulkanCreateWindowSwapChain(ImGuiVulkanWindow &WindowData,
     std::vector<VkImage> BackBuffers(Count, VK_NULL_HANDLE);
     CheckVulkanResult(vkGetSwapchainImagesKHR(LogicalDevice, WindowData.Swapchain, &Count, std::data(BackBuffers)));
 
-    WindowData.FrameSemaphores.resize(g_MinImageCount);
-    WindowData.Frames.resize(g_MinImageCount);
-
     for (std::uint32_t Iterator = 0U; Iterator < g_MinImageCount; Iterator++)
     {
         WindowData.Frames.at(Iterator).Backbuffer.Image  = BackBuffers.at(Iterator);
@@ -1228,15 +1224,15 @@ void RenderCore::ImGuiVulkanDestroyFrame(ImGuiVulkanFrame &FrameData)
     FrameData.Backbuffer.DestroyResources(Allocator);
 }
 
-void RenderCore::ImGuiVulkanDestroyFrameSemaphores(ImGuiVulkanFrameSemaphores *FrameSemaphore)
+void RenderCore::ImGuiVulkanDestroyFrameSemaphores(ImGuiVulkanFrameSemaphores &FrameSemaphore)
 {
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
-    vkDestroySemaphore(LogicalDevice, FrameSemaphore->ImageAcquiredSemaphore, nullptr);
-    vkDestroySemaphore(LogicalDevice, FrameSemaphore->RenderCompleteSemaphore, nullptr);
+    vkDestroySemaphore(LogicalDevice, FrameSemaphore.ImageAcquiredSemaphore, nullptr);
+    vkDestroySemaphore(LogicalDevice, FrameSemaphore.RenderCompleteSemaphore, nullptr);
 
-    FrameSemaphore->ImageAcquiredSemaphore  = VK_NULL_HANDLE;
-    FrameSemaphore->RenderCompleteSemaphore = VK_NULL_HANDLE;
+    FrameSemaphore.ImageAcquiredSemaphore  = VK_NULL_HANDLE;
+    FrameSemaphore.RenderCompleteSemaphore = VK_NULL_HANDLE;
 }
 
 void RenderCore::ImGuiVulkanDestroyAllViewportsRenderBuffers()
@@ -1267,7 +1263,7 @@ void RenderCore::ImGuiVulkanShutdownPlatformInterface()
     ImGui::DestroyPlatformWindows();
 }
 
-void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *DrawData, VkCommandBuffer const CommandBuffer)
+void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkCommandBuffer const CommandBuffer)
 {
     if (DrawData->DisplaySize.x <= 0U || DrawData->DisplaySize.y <= 0U)
     {
@@ -1278,12 +1274,6 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *DrawData, VkCommandBuffer
 
     auto *ViewportRenderData = static_cast<ImGuiVulkanViewportData *>(DrawData->OwnerViewport->RendererUserData);
     auto &[Index, Buffers]   = ViewportRenderData->RenderBuffers;
-
-    if (std::empty(Buffers))
-    {
-        Index = 0U;
-        Buffers.resize(g_MinImageCount);
-    }
 
     Index                           = (Index + 1U) % static_cast<std::uint32_t>(std::size(Buffers));
     BufferAllocation &RenderBuffers = Buffers.at(Index);
@@ -1489,7 +1479,7 @@ void RenderCore::ImGuiVulkanDestroyFontsTexture()
     }
 }
 
-bool RenderCore::ImGuiVulkanInit(ImGuiVulkanInitInfo const *VulkanInfo)
+bool RenderCore::ImGuiVulkanInit(ImGuiVulkanInitInfo const &VulkanInfo)
 {
     ImGuiIO &ImGuiIO = ImGui::GetIO();
 
@@ -1498,7 +1488,7 @@ bool RenderCore::ImGuiVulkanInit(ImGuiVulkanInitInfo const *VulkanInfo)
     ImGuiIO.BackendRendererName     = "RenderCore_ImGui_Vulkan";
     ImGuiIO.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset | ImGuiBackendFlags_RendererHasViewports;
 
-    Backend->VulkanInitInfo = *VulkanInfo;
+    Backend->VulkanInitInfo = VulkanInfo;
 
     ImGuiVulkanCreateDeviceObjects();
 
@@ -1610,7 +1600,7 @@ void RenderCore::ImGuiVulkanDestroyWindow(ImGuiVulkanWindow &WindowData)
 
     for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(WindowData.FrameSemaphores)); Iterator++)
     {
-        ImGuiVulkanDestroyFrameSemaphores(&WindowData.FrameSemaphores[Iterator]);
+        ImGuiVulkanDestroyFrameSemaphores(WindowData.FrameSemaphores.at(Iterator));
     }
 
     vkDestroySwapchainKHR(LogicalDevice, WindowData.Swapchain, nullptr);
