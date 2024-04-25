@@ -29,10 +29,8 @@ using namespace RenderCore;
 
 std::string ExtractFunctionName(std::string const &FunctionName)
 {
-    std::regex const Regex(R"(\b([a-zA-Z_][a-zA-Z0-9_]*)\b(?=\s*\())");
-
     if (std::smatch Match;
-        std::regex_search(FunctionName, Match, Regex))
+        std::regex_search(FunctionName, Match, std::regex { R"(\b([a-zA-Z_][a-zA-Z0-9_]*)\b(?=\s*\())" }))
     {
         return Match.str();
     }
@@ -40,9 +38,15 @@ std::string ExtractFunctionName(std::string const &FunctionName)
     return {};
 }
 
+std::string ExtractFileName(std::string const &FileName)
+{
+    return std::filesystem::path(FileName).filename().string();
+}
+
 void RenderCore::EmitFatalError(std::string_view const Message, std::source_location const &Location)
 {
-    BOOST_LOG_TRIVIAL(fatal) << std::format("[{}:{}:{}] {}",
+    BOOST_LOG_TRIVIAL(fatal) << std::format("[{}:{}:{}:{}] {}",
+                                            ExtractFileName(Location.file_name()),
                                             ExtractFunctionName(Location.function_name()),
                                             Location.line(),
                                             Location.column(),
