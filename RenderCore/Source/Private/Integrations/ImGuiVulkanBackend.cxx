@@ -12,8 +12,8 @@ module;
 #include <cstdint>
 #include <imgui.h>
 #include <vector>
-#include <Volk/volk.h>
 #include <vma/vk_mem_alloc.h>
+#include <Volk/volk.h>
 #endif
 
 module RenderCore.Integrations.ImGuiVulkanBackend;
@@ -30,8 +30,6 @@ import RenderCore.Runtime.SwapChain;
 import RenderCore.Runtime.Command;
 
 using namespace RenderCore;
-
-constexpr std::uint64_t g_MinAllocationSize = 1048576U;
 
 namespace ShaderData
 {
@@ -690,7 +688,10 @@ void ImGuiVulkanSetupRenderState(ImDrawData const *      DrawData,
         constexpr VkDeviceSize VertexOffset    = 0U;
         VkDeviceSize const     VertexBufferEnd = sizeof(ImDrawVert) * DrawData->TotalVtxCount;
         vkCmdBindVertexBuffers(CommandBuffer, 0U, 1U, &RenderBuffers.Buffer, &VertexOffset);
-        vkCmdBindIndexBuffer(CommandBuffer, RenderBuffers.Buffer, VertexBufferEnd, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(CommandBuffer,
+                             RenderBuffers.Buffer,
+                             VertexBufferEnd,
+                             sizeof(ImDrawIdx) == 2U ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
     }
 
     VkViewport const Viewport {
@@ -725,24 +726,45 @@ void ImGuiVulkanCreatePipeline()
             .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
     };
 
+    constexpr VkPipelineRasterizationStateCreateInfo RasterInfo {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+            .polygonMode = VK_POLYGON_MODE_FILL,
+            .cullMode = VK_CULL_MODE_NONE,
+            .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+            .lineWidth = 1.F
+    };
+
+    constexpr VkPipelineColorBlendAttachmentState ColorAttachment {
+            .blendEnable = VK_TRUE,
+            .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+            .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            .colorBlendOp = VK_BLEND_OP_ADD,
+            .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+            .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            .alphaBlendOp = VK_BLEND_OP_ADD,
+            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+    };
+
     PipelineLibraryCreationArguments const Arguments {
+            .RasterizationState = RasterInfo,
+            .ColorBlendAttachment = ColorAttachment,
             .VertexBinding = VertexBindingDescription,
             .VertexAttributes = {
                     VkVertexInputAttributeDescription {
                             .location = 0U,
-                            .binding = 0U,
+                            .binding = VertexBindingDescription.binding,
                             .format = VK_FORMAT_R32G32_SFLOAT,
                             .offset = offsetof(ImDrawVert, pos)
                     },
                     VkVertexInputAttributeDescription {
                             .location = 1U,
-                            .binding = 0U,
+                            .binding = VertexBindingDescription.binding,
                             .format = VK_FORMAT_R32G32_SFLOAT,
                             .offset = offsetof(ImDrawVert, uv)
                     },
                     VkVertexInputAttributeDescription {
                             .location = 2U,
-                            .binding = 0U,
+                            .binding = VertexBindingDescription.binding,
                             .format = VK_FORMAT_R8G8B8A8_UNORM,
                             .offset = offsetof(ImDrawVert, col)
                     }

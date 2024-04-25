@@ -36,8 +36,6 @@ VkPhysicalDeviceDescriptorBufferPropertiesEXT g_DescriptorBufferProperties {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT
 };
 
-constexpr VkPipelineCreateFlags g_PipelineFlags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
-
 constexpr VkPipelineMultisampleStateCreateInfo g_MultisampleState {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .rasterizationSamples = g_MSAASamples,
@@ -46,30 +44,6 @@ constexpr VkPipelineMultisampleStateCreateInfo g_MultisampleState {
         .pSampleMask = nullptr,
         .alphaToCoverageEnable = VK_FALSE,
         .alphaToOneEnable = VK_FALSE
-};
-
-constexpr VkPipelineDepthStencilStateCreateInfo g_DepthStencilState {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-        .depthTestEnable = VK_TRUE,
-        .depthWriteEnable = VK_TRUE,
-        .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
-        .depthBoundsTestEnable = VK_FALSE,
-        .stencilTestEnable = VK_FALSE,
-        .front = {},
-        .back = {},
-        .minDepthBounds = 0.F,
-        .maxDepthBounds = 1.F
-};
-
-constexpr VkPipelineColorBlendAttachmentState g_RenderColorBlendAttachmentStates {
-        .blendEnable = VK_TRUE,
-        .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
-        .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
-        .colorBlendOp = VK_BLEND_OP_ADD,
-        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
-        .alphaBlendOp = VK_BLEND_OP_ADD,
-        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
 };
 
 constexpr VkPipelineCacheCreateInfo g_PipelineCacheCreateInfo { .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
@@ -386,7 +360,34 @@ void RenderCore::CreatePipelineLibraries()
         }
     }
 
+    constexpr VkPipelineColorBlendAttachmentState ColorBlendAttachmentStates {
+            .blendEnable = VK_TRUE,
+            .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+            .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
+            .colorBlendOp = VK_BLEND_OP_ADD,
+            .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+            .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+            .alphaBlendOp = VK_BLEND_OP_ADD,
+            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+    };
+
+    constexpr VkPipelineRasterizationStateCreateInfo RasterizationState {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+            .depthClampEnable = VK_FALSE,
+            .rasterizerDiscardEnable = VK_FALSE,
+            .polygonMode = VK_POLYGON_MODE_FILL,
+            .cullMode = VK_CULL_MODE_BACK_BIT,
+            .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+            .depthBiasEnable = VK_FALSE,
+            .depthBiasConstantFactor = 0.F,
+            .depthBiasClamp = 0.F,
+            .depthBiasSlopeFactor = 0.F,
+            .lineWidth = 1.F
+    };
+
     PipelineLibraryCreationArguments const Arguments {
+            .RasterizationState = RasterizationState,
+            .ColorBlendAttachment = ColorBlendAttachmentStates,
             .VertexBinding = GetBindingDescriptors(0U),
             .VertexAttributes = GetAttributeDescriptions(0U,
                                                          {
@@ -544,39 +545,10 @@ void RenderCore::CreatePipelineLibraries(PipelineData &Data, PipelineLibraryCrea
                 .flags = VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT,
         };
 
-        VkExtent2D const &SwapChainExtent = GetSwapChainExtent();
-
-        VkViewport const Viewport {
-                .x = 0.F,
-                .y = 0.F,
-                .width = static_cast<float>(SwapChainExtent.width),
-                .height = static_cast<float>(SwapChainExtent.height),
-                .minDepth = 0.F,
-                .maxDepth = 1.F
-        };
-
-        VkRect2D const Scissor { .offset = { 0, 0 }, .extent = SwapChainExtent };
-
-        VkPipelineViewportStateCreateInfo const ViewportState {
+        constexpr VkPipelineViewportStateCreateInfo ViewportState {
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
                 .viewportCount = 1U,
-                .pViewports = &Viewport,
                 .scissorCount = 1U,
-                .pScissors = &Scissor
-        };
-
-        constexpr VkPipelineRasterizationStateCreateInfo RasterizationState {
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-                .depthClampEnable = VK_FALSE,
-                .rasterizerDiscardEnable = VK_FALSE,
-                .polygonMode = VK_POLYGON_MODE_FILL,
-                .cullMode = VK_CULL_MODE_BACK_BIT,
-                .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-                .depthBiasEnable = VK_FALSE,
-                .depthBiasConstantFactor = 0.F,
-                .depthBiasClamp = 0.F,
-                .depthBiasSlopeFactor = 0.F,
-                .lineWidth = 1.F
         };
 
         constexpr VkPipelineDynamicStateCreateInfo DynamicState {
@@ -592,7 +564,7 @@ void RenderCore::CreatePipelineLibraries(PipelineData &Data, PipelineLibraryCrea
                 .stageCount = static_cast<std::uint32_t>(std::size(Arguments.ShaderStages)),
                 .pStages = std::data(Arguments.ShaderStages),
                 .pViewportState = &ViewportState,
-                .pRasterizationState = &RasterizationState,
+                .pRasterizationState = &Arguments.RasterizationState,
                 .pDynamicState = &DynamicState,
                 .layout = Data.PipelineLayout
         };
@@ -630,7 +602,7 @@ void RenderCore::CreatePipelineLibraries(PipelineData &Data, PipelineLibraryCrea
                 .logicOpEnable = VK_FALSE,
                 .logicOp = VK_LOGIC_OP_COPY,
                 .attachmentCount = 1U,
-                .pAttachments = &g_RenderColorBlendAttachmentStates,
+                .pAttachments = &Arguments.ColorBlendAttachment,
                 .blendConstants = { 0.F, 0.F, 0.F, 0.F }
         };
 
@@ -678,6 +650,19 @@ void RenderCore::CreateMainPipeline(PipelineData &                              
                 .flags = VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT
         };
 
+        constexpr VkPipelineDepthStencilStateCreateInfo DepthStencilState {
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+                .depthTestEnable = VK_TRUE,
+                .depthWriteEnable = VK_TRUE,
+                .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+                .depthBoundsTestEnable = VK_FALSE,
+                .stencilTestEnable = VK_FALSE,
+                .front = {},
+                .back = {},
+                .minDepthBounds = 0.F,
+                .maxDepthBounds = 1.F
+        };
+
         VkGraphicsPipelineCreateInfo const FragmentShaderPipelineCreateInfo {
                 .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                 .pNext = &FragmentLibrary,
@@ -685,7 +670,7 @@ void RenderCore::CreateMainPipeline(PipelineData &                              
                 .stageCount = static_cast<std::uint32_t>(std::size(FragmentStages)),
                 .pStages = std::data(FragmentStages),
                 .pMultisampleState = &g_MultisampleState,
-                .pDepthStencilState = &g_DepthStencilState,
+                .pDepthStencilState = &DepthStencilState,
                 .layout = Data.PipelineLayout
         };
 

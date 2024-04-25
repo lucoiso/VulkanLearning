@@ -59,6 +59,8 @@ export namespace RenderCore
 
     struct PipelineLibraryCreationArguments
     {
+        VkPipelineRasterizationStateCreateInfo         RasterizationState {};
+        VkPipelineColorBlendAttachmentState            ColorBlendAttachment {};
         VkVertexInputBindingDescription                VertexBinding {};
         std::vector<VkVertexInputAttributeDescription> VertexAttributes {};
         std::vector<VkPipelineShaderStageCreateInfo>   ShaderStages {};
