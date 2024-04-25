@@ -5,10 +5,12 @@
 module;
 
 #include <filesystem>
+#include <format>
 #include <span>
 #include <boost/log/trivial.hpp>
 #include <GLFW/glfw3.h>
 #include <Volk/volk.h>
+#include <regex>
 
 #ifndef GLM_FORCE_RADIANS
 #define GLM_FORCE_RADIANS
@@ -21,8 +23,40 @@ module;
 module RenderCore.Utils.Helpers;
 
 import RenderCore.Types.Vertex;
+import RenderCore.Utils.EnumConverter;
 
 using namespace RenderCore;
+
+std::string ExtractFunctionName(std::string const &FunctionName)
+{
+    std::regex const Regex(R"(\b([a-zA-Z_][a-zA-Z0-9_]*)\b(?=\s*\())");
+
+    if (std::smatch Match;
+        std::regex_search(FunctionName, Match, Regex))
+    {
+        return Match.str();
+    }
+
+    return {};
+}
+
+void RenderCore::EmitFatalError(std::string_view const Message, std::source_location const &Location)
+{
+    BOOST_LOG_TRIVIAL(fatal) << std::format("[{}:{}:{}] {}",
+                                            ExtractFunctionName(Location.function_name()),
+                                            Location.line(),
+                                            Location.column(),
+                                            Message);
+    std::terminate();
+}
+
+void RenderCore::CheckVulkanResult(VkResult const InputOperation, std::source_location const &Location)
+{
+    if (InputOperation != VK_SUCCESS)
+    {
+        EmitFatalError(std::format("Vulkan operation failed with result {}", ResultToString(InputOperation)), Location);
+    }
+}
 
 VkExtent2D RenderCore::GetWindowExtent(GLFWwindow *const Window, VkSurfaceCapabilitiesKHR const &Capabilities)
 {
@@ -47,31 +81,9 @@ std::vector<std::string> RenderCore::GetGLFWExtensions()
     std::vector<std::string> Output {};
     Output.reserve(GLFWExtensionsCount);
 
-    if (!std::empty(GLFWExtensionsSpan))
+    for (char const *const &ExtensionIter : GLFWExtensionsSpan)
     {
-        for (char const *const &ExtensionIter : GLFWExtensionsSpan)
-        {
-            Output.emplace_back(ExtensionIter);
-        }
-    }
-    else
-    {
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Failed to get GLFW extensions. Forcing Vulkan extensions:";
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: VK_KHR_surface";
-        Output.emplace_back("VK_KHR_surface");
-
-        #ifdef WIN32
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: VK_KHR_win32_surface";
-        Output.emplace_back("VK_KHR_win32_surface");
-        #elif __linux__
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: VK_KHR_xcb_surface";
-        Output.emplace_back("VK_KHR_xcb_surface");
-        #elif __APPLE__
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: VK_KHR_macos_surface";
-        Output.emplace_back("VK_KHR_macos_surface");
-        elif __ANDROID__ BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: VK_KHR_android_surface";
-        Output.emplace_back("VK_KHR_android_surface");
-        #endif
+        Output.emplace_back(ExtensionIter);
     }
 
     return Output;
