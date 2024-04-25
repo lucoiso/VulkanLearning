@@ -48,7 +48,7 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window)
         return;
     }
 
-    ImIO.ConfigFlags |= /*ImGuiConfigFlags_ViewportsEnable |*/ ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
+    ImIO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
 
     ImGuiGLFWInitForVulkan(Window, false);
     ImGuiGLFWSetCallbacksChainForAllWindows(true);

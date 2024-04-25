@@ -428,8 +428,6 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
 
         EndRendering(ImageIndex);
 
-        SetViewport(CommandBuffer, SwapchainAllocation.Extent);
-
         #ifdef VULKAN_RENDERER_ENABLE_IMGUI
         RecordImGuiCommandBuffer(CommandBuffer, SwapchainAllocation, g_SwapChainMidLayout);
         #endif
