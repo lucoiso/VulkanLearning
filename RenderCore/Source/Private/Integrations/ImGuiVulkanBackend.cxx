@@ -675,9 +675,7 @@ ImGuiVulkanData *ImGuiVulkanGetBackendData()
 void ImGuiVulkanSetupRenderState(ImDrawData const *      DrawData,
                                  VkPipeline const        Pipeline,
                                  VkCommandBuffer const   CommandBuffer,
-                                 BufferAllocation const &RenderBuffers,
-                                 std::int32_t const      FrameWidth,
-                                 std::int32_t const      FrameHeight)
+                                 BufferAllocation const &RenderBuffers)
 {
     ImGuiVulkanData const *Backend = ImGuiVulkanGetBackendData();
 
@@ -687,22 +685,13 @@ void ImGuiVulkanSetupRenderState(ImDrawData const *      DrawData,
     {
         constexpr VkDeviceSize VertexOffset    = 0U;
         VkDeviceSize const     VertexBufferEnd = sizeof(ImDrawVert) * DrawData->TotalVtxCount;
+
         vkCmdBindVertexBuffers(CommandBuffer, 0U, 1U, &RenderBuffers.Buffer, &VertexOffset);
         vkCmdBindIndexBuffer(CommandBuffer,
                              RenderBuffers.Buffer,
                              VertexBufferEnd,
                              sizeof(ImDrawIdx) == 2U ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
     }
-
-    VkViewport const Viewport {
-            .x = 0.F,
-            .y = 0.F,
-            .width = static_cast<float>(FrameWidth),
-            .height = static_cast<float>(FrameHeight),
-            .minDepth = 0.F,
-            .maxDepth = 1.F
-    };
-    vkCmdSetViewport(CommandBuffer, 0U, 1U, &Viewport);
 
     float const ScaleX = 2.F / DrawData->DisplaySize.x;
     float const ScaleY = 2.F / DrawData->DisplaySize.y;
@@ -1283,57 +1272,64 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *DrawData, VkCommandBuffer
 
     ImGuiVulkanData const *Backend = ImGuiVulkanGetBackendData();
 
-    auto *                          ViewportRenderData  = static_cast<ImGuiVulkanViewportData *>(DrawData->OwnerViewport->RendererUserData);
-    ImGuiVulkanWindowRenderBuffers &WindowRenderBuffers = ViewportRenderData->RenderBuffers;
+    auto *ViewportRenderData = static_cast<ImGuiVulkanViewportData *>(DrawData->OwnerViewport->RendererUserData);
+    auto &[Index, Buffers]   = ViewportRenderData->RenderBuffers;
 
-    if (std::empty(WindowRenderBuffers.Buffers))
+    if (std::empty(Buffers))
     {
-        WindowRenderBuffers.Index = 0U;
-        WindowRenderBuffers.Buffers.resize(g_MinImageCount);
+        Index = 0U;
+        Buffers.resize(g_MinImageCount);
     }
 
-    WindowRenderBuffers.Index       = (WindowRenderBuffers.Index + 1U) % static_cast<std::uint32_t>(std::size(WindowRenderBuffers.Buffers));
-    BufferAllocation &RenderBuffers = WindowRenderBuffers.Buffers.at(WindowRenderBuffers.Index);
+    Index                           = (Index + 1U) % static_cast<std::uint32_t>(std::size(Buffers));
+    BufferAllocation &RenderBuffers = Buffers.at(Index);
 
-    if (DrawData->TotalVtxCount > 0U)
+    VmaAllocator const &Allocator = GetAllocator();
+
+    if (DrawData->TotalVtxCount <= 0U)
     {
-        VkDeviceSize const VertexSize = DrawData->TotalVtxCount * sizeof(ImDrawVert);
-        VkDeviceSize const IndexSize  = DrawData->TotalIdxCount * sizeof(ImDrawIdx);
-        VkDeviceSize const TotalSize  = VertexSize + IndexSize;
-
-        VmaAllocator const &Allocator = GetAllocator();
-
-        if (VkDeviceSize const BufferSize = RenderBuffers.GetAllocationSize(Allocator);
-            BufferSize > 0U && BufferSize < TotalSize)
+        if (RenderBuffers.IsValid())
         {
             RenderBuffers.DestroyResources(Allocator);
         }
 
-        if (!RenderBuffers.IsValid())
-        {
-            constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-            constexpr auto               BufferIdentifier = "ImGuiVulkanRenderBuffers";
-            auto const                   _ = CreateBuffer(TotalSize, BufferUsage, BufferIdentifier, RenderBuffers.Buffer, RenderBuffers.Allocation);
-        }
-
-        vmaMapMemory(Allocator, RenderBuffers.Allocation, &RenderBuffers.MappedData);
-        auto *VertexBuffer = static_cast<char *>(RenderBuffers.MappedData);
-        auto *IndexBuffer  = static_cast<char *>(RenderBuffers.MappedData) + VertexSize;
-
-        for (ImDrawList *const &CmdIt : DrawData->CmdLists)
-        {
-            memcpy(VertexBuffer, CmdIt->VtxBuffer.Data, CmdIt->VtxBuffer.Size * sizeof(ImDrawVert));
-            VertexBuffer += CmdIt->VtxBuffer.Size * sizeof(ImDrawVert);
-
-            memcpy(IndexBuffer, CmdIt->IdxBuffer.Data, CmdIt->IdxBuffer.Size * sizeof(ImDrawIdx));
-            IndexBuffer += CmdIt->IdxBuffer.Size * sizeof(ImDrawIdx);
-        }
-
-        CheckVulkanResult(vmaFlushAllocation(Allocator, RenderBuffers.Allocation, 0U, TotalSize));
-        vmaUnmapMemory(Allocator, RenderBuffers.Allocation);
+        return;
     }
 
-    ImGuiVulkanSetupRenderState(DrawData, Backend->PipelineData.MainPipeline, CommandBuffer, RenderBuffers, FrameWidth, FrameHeight);
+    VkDeviceSize const VertexSize = DrawData->TotalVtxCount * sizeof(ImDrawVert);
+    VkDeviceSize const IndexSize  = DrawData->TotalIdxCount * sizeof(ImDrawIdx);
+    VkDeviceSize const TotalSize  = VertexSize + IndexSize;
+
+    if (VkDeviceSize const BufferSize = RenderBuffers.GetAllocationSize(Allocator);
+        BufferSize > 0U && BufferSize < TotalSize)
+    {
+        RenderBuffers.DestroyResources(Allocator);
+    }
+
+    if (!RenderBuffers.IsValid())
+    {
+        constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        constexpr auto               BufferIdentifier = "IMGUI_RENDER";
+        auto const                   _ = CreateBuffer(TotalSize, BufferUsage, BufferIdentifier, RenderBuffers.Buffer, RenderBuffers.Allocation);
+    }
+
+    vmaMapMemory(Allocator, RenderBuffers.Allocation, &RenderBuffers.MappedData);
+    auto *VertexBuffer = static_cast<char *>(RenderBuffers.MappedData);
+    auto *IndexBuffer  = static_cast<char *>(RenderBuffers.MappedData) + VertexSize;
+
+    for (ImDrawList *const &CmdIt : DrawData->CmdLists)
+    {
+        memcpy(VertexBuffer, CmdIt->VtxBuffer.Data, CmdIt->VtxBuffer.Size * sizeof(ImDrawVert));
+        VertexBuffer += CmdIt->VtxBuffer.Size * sizeof(ImDrawVert);
+
+        memcpy(IndexBuffer, CmdIt->IdxBuffer.Data, CmdIt->IdxBuffer.Size * sizeof(ImDrawIdx));
+        IndexBuffer += CmdIt->IdxBuffer.Size * sizeof(ImDrawIdx);
+    }
+
+    CheckVulkanResult(vmaFlushAllocation(Allocator, RenderBuffers.Allocation, 0U, TotalSize));
+    vmaUnmapMemory(Allocator, RenderBuffers.Allocation);
+
+    ImGuiVulkanSetupRenderState(DrawData, Backend->PipelineData.MainPipeline, CommandBuffer, RenderBuffers);
 
     ImVec2 const &DisplayPosition = DrawData->DisplayPos;
     ImVec2 const &BufferScale     = DrawData->FramebufferScale;
@@ -1372,12 +1368,6 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *DrawData, VkCommandBuffer
                 continue;
             }
 
-            VkRect2D const Scissor {
-                    .offset = { .x = static_cast<int32_t>(MinClip.x), .y = static_cast<int32_t>(MinClip.y) },
-                    .extent = { .width = static_cast<uint32_t>(MaxClip.x - MinClip.x), .height = static_cast<uint32_t>(MaxClip.y - MinClip.y) }
-            };
-            vkCmdSetScissor(CommandBuffer, 0U, 1U, &Scissor);
-
             auto const DescriptorSet = static_cast<VkDescriptorSet>(DrawCmdIt.TextureId);
 
             vkCmdBindDescriptorSets(CommandBuffer,
@@ -1400,12 +1390,6 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *DrawData, VkCommandBuffer
         GlobalIdxOffset += CmdIt->IdxBuffer.Size;
         GlobalVtxOffset += CmdIt->VtxBuffer.Size;
     }
-
-    VkRect2D const Scissor {
-            .offset = { .x = 0U, .y = 0U },
-            .extent = { .width = static_cast<uint32_t>(FrameWidth), .height = static_cast<uint32_t>(FrameHeight) }
-    };
-    vkCmdSetScissor(CommandBuffer, 0U, 1U, &Scissor);
 }
 
 bool RenderCore::ImGuiVulkanCreateFontsTexture()

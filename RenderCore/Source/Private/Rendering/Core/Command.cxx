@@ -417,6 +417,8 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
     CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &g_CommandBufferBeginInfo));
     {
         ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
+        SetViewport(CommandBuffer, SwapchainAllocation.Extent);
+
         BeginRendering(ImageIndex, SwapchainAllocation);
 
         if (std::vector<VkCommandBuffer> const CommandBuffers = RecordSceneCommands(ImageIndex, SwapchainAllocation);
