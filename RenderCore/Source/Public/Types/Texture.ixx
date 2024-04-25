@@ -4,9 +4,9 @@
 
 module;
 
+#include <Volk/volk.h>
 #include <string_view>
 #include <vector>
-#include <Volk/volk.h>
 
 #include "RenderCoreModule.hpp"
 
@@ -24,7 +24,7 @@ namespace RenderCore
 
     public:
         ~Texture() override = default;
-        Texture()           = delete;
+         Texture()          = delete;
 
         Texture(std::uint32_t, std::string_view);
         Texture(std::uint32_t, std::string_view, std::string_view);

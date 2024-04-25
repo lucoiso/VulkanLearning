@@ -5,24 +5,62 @@
 module;
 
 #include <filesystem>
+#include <format>
 #include <span>
 #include <boost/log/trivial.hpp>
 #include <GLFW/glfw3.h>
 #include <Volk/volk.h>
+#include <regex>
 
 #ifndef GLM_FORCE_RADIANS
-    #define GLM_FORCE_RADIANS
+#define GLM_FORCE_RADIANS
 #endif
 #ifndef GLM_FORCE_DEPTH_ZERO_TO_ONE
-    #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #endif
 #include <glm/ext.hpp>
 
 module RenderCore.Utils.Helpers;
 
 import RenderCore.Types.Vertex;
+import RenderCore.Utils.EnumConverter;
 
 using namespace RenderCore;
+
+std::string ExtractFunctionName(std::string const &FunctionName)
+{
+    if (std::smatch Match;
+        std::regex_search(FunctionName, Match, std::regex { R"(\b([a-zA-Z_][a-zA-Z0-9_]*)\b(?=\s*\())" }))
+    {
+        return Match.str();
+    }
+
+    return {};
+}
+
+std::string ExtractFileName(std::string const &FileName)
+{
+    return std::filesystem::path(FileName).filename().string();
+}
+
+void RenderCore::EmitFatalError(std::string_view const Message, std::source_location const &Location)
+{
+    BOOST_LOG_TRIVIAL(fatal) << std::format("[{}:{}:{}:{}] {}",
+                                            ExtractFileName(Location.file_name()),
+                                            ExtractFunctionName(Location.function_name()),
+                                            Location.line(),
+                                            Location.column(),
+                                            Message);
+    std::terminate();
+}
+
+void RenderCore::CheckVulkanResult(VkResult const InputOperation, std::source_location const &Location)
+{
+    if (InputOperation != VK_SUCCESS)
+    {
+        EmitFatalError(std::format("Vulkan operation failed with result {}", ResultToString(InputOperation)), Location);
+    }
+}
 
 VkExtent2D RenderCore::GetWindowExtent(GLFWwindow *const Window, VkSurfaceCapabilitiesKHR const &Capabilities)
 {
@@ -30,7 +68,7 @@ VkExtent2D RenderCore::GetWindowExtent(GLFWwindow *const Window, VkSurfaceCapabi
     std::int32_t Height = 0U;
     glfwGetFramebufferSize(Window, &Width, &Height);
 
-    VkExtent2D ActualExtent {.width = static_cast<std::uint32_t>(Width), .height = static_cast<std::uint32_t>(Height)};
+    VkExtent2D ActualExtent { .width = static_cast<std::uint32_t>(Width), .height = static_cast<std::uint32_t>(Height) };
 
     ActualExtent.width  = std::clamp(ActualExtent.width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
     ActualExtent.height = std::clamp(ActualExtent.height, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
@@ -41,37 +79,15 @@ VkExtent2D RenderCore::GetWindowExtent(GLFWwindow *const Window, VkSurfaceCapabi
 std::vector<std::string> RenderCore::GetGLFWExtensions()
 {
     std::uint32_t   GLFWExtensionsCount = 0U;
-    char const    **GLFWExtensions      = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
+    char const **   GLFWExtensions      = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
     std::span const GLFWExtensionsSpan(GLFWExtensions, GLFWExtensionsCount);
 
     std::vector<std::string> Output {};
     Output.reserve(GLFWExtensionsCount);
 
-    if (!std::empty(GLFWExtensionsSpan))
+    for (char const *const &ExtensionIter : GLFWExtensionsSpan)
     {
-        for (char const *const &ExtensionIter : GLFWExtensionsSpan)
-        {
-            Output.emplace_back(ExtensionIter);
-        }
-    }
-    else
-    {
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Failed to get GLFW extensions. Forcing Vulkan extensions:";
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: VK_KHR_surface";
-        Output.emplace_back("VK_KHR_surface");
-
-#ifdef WIN32
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: VK_KHR_win32_surface";
-        Output.emplace_back("VK_KHR_win32_surface");
-#elif __linux__
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: VK_KHR_xcb_surface";
-        Output.emplace_back("VK_KHR_xcb_surface");
-#elif __APPLE__
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: VK_KHR_macos_surface";
-        Output.emplace_back("VK_KHR_macos_surface");
-        elif __ANDROID__ BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: VK_KHR_android_surface";
-        Output.emplace_back("VK_KHR_android_surface");
-#endif
+        Output.emplace_back(ExtensionIter);
     }
 
     return Output;
@@ -123,7 +139,7 @@ std::vector<std::string> RenderCore::GetAvailableInstanceExtensionsNames()
 
 VkVertexInputBindingDescription RenderCore::GetBindingDescriptors(std::uint32_t const InBinding)
 {
-    return VkVertexInputBindingDescription {.binding = InBinding, .stride = sizeof(Vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX};
+    return VkVertexInputBindingDescription { .binding = InBinding, .stride = sizeof(Vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX };
 }
 
 std::vector<VkVertexInputAttributeDescription> RenderCore::GetAttributeDescriptions(std::uint32_t const                                   InBinding,
@@ -131,7 +147,7 @@ std::vector<VkVertexInputAttributeDescription> RenderCore::GetAttributeDescripti
 {
     std::vector Output(std::cbegin(Attributes), std::cend(Attributes));
 
-    std::uint32_t AttributeLocation {0U};
+    std::uint32_t AttributeLocation { 0U };
     for (auto &[Location, Binding, Format, Offset] : Output)
     {
         Binding  = InBinding;

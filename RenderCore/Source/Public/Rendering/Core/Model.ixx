@@ -16,15 +16,11 @@ import RenderCore.Types.Material;
 import RenderCore.Types.Mesh;
 import RenderCore.Types.Allocation;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    void InsertIndiceInContainer(std::vector<std::uint32_t> &, tinygltf::Accessor const &, auto const *);
-
+    void         InsertIndiceInContainer(std::vector<std::uint32_t> &, tinygltf::Accessor const &, auto const *);
     float const *GetPrimitiveData(std::string_view const &, tinygltf::Model const &, tinygltf::Primitive const &, std::uint32_t *);
-
-    void SetVertexAttributes(std::shared_ptr<Mesh> const &, tinygltf::Model const &, tinygltf::Primitive const &);
-
-    void AllocatePrimitiveIndices(std::shared_ptr<Mesh> const &, tinygltf::Model const &, tinygltf::Primitive const &);
-
-    void SetPrimitiveTransform(std::shared_ptr<Mesh> const &, tinygltf::Node const &);
+    export void  SetVertexAttributes(std::shared_ptr<Mesh> const &, tinygltf::Model const &, tinygltf::Primitive const &);
+    export void  AllocatePrimitiveIndices(std::shared_ptr<Mesh> const &, tinygltf::Model const &, tinygltf::Primitive const &);
+    export void  SetPrimitiveTransform(std::shared_ptr<Mesh> const &, tinygltf::Node const &);
 } // namespace RenderCore

@@ -13,18 +13,19 @@ module;
 
 export module RenderCore.Integrations.ImGuiGLFWBackend;
 
-export namespace RenderCore
+namespace RenderCore
 {
     #ifdef VULKAN_RENDERER_ENABLE_IMGUI
+    export bool ImGuiGLFWInitForVulkan(GLFWwindow *, bool);
+    export void ImGuiGLFWShutdown();
+    export void ImGuiGLFWNewFrame();
+    export void ImGuiGLFWInstallCallbacks(GLFWwindow *);
+    export void ImGuiGLFWRestoreCallbacks(GLFWwindow *);
+    export void ImGuiGLFWSetCallbacksChainForAllWindows(bool);
+
     void ImGuiGLFWUpdateMonitors();
     void ImGuiGLFWInitPlatformInterface();
     void ImGuiGLFWShutdownPlatformInterface();
-    bool ImGuiGLFWInitForVulkan(GLFWwindow *, bool);
-    void ImGuiGLFWShutdown();
-    void ImGuiGLFWNewFrame();
-    void ImGuiGLFWInstallCallbacks(GLFWwindow *);
-    void ImGuiGLFWRestoreCallbacks(GLFWwindow *);
-    void ImGuiGLFWSetCallbacksChainForAllWindows(bool);
     void ImGuiGLFWWindowFocusCallback(GLFWwindow *, std::int32_t);
     void ImGuiGLFWCursorEnterCallback(GLFWwindow *, std::int32_t);
     void ImGuiGLFWCursorPosCallback(GLFWwindow *, double, double);

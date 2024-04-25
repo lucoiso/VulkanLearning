@@ -26,8 +26,7 @@ bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Heig
         return false;
     }
 
-    if (static bool GLFWErrorCallbacksSet = false;
-        !GLFWErrorCallbacksSet)
+    if (static bool GLFWErrorCallbacksSet = false; !GLFWErrorCallbacksSet)
     {
         glfwSetErrorCallback(&GLFWErrorCallback);
         GLFWErrorCallbacksSet = true;

@@ -4,10 +4,10 @@
 
 module;
 
+#include <Volk/volk.h>
 #include <boost/log/trivial.hpp>
 #include <glm/ext.hpp>
 #include <vma/vk_mem_alloc.h>
-#include <Volk/volk.h>
 
 #ifndef TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_IMPLEMENTATION
@@ -58,7 +58,29 @@ void RenderCore::CreateSceneUniformBuffer()
 
 void RenderCore::CreateImageSampler()
 {
-    CreateTextureSampler(GetPhysicalDevice(), g_Sampler);
+    VkPhysicalDeviceProperties SurfaceProperties;
+    vkGetPhysicalDeviceProperties(GetPhysicalDevice(), &SurfaceProperties);
+
+    VkSamplerCreateInfo const SamplerCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            .magFilter = VK_FILTER_LINEAR,
+            .minFilter = VK_FILTER_LINEAR,
+            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .mipLodBias = 0.F,
+            .anisotropyEnable = VK_FALSE,
+            .maxAnisotropy = SurfaceProperties.limits.maxSamplerAnisotropy,
+            .compareEnable = VK_FALSE,
+            .compareOp = VK_COMPARE_OP_ALWAYS,
+            .minLod = 0.F,
+            .maxLod = FLT_MAX,
+            .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+            .unnormalizedCoordinates = VK_FALSE
+    };
+
+    CheckVulkanResult(vkCreateSampler(GetLogicalDevice(), &SamplerCreateInfo, nullptr, &g_Sampler));
 }
 
 void RenderCore::CreateDepthResources(SurfaceProperties const &SurfaceProperties)

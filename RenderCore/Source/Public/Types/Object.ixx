@@ -4,10 +4,10 @@
 
 module;
 
-#include <bitset>
-#include <memory>
-#include <glm/ext.hpp>
 #include <Volk/volk.h>
+#include <bitset>
+#include <glm/ext.hpp>
+#include <memory>
 
 #include "RenderCoreModule.hpp"
 

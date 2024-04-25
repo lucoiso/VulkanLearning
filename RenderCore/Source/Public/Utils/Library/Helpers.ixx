@@ -5,10 +5,8 @@
 module;
 
 #include <algorithm>
-#include <cassert>
 #include <execution>
-#include <format>
-#include <stdexcept>
+#include <source_location>
 #include <string>
 #include <vector>
 #include <GLFW/glfw3.h>
@@ -20,6 +18,28 @@ import RenderCore.Runtime.Instance;
 
 export namespace RenderCore
 {
+    void EmitFatalError(std::string_view, std::source_location const &Location = std::source_location::current());
+
+    void CheckVulkanResult(VkResult InputOperation, std::source_location const &Location = std::source_location::current());
+
+    template <typename T>
+        requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, VkResult> || std::is_same_v<std::invoke_result_t<T>, VkResult &>)
+    constexpr void CheckVulkanResult(T &&InputOperation, std::source_location const &Location = std::source_location::current())
+    {
+        CheckVulkanResult(InputOperation(), Location);
+    }
+
+    constexpr bool DepthHasStencil(VkFormat const &Format)
+    {
+        return Format >= VK_FORMAT_D16_UNORM_S8_UINT && Format <= VK_FORMAT_D32_SFLOAT_S8_UINT;
+    }
+
+    template <typename T>
+    constexpr T LoadVulkanProcedure(std::string_view const ProcedureName)
+    {
+        return reinterpret_cast<T>(vkGetInstanceProcAddr(GetInstance(), ProcedureName.data()));
+    }
+
     [[nodiscard]] VkExtent2D GetWindowExtent(GLFWwindow *, VkSurfaceCapabilitiesKHR const &);
 
     [[nodiscard]] std::vector<std::string> GetGLFWExtensions();
@@ -57,7 +77,7 @@ export namespace RenderCore
                       {
                           if (std::ranges::find(Available, ResIter) == std::cend(Available))
                           {
-                              throw std::runtime_error(std::format("Required {} not available: {}", Identifier, ResIter));
+                              EmitFatalError(std::format("Required {} not available: {}", Identifier, ResIter));
                           }
                       });
 
@@ -71,30 +91,5 @@ export namespace RenderCore
                               Resource.emplace_back(OptIter);
                           }
                       });
-    }
-
-    template <typename T>
-        requires std::is_same_v<T, VkResult> || std::is_same_v<T, VkResult &>
-    constexpr void CheckVulkanResult(T &&InputOperation)
-    {
-        assert(InputOperation == VK_SUCCESS);
-    }
-
-    template <typename T>
-        requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, VkResult> || std::is_same_v<std::invoke_result_t<T>, VkResult &>)
-    constexpr void CheckVulkanResult(T &&InputOperation)
-    {
-        CheckVulkanResult(InputOperation());
-    }
-
-    constexpr bool DepthHasStencil(VkFormat const &Format)
-    {
-        return Format >= VK_FORMAT_D16_UNORM_S8_UINT && Format <= VK_FORMAT_D32_SFLOAT_S8_UINT;
-    }
-
-    template <typename T>
-    constexpr T LoadVulkanProcedure(std::string_view const ProcedureName)
-    {
-        return reinterpret_cast<T>(vkGetInstanceProcAddr(GetInstance(), ProcedureName.data()));
     }
 } // namespace RenderCore

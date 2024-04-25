@@ -23,16 +23,13 @@ import RenderCore.Utils.EnumHelpers;
 export namespace RenderCore
 {
     void CreateMemoryAllocator();
-
     void ReleaseMemoryResources();
 
     [[nodiscard]] VmaAllocator const &GetAllocator();
 
     VmaAllocationInfo CreateBuffer(VkDeviceSize const &, VkBufferUsageFlags, std::string_view, VkBuffer &, VmaAllocation &);
-
-    void CopyBuffer(VkCommandBuffer const &, VkBuffer const &, VkBuffer const &, VkDeviceSize const &);
-
-    void CreateUniformBuffers(BufferAllocation &, VkDeviceSize, std::string_view);
+    void              CopyBuffer(VkCommandBuffer const &, VkBuffer const &, VkBuffer const &, VkDeviceSize const &);
+    void              CreateUniformBuffers(BufferAllocation &, VkDeviceSize, std::string_view);
 
     void CreateImage(VkFormat const &,
                      VkExtent2D const &,
@@ -42,13 +39,8 @@ export namespace RenderCore
                      std::string_view,
                      VkImage &,
                      VmaAllocation &);
-
-    void CreateTextureSampler(VkPhysicalDevice const &, VkSampler &);
-
     void CreateImageView(VkImage const &, VkFormat const &, VkImageAspectFlags const &, VkImageView &);
-
     void CreateTextureImageView(ImageAllocation &, VkFormat);
-
     void CopyBufferToImage(VkCommandBuffer const &, VkBuffer const &, VkImage const &, VkExtent2D const &);
 
     [[nodiscard]] std::tuple<std::uint32_t, VkBuffer, VmaAllocation> AllocateTexture(VkCommandBuffer &,
