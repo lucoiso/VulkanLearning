@@ -4,39 +4,31 @@
 
 module;
 
-#include <optional>
-#include <vector>
 #include <GLFW/glfw3.h>
 #include <Volk/volk.h>
+#include <optional>
+#include <vector>
 
 export module RenderCore.Runtime.SwapChain;
 
 import RenderCore.Types.Allocation;
 import RenderCore.Types.SurfaceProperties;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    void CreateVulkanSurface(GLFWwindow *);
+    export void CreateVulkanSurface(GLFWwindow *);
+    export void CreateSwapChain(SurfaceProperties const &, VkSurfaceCapabilitiesKHR const &);
 
-    void CreateSwapChain(SurfaceProperties const &, VkSurfaceCapabilitiesKHR const &);
+    export [[nodiscard]] VkSurfaceKHR const &                GetSurface();
+    export [[nodiscard]] VkSwapchainKHR const &              GetSwapChain();
+    export [[nodiscard]] VkExtent2D const &                  GetSwapChainExtent();
+    export [[nodiscard]] VkFormat const &                    GetSwapChainImageFormat();
+    export [[nodiscard]] std::vector<ImageAllocation> const &GetSwapChainImages();
 
-    [[nodiscard]] VkSurfaceKHR const &GetSurface();
+    export void RequestSwapChainImage(std::optional<std::int32_t> &);
+    export void PresentFrame(std::uint32_t);
+    export void ReleaseSwapChainResources();
 
-    [[nodiscard]] VkSwapchainKHR const &GetSwapChain();
-
-    [[nodiscard]] VkExtent2D const &GetSwapChainExtent();
-
-    [[nodiscard]] VkFormat const &GetSwapChainImageFormat();
-
-    [[nodiscard]] std::vector<ImageAllocation> const &GetSwapChainImages();
-
-    void RequestSwapChainImage(std::optional<std::int32_t> &);
-
-    void PresentFrame(std::uint32_t);
-
-    void CreateSwapChainImageViews(std::vector<ImageAllocation> &);
-
-    void ReleaseSwapChainResources();
-
-    void DestroySwapChainImages();
+    void        CreateSwapChainImageViews(std::vector<ImageAllocation> &);
+    export void DestroySwapChainImages();
 } // namespace RenderCore

@@ -29,21 +29,14 @@ import RenderCore.Runtime.Device;
 
 using namespace RenderCore;
 
-VkPipeline                                    g_MainPipeline { VK_NULL_HANDLE };
-VkPipeline                                    g_VertexInputPipeline { VK_NULL_HANDLE };
-VkPipeline                                    g_PreRasterizationPipeline { VK_NULL_HANDLE };
-VkPipeline                                    g_FragmentOutputPipeline { VK_NULL_HANDLE };
-VkPipeline                                    g_FragmentShaderPipeline { VK_NULL_HANDLE };
-VkPipelineLayout                              g_PipelineLayout { VK_NULL_HANDLE };
-VkPipelineCache                               g_PipelineCache { VK_NULL_HANDLE };
-VkPipelineCache                               g_PipelineLibraryCache { VK_NULL_HANDLE };
-PipelineDescriptorData                        g_DescriptorData {};
+PipelineData           g_PipelineData { VK_NULL_HANDLE };
+PipelineDescriptorData g_DescriptorData {};
+
 VkPhysicalDeviceDescriptorBufferPropertiesEXT g_DescriptorBufferProperties {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT
 };
 
-constexpr VkPipelineCreateFlags g_PipelineFlags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT |
-                                                  VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
+constexpr VkPipelineCreateFlags g_PipelineFlags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
 
 constexpr VkPipelineMultisampleStateCreateInfo g_MultisampleState {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
@@ -81,16 +74,93 @@ constexpr VkPipelineColorBlendAttachmentState g_RenderColorBlendAttachmentStates
 
 constexpr VkPipelineCacheCreateInfo g_PipelineCacheCreateInfo { .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
 
+bool PipelineData::IsValid() const
+{
+    return MainPipeline != VK_NULL_HANDLE;
+}
+
+void PipelineData::DestroyResources(VkDevice const &LogicalDevice, bool const IncludeStatic)
+{
+    if (MainPipeline != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(LogicalDevice, MainPipeline, nullptr);
+        MainPipeline = VK_NULL_HANDLE;
+    }
+
+    if (FragmentShaderPipeline != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(LogicalDevice, FragmentShaderPipeline, nullptr);
+        FragmentShaderPipeline = VK_NULL_HANDLE;
+    }
+
+    if (!IncludeStatic)
+    {
+        return;
+    }
+
+    if (VertexInputPipeline != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(LogicalDevice, VertexInputPipeline, nullptr);
+        VertexInputPipeline = VK_NULL_HANDLE;
+    }
+
+    if (PreRasterizationPipeline != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(LogicalDevice, PreRasterizationPipeline, nullptr);
+        PreRasterizationPipeline = VK_NULL_HANDLE;
+    }
+
+    if (FragmentOutputPipeline != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(LogicalDevice, FragmentOutputPipeline, nullptr);
+        FragmentOutputPipeline = VK_NULL_HANDLE;
+    }
+
+    if (PipelineLayout != VK_NULL_HANDLE)
+    {
+        vkDestroyPipelineLayout(LogicalDevice, PipelineLayout, nullptr);
+        PipelineLayout = VK_NULL_HANDLE;
+    }
+
+    if (PipelineCache != VK_NULL_HANDLE)
+    {
+        vkDestroyPipelineCache(LogicalDevice, PipelineCache, nullptr);
+        PipelineCache = VK_NULL_HANDLE;
+    }
+
+    if (PipelineLibraryCache != VK_NULL_HANDLE)
+    {
+        vkDestroyPipelineCache(LogicalDevice, PipelineLibraryCache, nullptr);
+        PipelineLibraryCache = VK_NULL_HANDLE;
+    }
+}
+
+void PipelineData::CreateMainCache(VkDevice const &LogicalDevice)
+{
+    if (g_PipelineData.PipelineCache == VK_NULL_HANDLE)
+    {
+        CheckVulkanResult(vkCreatePipelineCache(LogicalDevice, &g_PipelineCacheCreateInfo, nullptr, &g_PipelineData.PipelineCache));
+    }
+}
+
+void PipelineData::CreateLibraryCache(VkDevice const &LogicalDevice)
+{
+    if (g_PipelineData.PipelineLibraryCache == VK_NULL_HANDLE)
+    {
+        CheckVulkanResult(vkCreatePipelineCache(LogicalDevice, &g_PipelineCacheCreateInfo, nullptr, &g_PipelineData.PipelineLibraryCache));
+    }
+}
+
 bool PipelineDescriptorData::IsValid() const
 {
     return SceneData.IsValid() && ModelData.IsValid() && TextureData.IsValid();
 }
 
-void PipelineDescriptorData::DestroyResources(VmaAllocator const &Allocator)
+void PipelineDescriptorData::DestroyResources(VmaAllocator const &Allocator, bool const IncludeStatic)
 {
-    SceneData.DestroyResources(Allocator);
-    ModelData.DestroyResources(Allocator);
-    TextureData.DestroyResources(Allocator);
+    SceneData.DestroyResources(Allocator, IncludeStatic);
+    ModelData.DestroyResources(Allocator, IncludeStatic);
+    TextureData.DestroyResources(Allocator, IncludeStatic);
 }
 
 void PipelineDescriptorData::SetDescriptorLayoutSize()
@@ -275,274 +345,61 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
     }
 }
 
-void RenderCore::CreatePipeline()
+void RenderCore::CreatePipelineDynamicResources()
 {
-    VkDevice const &LogicalDevice = GetLogicalDevice();
-    CheckVulkanResult(vkCreatePipelineCache(LogicalDevice, &g_PipelineCacheCreateInfo, nullptr, &g_PipelineCache));
+    std::vector<VkPipelineShaderStageCreateInfo> ShaderStagesInfo {};
+    std::vector<VkShaderModuleCreateInfo>        ShaderModuleInfo {};
 
-    VkFormat const SwapChainImageFormat = GetSwapChainImageFormat();
-    VkFormat const DepthFormat          = GetDepthImage().Format;
-
-    VkPipelineRenderingCreateInfo const RenderingCreateInfo {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-            .colorAttachmentCount = 1U,
-            .pColorAttachmentFormats = &SwapChainImageFormat,
-            .depthAttachmentFormat = DepthFormat,
-            .stencilAttachmentFormat = DepthFormat
-    };
-
-    // Fragment shader library
+    for (auto const &[StageInfo, ShaderCode] : GetStageData())
     {
-        VkGraphicsPipelineLibraryCreateInfoEXT FragmentLibrary {
-                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT,
-                .pNext = &RenderingCreateInfo,
-                .flags = VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT
-        };
-
-        std::vector<ShaderStageData> const &ShaderStages = GetStageData();
-
-        std::vector<VkPipelineShaderStageCreateInfo> ShaderStagesInfo {};
-        std::vector<VkShaderModuleCreateInfo>        ShaderModuleInfo {};
-
-        for (auto const &[StageInfo, ShaderCode] : ShaderStages)
+        if (StageInfo.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
         {
-            if (StageInfo.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
-            {
-                auto const CodeSize                            = static_cast<std::uint32_t>(std::size(ShaderCode) * sizeof(std::uint32_t));
-                ShaderStagesInfo.emplace_back(StageInfo).pNext = &ShaderModuleInfo.emplace_back(VkShaderModuleCreateInfo {
-                                                                                                        .sType =
-                                                                                                        VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-                                                                                                        .codeSize = CodeSize,
-                                                                                                        .pCode = std::data(ShaderCode)
-                                                                                                });
-            }
+            auto const CodeSize                            = static_cast<std::uint32_t>(std::size(ShaderCode) * sizeof(std::uint32_t));
+            ShaderStagesInfo.emplace_back(StageInfo).pNext = &ShaderModuleInfo.emplace_back(VkShaderModuleCreateInfo {
+                                                                                                    .sType =
+                                                                                                    VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+                                                                                                    .codeSize = CodeSize,
+                                                                                                    .pCode = std::data(ShaderCode)
+                                                                                            });
         }
-
-        VkGraphicsPipelineCreateInfo const FragmentShaderPipelineCreateInfo {
-                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-                .pNext = &FragmentLibrary,
-                .flags = g_PipelineFlags,
-                .stageCount = static_cast<std::uint32_t>(std::size(ShaderStagesInfo)),
-                .pStages = std::data(ShaderStagesInfo),
-                .pMultisampleState = &g_MultisampleState,
-                .pDepthStencilState = &g_DepthStencilState,
-                .layout = g_PipelineLayout
-        };
-
-        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice,
-                                                    g_PipelineCache,
-                                                    1U,
-                                                    &FragmentShaderPipelineCreateInfo,
-                                                    nullptr,
-                                                    &g_FragmentShaderPipeline));
     }
 
-    // Main Pipeline
-    {
-        std::vector const Libraries { g_VertexInputPipeline, g_PreRasterizationPipeline, g_FragmentOutputPipeline, g_FragmentShaderPipeline };
-
-        VkPipelineLibraryCreateInfoKHR PipelineLibraryCreateInfo {
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR,
-                .pNext = &RenderingCreateInfo,
-                .libraryCount = static_cast<std::uint32_t>(std::size(Libraries)),
-                .pLibraries = std::data(Libraries)
-        };
-
-        VkGraphicsPipelineCreateInfo const GraphicsPipelineCreateInfo {
-                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-                .pNext = &PipelineLibraryCreateInfo,
-                .flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT,
-                .layout = g_PipelineLayout
-        };
-
-        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice, g_PipelineCache, 1U, &GraphicsPipelineCreateInfo, nullptr, &g_MainPipeline));
-    }
+    CreateMainPipeline(g_PipelineData, ShaderStagesInfo, VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
 }
 
 void RenderCore::CreatePipelineLibraries()
 {
-    VkDevice const &LogicalDevice = GetLogicalDevice();
-    CheckVulkanResult(vkCreatePipelineCache(LogicalDevice, &g_PipelineCacheCreateInfo, nullptr, &g_PipelineLibraryCache));
+    std::vector<VkPipelineShaderStageCreateInfo> ShaderStagesInfo {};
+    std::vector<VkShaderModuleCreateInfo>        ShaderModuleInfo {};
 
-    // Vertex input library
+    for (auto const &[StageInfo, ShaderCode] : GetStageData())
     {
-        VkGraphicsPipelineLibraryCreateInfoEXT VertexInputLibrary {
-                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT,
-                .flags = VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT
-        };
-
-        auto const BindingDescription    = GetBindingDescriptors(0U);
-        auto const AttributeDescriptions = GetAttributeDescriptions(0U,
-                                                                    {
-                                                                            VertexAttributes::Position,
-                                                                            VertexAttributes::Normal,
-                                                                            VertexAttributes::TextureCoordinate,
-                                                                            VertexAttributes::Color,
-                                                                            VertexAttributes::Tangent,
-                                                                    });
-
-        VkPipelineVertexInputStateCreateInfo const VertexInputState {
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-                .vertexBindingDescriptionCount = 1U,
-                .pVertexBindingDescriptions = &BindingDescription,
-                .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(std::size(AttributeDescriptions)),
-                .pVertexAttributeDescriptions = std::data(AttributeDescriptions)
-        };
-
-        constexpr VkPipelineInputAssemblyStateCreateInfo InputAssemblyState {
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-                .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-                .primitiveRestartEnable = VK_FALSE
-        };
-
-        VkGraphicsPipelineCreateInfo const VertexInputCreateInfo {
-                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-                .pNext = &VertexInputLibrary,
-                .flags = g_PipelineFlags,
-                .pVertexInputState = &VertexInputState,
-                .pInputAssemblyState = &InputAssemblyState
-        };
-
-        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice,
-                                                    g_PipelineLibraryCache,
-                                                    1U,
-                                                    &VertexInputCreateInfo,
-                                                    nullptr,
-                                                    &g_VertexInputPipeline));
-    }
-
-    // Pre rasterization library
-    {
-        VkGraphicsPipelineLibraryCreateInfoEXT PreRasterizationLibrary {
-                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT,
-                .flags = VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT,
-        };
-
-        std::vector<ShaderStageData> const &ShaderStages = GetStageData();
-
-        std::vector<VkPipelineShaderStageCreateInfo> ShaderStagesInfo {};
-        std::vector<VkShaderModuleCreateInfo>        ShaderModuleInfo {};
-
-        for (auto const &[StageInfo, ShaderCode] : ShaderStages)
+        if (StageInfo.stage == VK_SHADER_STAGE_VERTEX_BIT)
         {
-            if (StageInfo.stage == VK_SHADER_STAGE_VERTEX_BIT)
-            {
-                auto const CodeSize                            = static_cast<std::uint32_t>(std::size(ShaderCode) * sizeof(std::uint32_t));
-                ShaderStagesInfo.emplace_back(StageInfo).pNext = &ShaderModuleInfo.emplace_back(VkShaderModuleCreateInfo {
-                                                                                                        .sType =
-                                                                                                        VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-                                                                                                        .codeSize = CodeSize,
-                                                                                                        .pCode = std::data(ShaderCode)
-                                                                                                });
-            }
+            auto const CodeSize                            = static_cast<std::uint32_t>(std::size(ShaderCode) * sizeof(std::uint32_t));
+            ShaderStagesInfo.emplace_back(StageInfo).pNext = &ShaderModuleInfo.emplace_back(VkShaderModuleCreateInfo {
+                                                                                                    .sType =
+                                                                                                    VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+                                                                                                    .codeSize = CodeSize,
+                                                                                                    .pCode = std::data(ShaderCode)
+                                                                                            });
         }
-
-        VkExtent2D const &SwapChainExtent = GetSwapChainExtent();
-
-        VkViewport const Viewport {
-                .x = 0.F,
-                .y = 0.F,
-                .width = static_cast<float>(SwapChainExtent.width),
-                .height = static_cast<float>(SwapChainExtent.height),
-                .minDepth = 0.F,
-                .maxDepth = 1.F
-        };
-
-        VkRect2D const Scissor { .offset = { 0, 0 }, .extent = SwapChainExtent };
-
-        VkPipelineViewportStateCreateInfo const ViewportState {
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-                .viewportCount = 1U,
-                .pViewports = &Viewport,
-                .scissorCount = 1U,
-                .pScissors = &Scissor
-        };
-
-        constexpr VkPipelineRasterizationStateCreateInfo RasterizationState {
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-                .depthClampEnable = VK_FALSE,
-                .rasterizerDiscardEnable = VK_FALSE,
-                .polygonMode = VK_POLYGON_MODE_FILL,
-                .cullMode = VK_CULL_MODE_BACK_BIT,
-                .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-                .depthBiasEnable = VK_FALSE,
-                .depthBiasConstantFactor = 0.F,
-                .depthBiasClamp = 0.F,
-                .depthBiasSlopeFactor = 0.F,
-                .lineWidth = 1.F
-        };
-
-        constexpr VkPipelineDynamicStateCreateInfo DynamicState {
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-                .dynamicStateCount = static_cast<uint32_t>(std::size(g_DynamicStates)),
-                .pDynamicStates = std::data(g_DynamicStates)
-        };
-
-        VkGraphicsPipelineCreateInfo const PreRasterizationInfo {
-                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-                .pNext = &PreRasterizationLibrary,
-                .flags = g_PipelineFlags,
-                .stageCount = static_cast<std::uint32_t>(std::size(ShaderStagesInfo)),
-                .pStages = std::data(ShaderStagesInfo),
-                .pViewportState = &ViewportState,
-                .pRasterizationState = &RasterizationState,
-                .pDynamicState = &DynamicState,
-                .layout = g_PipelineLayout
-        };
-
-        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice,
-                                                    g_PipelineLibraryCache,
-                                                    1U,
-                                                    &PreRasterizationInfo,
-                                                    nullptr,
-                                                    &g_PreRasterizationPipeline));
     }
 
-    // Fragment output library
-    {
-        VkFormat const SwapChainImageFormat = GetSwapChainImageFormat();
-        VkFormat const DepthFormat          = GetDepthImage().Format;
+    PipelineLibraryCreationArguments const Arguments {
+            .VertexBinding = GetBindingDescriptors(0U),
+            .VertexAttributes = GetAttributeDescriptions(0U,
+                                                         {
+                                                                 VertexAttributes::Position,
+                                                                 VertexAttributes::Normal,
+                                                                 VertexAttributes::TextureCoordinate,
+                                                                 VertexAttributes::Color,
+                                                                 VertexAttributes::Tangent,
+                                                         }),
+            .ShaderStages = ShaderStagesInfo
+    };
 
-        VkPipelineRenderingCreateInfo const RenderingCreateInfo {
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-                .pNext = nullptr,
-                .colorAttachmentCount = 1U,
-                .pColorAttachmentFormats = &SwapChainImageFormat,
-                .depthAttachmentFormat = DepthFormat,
-                .stencilAttachmentFormat = DepthFormat
-        };
-
-        VkGraphicsPipelineLibraryCreateInfoEXT FragmentOutputLibrary {
-                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT,
-                .pNext = &RenderingCreateInfo,
-                .flags = VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT
-        };
-
-        VkPipelineColorBlendStateCreateInfo const ColorBlendState {
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-                .logicOpEnable = VK_FALSE,
-                .logicOp = VK_LOGIC_OP_COPY,
-                .attachmentCount = 1U,
-                .pAttachments = &g_RenderColorBlendAttachmentStates,
-                .blendConstants = { 0.F, 0.F, 0.F, 0.F }
-        };
-
-        VkGraphicsPipelineCreateInfo const FragmentOutputCreateInfo {
-                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-                .pNext = &FragmentOutputLibrary,
-                .flags = g_PipelineFlags,
-                .pMultisampleState = &g_MultisampleState,
-                .pColorBlendState = &ColorBlendState,
-                .layout = g_PipelineLayout
-        };
-
-        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice,
-                                                    g_PipelineLibraryCache,
-                                                    1U,
-                                                    &FragmentOutputCreateInfo,
-                                                    nullptr,
-                                                    &g_FragmentOutputPipeline));
-    }
+    CreatePipelineLibraries(g_PipelineData, Arguments, VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
 }
 
 void CreateDescriptorSetLayout(VkDescriptorSetLayoutBinding const &Binding, std::uint32_t const Bindings, VkDescriptorSetLayout &DescriptorSetLayout)
@@ -602,82 +459,267 @@ void RenderCore::SetupPipelineLayouts()
     };
 
     VkDevice const &LogicalDevice = GetLogicalDevice();
-    CheckVulkanResult(vkCreatePipelineLayout(LogicalDevice, &PipelineLayoutCreateInfo, nullptr, &g_PipelineLayout));
+    CheckVulkanResult(vkCreatePipelineLayout(LogicalDevice, &PipelineLayoutCreateInfo, nullptr, &g_PipelineData.PipelineLayout));
     g_DescriptorData.SetDescriptorLayoutSize();
 }
 
-void RenderCore::ReleasePipelineResources()
+void RenderCore::ReleasePipelineResources(bool const IncludeStatic)
 {
-    VkDevice const &LogicalDevice = GetLogicalDevice();
-
-    if (g_MainPipeline != VK_NULL_HANDLE)
+    if (g_PipelineData.IsValid())
     {
-        vkDestroyPipeline(LogicalDevice, g_MainPipeline, nullptr);
-        g_MainPipeline = VK_NULL_HANDLE;
-    }
-
-    if (g_VertexInputPipeline != VK_NULL_HANDLE)
-    {
-        vkDestroyPipeline(LogicalDevice, g_VertexInputPipeline, nullptr);
-        g_VertexInputPipeline = VK_NULL_HANDLE;
-    }
-
-    if (g_PreRasterizationPipeline != VK_NULL_HANDLE)
-    {
-        vkDestroyPipeline(LogicalDevice, g_PreRasterizationPipeline, nullptr);
-        g_PreRasterizationPipeline = VK_NULL_HANDLE;
-    }
-
-    if (g_FragmentOutputPipeline != VK_NULL_HANDLE)
-    {
-        vkDestroyPipeline(LogicalDevice, g_FragmentOutputPipeline, nullptr);
-        g_FragmentOutputPipeline = VK_NULL_HANDLE;
-    }
-
-    if (g_FragmentShaderPipeline != VK_NULL_HANDLE)
-    {
-        vkDestroyPipeline(LogicalDevice, g_FragmentShaderPipeline, nullptr);
-        g_FragmentShaderPipeline = VK_NULL_HANDLE;
-    }
-
-    if (g_PipelineLayout != VK_NULL_HANDLE)
-    {
-        vkDestroyPipelineLayout(LogicalDevice, g_PipelineLayout, nullptr);
-        g_PipelineLayout = VK_NULL_HANDLE;
-    }
-
-    if (g_PipelineCache != VK_NULL_HANDLE)
-    {
-        vkDestroyPipelineCache(LogicalDevice, g_PipelineCache, nullptr);
-        g_PipelineCache = VK_NULL_HANDLE;
-    }
-
-    if (g_PipelineLibraryCache != VK_NULL_HANDLE)
-    {
-        vkDestroyPipelineCache(LogicalDevice, g_PipelineLibraryCache, nullptr);
-        g_PipelineLibraryCache = VK_NULL_HANDLE;
+        VkDevice const &LogicalDevice = GetLogicalDevice();
+        g_PipelineData.DestroyResources(LogicalDevice, IncludeStatic);
     }
 
     VmaAllocator const &Allocator = GetAllocator();
-    g_DescriptorData.DestroyResources(Allocator);
+    g_DescriptorData.DestroyResources(Allocator, IncludeStatic);
 }
 
 VkPipeline const &RenderCore::GetMainPipeline()
 {
-    return g_MainPipeline;
+    return g_PipelineData.MainPipeline;
 }
 
-VkPipelineCache const & RenderCore::GetPipelineCache()
+VkPipelineCache const &RenderCore::GetPipelineCache()
 {
-    return g_PipelineCache;
+    return g_PipelineData.PipelineCache;
 }
 
 VkPipelineLayout const &RenderCore::GetPipelineLayout()
 {
-    return g_PipelineLayout;
+    return g_PipelineData.PipelineLayout;
 }
 
 PipelineDescriptorData &RenderCore::GetPipelineDescriptorData()
 {
     return g_DescriptorData;
+}
+
+void RenderCore::CreatePipelineLibraries(PipelineData &Data, PipelineLibraryCreationArguments const &Arguments, VkPipelineCreateFlags const Flags)
+{
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    Data.CreateLibraryCache(LogicalDevice);
+
+    // Vertex input library
+    {
+        VkGraphicsPipelineLibraryCreateInfoEXT VertexInputLibrary {
+                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT,
+                .flags = VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT
+        };
+
+        VkPipelineVertexInputStateCreateInfo const VertexInputState {
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+                .vertexBindingDescriptionCount = 1U,
+                .pVertexBindingDescriptions = &Arguments.VertexBinding,
+                .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(std::size(Arguments.VertexAttributes)),
+                .pVertexAttributeDescriptions = std::data(Arguments.VertexAttributes)
+        };
+
+        constexpr VkPipelineInputAssemblyStateCreateInfo InputAssemblyState {
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+                .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+                .primitiveRestartEnable = VK_FALSE
+        };
+
+        VkGraphicsPipelineCreateInfo const VertexInputCreateInfo {
+                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+                .pNext = &VertexInputLibrary,
+                .flags = g_PipelineFlags | Flags,
+                .pVertexInputState = &VertexInputState,
+                .pInputAssemblyState = &InputAssemblyState
+        };
+
+        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice,
+                                                    Data.PipelineLibraryCache,
+                                                    1U,
+                                                    &VertexInputCreateInfo,
+                                                    nullptr,
+                                                    &Data.VertexInputPipeline));
+    }
+
+    // Pre rasterization library
+    {
+        VkGraphicsPipelineLibraryCreateInfoEXT PreRasterizationLibrary {
+                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT,
+                .flags = VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT,
+        };
+
+        VkExtent2D const &SwapChainExtent = GetSwapChainExtent();
+
+        VkViewport const Viewport {
+                .x = 0.F,
+                .y = 0.F,
+                .width = static_cast<float>(SwapChainExtent.width),
+                .height = static_cast<float>(SwapChainExtent.height),
+                .minDepth = 0.F,
+                .maxDepth = 1.F
+        };
+
+        VkRect2D const Scissor { .offset = { 0, 0 }, .extent = SwapChainExtent };
+
+        VkPipelineViewportStateCreateInfo const ViewportState {
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+                .viewportCount = 1U,
+                .pViewports = &Viewport,
+                .scissorCount = 1U,
+                .pScissors = &Scissor
+        };
+
+        constexpr VkPipelineRasterizationStateCreateInfo RasterizationState {
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+                .depthClampEnable = VK_FALSE,
+                .rasterizerDiscardEnable = VK_FALSE,
+                .polygonMode = VK_POLYGON_MODE_FILL,
+                .cullMode = VK_CULL_MODE_BACK_BIT,
+                .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+                .depthBiasEnable = VK_FALSE,
+                .depthBiasConstantFactor = 0.F,
+                .depthBiasClamp = 0.F,
+                .depthBiasSlopeFactor = 0.F,
+                .lineWidth = 1.F
+        };
+
+        constexpr VkPipelineDynamicStateCreateInfo DynamicState {
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+                .dynamicStateCount = static_cast<uint32_t>(std::size(g_DynamicStates)),
+                .pDynamicStates = std::data(g_DynamicStates)
+        };
+
+        VkGraphicsPipelineCreateInfo const PreRasterizationInfo {
+                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+                .pNext = &PreRasterizationLibrary,
+                .flags = g_PipelineFlags | Flags,
+                .stageCount = static_cast<std::uint32_t>(std::size(Arguments.ShaderStages)),
+                .pStages = std::data(Arguments.ShaderStages),
+                .pViewportState = &ViewportState,
+                .pRasterizationState = &RasterizationState,
+                .pDynamicState = &DynamicState,
+                .layout = Data.PipelineLayout
+        };
+
+        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice,
+                                                    Data.PipelineLibraryCache,
+                                                    1U,
+                                                    &PreRasterizationInfo,
+                                                    nullptr,
+                                                    &Data.PreRasterizationPipeline));
+    }
+
+    // Fragment output library
+    {
+        VkFormat const SwapChainImageFormat = GetSwapChainImageFormat();
+        VkFormat const DepthFormat          = GetDepthImage().Format;
+
+        VkPipelineRenderingCreateInfo const RenderingCreateInfo {
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+                .pNext = nullptr,
+                .colorAttachmentCount = 1U,
+                .pColorAttachmentFormats = &SwapChainImageFormat,
+                .depthAttachmentFormat = DepthFormat,
+                .stencilAttachmentFormat = DepthFormat
+        };
+
+        VkGraphicsPipelineLibraryCreateInfoEXT FragmentOutputLibrary {
+                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT,
+                .pNext = &RenderingCreateInfo,
+                .flags = VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT
+        };
+
+        VkPipelineColorBlendStateCreateInfo const ColorBlendState {
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+                .logicOpEnable = VK_FALSE,
+                .logicOp = VK_LOGIC_OP_COPY,
+                .attachmentCount = 1U,
+                .pAttachments = &g_RenderColorBlendAttachmentStates,
+                .blendConstants = { 0.F, 0.F, 0.F, 0.F }
+        };
+
+        VkGraphicsPipelineCreateInfo const FragmentOutputCreateInfo {
+                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+                .pNext = &FragmentOutputLibrary,
+                .flags = g_PipelineFlags | Flags,
+                .pMultisampleState = &g_MultisampleState,
+                .pColorBlendState = &ColorBlendState,
+                .layout = Data.PipelineLayout
+        };
+
+        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice,
+                                                    Data.PipelineLibraryCache,
+                                                    1U,
+                                                    &FragmentOutputCreateInfo,
+                                                    nullptr,
+                                                    &Data.FragmentOutputPipeline));
+    }
+}
+
+void RenderCore::CreateMainPipeline(PipelineData &                                      Data,
+                                    std::vector<VkPipelineShaderStageCreateInfo> const &FragmentStages,
+                                    VkPipelineCreateFlags const                         Flags)
+{
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    Data.CreateMainCache(LogicalDevice);
+
+    VkFormat const SwapChainImageFormat = GetSwapChainImageFormat();
+    VkFormat const DepthFormat          = GetDepthImage().Format;
+
+    VkPipelineRenderingCreateInfo const RenderingCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+            .colorAttachmentCount = 1U,
+            .pColorAttachmentFormats = &SwapChainImageFormat,
+            .depthAttachmentFormat = DepthFormat,
+            .stencilAttachmentFormat = DepthFormat
+    };
+
+    // Fragment shader library
+    {
+        VkGraphicsPipelineLibraryCreateInfoEXT FragmentLibrary {
+                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT,
+                .pNext = &RenderingCreateInfo,
+                .flags = VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT
+        };
+
+        VkGraphicsPipelineCreateInfo const FragmentShaderPipelineCreateInfo {
+                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+                .pNext = &FragmentLibrary,
+                .flags = g_PipelineFlags | Flags,
+                .stageCount = static_cast<std::uint32_t>(std::size(FragmentStages)),
+                .pStages = std::data(FragmentStages),
+                .pMultisampleState = &g_MultisampleState,
+                .pDepthStencilState = &g_DepthStencilState,
+                .layout = Data.PipelineLayout
+        };
+
+        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice,
+                                                    Data.PipelineCache,
+                                                    1U,
+                                                    &FragmentShaderPipelineCreateInfo,
+                                                    nullptr,
+                                                    &Data.FragmentShaderPipeline));
+    }
+
+    // Main Pipeline
+    {
+        std::vector const Libraries {
+                Data.VertexInputPipeline,
+                Data.PreRasterizationPipeline,
+                Data.FragmentOutputPipeline,
+                Data.FragmentShaderPipeline
+        };
+
+        VkPipelineLibraryCreateInfoKHR PipelineLibraryCreateInfo {
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR,
+                .pNext = &RenderingCreateInfo,
+                .libraryCount = static_cast<std::uint32_t>(std::size(Libraries)),
+                .pLibraries = std::data(Libraries)
+        };
+
+        VkGraphicsPipelineCreateInfo const GraphicsPipelineCreateInfo {
+                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+                .pNext = &PipelineLibraryCreateInfo,
+                .flags = Flags,
+                .layout = Data.PipelineLayout
+        };
+
+        CheckVulkanResult(vkCreateGraphicsPipelines(LogicalDevice, Data.PipelineCache, 1U, &GraphicsPipelineCreateInfo, nullptr, &Data.MainPipeline));
+    }
 }

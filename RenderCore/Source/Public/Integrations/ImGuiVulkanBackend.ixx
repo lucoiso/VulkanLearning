@@ -16,57 +16,56 @@ module;
 export module RenderCore.Integrations.ImGuiVulkanBackend;
 
 #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-struct ImGuiVulkanFrameRenderBuffers;
+import RenderCore.Types.Allocation;
+
 struct ImGuiVulkanWindowRenderBuffers;
 struct ImGuiVulkanFrame;
 struct ImGuiVulkanFrameSemaphores;
 struct ImGuiVulkanWindow;
 #endif
 
-export namespace RenderCore
+namespace RenderCore
 {
     #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-    struct ImGuiVulkanInitInfo
+    export struct ImGuiVulkanInitInfo
     {
         VkDescriptorPool              DescriptorPool;
         VkPipelineRenderingCreateInfo PipelineRenderingCreateInfo;
     };
 
-    bool ImGuiVulkanInit(ImGuiVulkanInitInfo const *);
-    void ImGuiVulkanShutdown();
-    void ImGuiVulkanNewFrame();
-    void ImGuiVulkanRenderDrawData(ImDrawData *, VkCommandBuffer);
-    bool ImGuiVulkanCreateFontsTexture();
-    void ImGuiVulkanDestroyFontsTexture();
+    export bool ImGuiVulkanInit(ImGuiVulkanInitInfo const *);
+    export void ImGuiVulkanShutdown();
+    export void ImGuiVulkanNewFrame();
+    export void ImGuiVulkanRenderDrawData(ImDrawData *, VkCommandBuffer);
+    export bool ImGuiVulkanCreateFontsTexture();
+    export void ImGuiVulkanDestroyFontsTexture();
+
+    export RENDERCOREMODULE_API VkDescriptorSet ImGuiVulkanAddTexture(VkSampler, VkImageView, VkImageLayout);
+    export RENDERCOREMODULE_API void            ImGuiVulkanRemoveTexture(VkDescriptorSet);
 
     bool ImGuiVulkanCreateDeviceObjects();
     void ImGuiVulkanDestroyDeviceObjects();
 
-    void ImGuiVulkanDestroyFrameRenderBuffers(ImGuiVulkanFrameRenderBuffers *);
-    void ImGuiVulkanDestroyWindowRenderBuffers(ImGuiVulkanWindowRenderBuffers *);
+    void ImGuiVulkanDestroyFrameRenderBuffers(BufferAllocation &);
+    void ImGuiVulkanDestroyWindowRenderBuffers(ImGuiVulkanWindowRenderBuffers &);
 
-    void ImGuiVulkanDestroyFrame(ImGuiVulkanFrame *);
+    void ImGuiVulkanDestroyFrame(ImGuiVulkanFrame &);
     void ImGuiVulkanDestroyFrameSemaphores(ImGuiVulkanFrameSemaphores *);
     void ImGuiVulkanDestroyAllViewportsRenderBuffers();
 
-    void ImGuiVulkanCreateWindowSwapChain(ImGuiVulkanWindow *, std::int32_t, std::int32_t);
+    void ImGuiVulkanCreateWindowSwapChain(ImGuiVulkanWindow &, std::int32_t, std::int32_t);
 
-    void ImGuiVulkanCreateWindowCommandBuffers(ImGuiVulkanWindow const *);
+    void ImGuiVulkanCreateWindowCommandBuffers(ImGuiVulkanWindow &);
 
     void ImGuiVulkanInitPlatformInterface();
     void ImGuiVulkanShutdownPlatformInterface();
 
-    RENDERCOREMODULE_API VkDescriptorSet ImGuiVulkanAddTexture(VkSampler, VkImageView, VkImageLayout);
-    RENDERCOREMODULE_API void            ImGuiVulkanRemoveTexture(VkDescriptorSet);
+    void ImGuiVulkanCreateOrResizeWindow(ImGuiVulkanWindow &, std::int32_t, std::int32_t);
 
-    void ImGuiVulkanCreateOrResizeWindow(ImGuiVulkanWindow *, std::int32_t, std::int32_t);
-
-    void ImGuiVulkanDestroyWindow(ImGuiVulkanWindow *);
+    void ImGuiVulkanDestroyWindow(ImGuiVulkanWindow &);
 
     VkSurfaceFormatKHR ImGuiVulkanSelectSurfaceFormat(VkSurfaceKHR, const VkFormat *, std::int32_t, VkColorSpaceKHR);
 
     VkPresentModeKHR ImGuiVulkanSelectPresentMode(VkSurfaceKHR, const VkPresentModeKHR *, std::int32_t);
-
-    std::int32_t ImGuiVulkanGetMinImageCountFromPresentMode(VkPresentModeKHR);
     #endif
 }

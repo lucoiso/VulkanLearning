@@ -33,8 +33,9 @@ namespace RenderCore
         VmaAllocation Allocation { VK_NULL_HANDLE };
         void *        MappedData { nullptr };
 
-        [[nodiscard]] bool IsValid() const;
-        void               DestroyResources(VmaAllocator const &);
+        [[nodiscard]] bool         IsValid() const;
+        void                       DestroyResources(VmaAllocator const &);
+        [[nodiscard]] VkDeviceSize GetAllocationSize(VmaAllocator const &) const;
     };
 
     export struct DescriptorData
@@ -46,7 +47,7 @@ namespace RenderCore
         BufferAllocation              Buffer {};
 
         [[nodiscard]] bool IsValid() const;
-        void               DestroyResources(VmaAllocator const &);
+        void               DestroyResources(VmaAllocator const &, bool);
 
         void SetDescriptorLayoutSize(VkDeviceSize const &);
     };

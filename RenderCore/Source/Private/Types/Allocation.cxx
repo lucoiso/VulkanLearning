@@ -52,7 +52,14 @@ void BufferAllocation::DestroyResources(VmaAllocator const &Allocator)
     {
         if (MappedData)
         {
-            vmaUnmapMemory(Allocator, Allocation);
+            VmaAllocationInfo AllocationInfo;
+            vmaGetAllocationInfo(Allocator, Allocation, &AllocationInfo);
+
+            if (AllocationInfo.pMappedData != nullptr)
+            {
+                vmaUnmapMemory(Allocator, Allocation);
+            }
+
             MappedData = nullptr;
         }
 
@@ -62,23 +69,40 @@ void BufferAllocation::DestroyResources(VmaAllocator const &Allocator)
     }
 }
 
+VkDeviceSize BufferAllocation::GetAllocationSize(VmaAllocator const &Allocator) const
+{
+    if (Buffer == VK_NULL_HANDLE || Allocation == VK_NULL_HANDLE)
+    {
+        return 0U;
+    }
+
+    VmaAllocationInfo AllocationInfo;
+    vmaGetAllocationInfo(Allocator, Allocation, &AllocationInfo);
+
+    return AllocationInfo.size;
+}
+
 bool DescriptorData::IsValid() const
 {
     return Buffer.IsValid() && SetLayout != VK_NULL_HANDLE;
 }
 
-void DescriptorData::DestroyResources(VmaAllocator const &Allocator)
+void DescriptorData::DestroyResources(VmaAllocator const &Allocator, bool const IncludeStatic)
 {
-    if (SetLayout != VK_NULL_HANDLE)
+    if (IncludeStatic)
     {
-        VkDevice const &LogicalDevice = GetLogicalDevice();
-        vkDestroyDescriptorSetLayout(LogicalDevice, SetLayout, nullptr);
-        SetLayout = VK_NULL_HANDLE;
+        if (SetLayout != VK_NULL_HANDLE)
+        {
+            VkDevice const &LogicalDevice = GetLogicalDevice();
+            vkDestroyDescriptorSetLayout(LogicalDevice, SetLayout, nullptr);
+            SetLayout = VK_NULL_HANDLE;
+        }
+
+        BufferDeviceAddress.deviceAddress = 0U;
+        LayoutOffset                      = 0U;
+        LayoutSize                        = 0U;
     }
 
-    BufferDeviceAddress.deviceAddress = 0U;
-    LayoutOffset                      = 0U;
-    LayoutSize                        = 0U;
     Buffer.DestroyResources(Allocator);
 }
 

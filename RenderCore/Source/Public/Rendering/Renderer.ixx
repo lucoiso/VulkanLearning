@@ -4,14 +4,14 @@
 
 module;
 
+#include <GLFW/glfw3.h>
+#include <Volk/volk.h>
 #include <cstdint>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
-#include <GLFW/glfw3.h>
-#include <Volk/volk.h>
 #include "RenderCoreModule.hpp"
 
 export module RenderCore.Renderer;
@@ -28,21 +28,17 @@ import RenderCore.Runtime.Pipeline;
 import RenderCore.Runtime.Command;
 import RenderCore.Runtime.Device;
 
-export namespace RenderCore
+namespace RenderCore
 {
-    void DrawFrame(GLFWwindow *, double, Control *);
-
     std::optional<std::int32_t> RequestImageIndex();
+    void                        CheckObjectManagementFlags();
+    void                        Tick();
 
-    void CheckObjectManagementFlags();
+    export void DrawFrame(GLFWwindow *, double, Control *);
+    export bool Initialize(GLFWwindow *);
+    export void Shutdown(GLFWwindow *);
 
-    void Tick();
-
-    bool Initialize(GLFWwindow *);
-
-    void Shutdown(GLFWwindow *);
-
-    namespace Renderer
+    export namespace Renderer
     {
         [[nodiscard]] RENDERCOREMODULE_API bool IsInitialized();
 
@@ -94,12 +90,12 @@ export namespace RenderCore
 
         [[nodiscard]] RENDERCOREMODULE_API VkSampler GetSampler();
 
-        #ifdef VULKAN_RENDERER_ENABLE_IMGUI
+#ifdef VULKAN_RENDERER_ENABLE_IMGUI
         [[nodiscard]] RENDERCOREMODULE_API std::vector<VkImageView> GetViewportImages();
 
         [[nodiscard]] RENDERCOREMODULE_API bool IsImGuiInitialized();
 
         RENDERCOREMODULE_API void SaveFrameAsImage(std::string_view);
-        #endif
+#endif
     } // namespace Renderer
-}     // namespace RenderCore
+} // namespace RenderCore

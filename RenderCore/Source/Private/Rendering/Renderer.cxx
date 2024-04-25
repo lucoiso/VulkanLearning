@@ -69,7 +69,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             #ifdef VULKAN_RENDERER_ENABLE_IMGUI
             DestroyViewportImages();
             #endif
-            ReleasePipelineResources();
+            ReleasePipelineResources(false);
 
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
             AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
@@ -86,8 +86,20 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             }
 
             auto const SurfaceCapabilities = GetSurfaceCapabilities();
-
             CreateSwapChain(SurfaceProperties, SurfaceCapabilities);
+
+            if (!HasFlag(g_StateFlags, RendererStateFlags::INITIALIZED))
+            {
+                SetupPipelineLayouts();
+                CreatePipelineLibraries();
+
+                #ifdef VULKAN_RENDERER_ENABLE_IMGUI
+                InitializeImGuiContext(Window, SurfaceProperties);
+                #endif
+
+                AddFlags(g_StateFlags, RendererStateFlags::INITIALIZED);
+            }
+
             #ifdef VULKAN_RENDERER_ENABLE_IMGUI
             CreateViewportResources(SurfaceProperties);
             #endif
@@ -100,9 +112,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         }
         else if (HasFlag(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH))
         {
-            SetupPipelineLayouts();
-            CreatePipelineLibraries();
-            CreatePipeline();
+            CreatePipelineDynamicResources();
             PipelineDescriptorData &PipelineDescriptor = GetPipelineDescriptorData();
             PipelineDescriptor.SetupSceneBuffer(GetSceneUniformBuffer());
             PipelineDescriptor.SetupModelsBuffer(GetObjects());
@@ -221,14 +231,9 @@ bool RenderCore::Initialize(GLFWwindow *const Window)
     auto const SurfaceProperties = GetSurfaceProperties(Window);
     AllocateEmptyTexture(SurfaceProperties.Format.format);
 
-    #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-    InitializeImGuiContext(Window, SurfaceProperties);
-    #endif
-
-    AddFlags(g_StateFlags, RendererStateFlags::INITIALIZED);
     AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
 
-    return SurfaceProperties.IsValid() && Renderer::IsInitialized();
+    return SurfaceProperties.IsValid();
 }
 
 void RenderCore::Shutdown([[maybe_unused]] GLFWwindow *const Window)
@@ -250,7 +255,7 @@ void RenderCore::Shutdown([[maybe_unused]] GLFWwindow *const Window)
     ReleaseSynchronizationObjects();
     ReleaseCommandsResources();
     ReleaseSceneResources();
-    ReleasePipelineResources();
+    ReleasePipelineResources(true);
     ReleaseMemoryResources();
     ReleaseDeviceResources();
     DestroyVulkanInstance();

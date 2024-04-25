@@ -4,22 +4,21 @@
 
 module;
 
+#include <Volk/volk.h>
 #include <ranges>
 #include <stb_image_write.h>
-#include <glm/matrix.hpp>
-#include <Volk/volk.h>
 
 #ifndef VMA_IMPLEMENTATION
 #include <boost/log/trivial.hpp>
-#define VMA_LEAK_LOG_FORMAT(format, ...)                                       \
-        do                                                                     \
-        {                                                                      \
-            std::size_t _BuffSize = snprintf(nullptr, 0, format, __VA_ARGS__); \
-            std::string _Message(_BuffSize + 1, '\0');                         \
-            snprintf(&_Message[0], _Message.size(), format, __VA_ARGS__);      \
-            _Message.pop_back();                                               \
-            BOOST_LOG_TRIVIAL(debug) << _Message;                              \
-        }                                                                      \
+#define VMA_LEAK_LOG_FORMAT(format, ...)                                            \
+        do                                                                          \
+        {                                                                           \
+            std::size_t _BuffSize = snprintf(nullptr, 0, format, __VA_ARGS__);      \
+            std::string _Message(_BuffSize + 1, '\0');                              \
+            snprintf(&_Message[0], _Message.size(), format, __VA_ARGS__);           \
+            _Message.pop_back();                                                    \
+            BOOST_LOG_TRIVIAL(debug) << _Message;                                   \
+        }                                                                           \
         while (false)
 #define VMA_IMPLEMENTATION
 #endif
@@ -270,34 +269,6 @@ void RenderCore::CreateImage(VkFormat const &        ImageFormat,
     CheckVulkanResult(vmaCreateImage(Allocator, &ImageViewCreateInfo, &ImageCreateInfo, &Image, &Allocation, &AllocationInfo));
 
     vmaSetAllocationName(Allocator, Allocation, std::data(std::format("Image: {}", Identifier)));
-}
-
-void RenderCore::CreateTextureSampler(VkPhysicalDevice const &Device, VkSampler &Sampler)
-{
-    VkPhysicalDeviceProperties SurfaceProperties;
-    vkGetPhysicalDeviceProperties(Device, &SurfaceProperties);
-
-    VkSamplerCreateInfo const SamplerCreateInfo {
-            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-            .magFilter = VK_FILTER_LINEAR,
-            .minFilter = VK_FILTER_LINEAR,
-            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .mipLodBias = 0.F,
-            .anisotropyEnable = VK_FALSE,
-            .maxAnisotropy = SurfaceProperties.limits.maxSamplerAnisotropy,
-            .compareEnable = VK_FALSE,
-            .compareOp = VK_COMPARE_OP_ALWAYS,
-            .minLod = 0.F,
-            .maxLod = FLT_MAX,
-            .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-            .unnormalizedCoordinates = VK_FALSE
-    };
-
-    VkDevice const &LogicalDevice = GetLogicalDevice();
-    CheckVulkanResult(vkCreateSampler(LogicalDevice, &SamplerCreateInfo, nullptr, &Sampler));
 }
 
 void RenderCore::CreateImageView(VkImage const &Image, VkFormat const &Format, VkImageAspectFlags const &AspectFlags, VkImageView &ImageView)

@@ -21,42 +21,26 @@ import RenderCore.Types.Illumination;
 export namespace RenderCore
 {
     void CreateSceneUniformBuffer();
-
     void CreateImageSampler();
-
     void CreateDepthResources(SurfaceProperties const &);
-
     void AllocateEmptyTexture(VkFormat);
-
     void LoadScene(std::string_view);
-
     void UnloadObjects(std::vector<std::uint32_t> const &);
-
     void ReleaseSceneResources();
-
     void DestroyObjects();
-
     void TickObjects(float);
 
-    [[nodiscard]] ImageAllocation const &GetDepthImage();
-
-    [[nodiscard]] VkSampler const &GetSampler();
-
+    [[nodiscard]] ImageAllocation const                &GetDepthImage();
+    [[nodiscard]] VkSampler const                      &GetSampler();
     [[nodiscard]] std::vector<std::shared_ptr<Object>> &GetObjects();
-
-    [[nodiscard]] std::uint32_t GetNumAllocations();
-
-    [[nodiscard]] BufferAllocation const &GetSceneUniformBuffer();
-
-    [[nodiscard]] void *GetSceneUniformData();
-
-    [[nodiscard]] VkDescriptorBufferInfo const &GetSceneUniformDescriptor();
+    [[nodiscard]] std::uint32_t                         GetNumAllocations();
+    [[nodiscard]] BufferAllocation const               &GetSceneUniformBuffer();
+    [[nodiscard]] void                                 *GetSceneUniformData();
+    [[nodiscard]] VkDescriptorBufferInfo const         &GetSceneUniformDescriptor();
 
     void UpdateSceneUniformBuffer();
-
     void UpdateObjectsUniformBuffer();
 
-    [[nodiscard]] Camera &GetCamera();
-
+    [[nodiscard]] Camera       &GetCamera();
     [[nodiscard]] Illumination &GetIllumination();
 } // namespace RenderCore
