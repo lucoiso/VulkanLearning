@@ -9,6 +9,6 @@
 
 # Example
 
-![image](https://github.com/lucoiso/vulkan-renderer/assets/77353979/55f06534-2ce0-465f-ae10-3f82156cf3a4)
+![image](https://github.com/lucoiso/vulkan-renderer/assets/77353979/5710f741-85ce-4af6-aeec-2cdb24f6613a)
 
 - Renderer Application using this library: https://github.com/lucoiso/renderer-application
