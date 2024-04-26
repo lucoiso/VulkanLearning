@@ -6,7 +6,6 @@
 
 module;
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -14,11 +13,9 @@ module;
 #include <vector>
 #include <vma/vk_mem_alloc.h>
 #include <Volk/volk.h>
-#endif
 
 module RenderCore.Integrations.ImGuiVulkanBackend;
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 import RenderCore.Types.Allocation;
 import RenderCore.Types.SurfaceProperties;
 import RenderCore.Utils.Constants;
@@ -1623,4 +1620,3 @@ void RenderCore::ImGuiVulkanDestroyWindow(ImGuiVulkanWindow &WindowData)
     vkDestroySwapchainKHR(LogicalDevice, WindowData.Swapchain, nullptr);
     vkDestroySurfaceKHR(GetInstance(), WindowData.Surface, nullptr);
 }
-#endif

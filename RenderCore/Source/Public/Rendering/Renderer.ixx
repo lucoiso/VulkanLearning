@@ -21,7 +21,6 @@ import RenderCore.Types.Camera;
 import RenderCore.Types.Illumination;
 import RenderCore.Types.Transform;
 import RenderCore.Types.Object;
-
 import RenderCore.UserInterface.Control;
 import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Pipeline;
@@ -60,15 +59,19 @@ namespace RenderCore
 
         RENDERCOREMODULE_API void RequestUpdateResources();
 
-        [[nodiscard]] RENDERCOREMODULE_API double GetFrameTime();
+        [[nodiscard]] RENDERCOREMODULE_API double const &GetFrameTime();
 
-        RENDERCOREMODULE_API void SetFrameRateCap(double);
+        RENDERCOREMODULE_API void SetFPSLimit(double);
 
-        [[nodiscard]] RENDERCOREMODULE_API bool GetUseVSync();
+        [[nodiscard]] RENDERCOREMODULE_API double const &GetFPSLimit();
 
-        RENDERCOREMODULE_API void SetUseVSync(bool);
+        [[nodiscard]] RENDERCOREMODULE_API bool const &GetVSync();
 
-        [[nodiscard]] RENDERCOREMODULE_API double GetFrameRateCap();
+        RENDERCOREMODULE_API void SetVSync(bool);
+
+        [[nodiscard]] RENDERCOREMODULE_API bool const &GetRenderOffscreen();
+
+        RENDERCOREMODULE_API void SetRenderOffscreen(bool);
 
         [[nodiscard]] RENDERCOREMODULE_API Camera const &GetCamera();
 
@@ -90,12 +93,10 @@ namespace RenderCore
 
         [[nodiscard]] RENDERCOREMODULE_API VkSampler GetSampler();
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
-        [[nodiscard]] RENDERCOREMODULE_API std::vector<VkImageView> GetViewportImages();
+        [[nodiscard]] RENDERCOREMODULE_API std::vector<VkImageView> GetOffscreenImages();
 
         [[nodiscard]] RENDERCOREMODULE_API bool IsImGuiInitialized();
 
-        RENDERCOREMODULE_API void SaveFrameAsImage(std::string_view);
-#endif
+        RENDERCOREMODULE_API void SaveOffscreenFrameToImage(std::string_view);
     } // namespace Renderer
 } // namespace RenderCore

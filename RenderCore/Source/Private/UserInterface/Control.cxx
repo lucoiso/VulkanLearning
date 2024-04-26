@@ -17,16 +17,34 @@ Control::Control(Control *const Parent)
 
 Control::~Control()
 {
-    DestroyChildren();
+    DestroyChildren(true);
 }
 
-void Control::DestroyChildren()
+void Control::RemoveChild(std::shared_ptr<Control> const &Child)
+{
+    std::erase(m_Children, Child);
+}
+
+void Control::DestroyChildren(bool const IncludeIndependent)
 {
     while (!std::empty(m_Children))
     {
         m_Children.pop_back();
     }
 
+    if (IncludeIndependent)
+    {
+        DestroyIndependentChildren();
+    }
+}
+
+void Control::RemoveIndependentChild(std::shared_ptr<Control> const &Child)
+{
+    std::erase(m_IndependentChildren, Child);
+}
+
+void Control::DestroyIndependentChildren()
+{
     while (!std::empty(m_IndependentChildren))
     {
         m_IndependentChildren.pop_back();
@@ -46,6 +64,13 @@ std::vector<std::shared_ptr<Control>> const &Control::GetChildren() const
 std::vector<std::shared_ptr<Control>> const &Control::GetIndependentChildren() const
 {
     return m_IndependentChildren;
+}
+
+void Control::Initialize()
+{
+    OnInitialize();
+    Process(m_Children, &Control::OnInitialize);
+    Process(m_IndependentChildren, &Control::OnInitialize);
 }
 
 void Control::Update()

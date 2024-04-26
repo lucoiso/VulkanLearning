@@ -25,30 +25,36 @@ namespace RenderCore
 
     public:
         Control() = delete;
-
         Control &operator=(Control const &) = delete;
-
         virtual ~Control();
 
         template <typename ControlTy, typename... Args>
-        void AddChild(Args &&... Arguments)
+        std::shared_ptr<Control> const &AddChild(Args &&... Arguments)
         {
-            m_Children.push_back(std::make_shared<ControlTy>(this, std::forward<Args>(Arguments)...));
+            return m_Children.emplace_back(std::make_shared<ControlTy>(this, std::forward<Args>(Arguments)...));
         }
 
         template <typename ControlTy, typename... Args>
-        void AddIndependentChild(Args &&... Arguments)
+        std::shared_ptr<Control> const &AddIndependentChild(Args &&... Arguments)
         {
-            m_IndependentChildren.push_back(std::make_shared<ControlTy>(this, std::forward<Args>(Arguments)...));
+            return m_IndependentChildren.emplace_back(std::make_shared<ControlTy>(this, std::forward<Args>(Arguments)...));
         }
 
-        void DestroyChildren();
+        void RemoveChild(std::shared_ptr<Control> const &);
+
+        void DestroyChildren(bool);
+
+        void RemoveIndependentChild(std::shared_ptr<Control> const &);
+
+        void DestroyIndependentChildren();
 
         [[nodiscard]] Control *GetParent() const;
 
         [[nodiscard]] std::vector<std::shared_ptr<Control>> const &GetChildren() const;
 
         [[nodiscard]] std::vector<std::shared_ptr<Control>> const &GetIndependentChildren() const;
+
+        void Initialize();
 
         void Update();
 
@@ -57,6 +63,10 @@ namespace RenderCore
         void PreUpdate();
 
         void PostUpdate();
+
+        virtual void OnInitialize()
+        {
+        }
 
         virtual void Refresh()
         {
@@ -107,4 +117,9 @@ namespace RenderCore
                           });
         }
     };
+
+    export bool operator==(std::shared_ptr<Control> const &Lhs, std::shared_ptr<Control> const &Rhs)
+    {
+        return Lhs.get() == Rhs.get();
+    }
 } // namespace RenderCore

@@ -31,7 +31,7 @@ import RenderCore.Runtime.Model;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Runtime.Synchronization;
 import RenderCore.Runtime.Instance;
-import RenderCore.Integrations.Viewport;
+import RenderCore.Integrations.Offscreen;
 import RenderCore.Integrations.ImGuiOverlay;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
@@ -47,6 +47,7 @@ std::vector<std::uint32_t>  g_ModelsToUnload {};
 double                      g_FrameTime { 0.F };
 double                      g_FrameRateCap { 0.016667F };
 bool                        g_UseVSync { true };
+bool                        g_RenderOffscreen { false };
 std::optional<std::int32_t> g_ImageIndex {};
 
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
@@ -66,9 +67,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         {
             ResetSemaphores();
             DestroySwapChainImages();
-            #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-            DestroyViewportImages();
-            #endif
+            DestroyOffscreenImages();
             ReleasePipelineResources(false);
 
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
@@ -93,17 +92,17 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             {
                 SetupPipelineLayouts();
                 CreatePipelineLibraries();
-
-                #ifdef VULKAN_RENDERER_ENABLE_IMGUI
                 InitializeImGuiContext(Window);
-                #endif
+
+                Owner->Initialize();
 
                 AddFlags(g_StateFlags, RendererStateFlags::INITIALIZED);
             }
 
-            #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-            CreateViewportResources(SurfaceProperties);
-            #endif
+            if (g_RenderOffscreen)
+            {
+                CreateOffscreenResources(SurfaceProperties);
+            }
 
             Owner->RefreshResources();
 
@@ -131,12 +130,9 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         g_ImageIndex.has_value())
     {
         UpdateSceneUniformBuffer();
+        DrawImGuiFrame(Owner);
 
         Tick();
-
-        #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-        DrawImGuiFrame(Owner);
-        #endif
 
         if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
         {
@@ -245,10 +241,8 @@ void RenderCore::Shutdown([[maybe_unused]] GLFWwindow *const Window)
 
     RemoveFlags(g_StateFlags, RendererStateFlags::INITIALIZED);
 
-    #ifdef VULKAN_RENDERER_ENABLE_IMGUI
     ReleaseImGuiResources();
-    DestroyViewportImages();
-    #endif
+    DestroyOffscreenImages();
 
     ReleaseSwapChainResources();
     ReleaseShaderResources();
@@ -313,32 +307,45 @@ void Renderer::RequestUpdateResources()
     AddStateFlag(RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
 }
 
-double Renderer::GetFrameTime()
+double const &Renderer::GetFrameTime()
 {
     return g_FrameTime;
 }
 
-void Renderer::SetFrameRateCap(double const FrameRateCap)
+void Renderer::SetFPSLimit(double const MaxFPS)
 {
-    if (FrameRateCap > 0.0)
+    if (MaxFPS > 0.0)
     {
-        g_FrameRateCap = 1.0 / FrameRateCap;
+        g_FrameRateCap = 1.0 / MaxFPS;
     }
 }
 
-bool Renderer::GetUseVSync()
+double const &Renderer::GetFPSLimit()
+{
+    return g_FrameRateCap;
+}
+
+bool const &Renderer::GetVSync()
 {
     return g_UseVSync;
 }
 
-void Renderer::SetUseVSync(bool const Value)
+void Renderer::SetVSync(bool const Value)
 {
     g_UseVSync = Value;
 }
 
-double Renderer::GetFrameRateCap()
+bool const &Renderer::GetRenderOffscreen()
 {
-    return g_FrameRateCap;
+    return g_RenderOffscreen;
+}
+
+void Renderer::SetRenderOffscreen(bool const Value)
+{
+    if (g_RenderOffscreen != Value)
+    {
+        g_RenderOffscreen = Value;
+    }
 }
 
 Camera const &Renderer::GetCamera()
@@ -395,14 +402,13 @@ VkSampler Renderer::GetSampler()
     return RenderCore::GetSampler();
 }
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
-std::vector<VkImageView> Renderer::GetViewportImages()
+std::vector<VkImageView> Renderer::GetOffscreenImages()
 {
     std::vector<VkImageView> Output;
-    auto const &             ViewportAllocations = RenderCore::GetViewportImages();
-    Output.reserve(std::size(ViewportAllocations));
+    auto const &             OffscreenAllocations = RenderCore::GetOffscreenImages();
+    Output.reserve(std::size(OffscreenAllocations));
 
-    for (ImageAllocation const &AllocationIter : ViewportAllocations)
+    for (ImageAllocation const &AllocationIter : OffscreenAllocations)
     {
         Output.push_back(AllocationIter.View);
     }
@@ -415,9 +421,8 @@ bool Renderer::IsImGuiInitialized()
     return RenderCore::IsImGuiInitialized();
 }
 
-void Renderer::SaveFrameAsImage(std::string_view const Path)
+void Renderer::SaveOffscreenFrameToImage(std::string_view const Path)
 {
-    ImageAllocation const &ViewportImage = RenderCore::GetViewportImages().at(GetImageIndex().value());
-    SaveImageToFile(ViewportImage.Image, Path, ViewportImage.Extent);
+    ImageAllocation const &OffscreenImage = RenderCore::GetOffscreenImages().at(GetImageIndex().value());
+    SaveImageToFile(OffscreenImage.Image, Path, OffscreenImage.Extent);
 }
-#endif

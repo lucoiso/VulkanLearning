@@ -146,11 +146,11 @@ export namespace RenderCore
     }
 
     template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
-    constexpr void RequestImageLayoutTransition(VkCommandBuffer &   CommandBuffer,
-                                                VkImage const &     Image,
-                                                VkFormat const &    Format,
-                                                std::uint32_t const FromQueueIndex = VK_QUEUE_FAMILY_IGNORED,
-                                                std::uint32_t const ToQueueIndex   = VK_QUEUE_FAMILY_IGNORED)
+    constexpr void RequestImageLayoutTransition(VkCommandBuffer const &CommandBuffer,
+                                                VkImage const &        Image,
+                                                VkFormat const &       Format,
+                                                std::uint32_t const    FromQueueIndex = VK_QUEUE_FAMILY_IGNORED,
+                                                std::uint32_t const    ToQueueIndex   = VK_QUEUE_FAMILY_IGNORED)
     {
         VkImageMemoryBarrier2 ImageBarrier = MountImageBarrier<OldLayout, NewLayout, Aspect>(Image, Format, FromQueueIndex, ToQueueIndex);
 

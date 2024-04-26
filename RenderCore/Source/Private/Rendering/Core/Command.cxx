@@ -15,13 +15,14 @@ module;
 
 module RenderCore.Runtime.Command;
 
+import RenderCore.Renderer;
 import RenderCore.Runtime.Synchronization;
 import RenderCore.Runtime.Scene;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Device;
 import RenderCore.Runtime.Pipeline;
-import RenderCore.Integrations.Viewport;
+import RenderCore.Integrations.Offscreen;
 import RenderCore.Integrations.ImGuiOverlay;
 import RenderCore.Types.Allocation;
 import RenderCore.Utils.Helpers;
@@ -38,10 +39,8 @@ constexpr VkImageLayout g_SwapChainMidLayout   = VK_IMAGE_LAYOUT_ATTACHMENT_OPTI
 constexpr VkImageLayout g_SwapChainFinalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 constexpr VkImageLayout g_DepthLayout          = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
-constexpr VkImageLayout g_ViewportMidLayout   = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-constexpr VkImageLayout g_ViewportFinalLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
-#endif
+constexpr VkImageLayout g_OffscreenMidLayout   = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+constexpr VkImageLayout g_OffscreenFinalLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
 
 constexpr VkCommandBufferBeginInfo g_CommandBufferBeginInfo {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -245,40 +244,38 @@ void SetViewport(VkCommandBuffer const &CommandBuffer, VkExtent2D const &SwapCha
     vkCmdSetScissor(CommandBuffer, 0U, 1U, &Scissor);
 }
 
-void BeginRendering(std::uint32_t const ImageIndex, ImageAllocation const &SwapchainAllocation)
+void BeginRendering(VkCommandBuffer const &CommandBuffer,
+                    std::uint32_t const    ImageIndex,
+                    ImageAllocation const &SwapchainAllocation,
+                    ImageAllocation const &DepthAllocation)
 {
-    VkCommandBuffer const &CommandBuffer   = g_PrimaryCommandBuffers.at(ImageIndex);
-    ImageAllocation const &DepthAllocation = GetDepthImage();
-
     std::vector ImageBarriers {
-            RenderCore::MountImageBarrier<g_UndefinedLayout, g_SwapChainMidLayout, g_ImageAspect>(SwapchainAllocation.Image,
-                                                                                                  SwapchainAllocation.Format),
+            RenderCore::MountImageBarrier<g_UndefinedLayout, g_SwapChainMidLayout,
+                                          g_ImageAspect>(SwapchainAllocation.Image, SwapchainAllocation.Format),
             RenderCore::MountImageBarrier<g_UndefinedLayout, g_DepthLayout, g_DepthAspect>(DepthAllocation.Image, DepthAllocation.Format)
     };
 
-    #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-    ImageAllocation const &ViewportAllocation = GetViewportImages().at(ImageIndex);
-    ImageBarriers.push_back(RenderCore::MountImageBarrier<g_UndefinedLayout, g_ViewportMidLayout, g_ImageAspect>(ViewportAllocation.Image,
-                                SwapchainAllocation.Format));
+    VkRenderingAttachmentInfo ColorAttachment {
+            .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+            .clearValue = g_ClearValues.at(0U)
+    };
 
-    VkRenderingAttachmentInfo ColorAttachment {
-            .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            .imageView = ViewportAllocation.View,
-            .imageLayout = g_ViewportMidLayout,
-            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .clearValue = g_ClearValues.at(0U)
-    };
-    #else
-    VkRenderingAttachmentInfo ColorAttachment {
-            .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            .imageView = SwapchainAllocation.View,
-            .imageLayout = g_SwapChainMidLayout,
-            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .clearValue = g_ClearValues.at(0U)
-    };
-    #endif
+    if (Renderer::GetRenderOffscreen())
+    {
+        ImageAllocation const &OffscreenAllocation = GetOffscreenImages().at(ImageIndex);
+        ImageBarriers.push_back(RenderCore::MountImageBarrier<g_UndefinedLayout, g_OffscreenMidLayout, g_ImageAspect>(OffscreenAllocation.Image,
+                                    OffscreenAllocation.Format));
+
+        ColorAttachment.imageView   = OffscreenAllocation.View;
+        ColorAttachment.imageLayout = g_OffscreenMidLayout;
+    }
+    else
+    {
+        ColorAttachment.imageView   = SwapchainAllocation.View;
+        ColorAttachment.imageLayout = g_SwapChainMidLayout;
+    }
 
     VkDependencyInfo const DependencyInfo {
             .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -311,30 +308,30 @@ void BeginRendering(std::uint32_t const ImageIndex, ImageAllocation const &Swapc
     vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
 }
 
-void EndRendering(std::uint32_t const ImageIndex)
+void EndRendering(VkCommandBuffer const &CommandBuffer, std::uint32_t const ImageIndex)
 {
-    VkCommandBuffer &CommandBuffer = g_PrimaryCommandBuffers.at(ImageIndex);
     vkCmdEndRendering(CommandBuffer);
 
-    #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-    ImageAllocation const &ViewportAllocation = GetViewportImages().at(ImageIndex);
-    RenderCore::RequestImageLayoutTransition<g_ViewportMidLayout, g_ViewportFinalLayout, g_ImageAspect>(CommandBuffer,
-        ViewportAllocation.Image,
-        GetSwapChainImages().at(ImageIndex).Format);
-    #endif
+    if (Renderer::GetRenderOffscreen())
+    {
+        ImageAllocation const &OffscreenAllocation = GetOffscreenImages().at(ImageIndex);
+        RenderCore::RequestImageLayoutTransition<g_OffscreenMidLayout, g_OffscreenFinalLayout, g_ImageAspect>(CommandBuffer,
+            OffscreenAllocation.Image,
+            OffscreenAllocation.Format);
+    }
 }
 
-std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const ImageIndex, ImageAllocation const &SwapchainAllocation)
+std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const    ImageIndex,
+                                                 ImageAllocation const &SwapchainAllocation,
+                                                 ImageAllocation const &DepthAllocation)
 {
-    VkFormat const &DepthFormat = GetDepthImage().Format;
-
     VkCommandBufferInheritanceRenderingInfo const InheritanceRenderingInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO,
             .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
             .colorAttachmentCount = 1U,
             .pColorAttachmentFormats = &SwapchainAllocation.Format,
-            .depthAttachmentFormat = DepthFormat,
-            .stencilAttachmentFormat = DepthFormat,
+            .depthAttachmentFormat = DepthAllocation.Format,
+            .stencilAttachmentFormat = DepthAllocation.Format,
             .rasterizationSamples = g_MSAASamples,
     };
 
@@ -346,8 +343,8 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const ImageIndex,
     VkCommandBufferBeginInfo SecondaryBeginInfo = g_CommandBufferBeginInfo;
     SecondaryBeginInfo.flags |= VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
     SecondaryBeginInfo.pInheritanceInfo = &InheritanceInfo;
-    auto const &Objects                 = GetObjects();
 
+    auto const &Objects = GetObjects();
     if (std::empty(Objects))
     {
         return {};
@@ -413,30 +410,26 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const ImageIndex,
 
 void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
 {
-    VkCommandBuffer &CommandBuffer = g_PrimaryCommandBuffers.at(ImageIndex);
+    ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
+    ImageAllocation const &DepthAllocation     = GetDepthImage();
 
+    VkCommandBuffer const &CommandBuffer = g_PrimaryCommandBuffers.at(ImageIndex);
     CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &g_CommandBufferBeginInfo));
+    BeginRendering(CommandBuffer, ImageIndex, SwapchainAllocation, DepthAllocation);
+
+    if (std::vector<VkCommandBuffer> const CommandBuffers = RecordSceneCommands(ImageIndex, SwapchainAllocation, DepthAllocation);
+        !std::empty(CommandBuffers))
     {
-        ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
-
-        BeginRendering(ImageIndex, SwapchainAllocation);
-
-        if (std::vector<VkCommandBuffer> const CommandBuffers = RecordSceneCommands(ImageIndex, SwapchainAllocation);
-            !std::empty(CommandBuffers))
-        {
-            vkCmdExecuteCommands(CommandBuffer, static_cast<std::uint32_t>(std::size(CommandBuffers)), std::data(CommandBuffers));
-        }
-
-        EndRendering(ImageIndex);
-
-        #ifdef VULKAN_RENDERER_ENABLE_IMGUI
-        RecordImGuiCommandBuffer(CommandBuffer, SwapchainAllocation, g_SwapChainMidLayout);
-        #endif
-
-        RenderCore::RequestImageLayoutTransition<g_SwapChainMidLayout, g_SwapChainFinalLayout, g_ImageAspect>(CommandBuffer,
-            SwapchainAllocation.Image,
-            SwapchainAllocation.Format);
+        vkCmdExecuteCommands(CommandBuffer, static_cast<std::uint32_t>(std::size(CommandBuffers)), std::data(CommandBuffers));
     }
+
+    EndRendering(CommandBuffer, ImageIndex);
+    RecordImGuiCommandBuffer(CommandBuffer, SwapchainAllocation, g_SwapChainMidLayout);
+
+    RenderCore::RequestImageLayoutTransition<g_SwapChainMidLayout, g_SwapChainFinalLayout, g_ImageAspect>(CommandBuffer,
+        SwapchainAllocation.Image,
+        SwapchainAllocation.Format);
+
     CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
 }
 

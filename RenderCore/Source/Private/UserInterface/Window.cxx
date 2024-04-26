@@ -43,7 +43,7 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
 
 void Window::Shutdown()
 {
-    DestroyChildren();
+    DestroyChildren(true);
 
     if (Renderer::IsInitialized())
     {
@@ -81,7 +81,7 @@ void Window::Draw()
     constexpr auto Denominator  = static_cast<double>(std::milli::den);
 
     if (auto const DeltaTime = static_cast<double>(Milliseconds) / Denominator;
-        DeltaTime >= Renderer::GetFrameRateCap())
+        DeltaTime >= Renderer::GetFPSLimit())
     {
         LastTime = CurrentTime;
         DrawFrame(m_GLFWHandler.GetWindow(), DeltaTime, this);

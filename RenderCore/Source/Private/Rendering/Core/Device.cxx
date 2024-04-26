@@ -261,7 +261,7 @@ SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow *const Window)
         Output.Format = SupportedFormats.at(std::distance(std::cbegin(g_PreferredImageFormats), MatchingFormat));
     }
 
-    Output.Mode = Renderer::GetUseVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
+    Output.Mode = Renderer::GetVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
 
     for (VkFormat const &FormatIter : g_PreferredDepthFormats)
     {

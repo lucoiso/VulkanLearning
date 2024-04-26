@@ -4,17 +4,14 @@
 
 module;
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 #include <array>
 #include <imgui.h>
 #include <vector>
 #include <boost/log/trivial.hpp>
 #include <Volk/volk.h>
-#endif
 
 module RenderCore.Integrations.ImGuiOverlay;
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 import RenderCore.Renderer;
 import RenderCore.Runtime.Device;
 import RenderCore.Runtime.Pipeline;
@@ -155,8 +152,9 @@ void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
                     .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
                     .imageView = SwapchainAllocation.View,
                     .imageLayout = SwapChainMidLayout,
-                    .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                    .clearValue = g_ClearValues.at(0U)
             };
 
             VkRenderingInfo const RenderingInfo {
@@ -173,4 +171,3 @@ void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
         }
     }
 }
-#endif

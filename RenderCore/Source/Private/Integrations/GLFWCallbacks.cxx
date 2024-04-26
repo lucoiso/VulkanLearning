@@ -7,10 +7,7 @@ module;
 #include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
 #include <glm/ext.hpp>
-
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 #include <imgui.h>
-#endif
 
 module RenderCore.Integrations.GLFWCallbacks;
 

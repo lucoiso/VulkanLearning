@@ -8,7 +8,7 @@ module;
 #include <execution>
 #include <vma/vk_mem_alloc.h>
 
-module RenderCore.Integrations.Viewport;
+module RenderCore.Integrations.Offscreen;
 
 import RenderCore.Types.Allocation;
 import RenderCore.Types.SurfaceProperties;
@@ -18,29 +18,27 @@ import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
+std::vector<ImageAllocation> g_OffscreenImages {};
 
-std::vector<ImageAllocation> g_ViewportImages {};
-
-void RenderCore::CreateViewportResources(SurfaceProperties const &SurfaceProperties)
+void RenderCore::CreateOffscreenResources(SurfaceProperties const &SurfaceProperties)
 {
     VmaAllocator const &Allocator = GetAllocator();
 
     std::for_each(std::execution::unseq,
-                  std::begin(g_ViewportImages),
-                  std::end(g_ViewportImages),
+                  std::begin(g_OffscreenImages),
+                  std::end(g_OffscreenImages),
                   [&](ImageAllocation &ImageIter)
                   {
                       ImageIter.DestroyResources(Allocator);
                   });
-    g_ViewportImages.resize(std::size(GetSwapChainImages()));
+    g_OffscreenImages.resize(std::size(GetSwapChainImages()));
 
     constexpr VkImageAspectFlags AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
     constexpr VkImageUsageFlags  UsageFlags  = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
     std::for_each(std::execution::unseq,
-                  std::begin(g_ViewportImages),
-                  std::end(g_ViewportImages),
+                  std::begin(g_OffscreenImages),
+                  std::end(g_OffscreenImages),
                   [&](ImageAllocation &ImageIter)
                   {
                       ImageIter.Extent = SurfaceProperties.Extent;
@@ -51,7 +49,7 @@ void RenderCore::CreateViewportResources(SurfaceProperties const &SurfacePropert
                                   g_ImageTiling,
                                   UsageFlags,
                                   g_TextureMemoryUsage,
-                                  "VIEWPORT_IMAGE",
+                                  "OFFSCREEN_IMAGE",
                                   ImageIter.Image,
                                   ImageIter.Allocation);
 
@@ -59,23 +57,21 @@ void RenderCore::CreateViewportResources(SurfaceProperties const &SurfacePropert
                   });
 }
 
-std::vector<ImageAllocation> const &RenderCore::GetViewportImages()
+std::vector<ImageAllocation> const &RenderCore::GetOffscreenImages()
 {
-    return g_ViewportImages;
+    return g_OffscreenImages;
 }
 
-void RenderCore::DestroyViewportImages()
+void RenderCore::DestroyOffscreenImages()
 {
     VmaAllocator const &Allocator = GetAllocator();
 
     std::for_each(std::execution::unseq,
-                  std::begin(g_ViewportImages),
-                  std::end(g_ViewportImages),
+                  std::begin(g_OffscreenImages),
+                  std::end(g_OffscreenImages),
                   [&](ImageAllocation &ImageIter)
                   {
                       ImageIter.DestroyResources(Allocator);
                   });
-    g_ViewportImages.clear();
+    g_OffscreenImages.clear();
 }
-
-#endif

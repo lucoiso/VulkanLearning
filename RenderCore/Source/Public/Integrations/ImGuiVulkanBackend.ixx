@@ -6,27 +6,22 @@
 
 module;
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 #include <cstdint>
 #include <imgui.h>
 #include <Volk/volk.h>
 #include "RenderCoreModule.hpp"
-#endif
 
 export module RenderCore.Integrations.ImGuiVulkanBackend;
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 import RenderCore.Types.Allocation;
 
 struct ImGuiVulkanWindowRenderBuffers;
 struct ImGuiVulkanFrame;
 struct ImGuiVulkanFrameSemaphores;
 struct ImGuiVulkanWindow;
-#endif
 
 namespace RenderCore
 {
-    #ifdef VULKAN_RENDERER_ENABLE_IMGUI
     export struct ImGuiVulkanInitInfo
     {
         VkDescriptorPool              DescriptorPool;
@@ -63,5 +58,4 @@ namespace RenderCore
     void ImGuiVulkanCreateOrResizeWindow(ImGuiVulkanWindow &, std::int32_t, std::int32_t);
 
     void ImGuiVulkanDestroyWindow(ImGuiVulkanWindow &);
-    #endif
 }

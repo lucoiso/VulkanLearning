@@ -35,9 +35,6 @@ ENDIF (WIN32)
 
 SET(BUILD_TESTS $ENV{BUILD_TESTS})
 
-# ---------------- OPTIONS -----------------
-OPTION(VULKAN_RENDERER_ENABLE_IMGUI "Enable ImGui linkage, including support for custom viewport" OFF)
-
 # -------------- Directories ---------------
 ADD_SUBDIRECTORY(RenderCore)
 ADD_SUBDIRECTORY(RadeonManager)

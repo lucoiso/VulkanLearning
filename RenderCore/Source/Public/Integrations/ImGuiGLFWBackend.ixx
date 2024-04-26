@@ -6,16 +6,13 @@
 
 module;
 
-#ifdef VULKAN_RENDERER_ENABLE_IMGUI
 #include <cstdint>
 #include <GLFW/glfw3.h>
-#endif
 
 export module RenderCore.Integrations.ImGuiGLFWBackend;
 
 namespace RenderCore
 {
-    #ifdef VULKAN_RENDERER_ENABLE_IMGUI
     export bool ImGuiGLFWInitForVulkan(GLFWwindow *, bool);
     export void ImGuiGLFWShutdown();
     export void ImGuiGLFWNewFrame();
@@ -34,5 +31,4 @@ namespace RenderCore
     void ImGuiGLFWKeyCallback(GLFWwindow *, std::int32_t, std::int32_t, std::int32_t, std::int32_t);
     void ImGuiGLFWCharCallback(GLFWwindow *, std::uint32_t);
     void ImGuiGLFWMonitorCallback(GLFWmonitor *, std::int32_t);
-    #endif
 }
