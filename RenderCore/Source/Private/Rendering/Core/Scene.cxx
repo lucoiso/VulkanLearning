@@ -4,10 +4,10 @@
 
 module;
 
-#include <Volk/volk.h>
 #include <boost/log/trivial.hpp>
 #include <glm/ext.hpp>
 #include <vma/vk_mem_alloc.h>
+#include <Volk/volk.h>
 
 #ifndef TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_IMPLEMENTATION
@@ -91,10 +91,10 @@ void RenderCore::CreateDepthResources(SurfaceProperties const &SurfaceProperties
         g_DepthImage.DestroyResources(Allocator);
     }
 
-    constexpr VkImageUsageFlagBits Usage  = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    constexpr VkImageAspectFlags   Aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+    constexpr VkImageUsageFlagBits Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-    g_DepthImage.Format = SurfaceProperties.DepthFormat;
+    g_DepthImage.Format                  = SurfaceProperties.DepthFormat;
+    VkImageAspectFlags const DepthAspect = DepthHasStencil(g_DepthImage.Format) ? g_DepthAspect | VK_IMAGE_ASPECT_STENCIL_BIT : g_DepthAspect;
 
     CreateImage(g_DepthImage.Format,
                 SurfaceProperties.Extent,
@@ -105,10 +105,7 @@ void RenderCore::CreateDepthResources(SurfaceProperties const &SurfaceProperties
                 g_DepthImage.Image,
                 g_DepthImage.Allocation);
 
-    CreateImageView(g_DepthImage.Image,
-                    g_DepthImage.Format,
-                    DepthHasStencil(g_DepthImage.Format) ? Aspect | VK_IMAGE_ASPECT_STENCIL_BIT : Aspect,
-                    g_DepthImage.View);
+    CreateImageView(g_DepthImage.Image, g_DepthImage.Format, DepthAspect, g_DepthImage.View);
 }
 
 void RenderCore::AllocateEmptyTexture(VkFormat const TextureFormat)
@@ -163,7 +160,6 @@ void RenderCore::LoadScene(std::string_view const ModelPath)
             return;
         }
     }
-
 
     VkCommandPool                CopyCommandPool { VK_NULL_HANDLE };
     std::vector<VkCommandBuffer> CommandBuffers { VK_NULL_HANDLE };

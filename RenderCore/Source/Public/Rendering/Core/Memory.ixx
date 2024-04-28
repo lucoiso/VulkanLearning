@@ -19,6 +19,7 @@ import RenderCore.Types.Mesh;
 import RenderCore.Types.Texture;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
+import RenderCore.Utils.Constants;
 
 export namespace RenderCore
 {
@@ -81,7 +82,7 @@ export namespace RenderCore
                 }
         };
 
-        if constexpr (HasFlag<VkImageAspectFlags>(Aspect, VK_IMAGE_ASPECT_DEPTH_BIT))
+        if constexpr (HasFlag<VkImageAspectFlags>(Aspect, g_DepthAspect))
         {
             if (DepthHasStencil(Format))
             {
@@ -91,12 +92,12 @@ export namespace RenderCore
 
         if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL)
         {
-            if constexpr (HasFlag<VkImageAspectFlags>(Aspect, VK_IMAGE_ASPECT_DEPTH_BIT))
+            if constexpr (HasFlag<VkImageAspectFlags>(Aspect, g_DepthAspect))
             {
-                ImageBarrier.srcAccessMask = VK_ACCESS_2_NONE;
+                ImageBarrier.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
                 ImageBarrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-                ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
-                ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+                ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+                ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
             }
             else
             {

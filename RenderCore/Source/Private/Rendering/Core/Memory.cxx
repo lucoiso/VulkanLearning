@@ -4,9 +4,9 @@
 
 module;
 
-#include <Volk/volk.h>
 #include <ranges>
 #include <stb_image_write.h>
+#include <Volk/volk.h>
 
 #ifndef VMA_IMPLEMENTATION
 #include <boost/log/trivial.hpp>
@@ -143,7 +143,7 @@ void RenderCore::CreateMemoryAllocator()
                 .tiling = g_ImageTiling,
                 .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                 .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-                .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+                .initialLayout = g_UndefinedLayout
         };
 
         std::uint32_t MemoryType;
@@ -258,7 +258,7 @@ void RenderCore::CreateImage(VkFormat const &        ImageFormat,
             .tiling = Tiling,
             .usage = ImageUsage,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+            .initialLayout = g_UndefinedLayout
     };
 
     VmaAllocationCreateInfo const ImageCreateInfo { .usage = MemoryUsage, .pool = g_ImagePool, .priority = 1.F };
@@ -287,7 +287,7 @@ void RenderCore::CreateImageView(VkImage const &Image, VkFormat const &Format, V
 
 void RenderCore::CreateTextureImageView(ImageAllocation &Allocation, VkFormat const ImageFormat)
 {
-    CreateImageView(Allocation.Image, ImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, Allocation.View);
+    CreateImageView(Allocation.Image, ImageFormat, g_ImageAspect, Allocation.View);
 }
 
 void RenderCore::CopyBufferToImage(VkCommandBuffer const &CommandBuffer, VkBuffer const &Source, VkImage const &Destination, VkExtent2D const &Extent)
@@ -296,7 +296,7 @@ void RenderCore::CopyBufferToImage(VkCommandBuffer const &CommandBuffer, VkBuffe
             .bufferOffset = 0U,
             .bufferRowLength = 0U,
             .bufferImageHeight = 0U,
-            .imageSubresource = { .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .mipLevel = 0U, .baseArrayLayer = 0U, .layerCount = 1U },
+            .imageSubresource = { .aspectMask = g_ImageAspect, .mipLevel = 0U, .baseArrayLayer = 0U, .layerCount = 1U },
             .imageOffset = { .x = 0U, .y = 0U, .z = 0U },
             .imageExtent = { .width = Extent.width, .height = Extent.height, .depth = 1U }
     };
@@ -335,17 +335,17 @@ std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(V
                 NewAllocation.Image,
                 NewAllocation.Allocation);
 
-    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer,
+    RequestImageLayoutTransition<g_UndefinedLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, g_ImageAspect>(CommandBuffer,
         NewAllocation.Image,
         NewAllocation.Format);
 
     CopyBufferToImage(CommandBuffer, Output.first, NewAllocation.Image, NewAllocation.Extent);
 
-    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer,
+    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, g_ImageAspect>(CommandBuffer,
         NewAllocation.Image,
         NewAllocation.Format);
 
-    CreateImageView(NewAllocation.Image, NewAllocation.Format, VK_IMAGE_ASPECT_COLOR_BIT, NewAllocation.View);
+    CreateImageView(NewAllocation.Image, NewAllocation.Format, g_ImageAspect, NewAllocation.View);
     vmaUnmapMemory(Allocator, Output.second);
 
     std::uint32_t const BufferID = g_ImageAllocationIDCounter.fetch_add(1U);
@@ -469,7 +469,7 @@ void RenderCore::SaveImageToFile(VkImage const &Image, std::string_view const Pa
     std::vector<VkCommandBuffer> CommandBuffer { VK_NULL_HANDLE };
     InitializeSingleCommandQueue(CommandPool, CommandBuffer, FamilyIndex);
     {
-        VkImageSubresource SubResource { .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .mipLevel = 0, .arrayLayer = 0 };
+        VkImageSubresource SubResource { .aspectMask = g_ImageAspect, .mipLevel = 0, .arrayLayer = 0 };
 
         VkDevice const &LogicalDevice = GetLogicalDevice();
         vkGetImageSubresourceLayout(LogicalDevice, Image, &SubResource, &Layout);
@@ -489,7 +489,7 @@ void RenderCore::SaveImageToFile(VkImage const &Image, std::string_view const Pa
                 .bufferOffset = 0U,
                 .bufferRowLength = 0U,
                 .bufferImageHeight = 0U,
-                .imageSubresource = { .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .mipLevel = 0U, .baseArrayLayer = 0U, .layerCount = 1U },
+                .imageSubresource = { .aspectMask = g_ImageAspect, .mipLevel = 0U, .baseArrayLayer = 0U, .layerCount = 1U },
                 .imageOffset = { 0U, 0U, 0U },
                 .imageExtent = { .width = Extent.width, .height = Extent.height, .depth = 1U }
         };
@@ -501,13 +501,13 @@ void RenderCore::SaveImageToFile(VkImage const &Image, std::string_view const Pa
                 .srcAccessMask = VK_ACCESS_2_NONE,
                 .dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
                 .dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
-                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .oldLayout = g_UndefinedLayout,
                 .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .image = Image,
                 .subresourceRange = {
-                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .aspectMask = g_ImageAspect,
                         .baseMipLevel = 0U,
                         .levelCount = 1U,
                         .baseArrayLayer = 0U,
@@ -528,7 +528,7 @@ void RenderCore::SaveImageToFile(VkImage const &Image, std::string_view const Pa
                 .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .image = Image,
                 .subresourceRange = {
-                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .aspectMask = g_ImageAspect,
                         .baseMipLevel = 0U,
                         .levelCount = 1U,
                         .baseArrayLayer = 0U,

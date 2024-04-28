@@ -6,11 +6,11 @@ module;
 
 #include <filesystem>
 #include <format>
+#include <regex>
 #include <span>
 #include <boost/log/trivial.hpp>
 #include <GLFW/glfw3.h>
 #include <Volk/volk.h>
-#include <regex>
 
 #ifndef GLM_FORCE_RADIANS
 #define GLM_FORCE_RADIANS

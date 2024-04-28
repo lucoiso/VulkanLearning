@@ -31,17 +31,6 @@ import ThreadPool;
 
 using namespace RenderCore;
 
-constexpr VkImageAspectFlags g_ImageAspect = VK_IMAGE_ASPECT_COLOR_BIT;
-constexpr VkImageAspectFlags g_DepthAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-constexpr VkImageLayout g_UndefinedLayout      = VK_IMAGE_LAYOUT_UNDEFINED;
-constexpr VkImageLayout g_SwapChainMidLayout   = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-constexpr VkImageLayout g_SwapChainFinalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-constexpr VkImageLayout g_DepthLayout          = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-
-constexpr VkImageLayout g_OffscreenMidLayout   = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-constexpr VkImageLayout g_OffscreenFinalLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
-
 constexpr VkCommandBufferBeginInfo g_CommandBufferBeginInfo {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
@@ -50,7 +39,7 @@ constexpr VkCommandBufferBeginInfo g_CommandBufferBeginInfo {
 struct ThreadResources
 {
     VkCommandPool                CommandPool { VK_NULL_HANDLE };
-    std::vector<VkCommandBuffer> CommandBuffers { g_MinImageCount, VK_NULL_HANDLE };
+    std::vector<VkCommandBuffer> CommandBuffers { g_ImageCount, VK_NULL_HANDLE };
 
     void Allocate(VkDevice const &LogicalDevice, std::uint8_t const QueueFamilyIndex, std::uint8_t const NumberOfBuffers)
     {
@@ -59,7 +48,7 @@ struct ThreadResources
             return;
         }
 
-        CommandPool = CreateCommandPool(QueueFamilyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+        CommandPool = CreateCommandPool(QueueFamilyIndex, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
         VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -120,7 +109,7 @@ std::uint32_t                                     g_NumThreads { 0U };
 ThreadPool::Pool                                  g_ThreadPool {};
 std::unordered_map<std::uint8_t, ThreadResources> g_CommandResources {};
 VkCommandPool                                     g_PrimaryCommandPool { VK_NULL_HANDLE };
-std::vector<VkCommandBuffer>                      g_PrimaryCommandBuffers { g_MinImageCount, VK_NULL_HANDLE };
+std::vector<VkCommandBuffer>                      g_PrimaryCommandBuffers { g_ImageCount, VK_NULL_HANDLE };
 
 void RenderCore::AllocateCommandBuffers(std::uint32_t const QueueFamily, std::uint32_t const NumObjects)
 {
@@ -173,7 +162,7 @@ void RenderCore::InitializeCommandsResources(std::uint32_t const QueueFamily)
         g_CommandResources.emplace(ThreadIndex, ThreadResources {});
     }
 
-    g_PrimaryCommandPool = CreateCommandPool(QueueFamily, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+    g_PrimaryCommandPool = CreateCommandPool(QueueFamily, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
     VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -245,36 +234,22 @@ void SetViewport(VkCommandBuffer const &CommandBuffer, VkExtent2D const &SwapCha
 }
 
 void BeginRendering(VkCommandBuffer const &CommandBuffer,
-                    std::uint32_t const    ImageIndex,
                     ImageAllocation const &SwapchainAllocation,
-                    ImageAllocation const &DepthAllocation)
+                    ImageAllocation const &DepthAllocation,
+                    ImageAllocation const &OffscreenAllocation)
 {
     std::vector ImageBarriers {
-            RenderCore::MountImageBarrier<g_UndefinedLayout, g_SwapChainMidLayout,
+            RenderCore::MountImageBarrier<g_UndefinedLayout, g_AttachmentLayout,
                                           g_ImageAspect>(SwapchainAllocation.Image, SwapchainAllocation.Format),
-            RenderCore::MountImageBarrier<g_UndefinedLayout, g_DepthLayout, g_DepthAspect>(DepthAllocation.Image, DepthAllocation.Format)
+            RenderCore::MountImageBarrier<g_UndefinedLayout, g_AttachmentLayout, g_DepthAspect>(DepthAllocation.Image, DepthAllocation.Format)
     };
 
-    VkRenderingAttachmentInfo ColorAttachment {
-            .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .clearValue = g_ClearValues.at(0U)
-    };
+    bool const &HasOffscreenRendering = Renderer::GetRenderOffscreen();
 
-    if (Renderer::GetRenderOffscreen())
+    if (HasOffscreenRendering)
     {
-        ImageAllocation const &OffscreenAllocation = GetOffscreenImages().at(ImageIndex);
-        ImageBarriers.push_back(RenderCore::MountImageBarrier<g_UndefinedLayout, g_OffscreenMidLayout, g_ImageAspect>(OffscreenAllocation.Image,
+        ImageBarriers.push_back(RenderCore::MountImageBarrier<g_UndefinedLayout, g_AttachmentLayout, g_ImageAspect>(OffscreenAllocation.Image,
                                     OffscreenAllocation.Format));
-
-        ColorAttachment.imageView   = OffscreenAllocation.View;
-        ColorAttachment.imageLayout = g_OffscreenMidLayout;
-    }
-    else
-    {
-        ColorAttachment.imageView   = SwapchainAllocation.View;
-        ColorAttachment.imageLayout = g_SwapChainMidLayout;
     }
 
     VkDependencyInfo const DependencyInfo {
@@ -285,10 +260,19 @@ void BeginRendering(VkCommandBuffer const &CommandBuffer,
 
     vkCmdPipelineBarrier2(CommandBuffer, &DependencyInfo);
 
+    VkRenderingAttachmentInfo const ColorAttachment {
+            .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+            .imageView = HasOffscreenRendering ? OffscreenAllocation.View : SwapchainAllocation.View,
+            .imageLayout = g_AttachmentLayout,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+            .clearValue = g_ClearValues.at(0U)
+    };
+
     VkRenderingAttachmentInfo const DepthAttachmentInfo {
             .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
             .imageView = DepthAllocation.View,
-            .imageLayout = g_DepthLayout,
+            .imageLayout = g_AttachmentLayout,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
             .clearValue = g_ClearValues.at(1U)
@@ -308,17 +292,22 @@ void BeginRendering(VkCommandBuffer const &CommandBuffer,
     vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
 }
 
-void EndRendering(VkCommandBuffer const &CommandBuffer, std::uint32_t const ImageIndex)
+void EndRendering(VkCommandBuffer const &CommandBuffer, ImageAllocation const &SwapchainAllocation, ImageAllocation const &OffscreenAllocation)
 {
     vkCmdEndRendering(CommandBuffer);
 
     if (Renderer::GetRenderOffscreen())
     {
-        ImageAllocation const &OffscreenAllocation = GetOffscreenImages().at(ImageIndex);
-        RenderCore::RequestImageLayoutTransition<g_OffscreenMidLayout, g_OffscreenFinalLayout, g_ImageAspect>(CommandBuffer,
-            OffscreenAllocation.Image,
-            OffscreenAllocation.Format);
+        RenderCore::RequestImageLayoutTransition<g_AttachmentLayout, g_ReadLayout, g_ImageAspect>(CommandBuffer,
+                                                                                                  OffscreenAllocation.Image,
+                                                                                                  OffscreenAllocation.Format);
     }
+
+    RecordImGuiCommandBuffer(CommandBuffer, SwapchainAllocation);
+
+    RenderCore::RequestImageLayoutTransition<g_AttachmentLayout, g_PresentLayout, g_ImageAspect>(CommandBuffer,
+                                                                                                 SwapchainAllocation.Image,
+                                                                                                 SwapchainAllocation.Format);
 }
 
 std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const    ImageIndex,
@@ -412,10 +401,12 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
 {
     ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
     ImageAllocation const &DepthAllocation     = GetDepthImage();
+    ImageAllocation const &OffscreenAllocation = GetOffscreenImages().at(ImageIndex);
 
     VkCommandBuffer const &CommandBuffer = g_PrimaryCommandBuffers.at(ImageIndex);
     CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &g_CommandBufferBeginInfo));
-    BeginRendering(CommandBuffer, ImageIndex, SwapchainAllocation, DepthAllocation);
+
+    BeginRendering(CommandBuffer, SwapchainAllocation, DepthAllocation, OffscreenAllocation);
 
     if (std::vector<VkCommandBuffer> const CommandBuffers = RecordSceneCommands(ImageIndex, SwapchainAllocation, DepthAllocation);
         !std::empty(CommandBuffers))
@@ -423,13 +414,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
         vkCmdExecuteCommands(CommandBuffer, static_cast<std::uint32_t>(std::size(CommandBuffers)), std::data(CommandBuffers));
     }
 
-    EndRendering(CommandBuffer, ImageIndex);
-    RecordImGuiCommandBuffer(CommandBuffer, SwapchainAllocation, g_SwapChainMidLayout);
-
-    RenderCore::RequestImageLayoutTransition<g_SwapChainMidLayout, g_SwapChainFinalLayout, g_ImageAspect>(CommandBuffer,
-        SwapchainAllocation.Image,
-        SwapchainAllocation.Format);
-
+    EndRendering(CommandBuffer, SwapchainAllocation, OffscreenAllocation);
     CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
 }
 
@@ -437,14 +422,14 @@ void RenderCore::SubmitCommandBuffers(std::uint32_t const ImageIndex)
 {
     VkSemaphoreSubmitInfo const WaitSemaphoreInfo {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-            .semaphore = GetImageAvailableSemaphore(),
+            .semaphore = GetImageAvailableSemaphore(ImageIndex),
             .value = 1U,
             .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
     };
 
     VkSemaphoreSubmitInfo const SignalSemaphoreInfo {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-            .semaphore = GetRenderFinishedSemaphore(),
+            .semaphore = GetRenderFinishedSemaphore(ImageIndex),
             .value = 1U,
             .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
     };
@@ -462,18 +447,9 @@ void RenderCore::SubmitCommandBuffers(std::uint32_t const ImageIndex)
             .pSignalSemaphoreInfos = &SignalSemaphoreInfo
     };
 
-    auto const &GraphicsQueue = GetGraphicsQueue().second;
-    CheckVulkanResult(vkQueueSubmit2(GraphicsQueue, 1U, &SubmitInfo, GetFence(ImageIndex)));
-    WaitAndResetFence(ImageIndex);
-
-    VkDevice const &LogicalDevice = GetLogicalDevice();
-
-    for (ThreadResources &CommandResources : g_CommandResources | std::views::values)
-    {
-        CommandResources.Reset(LogicalDevice);
-    }
-
-    CheckVulkanResult(vkResetCommandPool(LogicalDevice, g_PrimaryCommandPool, 0U));
+    auto const &Queue = GetGraphicsQueue().second;
+    CheckVulkanResult(vkQueueSubmit2(Queue, 1U, &SubmitInfo, GetFence(ImageIndex)));
+    SetFenceWaitStatus(ImageIndex, true);
 }
 
 void RenderCore::InitializeSingleCommandQueue(VkCommandPool &               CommandPool,

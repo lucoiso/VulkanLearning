@@ -140,9 +140,7 @@ bool RenderCore::IsImGuiInitialized()
     return g_ImGuiDescriptorPool != VK_NULL_HANDLE;
 }
 
-void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
-                                          ImageAllocation const &SwapchainAllocation,
-                                          VkImageLayout const    SwapChainMidLayout)
+void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer, ImageAllocation const &SwapchainAllocation)
 {
     if (IsImGuiInitialized())
     {
@@ -151,7 +149,7 @@ void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
             VkRenderingAttachmentInfo const ColorAttachmentInfo {
                     .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
                     .imageView = SwapchainAllocation.View,
-                    .imageLayout = SwapChainMidLayout,
+                    .imageLayout = g_AttachmentLayout,
                     .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                     .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
                     .clearValue = g_ClearValues.at(0U)

@@ -56,7 +56,15 @@ export namespace RenderCore
     constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     constexpr VkImageTiling         g_ImageTiling = VK_IMAGE_TILING_OPTIMAL;
 
-    constexpr std::uint8_t g_MinImageCount = 3U;
+    constexpr VkImageAspectFlags g_ImageAspect = VK_IMAGE_ASPECT_COLOR_BIT;
+    constexpr VkImageAspectFlags g_DepthAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+    constexpr VkImageLayout g_PresentLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    constexpr VkImageLayout g_UndefinedLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+    constexpr VkImageLayout g_AttachmentLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+    constexpr VkImageLayout g_ReadLayout       = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+
+    constexpr std::uint8_t g_ImageCount = 3U;
 
     constexpr std::uint32_t g_Timeout = std::numeric_limits<std::uint32_t>::max();
 

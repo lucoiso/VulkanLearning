@@ -10,12 +10,13 @@ export module RenderCore.Integrations.Offscreen;
 
 import RenderCore.Types.Allocation;
 import RenderCore.Types.SurfaceProperties;
+import RenderCore.Utils.Constants;
 
 export namespace RenderCore
 {
     void CreateOffscreenResources(SurfaceProperties const &);
 
-    [[nodiscard]] std::vector<ImageAllocation> const &GetOffscreenImages();
+    [[nodiscard]] std::array<ImageAllocation, g_ImageCount> const &GetOffscreenImages();
 
     void DestroyOffscreenImages();
 } // namespace RenderCore

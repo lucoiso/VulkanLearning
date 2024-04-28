@@ -40,15 +40,15 @@ import RenderCore.Types.Allocation;
 
 using namespace RenderCore;
 
-auto                        g_StateFlags { RendererStateFlags::NONE };
-auto                        g_ObjectsManagementStateFlags { RendererObjectsManagementStateFlags::NONE };
-std::vector<std::string>    g_ModelsToLoad {};
-std::vector<std::uint32_t>  g_ModelsToUnload {};
-double                      g_FrameTime { 0.F };
-double                      g_FrameRateCap { 0.016667F };
-bool                        g_UseVSync { true };
-bool                        g_RenderOffscreen { false };
-std::optional<std::int32_t> g_ImageIndex {};
+auto                       g_StateFlags { RendererStateFlags::NONE };
+auto                       g_ObjectsManagementStateFlags { RendererObjectsManagementStateFlags::NONE };
+std::vector<std::string>   g_ModelsToLoad {};
+std::vector<std::uint32_t> g_ModelsToUnload {};
+double                     g_FrameTime { 0.F };
+double                     g_FrameRateCap { 0.016667F };
+bool                       g_UseVSync { true };
+bool                       g_RenderOffscreen { false };
+std::uint32_t              g_ImageIndex { g_ImageCount };
 
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
                                                        RendererStateFlags::PENDING_RESOURCES_DESTRUCTION |
@@ -60,12 +60,12 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
     g_FrameTime = DeltaTime;
     CheckObjectManagementFlags();
 
-    if (HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
+    if (!HasFlag(g_StateFlags, RendererStateFlags::QUEUED_RESOURCES_UPDATE) && HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
     {
         if (!HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION) && HasFlag(g_StateFlags,
                                                                                               RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
-            ResetSemaphores();
+            ReleaseSynchronizationObjects();
             DestroySwapChainImages();
             DestroyOffscreenImages();
             ReleasePipelineResources(false);
@@ -85,6 +85,8 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             }
 
             auto const SurfaceCapabilities = GetSurfaceCapabilities();
+
+            CreateSynchronizationObjects();
             CreateSwapChain(SurfaceProperties, SurfaceCapabilities);
             CreateDepthResources(SurfaceProperties);
 
@@ -126,47 +128,32 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_ALLOCATION);
         }
     }
-    else if (g_ImageIndex = RequestImageIndex();
-        g_ImageIndex.has_value())
+    else
     {
-        UpdateSceneUniformBuffer();
-        DrawImGuiFrame(Owner);
-
-        Tick();
-
-        if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
+        if (HasFlag(g_StateFlags, RendererStateFlags::QUEUED_RESOURCES_UPDATE) && g_ImageIndex + 1U >= g_ImageCount)
         {
-            std::int32_t const ImageIndex = g_ImageIndex.value();
+            RemoveFlags(g_StateFlags, RendererStateFlags::QUEUED_RESOURCES_UPDATE);
+            AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        }
+        else if (RequestSwapChainImage(g_ImageIndex))
+        {
+            DrawImGuiFrame(Owner);
 
-            RecordCommandBuffers(ImageIndex);
-            SubmitCommandBuffers(ImageIndex);
-            PresentFrame(ImageIndex);
+            UpdateSceneUniformBuffer();
+            Tick();
+
+            RecordCommandBuffers(g_ImageIndex);
+            SubmitCommandBuffers(g_ImageIndex);
+            PresentFrame(g_ImageIndex);
         }
     }
-}
-
-std::optional<std::int32_t> RenderCore::RequestImageIndex()
-{
-    std::optional<std::int32_t> Output {};
-
-    if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
-    {
-        RequestSwapChainImage(Output);
-    }
-
-    if (!Output.has_value())
-    {
-        AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
-    }
-
-    return Output;
 }
 
 void RenderCore::CheckObjectManagementFlags()
 {
     if (HasAnyFlag(g_ObjectsManagementStateFlags))
     {
-        AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+        AddFlags(g_StateFlags, RendererStateFlags::QUEUED_RESOURCES_UPDATE | RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
     }
 
     if (HasAnyFlag(g_ObjectsManagementStateFlags,
@@ -219,7 +206,6 @@ bool RenderCore::Initialize(GLFWwindow *const Window)
     volkLoadDevice(GetLogicalDevice());
 
     InitializeCommandsResources(GetGraphicsQueue().first);
-    CreateSynchronizationObjects();
     CreateMemoryAllocator();
     CreateSceneUniformBuffer();
     CreateImageSampler();
@@ -304,7 +290,7 @@ void Renderer::RequestDestroyObjects()
 
 void Renderer::RequestUpdateResources()
 {
-    AddStateFlag(RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    AddFlags(g_StateFlags, RendererStateFlags::QUEUED_RESOURCES_UPDATE);
 }
 
 double const &Renderer::GetFrameTime()
@@ -368,7 +354,7 @@ Illumination &Renderer::GetMutableIllumination()
     return RenderCore::GetIllumination();
 }
 
-std::optional<std::int32_t> const &Renderer::GetImageIndex()
+std::uint32_t const &Renderer::GetImageIndex()
 {
     return g_ImageIndex;
 }
@@ -423,6 +409,6 @@ bool Renderer::IsImGuiInitialized()
 
 void Renderer::SaveOffscreenFrameToImage(std::string_view const Path)
 {
-    ImageAllocation const &OffscreenImage = RenderCore::GetOffscreenImages().at(GetImageIndex().value());
+    ImageAllocation const &OffscreenImage = RenderCore::GetOffscreenImages().at(g_ImageIndex);
     SaveImageToFile(OffscreenImage.Image, Path, OffscreenImage.Extent);
 }

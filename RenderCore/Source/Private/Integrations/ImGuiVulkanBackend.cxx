@@ -617,6 +617,7 @@ struct ImGuiVulkanFrame
     VkCommandPool   CommandPool { VK_NULL_HANDLE };
     VkCommandBuffer CommandBuffer { VK_NULL_HANDLE };
     VkFence         Fence { VK_NULL_HANDLE };
+    bool            PendingWait { false };
     ImageAllocation Backbuffer {};
 };
 
@@ -628,20 +629,20 @@ struct ImGuiVulkanFrameSemaphores
 
 struct ImGuiVulkanWindow
 {
-    std::uint32_t                                           Width {};
-    std::uint32_t                                           Height {};
-    VkSwapchainKHR                                          Swapchain { VK_NULL_HANDLE };
-    VkSurfaceKHR                                            Surface { VK_NULL_HANDLE };
-    std::uint32_t                                           FrameIndex {};
-    std::uint32_t                                           SemaphoreIndex {};
-    std::array<ImGuiVulkanFrame, g_MinImageCount>           Frames {};
-    std::array<ImGuiVulkanFrameSemaphores, g_MinImageCount> FrameSemaphores {};
+    std::uint32_t                                        Width {};
+    std::uint32_t                                        Height {};
+    VkSwapchainKHR                                       Swapchain { VK_NULL_HANDLE };
+    VkSurfaceKHR                                         Surface { VK_NULL_HANDLE };
+    std::uint32_t                                        FrameIndex {};
+    std::uint32_t                                        SemaphoreIndex {};
+    std::array<ImGuiVulkanFrame, g_ImageCount>           Frames {};
+    std::array<ImGuiVulkanFrameSemaphores, g_ImageCount> FrameSemaphores {};
 };
 
 struct ImGuiVulkanWindowRenderBuffers
 {
-    std::uint32_t                                 Index { 0U };
-    std::array<BufferAllocation, g_MinImageCount> Buffers {};
+    std::uint32_t                              Index { 0U };
+    std::array<BufferAllocation, g_ImageCount> Buffers {};
 };
 
 struct ImGuiVulkanViewportData
@@ -851,8 +852,15 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
     auto *             ViewportData = static_cast<ImGuiVulkanViewportData *>(Viewport->RendererUserData);
     ImGuiVulkanWindow &WindowData   = ViewportData->Window;
 
-    auto &      [CommandPool, CommandBuffer, Fence, Backbuffer]   = WindowData.Frames.at(WindowData.FrameIndex);
-    auto const &[ImageAcquiredSemaphore, RenderCompleteSemaphore] = WindowData.FrameSemaphores.at(WindowData.SemaphoreIndex);
+    auto &      [CommandPool, CommandBuffer, Fence, PendingWait, Backbuffer] = WindowData.Frames.at(WindowData.FrameIndex);
+    auto const &[ImageAcquiredSemaphore, RenderCompleteSemaphore]            = WindowData.FrameSemaphores.at(WindowData.SemaphoreIndex);
+
+    if (PendingWait)
+    {
+        CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &Fence, VK_TRUE, g_Timeout));
+        CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &Fence));
+        PendingWait = false;
+    }
 
     if (vkAcquireNextImageKHR(LogicalDevice, WindowData.Swapchain, g_Timeout, ImageAcquiredSemaphore, VK_NULL_HANDLE, &WindowData.FrameIndex) !=
         VK_SUCCESS)
@@ -864,13 +872,13 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
 
     CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
 
-    RenderCore::RequestImageLayoutTransition<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-                                             VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer, Backbuffer.Image, Backbuffer.Format);
+    RenderCore::RequestImageLayoutTransition<g_UndefinedLayout, g_AttachmentLayout,
+                                             g_ImageAspect>(CommandBuffer, Backbuffer.Image, Backbuffer.Format);
 
     VkRenderingAttachmentInfo const AttachmentInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
             .imageView = Backbuffer.View,
-            .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+            .imageLayout = g_AttachmentLayout,
             .resolveMode = VK_RESOLVE_MODE_NONE,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -890,8 +898,9 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
     ImGuiVulkanRenderDrawData(Viewport->DrawData, CommandBuffer);
     vkCmdEndRendering(CommandBuffer);
 
-    RenderCore::RequestImageLayoutTransition<VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                                             VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffer, Backbuffer.Image, Backbuffer.Format);
+    RenderCore::RequestImageLayoutTransition<g_AttachmentLayout, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, g_ImageAspect>(CommandBuffer,
+        Backbuffer.Image,
+        Backbuffer.Format);
 
     CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
 
@@ -906,7 +915,7 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
             .semaphore = RenderCompleteSemaphore,
             .value = 1U,
-            .stageMask = VK_PIPELINE_STAGE_2_NONE
+            .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
     };
 
     VkCommandBufferSubmitInfo const PrimarySubmission { .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO, .commandBuffer = CommandBuffer };
@@ -922,9 +931,7 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
     };
 
     CheckVulkanResult(vkQueueSubmit2(Queue, 1U, &SubmitInfo, Fence));
-    CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &Fence, VK_TRUE, g_Timeout));
-    CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &Fence));
-    CheckVulkanResult(vkResetCommandPool(LogicalDevice, CommandPool, 0U));
+    PendingWait = true;
 }
 
 void ImGuiVulkanSwapBuffers(ImGuiViewport *Viewport, void *)
@@ -954,7 +961,7 @@ void ImGuiVulkanSwapBuffers(ImGuiViewport *Viewport, void *)
                                         static_cast<std::int32_t>(Viewport->Size.y));
     }
 
-    WindowData.FrameIndex     = (WindowData.FrameIndex + 1U) % g_MinImageCount;
+    WindowData.FrameIndex     = (WindowData.FrameIndex + 1U) % g_ImageCount;
     WindowData.SemaphoreIndex = (WindowData.SemaphoreIndex + 1U) % static_cast<std::uint32_t>(std::size(WindowData.FrameSemaphores));
 }
 
@@ -1060,13 +1067,13 @@ void RenderCore::ImGuiVulkanCreateWindowCommandBuffers(ImGuiVulkanWindow &Window
     VkDevice const &LogicalDevice             = GetLogicalDevice();
     auto const &    [QueueFamilyIndex, Queue] = GetGraphicsQueue();
 
-    for (std::uint32_t Iterator = 0U; Iterator < g_MinImageCount; ++Iterator)
+    for (std::uint32_t Iterator = 0U; Iterator < g_ImageCount; ++Iterator)
     {
         ImGuiVulkanFrame &FrameData = WindowData.Frames.at(Iterator);
 
         VkCommandPoolCreateInfo const CommandPoolInfo {
                 .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+                .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
                 .queueFamilyIndex = QueueFamilyIndex
         };
 
@@ -1113,7 +1120,7 @@ void RenderCore::ImGuiVulkanCreateWindowSwapChain(ImGuiVulkanWindow &WindowData,
 
     WindowData.FrameIndex = 0U;
 
-    for (std::uint32_t Iterator = 0U; Iterator < g_MinImageCount; Iterator++)
+    for (std::uint32_t Iterator = 0U; Iterator < g_ImageCount; Iterator++)
     {
         ImGuiVulkanDestroyFrame(WindowData.Frames.at(Iterator));
     }
@@ -1128,7 +1135,7 @@ void RenderCore::ImGuiVulkanCreateWindowSwapChain(ImGuiVulkanWindow &WindowData,
     VkSwapchainCreateInfoKHR SwapchainCreateInfo {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface = WindowData.Surface,
-            .minImageCount = g_MinImageCount,
+            .minImageCount = g_ImageCount,
             .imageFormat = Format.format,
             .imageColorSpace = Format.colorSpace,
             .imageArrayLayers = 1,
@@ -1176,7 +1183,7 @@ void RenderCore::ImGuiVulkanCreateWindowSwapChain(ImGuiVulkanWindow &WindowData,
     std::vector<VkImage> BackBuffers(Count, VK_NULL_HANDLE);
     CheckVulkanResult(vkGetSwapchainImagesKHR(LogicalDevice, WindowData.Swapchain, &Count, std::data(BackBuffers)));
 
-    for (std::uint32_t Iterator = 0U; Iterator < g_MinImageCount; Iterator++)
+    for (std::uint32_t Iterator = 0U; Iterator < g_ImageCount; Iterator++)
     {
         WindowData.Frames.at(Iterator).Backbuffer.Image  = BackBuffers.at(Iterator);
         WindowData.Frames.at(Iterator).Backbuffer.Extent = SwapchainCreateInfo.imageExtent;
@@ -1188,10 +1195,10 @@ void RenderCore::ImGuiVulkanCreateWindowSwapChain(ImGuiVulkanWindow &WindowData,
         vkDestroySwapchainKHR(LogicalDevice, OldSwapchain, nullptr);
     }
 
-    for (std::uint32_t Iterator = 0U; Iterator < g_MinImageCount; Iterator++)
+    for (std::uint32_t Iterator = 0U; Iterator < g_ImageCount; Iterator++)
     {
         ImGuiVulkanFrame &FrameData = WindowData.Frames.at(Iterator);
-        CreateImageView(FrameData.Backbuffer.Image, FrameData.Backbuffer.Format, VK_IMAGE_ASPECT_COLOR_BIT, FrameData.Backbuffer.View);
+        CreateImageView(FrameData.Backbuffer.Image, FrameData.Backbuffer.Format, g_ImageAspect, FrameData.Backbuffer.View);
     }
 }
 
@@ -1449,16 +1456,17 @@ bool RenderCore::ImGuiVulkanCreateFontsTexture()
                 NewAllocation.Image,
                 NewAllocation.Allocation);
 
-    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffers.back(),
+    RequestImageLayoutTransition<g_UndefinedLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, g_ImageAspect>(CommandBuffers.back(),
         NewAllocation.Image,
         NewAllocation.Format);
 
     CopyBufferToImage(CommandBuffers.back(), StagingAllocation.first, NewAllocation.Image, NewAllocation.Extent);
 
-    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-                                 VK_IMAGE_ASPECT_COLOR_BIT>(CommandBuffers.back(), NewAllocation.Image, NewAllocation.Format);
+    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, g_ImageAspect>(CommandBuffers.back(),
+        NewAllocation.Image,
+        NewAllocation.Format);
 
-    CreateImageView(NewAllocation.Image, NewAllocation.Format, VK_IMAGE_ASPECT_COLOR_BIT, NewAllocation.View);
+    CreateImageView(NewAllocation.Image, NewAllocation.Format, g_ImageAspect, NewAllocation.View);
     vmaUnmapMemory(Allocator, StagingAllocation.second);
 
     FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);
@@ -1607,7 +1615,7 @@ void RenderCore::ImGuiVulkanDestroyWindow(ImGuiVulkanWindow &WindowData)
     VkDevice const &LogicalDevice = GetLogicalDevice();
     vkDeviceWaitIdle(LogicalDevice);
 
-    for (std::uint32_t Iterator = 0U; Iterator < g_MinImageCount; Iterator++)
+    for (std::uint32_t Iterator = 0U; Iterator < g_ImageCount; Iterator++)
     {
         ImGuiVulkanDestroyFrame(WindowData.Frames.at(Iterator));
     }

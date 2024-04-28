@@ -4,14 +4,14 @@
 
 module;
 
-#include <GLFW/glfw3.h>
-#include <Volk/volk.h>
 #include <cstdint>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
+#include <GLFW/glfw3.h>
+#include <Volk/volk.h>
 #include "RenderCoreModule.hpp"
 
 export module RenderCore.Renderer;
@@ -29,9 +29,8 @@ import RenderCore.Runtime.Device;
 
 namespace RenderCore
 {
-    std::optional<std::int32_t> RequestImageIndex();
-    void                        CheckObjectManagementFlags();
-    void                        Tick();
+    void CheckObjectManagementFlags();
+    void Tick();
 
     export void DrawFrame(GLFWwindow *, double, Control *);
     export bool Initialize(GLFWwindow *);
@@ -81,7 +80,7 @@ namespace RenderCore
 
         [[nodiscard]] RENDERCOREMODULE_API Illumination &GetMutableIllumination();
 
-        [[nodiscard]] RENDERCOREMODULE_API std::optional<std::int32_t> const &GetImageIndex();
+        [[nodiscard]] RENDERCOREMODULE_API std::uint32_t const &GetImageIndex();
 
         [[nodiscard]] RENDERCOREMODULE_API std::vector<std::shared_ptr<Object>> const &GetObjects();
 
@@ -99,4 +98,4 @@ namespace RenderCore
 
         RENDERCOREMODULE_API void SaveOffscreenFrameToImage(std::string_view);
     } // namespace Renderer
-} // namespace RenderCore
+}     // namespace RenderCore

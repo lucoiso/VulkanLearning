@@ -26,11 +26,11 @@ import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
-SurfaceProperties            g_CachedProperties {};
-VkSurfaceKHR                 g_Surface { VK_NULL_HANDLE };
-VkSwapchainKHR               g_SwapChain { VK_NULL_HANDLE };
-VkSwapchainKHR               g_OldSwapChain { VK_NULL_HANDLE };
-std::vector<ImageAllocation> g_SwapChainImages {};
+SurfaceProperties                         g_CachedProperties {};
+VkSurfaceKHR                              g_Surface { VK_NULL_HANDLE };
+VkSwapchainKHR                            g_SwapChain { VK_NULL_HANDLE };
+VkSwapchainKHR                            g_OldSwapChain { VK_NULL_HANDLE };
+std::array<ImageAllocation, g_ImageCount> g_SwapChainImages {};
 
 void RenderCore::CreateVulkanSurface(GLFWwindow *const Window)
 {
@@ -48,7 +48,7 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
     VkSwapchainCreateInfoKHR const SwapChainCreateInfo {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface = GetSurface(),
-            .minImageCount = g_MinImageCount,
+            .minImageCount = g_ImageCount,
             .imageFormat = SurfaceProperties.Format.format,
             .imageColorSpace = SurfaceProperties.Format.colorSpace,
             .imageExtent = SurfaceProperties.Extent,
@@ -74,13 +74,12 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
         g_OldSwapChain = VK_NULL_HANDLE;
     }
 
-    std::uint32_t Count = 0U;
-    CheckVulkanResult(vkGetSwapchainImagesKHR(LogicalDevice, g_SwapChain, &Count, nullptr));
+    std::uint32_t ImageCount = 0U;
+    CheckVulkanResult(vkGetSwapchainImagesKHR(LogicalDevice, g_SwapChain, &ImageCount, nullptr));
 
-    std::vector<VkImage> SwapChainImages(Count, VK_NULL_HANDLE);
-    CheckVulkanResult(vkGetSwapchainImagesKHR(LogicalDevice, g_SwapChain, &Count, std::data(SwapChainImages)));
+    std::vector<VkImage> SwapChainImages(ImageCount, VK_NULL_HANDLE);
+    CheckVulkanResult(vkGetSwapchainImagesKHR(LogicalDevice, g_SwapChain, &ImageCount, std::data(SwapChainImages)));
 
-    g_SwapChainImages.resize(Count, ImageAllocation());
     std::ranges::transform(SwapChainImages,
                            std::begin(g_SwapChainImages),
                            [SurfaceProperties](VkImage const &Image)
@@ -95,29 +94,24 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
     CreateSwapChainImageViews(g_SwapChainImages);
 }
 
-void RenderCore::RequestSwapChainImage(std::optional<std::int32_t> &Output)
+bool RenderCore::RequestSwapChainImage(std::uint32_t &Output)
 {
-    VkDevice const &LogicalDevice = GetLogicalDevice();
-    std::uint32_t   ImageIndex    = 0U;
+    VkDevice const &   LogicalDevice = GetLogicalDevice();
+    std::uint8_t const SyncIndex     = Output + 1U >= g_ImageCount ? 0U : Output + 1U;
+    VkSemaphore const &Semaphore     = GetImageAvailableSemaphore(SyncIndex);
 
-    if (vkAcquireNextImageKHR(LogicalDevice, g_SwapChain, g_Timeout, GetImageAvailableSemaphore(), VK_NULL_HANDLE, &ImageIndex) != VK_SUCCESS)
-    {
-        Output.reset();
-    }
-    else
-    {
-        Output.emplace(ImageIndex);
-    }
+    WaitAndResetFence(SyncIndex);
+    return vkAcquireNextImageKHR(LogicalDevice, g_SwapChain, g_Timeout, Semaphore, VK_NULL_HANDLE, &Output) == VK_SUCCESS;
 }
 
-void RenderCore::CreateSwapChainImageViews(std::vector<ImageAllocation> &Images)
+void RenderCore::CreateSwapChainImageViews(std::array<ImageAllocation, g_ImageCount> &Images)
 {
     std::for_each(std::execution::unseq,
                   std::begin(Images),
                   std::end(Images),
                   [&](ImageAllocation &ImageIter)
                   {
-                      CreateImageView(ImageIter.Image, ImageIter.Format, VK_IMAGE_ASPECT_COLOR_BIT, ImageIter.View);
+                      CreateImageView(ImageIter.Image, ImageIter.Format, g_ImageAspect, ImageIter.View);
                   });
 }
 
@@ -126,7 +120,7 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
     VkPresentInfoKHR const PresentInfo {
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .waitSemaphoreCount = 1U,
-            .pWaitSemaphores = &GetRenderFinishedSemaphore(),
+            .pWaitSemaphores = &GetRenderFinishedSemaphore(ImageIndice),
             .swapchainCount = 1U,
             .pSwapchains = &g_SwapChain,
             .pImageIndices = &ImageIndice
@@ -166,7 +160,6 @@ void RenderCore::DestroySwapChainImages()
                   {
                       ImageIter.DestroyResources(Allocator);
                   });
-    g_SwapChainImages.clear();
 }
 
 VkSurfaceKHR const &RenderCore::GetSurface()
@@ -189,7 +182,7 @@ VkFormat const &RenderCore::GetSwapChainImageFormat()
     return g_SwapChainImages.at(0U).Format;
 }
 
-std::vector<ImageAllocation> const &RenderCore::GetSwapChainImages()
+std::array<ImageAllocation, g_ImageCount> const &RenderCore::GetSwapChainImages()
 {
     return g_SwapChainImages;
 }

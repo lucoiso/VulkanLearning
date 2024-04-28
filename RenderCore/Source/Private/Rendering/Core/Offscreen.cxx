@@ -12,13 +12,13 @@ module RenderCore.Integrations.Offscreen;
 
 import RenderCore.Types.Allocation;
 import RenderCore.Types.SurfaceProperties;
+import RenderCore.Utils.Constants;
 import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.SwapChain;
-import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
-std::vector<ImageAllocation> g_OffscreenImages {};
+std::array<ImageAllocation, g_ImageCount> g_OffscreenImages {};
 
 void RenderCore::CreateOffscreenResources(SurfaceProperties const &SurfaceProperties)
 {
@@ -31,10 +31,8 @@ void RenderCore::CreateOffscreenResources(SurfaceProperties const &SurfaceProper
                   {
                       ImageIter.DestroyResources(Allocator);
                   });
-    g_OffscreenImages.resize(std::size(GetSwapChainImages()));
 
-    constexpr VkImageAspectFlags AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-    constexpr VkImageUsageFlags  UsageFlags  = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    constexpr VkImageUsageFlags UsageFlags = VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
     std::for_each(std::execution::unseq,
                   std::begin(g_OffscreenImages),
@@ -53,11 +51,11 @@ void RenderCore::CreateOffscreenResources(SurfaceProperties const &SurfaceProper
                                   ImageIter.Image,
                                   ImageIter.Allocation);
 
-                      CreateImageView(ImageIter.Image, SurfaceProperties.Format.format, AspectFlags, ImageIter.View);
+                      CreateImageView(ImageIter.Image, SurfaceProperties.Format.format, g_ImageAspect, ImageIter.View);
                   });
 }
 
-std::vector<ImageAllocation> const &RenderCore::GetOffscreenImages()
+std::array<ImageAllocation, g_ImageCount> const &RenderCore::GetOffscreenImages()
 {
     return g_OffscreenImages;
 }
@@ -73,5 +71,4 @@ void RenderCore::DestroyOffscreenImages()
                   {
                       ImageIter.DestroyResources(Allocator);
                   });
-    g_OffscreenImages.clear();
 }
