@@ -10,6 +10,7 @@ module;
 module RenderCore.UserInterface.Window;
 
 import RenderCore.Renderer;
+import RenderCore.Utils.EnumHelpers;
 
 using namespace RenderCore;
 
@@ -30,7 +31,8 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
     m_Height = Height;
     m_Flags  = Flags;
 
-    if (m_GLFWHandler.Initialize(m_Width, m_Height, m_Title, m_Flags) && RenderCore::Initialize(m_GLFWHandler.GetWindow()))
+    if (m_GLFWHandler.Initialize(m_Width, m_Height, m_Title, m_Flags) && RenderCore::Initialize(m_GLFWHandler.GetWindow(),
+                                                                                                HasFlag(Flags, InitializationFlags::ENABLE_IMGUI)))
     {
         OnInitialized();
         RefreshResources();
@@ -43,11 +45,9 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
 
 void Window::Shutdown()
 {
-    DestroyChildren(true);
-
     if (Renderer::IsInitialized())
     {
-        RenderCore::Shutdown(m_GLFWHandler.GetWindow());
+        RenderCore::Shutdown(this);
     }
 
     if (IsOpen())

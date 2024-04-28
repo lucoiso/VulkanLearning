@@ -238,6 +238,8 @@ void BeginRendering(VkCommandBuffer const &CommandBuffer,
                     ImageAllocation const &DepthAllocation,
                     ImageAllocation const &OffscreenAllocation)
 {
+    SetViewport(CommandBuffer, SwapchainAllocation.Extent);
+
     std::vector ImageBarriers {
             RenderCore::MountImageBarrier<g_UndefinedLayout, g_AttachmentLayout,
                                           g_ImageAspect>(SwapchainAllocation.Image, SwapchainAllocation.Format),

@@ -45,9 +45,10 @@ auto                       g_ObjectsManagementStateFlags { RendererObjectsManage
 std::vector<std::string>   g_ModelsToLoad {};
 std::vector<std::uint32_t> g_ModelsToUnload {};
 double                     g_FrameTime { 0.F };
-double                     g_FrameRateCap { 0.016667F };
-bool                       g_UseVSync { true };
+double                     g_FrameRateCap { 0.0F };
+bool                       g_UseVSync { false };
 bool                       g_RenderOffscreen { false };
+bool                       g_EnableImGui { false };
 std::uint32_t              g_ImageIndex { g_ImageCount };
 
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
@@ -58,7 +59,6 @@ constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDI
 void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Control *const Owner)
 {
     g_FrameTime = DeltaTime;
-    CheckObjectManagementFlags();
 
     if (!HasFlag(g_StateFlags, RendererStateFlags::QUEUED_RESOURCES_UPDATE) && HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
     {
@@ -94,7 +94,11 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             {
                 SetupPipelineLayouts();
                 CreatePipelineLibraries();
-                InitializeImGuiContext(Window);
+
+                if (g_EnableImGui)
+                {
+                    InitializeImGuiContext(Window);
+                }
 
                 Owner->Initialize();
 
@@ -130,6 +134,8 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
     }
     else
     {
+        CheckObjectManagementFlags();
+
         if (HasFlag(g_StateFlags, RendererStateFlags::QUEUED_RESOURCES_UPDATE) && g_ImageIndex + 1U >= g_ImageCount)
         {
             RemoveFlags(g_StateFlags, RendererStateFlags::QUEUED_RESOURCES_UPDATE);
@@ -169,8 +175,8 @@ void RenderCore::CheckObjectManagementFlags()
         }
 
         g_ModelsToUnload.clear();
-        RemoveFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_CLEAR);
-        RemoveFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_UNLOAD);
+        RemoveFlags(g_ObjectsManagementStateFlags,
+                    RendererObjectsManagementStateFlags::PENDING_CLEAR | RendererObjectsManagementStateFlags::PENDING_UNLOAD);
     }
 
     if (HasFlag(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_LOAD))
@@ -191,12 +197,14 @@ void RenderCore::Tick()
     TickObjects(static_cast<float>(g_FrameTime));
 }
 
-bool RenderCore::Initialize(GLFWwindow *const Window)
+bool RenderCore::Initialize(GLFWwindow *const Window, bool const EnableImGui)
 {
     if (Renderer::IsInitialized())
     {
         return false;
     }
+
+    g_EnableImGui = EnableImGui;
 
     CheckVulkanResult(volkInitialize());
 
@@ -218,7 +226,7 @@ bool RenderCore::Initialize(GLFWwindow *const Window)
     return SurfaceProperties.IsValid();
 }
 
-void RenderCore::Shutdown([[maybe_unused]] GLFWwindow *const Window)
+void RenderCore::Shutdown(Control *Window)
 {
     if (!Renderer::IsInitialized())
     {
@@ -227,13 +235,20 @@ void RenderCore::Shutdown([[maybe_unused]] GLFWwindow *const Window)
 
     RemoveFlags(g_StateFlags, RendererStateFlags::INITIALIZED);
 
-    ReleaseImGuiResources();
+    ReleaseSynchronizationObjects();
+    ReleaseCommandsResources();
+
+    Window->DestroyChildren(true);
+
+    if (g_EnableImGui)
+    {
+        ReleaseImGuiResources();
+    }
+
     DestroyOffscreenImages();
 
     ReleaseSwapChainResources();
     ReleaseShaderResources();
-    ReleaseSynchronizationObjects();
-    ReleaseCommandsResources();
     ReleaseSceneResources();
     ReleasePipelineResources(true);
     ReleaseMemoryResources();

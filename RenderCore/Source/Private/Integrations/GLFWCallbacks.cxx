@@ -36,11 +36,13 @@ void RenderCore::GLFWWindowResized([[maybe_unused]] GLFWwindow *const  Window,
     {
         Renderer::AddStateFlag(RendererStateFlags::INVALID_SIZE);
         Renderer::AddStateFlag(RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+        Renderer::RequestUpdateResources();
     }
     else
     {
         Renderer::RemoveStateFlag(RendererStateFlags::INVALID_SIZE);
         Renderer::RemoveStateFlag(RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
+        Renderer::RequestUpdateResources();
     }
 }
 

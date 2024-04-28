@@ -21,20 +21,22 @@ import RenderCore.Types.Camera;
 import RenderCore.Types.Illumination;
 import RenderCore.Types.Transform;
 import RenderCore.Types.Object;
-import RenderCore.UserInterface.Control;
 import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Pipeline;
 import RenderCore.Runtime.Command;
 import RenderCore.Runtime.Device;
+import RenderCore.UserInterface.Control;
 
 namespace RenderCore
 {
+    class Window;
+
     void CheckObjectManagementFlags();
     void Tick();
 
     export void DrawFrame(GLFWwindow *, double, Control *);
-    export bool Initialize(GLFWwindow *);
-    export void Shutdown(GLFWwindow *);
+    export bool Initialize(GLFWwindow *, bool);
+    export void Shutdown(Control *);
 
     export namespace Renderer
     {
