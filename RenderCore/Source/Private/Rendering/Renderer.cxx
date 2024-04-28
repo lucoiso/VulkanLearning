@@ -45,8 +45,8 @@ auto                       g_ObjectsManagementStateFlags { RendererObjectsManage
 std::vector<std::string>   g_ModelsToLoad {};
 std::vector<std::uint32_t> g_ModelsToUnload {};
 double                     g_FrameTime { 0.F };
-double                     g_FrameRateCap { 0.0F };
-bool                       g_UseVSync { false };
+double                     g_FrameRateCap { 0.016667F };
+bool                       g_UseVSync { true };
 bool                       g_RenderOffscreen { false };
 bool                       g_EnableImGui { false };
 std::uint32_t              g_ImageIndex { g_ImageCount };
