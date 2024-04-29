@@ -38,8 +38,8 @@ constexpr VkCommandBufferBeginInfo g_CommandBufferBeginInfo {
 
 struct ThreadResources
 {
-    VkCommandPool                CommandPool { VK_NULL_HANDLE };
-    std::vector<VkCommandBuffer> CommandBuffers { g_ImageCount, VK_NULL_HANDLE };
+    VkCommandPool                             CommandPool { VK_NULL_HANDLE };
+    std::array<VkCommandBuffer, g_ImageCount> CommandBuffers { VK_NULL_HANDLE };
 
     void Allocate(VkDevice const &LogicalDevice, std::uint8_t const QueueFamilyIndex, std::uint8_t const NumberOfBuffers)
     {
@@ -109,7 +109,7 @@ std::uint32_t                                     g_NumThreads { 0U };
 ThreadPool::Pool                                  g_ThreadPool {};
 std::unordered_map<std::uint8_t, ThreadResources> g_CommandResources {};
 VkCommandPool                                     g_PrimaryCommandPool { VK_NULL_HANDLE };
-std::vector<VkCommandBuffer>                      g_PrimaryCommandBuffers { g_ImageCount, VK_NULL_HANDLE };
+std::array<VkCommandBuffer, g_ImageCount>         g_PrimaryCommandBuffers {};
 
 void RenderCore::AllocateCommandBuffers(std::uint32_t const QueueFamily, std::uint32_t const NumObjects)
 {
