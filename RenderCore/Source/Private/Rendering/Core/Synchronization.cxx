@@ -12,6 +12,7 @@ module RenderCore.Runtime.Synchronization;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Runtime.Device;
+import RenderCore.Runtime.Command;
 
 using namespace RenderCore;
 
@@ -31,6 +32,8 @@ void RenderCore::WaitAndResetFence(std::uint32_t const Index)
     CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &g_Fences.at(Index), VK_FALSE, g_Timeout));
     CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &g_Fences.at(Index)));
     g_FenceInUse.at(Index) = false;
+
+    ResetCommandPool(Index);
 }
 
 void RenderCore::CreateSynchronizationObjects()

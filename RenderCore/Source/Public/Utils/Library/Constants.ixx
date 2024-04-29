@@ -46,12 +46,11 @@ export namespace RenderCore
 
     constexpr std::uint64_t g_MinMemoryBlock             = 2U;
     constexpr std::uint64_t g_BufferMemoryAllocationSize = 2U * 1024U * 1024U; // 2MB
-    constexpr std::uint64_t g_ImageMemoryAllocationSize  = g_BufferMemoryAllocationSize * 8U;
 
-    constexpr auto g_ModelMemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+    constexpr auto g_ModelMemoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
     constexpr auto g_ModelBufferUsage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
                                         VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    constexpr auto g_TextureMemoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
+    constexpr auto g_TextureMemoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
     constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     constexpr VkImageTiling         g_ImageTiling = VK_IMAGE_TILING_OPTIMAL;

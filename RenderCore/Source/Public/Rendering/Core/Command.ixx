@@ -16,11 +16,11 @@ import RenderCore.Types.Camera;
 namespace RenderCore
 {
     [[nodiscard]] VkCommandPool CreateCommandPool(std::uint8_t, VkCommandPoolCreateFlags);
-    export void                 AllocateCommandBuffers(std::uint32_t, std::uint32_t);
+    export void                 SetNumObjectsPerThread(std::uint32_t);
+    export void                 ResetCommandPool(std::uint32_t);
     export void                 FreeCommandBuffers();
     export void                 InitializeCommandsResources(std::uint32_t);
     export void                 ReleaseCommandsResources();
-    export void                 ReleaseThreadCommandsResources();
     export void                 RecordCommandBuffers(std::uint32_t);
     export void                 SubmitCommandBuffers(std::uint32_t);
     export void                 InitializeSingleCommandQueue(VkCommandPool &, std::vector<VkCommandBuffer> &, std::uint8_t);

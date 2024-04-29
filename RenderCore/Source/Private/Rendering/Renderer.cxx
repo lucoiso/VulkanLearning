@@ -54,7 +54,7 @@ std::uint32_t              g_ImageIndex { g_ImageCount };
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
                                                        RendererStateFlags::PENDING_RESOURCES_DESTRUCTION |
                                                        RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::PENDING_PIPELINE_REFRESH |
-                                                       RendererStateFlags::PENDING_COMMANDS_ALLOCATION | RendererStateFlags::INVALID_SIZE;
+                                                       RendererStateFlags::INVALID_SIZE;
 
 void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Control *const Owner)
 {
@@ -66,6 +66,12 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
                                                                                               RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
             ReleaseSynchronizationObjects();
+
+            for (std::uint8_t Iterator = 0U; Iterator < g_ImageCount; ++Iterator)
+            {
+                ResetCommandPool(Iterator);
+            }
+
             DestroySwapChainImages();
             DestroyOffscreenImages();
             ReleasePipelineResources(false);
@@ -121,15 +127,9 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             PipelineDescriptorData &PipelineDescriptor = GetPipelineDescriptorData();
             PipelineDescriptor.SetupSceneBuffer(GetSceneUniformBuffer());
             PipelineDescriptor.SetupModelsBuffer(GetObjects());
+            SetNumObjectsPerThread(GetNumAllocations());
 
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
-            AddFlags(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_ALLOCATION);
-        }
-        else if (HasFlag(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_ALLOCATION))
-        {
-            ReleaseThreadCommandsResources();
-            AllocateCommandBuffers(GetGraphicsQueue().first, GetNumAllocations());
-            RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_COMMANDS_ALLOCATION);
         }
     }
     else

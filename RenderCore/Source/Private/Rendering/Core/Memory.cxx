@@ -102,7 +102,7 @@ void RenderCore::CreateMemoryAllocator()
         std::uint32_t MemoryType;
         CheckVulkanResult(vmaFindMemoryTypeIndexForBufferInfo(g_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &MemoryType));
 
-        VmaPoolCreateInfo const PoolCreateInfo { .memoryTypeIndex = MemoryType, .flags = 0U, .minBlockCount = 0U, .priority = 0.F };
+        VmaPoolCreateInfo const PoolCreateInfo { .memoryTypeIndex = MemoryType, .flags = 0U, .minBlockCount = 0U, .priority = 1.F };
 
         CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_DescriptorBufferPool));
     }
@@ -149,13 +149,7 @@ void RenderCore::CreateMemoryAllocator()
         std::uint32_t MemoryType;
         CheckVulkanResult(vmaFindMemoryTypeIndexForImageInfo(g_Allocator, &ImageViewCreateInfo, &AllocationCreateInfo, &MemoryType));
 
-        VmaPoolCreateInfo const PoolCreateInfo {
-                .memoryTypeIndex = MemoryType,
-                .flags = 0U,
-                .blockSize = g_ImageMemoryAllocationSize,
-                .minBlockCount = g_MinMemoryBlock,
-                .priority = 1.F
-        };
+        VmaPoolCreateInfo const PoolCreateInfo { .memoryTypeIndex = MemoryType, .flags = 0U, .priority = 1.F };
 
         CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_ImagePool));
     }
@@ -203,6 +197,7 @@ VmaAllocationInfo RenderCore::CreateBuffer(VkDeviceSize const &     Size,
                                            VmaAllocation &          Allocation)
 {
     VmaAllocationCreateInfo AllocationCreateInfo {
+            .flags = Usage == g_TextureMemoryUsage ? 0U : VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
             .usage = g_ModelMemoryUsage,
             .pool = Size > g_BufferMemoryAllocationSize ? g_StagingBufferPool : g_BufferPool
     };
@@ -506,13 +501,7 @@ void RenderCore::SaveImageToFile(VkImage const &Image, std::string_view const Pa
                 .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .image = Image,
-                .subresourceRange = {
-                        .aspectMask = g_ImageAspect,
-                        .baseMipLevel = 0U,
-                        .levelCount = 1U,
-                        .baseArrayLayer = 0U,
-                        .layerCount = 1U
-                }
+                .subresourceRange = { .aspectMask = g_ImageAspect, .baseMipLevel = 0U, .levelCount = 1U, .baseArrayLayer = 0U, .layerCount = 1U }
         };
 
         VkImageMemoryBarrier2 PostCopyBarrier {
@@ -527,13 +516,7 @@ void RenderCore::SaveImageToFile(VkImage const &Image, std::string_view const Pa
                 .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .image = Image,
-                .subresourceRange = {
-                        .aspectMask = g_ImageAspect,
-                        .baseMipLevel = 0U,
-                        .levelCount = 1U,
-                        .baseArrayLayer = 0U,
-                        .layerCount = 1U
-                }
+                .subresourceRange = { .aspectMask = g_ImageAspect, .baseMipLevel = 0U, .levelCount = 1U, .baseArrayLayer = 0U, .layerCount = 1U }
         };
 
         VkDependencyInfo DependencyInfo {
