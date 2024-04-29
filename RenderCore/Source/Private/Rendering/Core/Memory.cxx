@@ -92,6 +92,7 @@ void RenderCore::CreateMemoryAllocator()
         };
 
         CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_StagingBufferPool));
+        vmaSetPoolName(g_Allocator, g_StagingBufferPool, "Staging Buffer Pool");
     }
 
     {
@@ -115,6 +116,7 @@ void RenderCore::CreateMemoryAllocator()
         };
 
         CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_DescriptorBufferPool));
+        vmaSetPoolName(g_Allocator, g_DescriptorBufferPool, "Descriptor Buffer Pool");
     }
 
     {
@@ -134,6 +136,7 @@ void RenderCore::CreateMemoryAllocator()
         };
 
         CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_BufferPool));
+        vmaSetPoolName(g_Allocator, g_BufferPool, "Buffer Pool");
     }
 
     {
@@ -160,6 +163,7 @@ void RenderCore::CreateMemoryAllocator()
         VmaPoolCreateInfo const PoolCreateInfo { .memoryTypeIndex = MemoryType, .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT, .priority = 1.F };
 
         CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_ImagePool));
+        vmaSetPoolName(g_Allocator, g_ImagePool, "Image Pool");
     }
 }
 
@@ -604,4 +608,22 @@ void MeshDeleter::operator()(Mesh const *const Mesh) const
         g_AllocatedBuffers.erase(BufferIndex);
         g_BufferAllocationCounter.erase(BufferIndex);
     }
+}
+
+void RenderCore::PrintMemoryAllocatorStats(bool const DetailedMap)
+{
+    char *Stats;
+    vmaBuildStatsString(g_Allocator, &Stats, DetailedMap);
+    BOOST_LOG_TRIVIAL(info) << Stats;
+    vmaFreeStatsString(g_Allocator, Stats);
+}
+
+std::string RenderCore::GetMemoryAllocatorStats(bool const DetailedMap)
+{
+    char *Stats;
+    vmaBuildStatsString(g_Allocator, &Stats, DetailedMap);
+    std::string const Output { Stats };
+    vmaFreeStatsString(g_Allocator, Stats);
+
+    return Output;
 }

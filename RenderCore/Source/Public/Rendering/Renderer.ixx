@@ -7,7 +7,6 @@ module;
 #include <cstdint>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <string>
 #include <vector>
 #include <GLFW/glfw3.h>
@@ -99,5 +98,9 @@ namespace RenderCore
         [[nodiscard]] RENDERCOREMODULE_API bool IsImGuiInitialized();
 
         RENDERCOREMODULE_API void SaveOffscreenFrameToImage(std::string_view);
+
+        RENDERCOREMODULE_API void PrintMemoryAllocatorStats(bool);
+
+        [[nodiscard]] RENDERCOREMODULE_API std::string GetMemoryAllocatorStats(bool);
     } // namespace Renderer
 }     // namespace RenderCore

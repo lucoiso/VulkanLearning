@@ -181,4 +181,8 @@ export namespace RenderCore
     {
         void operator()(Mesh const *Mesh) const;
     };
+
+    void PrintMemoryAllocatorStats(bool);
+
+    [[nodiscard]] std::string GetMemoryAllocatorStats(bool);
 } // namespace RenderCore

@@ -427,3 +427,13 @@ void Renderer::SaveOffscreenFrameToImage(std::string_view const Path)
     ImageAllocation const &OffscreenImage = RenderCore::GetOffscreenImages().at(g_ImageIndex);
     SaveImageToFile(OffscreenImage.Image, Path, OffscreenImage.Extent);
 }
+
+void Renderer::PrintMemoryAllocatorStats(bool const DetailedMap)
+{
+    RenderCore::PrintMemoryAllocatorStats(DetailedMap);
+}
+
+std::string Renderer::GetMemoryAllocatorStats(bool const DetailedMap)
+{
+    return RenderCore::GetMemoryAllocatorStats(DetailedMap);
+}
