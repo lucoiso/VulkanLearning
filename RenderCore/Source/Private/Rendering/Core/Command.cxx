@@ -43,7 +43,7 @@ struct ThreadResources
 
     void Allocate(VkDevice const &LogicalDevice, std::uint8_t const QueueFamilyIndex)
     {
-        CommandPool = CreateCommandPool(QueueFamilyIndex, 0U);
+        CommandPool = CreateCommandPool(QueueFamilyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 
         VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -159,7 +159,7 @@ void RenderCore::InitializeCommandsResources(std::uint32_t const QueueFamily)
             MultithreadResources.emplace(ThreadIndex, std::move(NewResource));
         }
 
-        PrimaryCommandPool = CreateCommandPool(QueueFamily, 0U);
+        PrimaryCommandPool = CreateCommandPool(QueueFamily, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 
         VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,

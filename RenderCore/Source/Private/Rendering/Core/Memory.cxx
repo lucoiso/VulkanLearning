@@ -77,21 +77,26 @@ void RenderCore::CreateMemoryAllocator()
 
     {
         // Staging Buffer Pool
-        constexpr VmaAllocationCreateInfo AllocationCreateInfo { .usage = g_ModelMemoryUsage };
+        constexpr VmaAllocationCreateInfo AllocationCreateInfo { .flags = g_MapMemoryFlag, .usage = g_StagingMemoryUsage };
 
         constexpr VkBufferCreateInfo BufferCreateInfo { .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = 0x100, .usage = g_ModelBufferUsage };
 
         std::uint32_t MemoryType;
         CheckVulkanResult(vmaFindMemoryTypeIndexForBufferInfo(g_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &MemoryType));
 
-        VmaPoolCreateInfo const PoolCreateInfo { .memoryTypeIndex = MemoryType, .flags = 0U, .minBlockCount = 0U, .priority = 0.F };
+        VmaPoolCreateInfo const PoolCreateInfo {
+                .memoryTypeIndex = MemoryType,
+                .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
+                .minBlockCount = 0U,
+                .priority = 0.F
+        };
 
         CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_StagingBufferPool));
     }
 
     {
         // Descriptor Buffer Pool
-        constexpr VmaAllocationCreateInfo AllocationCreateInfo { .usage = g_ModelMemoryUsage };
+        constexpr VmaAllocationCreateInfo AllocationCreateInfo { .flags = g_MapMemoryFlag, .usage = g_DescriptorMemoryUsage };
 
         constexpr VkBufferCreateInfo BufferCreateInfo {
                 .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -102,14 +107,19 @@ void RenderCore::CreateMemoryAllocator()
         std::uint32_t MemoryType;
         CheckVulkanResult(vmaFindMemoryTypeIndexForBufferInfo(g_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &MemoryType));
 
-        VmaPoolCreateInfo const PoolCreateInfo { .memoryTypeIndex = MemoryType, .flags = 0U, .minBlockCount = 0U, .priority = 1.F };
+        VmaPoolCreateInfo const PoolCreateInfo {
+                .memoryTypeIndex = MemoryType,
+                .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
+                .minBlockCount = 0U,
+                .priority = 1.F
+        };
 
         CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_DescriptorBufferPool));
     }
 
     {
         // Buffer Pool
-        constexpr VmaAllocationCreateInfo AllocationCreateInfo { .usage = g_ModelMemoryUsage };
+        constexpr VmaAllocationCreateInfo AllocationCreateInfo { .flags = g_MapMemoryFlag, .usage = g_ModelMemoryUsage };
 
         constexpr VkBufferCreateInfo BufferCreateInfo { .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = 0x100, .usage = g_ModelBufferUsage };
 
@@ -118,9 +128,7 @@ void RenderCore::CreateMemoryAllocator()
 
         VmaPoolCreateInfo const PoolCreateInfo {
                 .memoryTypeIndex = MemoryType,
-                .flags = 0U,
-                .blockSize = g_BufferMemoryAllocationSize,
-                .minBlockCount = g_MinMemoryBlock,
+                .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
                 .priority = 1.F,
                 .minAllocationAlignment = GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment
         };
@@ -149,7 +157,7 @@ void RenderCore::CreateMemoryAllocator()
         std::uint32_t MemoryType;
         CheckVulkanResult(vmaFindMemoryTypeIndexForImageInfo(g_Allocator, &ImageViewCreateInfo, &AllocationCreateInfo, &MemoryType));
 
-        VmaPoolCreateInfo const PoolCreateInfo { .memoryTypeIndex = MemoryType, .flags = 0U, .priority = 1.F };
+        VmaPoolCreateInfo const PoolCreateInfo { .memoryTypeIndex = MemoryType, .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT, .priority = 1.F };
 
         CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_ImagePool));
     }
@@ -196,15 +204,27 @@ VmaAllocationInfo RenderCore::CreateBuffer(VkDeviceSize const &     Size,
                                            VkBuffer &               Buffer,
                                            VmaAllocation &          Allocation)
 {
+    bool const IsStagingBuffer = Identifier.starts_with("STAGING_");
+
     VmaAllocationCreateInfo AllocationCreateInfo {
-            .flags = Usage == g_TextureMemoryUsage ? 0U : VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+            .flags = 0U,
             .usage = g_ModelMemoryUsage,
-            .pool = Size > g_BufferMemoryAllocationSize ? g_StagingBufferPool : g_BufferPool
+            .pool = IsStagingBuffer ? g_StagingBufferPool : g_BufferPool
     };
 
     if (Usage & VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT)
     {
         AllocationCreateInfo.pool = g_DescriptorBufferPool;
+        AllocationCreateInfo.flags |= g_MapMemoryFlag;
+    }
+    else if (IsStagingBuffer || Usage & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT || Identifier == "IMGUI_RENDER")
+    {
+        AllocationCreateInfo.flags |= g_MapMemoryFlag;
+
+        if (IsStagingBuffer)
+        {
+            AllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT;
+        }
     }
 
     VkBufferCreateInfo const BufferCreateInfo { .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = Size, .usage = Usage };
@@ -227,9 +247,11 @@ void RenderCore::CopyBuffer(VkCommandBuffer const &CommandBuffer, VkBuffer const
 
 void RenderCore::CreateUniformBuffers(BufferAllocation &BufferAllocation, VkDeviceSize const BufferSize, std::string_view const Identifier)
 {
-    VmaAllocator const &         Allocator             = GetAllocator();
-    constexpr VkBufferUsageFlags DestinationUsageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    CreateBuffer(BufferSize, DestinationUsageFlags, Identifier, BufferAllocation.Buffer, BufferAllocation.Allocation);
+    VmaAllocator const &         Allocator  = GetAllocator();
+    constexpr VkBufferUsageFlags UsageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+    BufferAllocation.Size = BufferSize;
+    CreateBuffer(BufferSize, UsageFlags, Identifier, BufferAllocation.Buffer, BufferAllocation.Allocation);
     vmaMapMemory(Allocator, BufferAllocation.Allocation, &BufferAllocation.MappedData);
 }
 
@@ -299,12 +321,12 @@ void RenderCore::CopyBufferToImage(VkCommandBuffer const &CommandBuffer, VkBuffe
     vkCmdCopyBufferToImage(CommandBuffer, Source, Destination, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1U, &BufferImageCopy);
 }
 
-std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(VkCommandBuffer &    CommandBuffer,
-                                                                               unsigned char const *Data,
-                                                                               std::uint32_t const  Width,
-                                                                               std::uint32_t const  Height,
-                                                                               VkFormat const       ImageFormat,
-                                                                               VkDeviceSize const   AllocationSize)
+std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(VkCommandBuffer const &CommandBuffer,
+                                                                               unsigned char const *  Data,
+                                                                               std::uint32_t const    Width,
+                                                                               std::uint32_t const    Height,
+                                                                               VkFormat const         ImageFormat,
+                                                                               VkDeviceSize const     AllocationSize)
 {
     if (std::empty(g_AllocatedImages))
     {
@@ -312,7 +334,7 @@ std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(V
     }
 
     std::pair<VkBuffer, VmaAllocation> Output;
-    VmaAllocationInfo                  StagingInfo = CreateBuffer(AllocationSize, g_ModelMemoryUsage, "STAGING_TEXTURE", Output.first, Output.second);
+    VmaAllocationInfo StagingInfo = CreateBuffer(AllocationSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, "STAGING_TEXTURE", Output.first, Output.second);
 
     VmaAllocator const &Allocator = GetAllocator();
 
@@ -389,21 +411,22 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
         UniformOffset = UniformOffset + MinAlignment - 1U & ~(MinAlignment - 1U);
     }
 
-    std::uint32_t const BufferID = g_BufferAllocationIDCounter.fetch_add(1U);
-    BufferAllocation    NewAllocation {};
+    VmaAllocator const &Allocator = GetAllocator();
 
-    VkDeviceSize const BufferSize = UniformOffset + sizeof(ModelUniformData) * std::size(Objects);
+    std::uint32_t const BufferID   = g_BufferAllocationIDCounter.fetch_add(1U);
+    VkDeviceSize const  BufferSize = UniformOffset + sizeof(ModelUniformData) * std::size(Objects);
+
+    g_AllocatedBuffers.emplace(BufferID, BufferAllocation { .Size = BufferSize });
+    BufferAllocation &NewAllocation = g_AllocatedBuffers.at(BufferID);
 
     CreateBuffer(BufferSize, g_ModelBufferUsage, "MODEL_UNIFIED_BUFFER", NewAllocation.Buffer, NewAllocation.Allocation);
 
-    VmaAllocator const &Allocator = GetAllocator();
     CheckVulkanResult(vmaMapMemory(Allocator, NewAllocation.Allocation, &NewAllocation.MappedData));
-
     std::memcpy(NewAllocation.MappedData, std::data(Vertices), VertexBufferSize);
     std::memcpy(static_cast<char *>(NewAllocation.MappedData) + VertexBufferSize, std::data(Indices), IndexBufferSize);
 
     CheckVulkanResult(vmaFlushAllocation(Allocator, NewAllocation.Allocation, VertexBufferSize, IndexBufferSize));
-    g_AllocatedBuffers.emplace(BufferID, std::move(NewAllocation));
+    vmaUnmapMemory(Allocator, NewAllocation.Allocation);
 
     for (auto const &ObjectIter : Objects)
     {

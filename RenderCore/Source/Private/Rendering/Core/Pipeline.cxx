@@ -165,9 +165,10 @@ void PipelineDescriptorData::SetupSceneBuffer(BufferAllocation const &SceneAlloc
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
     {
-        VmaAllocator const &Allocator = GetAllocator();
-
+        VmaAllocator const &         Allocator   = GetAllocator();
         constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+
+        SceneData.Buffer.Size = SceneData.LayoutSize;
         CreateBuffer(SceneData.LayoutSize, BufferUsage, "Scene Descriptor Buffer", SceneData.Buffer.Buffer, SceneData.Buffer.Allocation);
         vmaMapMemory(Allocator, SceneData.Buffer.Allocation, &SceneData.Buffer.MappedData);
 
@@ -220,11 +221,9 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
     {
         constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-        CreateBuffer(static_cast<std::uint32_t>(std::size(Objects)) * ModelData.LayoutSize,
-                     BufferUsage,
-                     "Model Descriptor Buffer",
-                     ModelData.Buffer.Buffer,
-                     ModelData.Buffer.Allocation);
+        ModelData.Buffer.Size = static_cast<std::uint32_t>(std::size(Objects)) * ModelData.LayoutSize;
+
+        CreateBuffer(ModelData.Buffer.Size, BufferUsage, "Model Descriptor Buffer", ModelData.Buffer.Buffer, ModelData.Buffer.Allocation);
 
         vmaMapMemory(Allocator, ModelData.Buffer.Allocation, &ModelData.Buffer.MappedData);
 
@@ -242,11 +241,8 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
         constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
                                                    VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-        CreateBuffer(NumTextures * static_cast<std::uint32_t>(std::size(Objects)) * TextureData.LayoutSize,
-                     BufferUsage,
-                     "Texture Descriptor Buffer",
-                     TextureData.Buffer.Buffer,
-                     TextureData.Buffer.Allocation);
+        TextureData.Buffer.Size = NumTextures * static_cast<std::uint32_t>(std::size(Objects)) * TextureData.LayoutSize;
+        CreateBuffer(TextureData.Buffer.Size, BufferUsage, "Texture Descriptor Buffer", TextureData.Buffer.Buffer, TextureData.Buffer.Allocation);
 
         vmaMapMemory(Allocator, TextureData.Buffer.Allocation, &TextureData.Buffer.MappedData);
 

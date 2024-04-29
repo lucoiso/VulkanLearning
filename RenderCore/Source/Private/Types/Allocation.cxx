@@ -66,6 +66,7 @@ void BufferAllocation::DestroyResources(VmaAllocator const &Allocator)
         vmaDestroyBuffer(Allocator, Buffer, Allocation);
         Allocation = VK_NULL_HANDLE;
         Buffer     = VK_NULL_HANDLE;
+        Size       = 0U;
     }
 }
 

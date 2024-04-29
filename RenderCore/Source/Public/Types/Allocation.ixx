@@ -30,6 +30,7 @@ namespace RenderCore
     export struct BufferAllocation
     {
         VkBuffer      Buffer { VK_NULL_HANDLE };
+        VkDeviceSize  Size { 0U };
         VmaAllocation Allocation { VK_NULL_HANDLE };
         void *        MappedData { nullptr };
 

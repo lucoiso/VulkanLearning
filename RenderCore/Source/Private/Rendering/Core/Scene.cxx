@@ -114,12 +114,12 @@ void RenderCore::AllocateEmptyTexture(VkFormat const TextureFormat)
     constexpr std::uint32_t                                DefaultTextureSize { DefaultTextureHalfSize * DefaultTextureHalfSize };
     constexpr std::array<std::uint8_t, DefaultTextureSize> DefaultTextureData {};
 
-    VkCommandPool                CopyCommandPool { VK_NULL_HANDLE };
+    VkCommandPool                CommandPool { VK_NULL_HANDLE };
     std::vector<VkCommandBuffer> CommandBuffers(1U, VK_NULL_HANDLE);
 
     auto const &[FamilyIndex, Queue] = GetGraphicsQueue();
 
-    InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, FamilyIndex);
+    InitializeSingleCommandQueue(CommandPool, CommandBuffers, FamilyIndex);
     const auto [Index, Buffer, Allocation] = AllocateTexture(CommandBuffers.at(0U),
                                                              std::data(DefaultTextureData),
                                                              DefaultTextureHalfSize,
@@ -127,7 +127,7 @@ void RenderCore::AllocateEmptyTexture(VkFormat const TextureFormat)
                                                              TextureFormat,
                                                              DefaultTextureSize * DefaultTextureSize);
 
-    FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);
+    FinishSingleCommandQueue(Queue, CommandPool, CommandBuffers);
 
     VmaAllocator const &Allocator = GetAllocator();
     vmaDestroyBuffer(Allocator, Buffer, Allocation);
@@ -161,14 +161,14 @@ void RenderCore::LoadScene(std::string_view const ModelPath)
         }
     }
 
-    VkCommandPool                CopyCommandPool { VK_NULL_HANDLE };
+    VkCommandPool                CommandPool { VK_NULL_HANDLE };
     std::vector<VkCommandBuffer> CommandBuffers { VK_NULL_HANDLE };
 
     auto const &                                                [QueueIndex, Queue] = GetGraphicsQueue();
     std::unordered_map<VkBuffer, VmaAllocation>                 BufferAllocations {};
     std::unordered_map<std::uint32_t, std::shared_ptr<Texture>> TextureMap {};
 
-    InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, QueueIndex);
+    InitializeSingleCommandQueue(CommandPool, CommandBuffers, QueueIndex);
     {
         VkCommandBuffer &CommandBuffer = CommandBuffers.at(0U);
 
@@ -300,7 +300,7 @@ void RenderCore::LoadScene(std::string_view const ModelPath)
 
         AllocateModelsBuffers(g_Objects);
     }
-    FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);
+    FinishSingleCommandQueue(Queue, CommandPool, CommandBuffers);
 
     VmaAllocator const &Allocator = GetAllocator();
     for (auto &[Buffer, Allocation] : BufferAllocations)

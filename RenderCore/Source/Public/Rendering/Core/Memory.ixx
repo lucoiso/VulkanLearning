@@ -44,7 +44,7 @@ export namespace RenderCore
     void CreateTextureImageView(ImageAllocation &, VkFormat);
     void CopyBufferToImage(VkCommandBuffer const &, VkBuffer const &, VkImage const &, VkExtent2D const &);
 
-    [[nodiscard]] std::tuple<std::uint32_t, VkBuffer, VmaAllocation> AllocateTexture(VkCommandBuffer &,
+    [[nodiscard]] std::tuple<std::uint32_t, VkBuffer, VmaAllocation> AllocateTexture(VkCommandBuffer const &,
                                                                                      unsigned char const *,
                                                                                      std::uint32_t,
                                                                                      std::uint32_t,

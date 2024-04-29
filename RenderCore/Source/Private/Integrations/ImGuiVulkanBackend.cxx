@@ -1325,7 +1325,8 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
     {
         constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
         constexpr auto               BufferIdentifier = "IMGUI_RENDER";
-        auto const                   _ = CreateBuffer(TotalSize, BufferUsage, BufferIdentifier, RenderBuffers.Buffer, RenderBuffers.Allocation);
+        RenderBuffers.Size = TotalSize;
+        [[maybe_unused]] auto const _ = CreateBuffer(TotalSize, BufferUsage, BufferIdentifier, RenderBuffers.Buffer, RenderBuffers.Allocation);
     }
 
     vmaMapMemory(Allocator, RenderBuffers.Allocation, &RenderBuffers.MappedData);
@@ -1427,14 +1428,14 @@ bool RenderCore::ImGuiVulkanCreateFontsTexture()
     ImGuiIO.Fonts->GetTexDataAsRGBA32(&ImageData, &ImageWidth, &ImageHeight);
     std::size_t const BufferSize = ImageWidth * ImageHeight * 4U * sizeof(char);
 
-    VkCommandPool                CopyCommandPool { VK_NULL_HANDLE };
+    VkCommandPool                CommandPool { VK_NULL_HANDLE };
     std::vector<VkCommandBuffer> CommandBuffers { VK_NULL_HANDLE };
 
-    InitializeSingleCommandQueue(CopyCommandPool, CommandBuffers, QueueFamilyIndex);
+    InitializeSingleCommandQueue(CommandPool, CommandBuffers, QueueFamilyIndex);
 
     std::pair<VkBuffer, VmaAllocation> StagingAllocation;
     VmaAllocationInfo                  StagingInfo = CreateBuffer(BufferSize,
-                                                                  g_ModelMemoryUsage,
+                                                                  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                                                   "STAGING_TEXTURE",
                                                                   StagingAllocation.first,
                                                                   StagingAllocation.second);
@@ -1469,7 +1470,7 @@ bool RenderCore::ImGuiVulkanCreateFontsTexture()
     CreateImageView(NewAllocation.Image, NewAllocation.Format, g_ImageAspect, NewAllocation.View);
     vmaUnmapMemory(Allocator, StagingAllocation.second);
 
-    FinishSingleCommandQueue(Queue, CopyCommandPool, CommandBuffers);
+    FinishSingleCommandQueue(Queue, CommandPool, CommandBuffers);
 
     vmaDestroyBuffer(Allocator, StagingAllocation.first, StagingAllocation.second);
 
