@@ -55,7 +55,7 @@ namespace RenderCore
 
         RENDERCOREMODULE_API void RequestUnloadObjects(std::vector<std::uint32_t> const &);
 
-        RENDERCOREMODULE_API void RequestDestroyObjects();
+        RENDERCOREMODULE_API void RequestClearScene();
 
         RENDERCOREMODULE_API void RequestUpdateResources();
 

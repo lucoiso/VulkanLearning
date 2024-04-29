@@ -233,8 +233,6 @@ void RenderCore::Shutdown(Control *Window)
         return;
     }
 
-    RemoveFlags(g_StateFlags, RendererStateFlags::INITIALIZED);
-
     ReleaseSynchronizationObjects();
     ReleaseCommandsResources();
 
@@ -254,11 +252,13 @@ void RenderCore::Shutdown(Control *Window)
     ReleaseMemoryResources();
     ReleaseDeviceResources();
     DestroyVulkanInstance();
+
+    g_StateFlags = RendererStateFlags::NONE;
 }
 
 bool Renderer::IsInitialized()
 {
-    return HasFlag(g_StateFlags, RendererStateFlags::INITIALIZED);
+    return HasAnyFlag(g_StateFlags, RendererStateFlags::INITIALIZED | RendererStateFlags::PENDING_RESOURCES_CREATION);
 }
 
 bool Renderer::IsReady()
@@ -298,7 +298,7 @@ void Renderer::RequestUnloadObjects(std::vector<std::uint32_t> const &ObjectIDs)
     AddFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_UNLOAD);
 }
 
-void Renderer::RequestDestroyObjects()
+void Renderer::RequestClearScene()
 {
     AddFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_CLEAR);
 }

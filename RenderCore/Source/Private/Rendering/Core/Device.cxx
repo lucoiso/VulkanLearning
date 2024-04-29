@@ -403,22 +403,26 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames()
 
 std::vector<VkSurfaceFormatKHR> RenderCore::GetAvailablePhysicalDeviceSurfaceFormats()
 {
+    VkSurfaceKHR const &Surface = GetSurface();
+
     std::uint32_t Count = 0U;
-    CheckVulkanResult(vkGetPhysicalDeviceSurfaceFormatsKHR(g_PhysicalDevice, GetSurface(), &Count, nullptr));
+    CheckVulkanResult(vkGetPhysicalDeviceSurfaceFormatsKHR(g_PhysicalDevice, Surface, &Count, nullptr));
 
     std::vector Output(Count, VkSurfaceFormatKHR());
-    CheckVulkanResult(vkGetPhysicalDeviceSurfaceFormatsKHR(g_PhysicalDevice, GetSurface(), &Count, std::data(Output)));
+    CheckVulkanResult(vkGetPhysicalDeviceSurfaceFormatsKHR(g_PhysicalDevice, Surface, &Count, std::data(Output)));
 
     return Output;
 }
 
 std::vector<VkPresentModeKHR> RenderCore::GetAvailablePhysicalDeviceSurfacePresentationModes()
 {
+    VkSurfaceKHR const &Surface = GetSurface();
+
     std::uint32_t Count = 0U;
-    CheckVulkanResult(vkGetPhysicalDeviceSurfacePresentModesKHR(g_PhysicalDevice, GetSurface(), &Count, nullptr));
+    CheckVulkanResult(vkGetPhysicalDeviceSurfacePresentModesKHR(g_PhysicalDevice, Surface, &Count, nullptr));
 
     std::vector Output(Count, VkPresentModeKHR());
-    CheckVulkanResult(vkGetPhysicalDeviceSurfacePresentModesKHR(g_PhysicalDevice, GetSurface(), &Count, std::data(Output)));
+    CheckVulkanResult(vkGetPhysicalDeviceSurfacePresentModesKHR(g_PhysicalDevice, Surface, &Count, std::data(Output)));
 
     return Output;
 }

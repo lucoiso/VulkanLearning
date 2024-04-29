@@ -182,13 +182,13 @@ void RenderCore::ReleaseCommandsResources()
     {
         for (auto &ThreadResources : MultithreadResources | std::views::values)
         {
-            ThreadResources.Free(LogicalDevice);
             ThreadResources.Reset(LogicalDevice);
+            ThreadResources.Free(LogicalDevice);
             ThreadResources.Destroy(LogicalDevice);
         }
 
+        CheckVulkanResult(vkResetCommandPool(LogicalDevice, PrimaryCommandPool, 0U));
         vkFreeCommandBuffers(LogicalDevice, PrimaryCommandPool, 1u, &PrimaryCommandBuffer);
-
         vkDestroyCommandPool(LogicalDevice, PrimaryCommandPool, nullptr);
         PrimaryCommandPool   = VK_NULL_HANDLE;
         PrimaryCommandBuffer = VK_NULL_HANDLE;

@@ -63,7 +63,9 @@ constexpr VkPipelineCacheCreateInfo g_PipelineCacheCreateInfo { .sType = VK_STRU
 
 bool PipelineData::IsValid() const
 {
-    return MainPipeline != VK_NULL_HANDLE;
+    return MainPipeline != VK_NULL_HANDLE || FragmentShaderPipeline != VK_NULL_HANDLE || VertexInputPipeline != VK_NULL_HANDLE ||
+           PreRasterizationPipeline != VK_NULL_HANDLE || FragmentOutputPipeline != VK_NULL_HANDLE || PipelineLayout != VK_NULL_HANDLE ||
+           PipelineCache != VK_NULL_HANDLE || PipelineLibraryCache != VK_NULL_HANDLE;
 }
 
 void PipelineData::DestroyResources(VkDevice const &LogicalDevice, bool const IncludeStatic)

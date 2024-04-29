@@ -11,9 +11,11 @@ import RenderCore.UserInterface.Window;
 import RenderCore.UserInterface.Window.Flags;
 import RenderCore.Renderer;
 
-static void InitializeWindow(benchmark::State& State)
+// FIXME: Emitting validation errors
+
+static void InitializeWindow(benchmark::State &State)
 {
-    for ([[maybe_unused]] auto const _: State)
+    for ([[maybe_unused]] auto const _ : State)
     {
         RenderCore::Window Window;
         benchmark::DoNotOptimize(Window);
@@ -27,20 +29,27 @@ static void InitializeWindow(benchmark::State& State)
 
 BENCHMARK(InitializeWindow);
 
-static void LoadAndUnloadScene(benchmark::State& State)
+static void LoadAndUnloadScene(benchmark::State &State)
 {
-    ScopedWindow Window;
+    ScopedTestWindow Window;
     benchmark::DoNotOptimize(Window);
 
-    std::string const ObjectPath {"Resources/Assets/Box/glTF/Box.gltf"};
+    std::string const ObjectPath { "Models/Box/glTF/Box.gltf" };
     benchmark::DoNotOptimize(ObjectPath);
 
-    for ([[maybe_unused]] auto const _: State)
+    for ([[maybe_unused]] auto const _ : State)
     {
-        [[maybe_unused]] auto LoadedIDs = Window.GetWindow().GetRenderer().LoadScene(ObjectPath);
-        benchmark::DoNotOptimize(LoadedIDs);
+        RenderCore::Renderer::RequestLoadObject(ObjectPath);
+        Window.PollLoop([]
+        {
+            return RenderCore::Renderer::GetNumObjects() == 0U;
+        });
 
-        Window.GetWindow().GetRenderer().UnloadAllScenes();
+        RenderCore::Renderer::RequestClearScene();
+        Window.PollLoop([]
+        {
+            return RenderCore::Renderer::GetNumObjects() > 0U;
+        });
     }
 }
 
