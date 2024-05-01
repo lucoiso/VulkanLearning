@@ -127,7 +127,7 @@ jobs:
         run: cmake --preset ${{env.CONAN_PRESET}}
 
       - name: Build Project
-        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --preset ${{env.CONAN_PRESET}}
+        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --target install --preset ${{env.CONAN_PRESET}}
 
       # - name: Run Tests
       #   working-directory: ${{ steps.strings.outputs.build-output-dir }}

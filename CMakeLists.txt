@@ -3,7 +3,7 @@
 # Repo: https://github.com/lucoiso/vulkan-renderer
 
 # ----------- Global Definitions -----------
-CMAKE_MINIMUM_REQUIRED(VERSION 3.28)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.29)
 PROJECT(vulkan-renderer VERSION 0.0.1 LANGUAGES CXX)
 
 IF (POLICY CMP0048)

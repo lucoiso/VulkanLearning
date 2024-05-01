@@ -56,7 +56,7 @@ constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDI
                                                        RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::PENDING_PIPELINE_REFRESH |
                                                        RendererStateFlags::INVALID_SIZE;
 
-void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Control *const Owner)
+void RenderCore::DrawFrame(GLFWwindow * const Window, double const DeltaTime, Control * const Owner)
 {
     g_FrameTime = DeltaTime;
 
@@ -197,7 +197,7 @@ void RenderCore::Tick()
     TickObjects(static_cast<float>(g_FrameTime));
 }
 
-bool RenderCore::Initialize(GLFWwindow *const Window, bool const EnableImGui)
+bool RenderCore::Initialize(GLFWwindow * const Window, bool const EnableImGui)
 {
     if (Renderer::IsInitialized())
     {
