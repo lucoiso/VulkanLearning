@@ -4,8 +4,8 @@
 
 module;
 
-#include <chrono>
 #include <GLFW/glfw3.h>
+#include <chrono>
 
 module RenderCore.UserInterface.Window;
 
@@ -14,8 +14,7 @@ import RenderCore.Utils.EnumHelpers;
 
 using namespace RenderCore;
 
-Window::Window()
-    : Control(nullptr)
+Window::Window() : Control(nullptr)
 {
 }
 
@@ -31,8 +30,8 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
     m_Height = Height;
     m_Flags  = Flags;
 
-    if (m_GLFWHandler.Initialize(m_Width, m_Height, m_Title, m_Flags) && RenderCore::Initialize(m_GLFWHandler.GetWindow(),
-                                                                                                HasFlag(Flags, InitializationFlags::ENABLE_IMGUI)))
+    if (m_GLFWHandler.Initialize(m_Width, m_Height, m_Title, m_Flags)
+        && RenderCore::Initialize(m_GLFWHandler.GetWindow(), HasFlag(Flags, InitializationFlags::ENABLE_IMGUI)))
     {
         OnInitialized();
         RefreshResources();
@@ -80,8 +79,7 @@ void Window::Draw()
     auto const     Milliseconds = std::chrono::duration<double, std::milli>(CurrentTime - LastTime).count();
     constexpr auto Denominator  = static_cast<double>(std::milli::den);
 
-    if (auto const DeltaTime = static_cast<double>(Milliseconds) / Denominator;
-        DeltaTime >= Renderer::GetFPSLimit())
+    if (auto const DeltaTime = static_cast<double>(Milliseconds) / Denominator; DeltaTime >= Renderer::GetFPSLimit())
     {
         LastTime = CurrentTime;
         DrawFrame(m_GLFWHandler.GetWindow(), DeltaTime, this);

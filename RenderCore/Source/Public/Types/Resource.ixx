@@ -14,15 +14,15 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Resource
     {
-        bool          m_IsPendingDestroy { false };
+        bool          m_IsPendingDestroy {false};
         std::uint32_t m_ID {};
         std::string   m_Path {};
         std::string   m_Name {};
-        std::uint32_t m_BufferIndex { 0U };
+        std::uint32_t m_BufferIndex {0U};
 
     public:
         virtual ~Resource() = default;
-        Resource()          = delete;
+                 Resource() = delete;
 
         Resource(std::uint32_t, std::string_view);
         Resource(std::uint32_t, std::string_view, std::string_view);

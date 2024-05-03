@@ -4,15 +4,11 @@ BasedOnStyle: LLVM
 AccessModifierOffset: -4
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
-AlignOperands: false
+AlignOperands: true
 AlignTrailingComments: true
-AllowAllArgumentsOnNextLine: false
-AllowAllConstructorInitializersOnNextLine: false
-AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: false
 AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: false
-AllowShortLambdasOnASingleLine: None
 AlwaysBreakAfterDefinitionReturnType: false
 AlwaysBreakTemplateDeclarations: Yes
 BinPackArguments: false
@@ -35,12 +31,12 @@ BraceWrapping:
   SplitEmptyFunction: true
   SplitEmptyRecord: true
   SplitEmptyNamespace: true
-BreakBeforeBinaryOperators: All
 BreakBeforeBraces: Custom
 BreakConstructorInitializers: BeforeComma
 BreakConstructorInitializersBeforeComma: false
 ColumnLimit: 160
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
+ContinuationIndentWidth: 8
 IncludeCategories:
   - Regex: '^<.*'
     Priority: 1
@@ -57,12 +53,9 @@ MacroBlockBegin: ''
 MacroBlockEnd: ''
 MaxEmptyLinesToKeep: 2
 NamespaceIndentation: All
-ReflowComments: false
-SpaceBeforeCpp11BracedList: true
 SpaceInEmptyParentheses: false
 SpacesInAngles: false
 SpacesInConditionalStatement: false
-SpacesInContainerLiterals: false
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 TabWidth: 4

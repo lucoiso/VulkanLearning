@@ -4,8 +4,8 @@
 
 module;
 
-#include <cstdint>
 #include <Volk/volk.h>
+#include <cstdint>
 
 export module RenderCore.Runtime.Synchronization;
 
@@ -24,5 +24,5 @@ export namespace RenderCore
 
     [[nodiscard]] VkSemaphore const &GetImageAvailableSemaphore(std::uint32_t);
     [[nodiscard]] VkSemaphore const &GetRenderFinishedSemaphore(std::uint32_t);
-    [[nodiscard]] VkFence const &    GetFence(std::uint32_t);
+    [[nodiscard]] VkFence const     &GetFence(std::uint32_t);
 } // namespace RenderCore

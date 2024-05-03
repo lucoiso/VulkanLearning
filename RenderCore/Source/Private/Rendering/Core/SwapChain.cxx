@@ -4,11 +4,11 @@
 
 module;
 
+#include <Volk/volk.h>
 #include <algorithm>
 #include <execution>
 #include <vector>
 #include <vma/vk_mem_alloc.h>
-#include <Volk/volk.h>
 
 #ifdef GLFW_INCLUDE_VULKAN
     #undef GLFW_INCLUDE_VULKAN
@@ -17,6 +17,7 @@ module;
 
 module RenderCore.Runtime.SwapChain;
 
+import RenderCore.Renderer;
 import RenderCore.Runtime.Device;
 import RenderCore.Runtime.Synchronization;
 import RenderCore.Runtime.Memory;
@@ -27,9 +28,9 @@ import RenderCore.Utils.Constants;
 using namespace RenderCore;
 
 SurfaceProperties                         g_CachedProperties {};
-VkSurfaceKHR                              g_Surface { VK_NULL_HANDLE };
-VkSwapchainKHR                            g_SwapChain { VK_NULL_HANDLE };
-VkSwapchainKHR                            g_OldSwapChain { VK_NULL_HANDLE };
+VkSurfaceKHR                              g_Surface {VK_NULL_HANDLE};
+VkSwapchainKHR                            g_SwapChain {VK_NULL_HANDLE};
+VkSwapchainKHR                            g_OldSwapChain {VK_NULL_HANDLE};
 std::array<ImageAllocation, g_ImageCount> g_SwapChainImages {};
 
 void RenderCore::CreateVulkanSurface(GLFWwindow *const Window)
@@ -45,24 +46,23 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
     g_OldSwapChain     = g_SwapChain;
     g_CachedProperties = SurfaceProperties;
 
-    VkSwapchainCreateInfoKHR const SwapChainCreateInfo {
-            .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-            .surface = GetSurface(),
-            .minImageCount = g_ImageCount,
-            .imageFormat = SurfaceProperties.Format.format,
-            .imageColorSpace = SurfaceProperties.Format.colorSpace,
-            .imageExtent = SurfaceProperties.Extent,
-            .imageArrayLayers = 1U,
-            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-            .imageSharingMode = QueueFamilyIndicesCount > 1U ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
-            .queueFamilyIndexCount = QueueFamilyIndicesCount,
-            .pQueueFamilyIndices = std::data(QueueFamilyIndices),
-            .preTransform = SurfaceCapabilities.currentTransform,
-            .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-            .presentMode = SurfaceProperties.Mode,
-            .clipped = VK_TRUE,
-            .oldSwapchain = g_OldSwapChain
-    };
+    VkSwapchainCreateInfoKHR const SwapChainCreateInfo {.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+                                                        .surface          = GetSurface(),
+                                                        .minImageCount    = g_ImageCount,
+                                                        .imageFormat      = SurfaceProperties.Format.format,
+                                                        .imageColorSpace  = SurfaceProperties.Format.colorSpace,
+                                                        .imageExtent      = SurfaceProperties.Extent,
+                                                        .imageArrayLayers = 1U,
+                                                        .imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                                        .imageSharingMode
+                                                        = QueueFamilyIndicesCount > 1U ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+                                                        .queueFamilyIndexCount = QueueFamilyIndicesCount,
+                                                        .pQueueFamilyIndices   = std::data(QueueFamilyIndices),
+                                                        .preTransform          = SurfaceCapabilities.currentTransform,
+                                                        .compositeAlpha        = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+                                                        .presentMode           = SurfaceProperties.Mode,
+                                                        .clipped               = VK_TRUE,
+                                                        .oldSwapchain          = g_OldSwapChain};
 
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
@@ -84,11 +84,7 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
                            std::begin(g_SwapChainImages),
                            [SurfaceProperties](VkImage const &Image)
                            {
-                               return ImageAllocation {
-                                       .Image = Image,
-                                       .Extent = SurfaceProperties.Extent,
-                                       .Format = SurfaceProperties.Format.format
-                               };
+                               return ImageAllocation {.Image = Image, .Extent = SurfaceProperties.Extent, .Format = SurfaceProperties.Format.format};
                            });
 
     CreateSwapChainImageViews(g_SwapChainImages);
@@ -96,7 +92,7 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
 
 bool RenderCore::RequestSwapChainImage(std::uint32_t &Output)
 {
-    VkDevice const &   LogicalDevice = GetLogicalDevice();
+    VkDevice const    &LogicalDevice = GetLogicalDevice();
     std::uint8_t const SyncIndex     = Output + 1U >= g_ImageCount ? 0U : Output + 1U;
     VkSemaphore const &Semaphore     = GetImageAvailableSemaphore(SyncIndex);
 
@@ -117,14 +113,12 @@ void RenderCore::CreateSwapChainImageViews(std::array<ImageAllocation, g_ImageCo
 
 void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
 {
-    VkPresentInfoKHR const PresentInfo {
-            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-            .waitSemaphoreCount = 1U,
-            .pWaitSemaphores = &GetRenderFinishedSemaphore(ImageIndice),
-            .swapchainCount = 1U,
-            .pSwapchains = &g_SwapChain,
-            .pImageIndices = &ImageIndice
-    };
+    VkPresentInfoKHR const PresentInfo {.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+                                        .waitSemaphoreCount = 1U,
+                                        .pWaitSemaphores    = &GetRenderFinishedSemaphore(ImageIndice),
+                                        .swapchainCount     = 1U,
+                                        .pSwapchains        = &g_SwapChain,
+                                        .pImageIndices      = &ImageIndice};
 
     CheckVulkanResult(vkQueuePresentKHR(GetGraphicsQueue().second, &PresentInfo));
 }

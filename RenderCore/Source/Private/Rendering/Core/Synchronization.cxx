@@ -4,8 +4,8 @@
 
 module;
 
-#include <array>
 #include <Volk/volk.h>
+#include <array>
 
 module RenderCore.Runtime.Synchronization;
 
@@ -40,7 +40,7 @@ void RenderCore::CreateSynchronizationObjects()
 {
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
-    constexpr VkSemaphoreCreateInfo SemaphoreCreateInfo { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+    constexpr VkSemaphoreCreateInfo SemaphoreCreateInfo {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
     for (auto &Semaphore : g_ImageAvailableSemaphores)
     {
         CheckVulkanResult(vkCreateSemaphore(LogicalDevice, &SemaphoreCreateInfo, nullptr, &Semaphore));
@@ -51,7 +51,7 @@ void RenderCore::CreateSynchronizationObjects()
         CheckVulkanResult(vkCreateSemaphore(LogicalDevice, &SemaphoreCreateInfo, nullptr, &Semaphore));
     }
 
-    constexpr VkFenceCreateInfo FenceCreateInfo { .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT };
+    constexpr VkFenceCreateInfo FenceCreateInfo {.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT};
     for (auto &Fence : g_Fences)
     {
         CheckVulkanResult(vkCreateFence(LogicalDevice, &FenceCreateInfo, nullptr, &Fence));
@@ -99,8 +99,8 @@ void RenderCore::ResetSemaphores()
 {
     vkQueueWaitIdle(GetGraphicsQueue().second);
 
-    VkDevice const &                LogicalDevice = GetLogicalDevice();
-    constexpr VkSemaphoreCreateInfo SemaphoreCreateInfo { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+    VkDevice const                 &LogicalDevice = GetLogicalDevice();
+    constexpr VkSemaphoreCreateInfo SemaphoreCreateInfo {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
     for (auto &Semaphore : g_ImageAvailableSemaphores)
     {
@@ -123,9 +123,13 @@ void RenderCore::ResetSemaphores()
 
 void RenderCore::ResetFenceStatus()
 {
-    for (auto &FenceInUse : g_FenceInUse)
+    for (std::uint8_t Iterator = 0U; Iterator < g_ImageCount; ++Iterator)
     {
-        FenceInUse = false;
+        if (bool &FenceStatus = g_FenceInUse.at(Iterator); FenceStatus)
+        {
+            WaitAndResetFence(Iterator);
+            FenceStatus = false;
+        }
     }
 }
 

@@ -4,10 +4,10 @@
 
 module;
 
-#include <imgui.h>
-#include <boost/log/trivial.hpp>
 #include <GLFW/glfw3.h>
+#include <boost/log/trivial.hpp>
 #include <glm/ext.hpp>
+#include <imgui.h>
 
 module RenderCore.Integrations.GLFWCallbacks;
 
@@ -23,27 +23,27 @@ using namespace RenderCore;
 
 bool g_CanMovementCamera = false;
 
-void RenderCore::GLFWWindowCloseRequested(GLFWwindow *const Window)
+void RenderCore::GLFWWindowCloseRequestedCallback(GLFWwindow *const Window)
 {
     glfwSetWindowShouldClose(Window, GLFW_TRUE);
 }
 
-void RenderCore::GLFWWindowResized([[maybe_unused]] GLFWwindow *const  Window,
-                                   [[maybe_unused]] std::int32_t const Width,
-                                   [[maybe_unused]] std::int32_t const Height)
+void RenderCore::GLFWWindowResizedCallback([[maybe_unused]] GLFWwindow *const  Window,
+                                           [[maybe_unused]] std::int32_t const Width,
+                                           [[maybe_unused]] std::int32_t const Height)
 {
+    constexpr RendererStateFlags RefreshFlags = RendererStateFlags::INVALID_SIZE | RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE;
+
     if (Width <= 0 || Height <= 0)
     {
-        Renderer::AddStateFlag(RendererStateFlags::INVALID_SIZE);
-        Renderer::AddStateFlag(RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
-        Renderer::RequestUpdateResources();
+        Renderer::AddStateFlag(RefreshFlags);
     }
     else
     {
-        Renderer::RemoveStateFlag(RendererStateFlags::INVALID_SIZE);
-        Renderer::RemoveStateFlag(RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE);
-        Renderer::RequestUpdateResources();
+        Renderer::RemoveStateFlag(RefreshFlags);
     }
+
+    Renderer::RequestUpdateResources();
 }
 
 void RenderCore::GLFWErrorCallback(std::int32_t const Error, char const *const Description)
@@ -177,10 +177,10 @@ void RenderCore::InstallGLFWCallbacks(GLFWwindow *const Window, bool const Insta
 {
     if (InstallClose)
     {
-        glfwSetWindowCloseCallback(Window, &GLFWWindowCloseRequested);
+        glfwSetWindowCloseCallback(Window, &GLFWWindowCloseRequestedCallback);
     }
 
-    glfwSetWindowSizeCallback(Window, &GLFWWindowResized);
+    glfwSetWindowSizeCallback(Window, &GLFWWindowResizedCallback);
     glfwSetKeyCallback(Window, &GLFWKeyCallback);
     glfwSetCursorPosCallback(Window, &GLFWCursorPositionCallback);
     glfwSetScrollCallback(Window, &GLFWCursorScrollCallback);

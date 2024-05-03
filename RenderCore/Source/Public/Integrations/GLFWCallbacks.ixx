@@ -11,8 +11,8 @@ export module RenderCore.Integrations.GLFWCallbacks;
 
 namespace RenderCore
 {
-    void        GLFWWindowCloseRequested(GLFWwindow *);
-    void        GLFWWindowResized(GLFWwindow *, std::int32_t, std::int32_t);
+    void        GLFWWindowCloseRequestedCallback(GLFWwindow *);
+    void        GLFWWindowResizedCallback(GLFWwindow *, std::int32_t, std::int32_t);
     export void GLFWErrorCallback(std::int32_t, char const *);
     void        GLFWKeyCallback(GLFWwindow *, std::int32_t, std::int32_t, std::int32_t, std::int32_t);
     void        GLFWCursorPositionCallback(GLFWwindow *, double, double);

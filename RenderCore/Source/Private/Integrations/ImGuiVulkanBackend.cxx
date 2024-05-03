@@ -6,13 +6,13 @@
 
 module;
 
+#include <Volk/volk.h>
 #include <algorithm>
 #include <array>
 #include <cstdint>
 #include <imgui.h>
 #include <vector>
 #include <vma/vk_mem_alloc.h>
-#include <Volk/volk.h>
 
 module RenderCore.Integrations.ImGuiVulkanBackend;
 
@@ -749,7 +749,8 @@ void ImGuiVulkanCreatePipeline()
             .MultisampleState = MsInfo,
             .VertexBinding = VertexBindingDescription,
             .VertexAttributes = {
-                    VkVertexInputAttributeDescription {
+                    VkVertexInputAttributeDescription
+                    {
                             .location = 0U,
                             .binding = VertexBindingDescription.binding,
                             .format = VK_FORMAT_R32G32_SFLOAT,
@@ -855,13 +856,6 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
     auto &      [CommandPool, CommandBuffer, Fence, PendingWait, Backbuffer] = WindowData.Frames.at(WindowData.FrameIndex);
     auto const &[ImageAcquiredSemaphore, RenderCompleteSemaphore]            = WindowData.FrameSemaphores.at(WindowData.SemaphoreIndex);
 
-    if (PendingWait)
-    {
-        CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &Fence, VK_TRUE, g_Timeout));
-        CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &Fence));
-        PendingWait = false;
-    }
-
     if (vkAcquireNextImageKHR(LogicalDevice, WindowData.Swapchain, g_Timeout, ImageAcquiredSemaphore, VK_NULL_HANDLE, &WindowData.FrameIndex) !=
         VK_SUCCESS)
     {
@@ -931,7 +925,9 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
     };
 
     CheckVulkanResult(vkQueueSubmit2(Queue, 1U, &SubmitInfo, Fence));
-    PendingWait = true;
+    CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &Fence, VK_FALSE, g_Timeout));
+    CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &Fence));
+    CheckVulkanResult(vkResetCommandPool(LogicalDevice, CommandPool, 0U));
 }
 
 void ImGuiVulkanSwapBuffers(ImGuiViewport *Viewport, void *)
@@ -1073,7 +1069,7 @@ void RenderCore::ImGuiVulkanCreateWindowCommandBuffers(ImGuiVulkanWindow &Window
 
         VkCommandPoolCreateInfo const CommandPoolInfo {
                 .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+                .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
                 .queueFamilyIndex = QueueFamilyIndex
         };
 
@@ -1230,6 +1226,9 @@ void RenderCore::ImGuiVulkanDestroyFrame(ImGuiVulkanFrame &FrameData)
 
 void RenderCore::ImGuiVulkanDestroyFrameSemaphores(ImGuiVulkanFrameSemaphores &FrameSemaphore)
 {
+    auto const &[QueueFamilyIndex, Queue] = GetGraphicsQueue();
+    CheckVulkanResult(vkQueueWaitIdle(Queue));
+
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
     vkDestroySemaphore(LogicalDevice, FrameSemaphore.ImageAcquiredSemaphore, nullptr);
