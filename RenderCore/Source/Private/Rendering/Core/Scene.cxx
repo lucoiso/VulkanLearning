@@ -4,10 +4,10 @@
 
 module;
 
+#include <Volk/volk.h>
 #include <boost/log/trivial.hpp>
 #include <glm/ext.hpp>
 #include <vma/vk_mem_alloc.h>
-#include <Volk/volk.h>
 
 #ifndef TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_IMPLEMENTATION
@@ -36,6 +36,8 @@ import RenderCore.Runtime.Model;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
+import RenderCore.Factories.Texture;
+import RenderCore.Factories.Mesh;
 
 using namespace RenderCore;
 
@@ -175,38 +177,25 @@ void RenderCore::LoadScene(std::string_view const ModelPath)
         for (std::uint32_t Iterator = 0U; Iterator < std::size(Model.textures); ++Iterator)
         {
             tinygltf::Texture const &TextureIter = Model.textures.at(Iterator);
-            if (TextureIter.source < 0)
+            if (TextureIter.source < 0 || TextureMap.contains(Iterator))
             {
                 continue;
             }
 
-            if (TextureMap.contains(Iterator))
+            TextureConstructionInputParameters Input {
+                    .ID = static_cast<std::uint32_t>(g_ObjectAllocationIDCounter.fetch_add(1U)),
+                    .Image = Model.images.at(TextureIter.source),
+                    .AllocationCmdBuffer = CommandBuffer
+            };
+
+            TextureConstructionOutputParameters Output {};
+
+            if (std::shared_ptr<Texture> NewTexture = ConstructTexture(Input, Output);
+                NewTexture)
             {
-                continue;
+                TextureMap.emplace(Iterator, std::move(NewTexture));
+                BufferAllocations.emplace(std::move(Output.StagingBuffer), std::move(Output.StagingAllocation));
             }
-
-            tinygltf::Image const &ImageIter = Model.images.at(TextureIter.source);
-
-            if (std::empty(ImageIter.image))
-            {
-                continue;
-            }
-
-            std::uint32_t const TextureID   = g_ObjectAllocationIDCounter.fetch_add(1U);
-            std::string const   TextureName = std::format("{}_{:03d}", std::empty(ImageIter.name) ? "None" : ImageIter.name, TextureID);
-            auto                NewTexture  = std::shared_ptr<Texture>(new Texture { TextureID, ImageIter.uri, TextureName }, TextureDeleter {});
-
-            auto const [Index, Buffer, Allocation] = AllocateTexture(CommandBuffer,
-                                                                     std::data(ImageIter.image),
-                                                                     ImageIter.width,
-                                                                     ImageIter.height,
-                                                                     ImageIter.component == 3 ? VK_FORMAT_R8G8B8_UNORM : VK_FORMAT_R8G8B8A8_UNORM,
-                                                                     ImageIter.image.size());
-
-            BufferAllocations.emplace(Buffer, Allocation);
-
-            NewTexture->SetBufferIndex(Index);
-            TextureMap.emplace(Iterator, std::move(NewTexture));
         }
 
         for (tinygltf::Node const &Node : Model.nodes)
@@ -220,81 +209,24 @@ void RenderCore::LoadScene(std::string_view const ModelPath)
             for (tinygltf::Mesh const &     LoadedMesh = Model.meshes.at(MeshIndex);
                  tinygltf::Primitive const &PrimitiveIter : LoadedMesh.primitives)
             {
-                std::uint32_t const MeshID = g_ObjectAllocationIDCounter.fetch_add(1U);
+                MeshConstructionInputParameters Arguments {
+                        .ID = static_cast<std::uint32_t>(g_ObjectAllocationIDCounter.fetch_add(1U)),
+                        .Path = ModelPath,
+                        .Model = Model,
+                        .Node = Node,
+                        .Mesh = LoadedMesh,
+                        .Primitive = PrimitiveIter,
+                        .TextureMap = TextureMap
+                };
 
-                std::string const MeshName = std::format("{}_{:03d}", std::empty(LoadedMesh.name) ? "None" : LoadedMesh.name, MeshID);
-                auto              NewMesh  = std::shared_ptr<Mesh>(new Mesh { MeshID, ModelPath, MeshName }, MeshDeleter {});
-
-                SetVertexAttributes(NewMesh, Model, PrimitiveIter);
-                SetPrimitiveTransform(NewMesh, Node);
-                AllocatePrimitiveIndices(NewMesh, Model, PrimitiveIter);
-
-                if (PrimitiveIter.material < 0)
+                if (std::shared_ptr<Mesh> NewMesh = ConstructMesh(Arguments);
+                    NewMesh)
                 {
-                    continue;
+                    std::uint32_t const ObjectID  = g_ObjectAllocationIDCounter.fetch_add(1U);
+                    auto                NewObject = std::make_shared<Object>(ObjectID, ModelPath);
+                    NewObject->SetMesh(std::move(NewMesh));
+                    g_Objects.push_back(std::move(NewObject));
                 }
-
-                tinygltf::Material const &MeshMaterial = Model.materials.at(PrimitiveIter.material);
-
-                NewMesh->SetMaterialData({
-                                                 .BaseColorFactor = glm::make_vec4(std::data(MeshMaterial.pbrMetallicRoughness.baseColorFactor)),
-                                                 .EmissiveFactor = glm::make_vec3(std::data(MeshMaterial.emissiveFactor)),
-                                                 .MetallicFactor = static_cast<float>(MeshMaterial.pbrMetallicRoughness.metallicFactor),
-                                                 .RoughnessFactor = static_cast<float>(MeshMaterial.pbrMetallicRoughness.roughnessFactor),
-                                                 .AlphaCutoff = static_cast<float>(MeshMaterial.alphaCutoff),
-                                                 .NormalScale = static_cast<float>(MeshMaterial.normalTexture.scale),
-                                                 .OcclusionStrength = static_cast<float>(MeshMaterial.occlusionTexture.strength),
-                                                 .AlphaMode = MeshMaterial.alphaMode == "OPAQUE"
-                                                                  ? AlphaMode::ALPHA_OPAQUE
-                                                                  : MeshMaterial.alphaMode == "MASK"
-                                                                        ? AlphaMode::ALPHA_MASK
-                                                                        : AlphaMode::ALPHA_BLEND,
-                                                 .DoubleSided = MeshMaterial.doubleSided
-                                         });
-
-                std::vector<std::shared_ptr<Texture>> Textures {};
-
-                if (MeshMaterial.pbrMetallicRoughness.baseColorTexture.index >= 0)
-                {
-                    auto Texture = TextureMap.at(MeshMaterial.pbrMetallicRoughness.baseColorTexture.index);
-                    Texture->AppendType(TextureType::BaseColor);
-                    Textures.push_back(Texture);
-                }
-
-                if (MeshMaterial.normalTexture.index >= 0)
-                {
-                    auto Texture = TextureMap.at(MeshMaterial.normalTexture.index);
-                    Texture->AppendType(TextureType::Normal);
-                    Textures.push_back(Texture);
-                }
-
-                if (MeshMaterial.occlusionTexture.index >= 0)
-                {
-                    auto Texture = TextureMap.at(MeshMaterial.occlusionTexture.index);
-                    Texture->AppendType(TextureType::Occlusion);
-                    Textures.push_back(Texture);
-                }
-
-                if (MeshMaterial.emissiveTexture.index >= 0)
-                {
-                    auto Texture = TextureMap.at(MeshMaterial.emissiveTexture.index);
-                    Texture->AppendType(TextureType::Emissive);
-                    Textures.push_back(Texture);
-                }
-
-                if (MeshMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
-                {
-                    auto Texture = TextureMap.at(MeshMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index);
-                    Texture->AppendType(TextureType::MetallicRoughness);
-                    Textures.push_back(Texture);
-                }
-
-                NewMesh->SetTextures(std::move(Textures));
-
-                std::uint32_t const ObjectID  = g_ObjectAllocationIDCounter.fetch_add(1U);
-                auto                NewObject = std::shared_ptr<Object>(new Object { ObjectID, ModelPath }, ObjectDeleter {});
-                NewObject->SetMesh(std::move(NewMesh));
-                g_Objects.push_back(std::move(NewObject));
             }
         }
 
@@ -426,8 +358,10 @@ void RenderCore::UpdateSceneUniformBuffer()
         SceneUniformData const UpdatedUBO {
                 .ProjectionView = g_Camera.GetProjectionMatrix() * g_Camera.GetViewMatrix(),
                 .LightPosition = g_Illumination.GetPosition(),
-                .LightColor = g_Illumination.GetColor() * g_Illumination.GetIntensity()
+                .LightColor = g_Illumination.GetColor() * g_Illumination.GetIntensity(),
+                .AmbientLight = g_Illumination.GetAmbient()
         };
+
         std::memcpy(m_UniformBufferAllocation.first.MappedData, &UpdatedUBO, SceneUBOSize);
     }
 }

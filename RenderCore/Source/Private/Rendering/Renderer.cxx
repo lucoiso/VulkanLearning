@@ -9,7 +9,7 @@ module;
 
 // Include vulkan before glfw
 #ifndef VOLK_IMPLEMENTATION
-    #define VOLK_IMPLEMENTATION
+#define VOLK_IMPLEMENTATION
 #endif
 #include <Volk/volk.h>
 
@@ -40,28 +40,35 @@ import RenderCore.Types.Allocation;
 
 using namespace RenderCore;
 
-auto                       g_StateFlags {RendererStateFlags::NONE};
-auto                       g_ObjectsManagementStateFlags {RendererObjectsManagementStateFlags::NONE};
+auto                       g_StateFlags { RendererStateFlags::NONE };
+auto                       g_ObjectsManagementStateFlags { RendererObjectsManagementStateFlags::NONE };
 std::vector<std::string>   g_ModelsToLoad {};
 std::vector<std::uint32_t> g_ModelsToUnload {};
-double                     g_FrameTime {0.F};
-double                     g_FrameRateCap {0.016667F};
-bool                       g_UseVSync {true};
-bool                       g_RenderOffscreen {false};
-bool                       g_EnableImGui {false};
-std::uint32_t              g_ImageIndex {g_ImageCount};
+double                     g_FrameTime { 0.F };
+double                     g_FrameRateCap { 0.016667F };
+bool                       g_UseVSync { true };
+bool                       g_RenderOffscreen { false };
+bool                       g_EnableImGui { false };
+std::uint32_t              g_ImageIndex { g_ImageCount };
 
-constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE | RendererStateFlags::PENDING_RESOURCES_DESTRUCTION
-    | RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::PENDING_PIPELINE_REFRESH | RendererStateFlags::INVALID_SIZE;
+constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
+                                                       RendererStateFlags::PENDING_RESOURCES_DESTRUCTION |
+                                                       RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::PENDING_PIPELINE_REFRESH |
+                                                       RendererStateFlags::INVALID_SIZE;
 
 void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Control *const Owner)
 {
     g_FrameTime = DeltaTime;
-    CheckObjectManagementFlags();
+
+    if (HasAnyFlag(g_ObjectsManagementStateFlags))
+    {
+        AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+    }
 
     if (HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
     {
-        if (!HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION) && HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
+        if (!HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION) && HasFlag(g_StateFlags,
+                                                                                              RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
             CheckVulkanResult(vkDeviceWaitIdle(GetLogicalDevice()));
 
@@ -77,11 +84,39 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             DestroyOffscreenImages();
             ReleasePipelineResources(false);
 
+            if (HasAnyFlag(g_ObjectsManagementStateFlags,
+                           RendererObjectsManagementStateFlags::PENDING_CLEAR | RendererObjectsManagementStateFlags::PENDING_UNLOAD))
+            {
+                if (HasFlag(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_CLEAR))
+                {
+                    DestroyObjects();
+                }
+                else if (HasFlag(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_UNLOAD))
+                {
+                    UnloadObjects(g_ModelsToUnload);
+                }
+
+                g_ModelsToUnload.clear();
+                RemoveFlags(g_ObjectsManagementStateFlags,
+                            RendererObjectsManagementStateFlags::PENDING_CLEAR | RendererObjectsManagementStateFlags::PENDING_UNLOAD);
+            }
+
+            if (HasFlag(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_LOAD))
+            {
+                for (auto const &ModelPath : g_ModelsToLoad)
+                {
+                    LoadScene(ModelPath);
+                }
+
+                g_ModelsToLoad.clear();
+                RemoveFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_LOAD);
+            }
+
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
             AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
         }
-        else if (!HasAnyFlag(g_StateFlags, RendererStateFlags::INVALID_SIZE | RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE)
-                 && HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION))
+        else if (!HasAnyFlag(g_StateFlags, RendererStateFlags::INVALID_SIZE | RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE) &&
+                 HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION))
         {
             auto const SurfaceProperties = GetSurfaceProperties(Window);
 
@@ -142,40 +177,6 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         RecordCommandBuffers(g_ImageIndex);
         SubmitCommandBuffers(g_ImageIndex);
         PresentFrame(g_ImageIndex);
-    }
-}
-
-void RenderCore::CheckObjectManagementFlags()
-{
-    if (HasAnyFlag(g_ObjectsManagementStateFlags))
-    {
-        AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
-    }
-
-    if (HasAnyFlag(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_CLEAR | RendererObjectsManagementStateFlags::PENDING_UNLOAD))
-    {
-        if (HasFlag(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_CLEAR))
-        {
-            DestroyObjects();
-        }
-        else if (HasFlag(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_UNLOAD))
-        {
-            UnloadObjects(g_ModelsToUnload);
-        }
-
-        g_ModelsToUnload.clear();
-        RemoveFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_CLEAR | RendererObjectsManagementStateFlags::PENDING_UNLOAD);
-    }
-
-    if (HasFlag(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_LOAD))
-    {
-        for (auto const &ModelPath : g_ModelsToLoad)
-        {
-            LoadScene(ModelPath);
-        }
-
-        g_ModelsToLoad.clear();
-        RemoveFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_LOAD);
     }
 }
 
@@ -395,7 +396,7 @@ VkSampler Renderer::GetSampler()
 std::vector<VkImageView> Renderer::GetOffscreenImages()
 {
     std::vector<VkImageView> Output;
-    auto const              &OffscreenAllocations = RenderCore::GetOffscreenImages();
+    auto const &             OffscreenAllocations = RenderCore::GetOffscreenImages();
     Output.reserve(std::size(OffscreenAllocations));
 
     for (ImageAllocation const &AllocationIter : OffscreenAllocations)

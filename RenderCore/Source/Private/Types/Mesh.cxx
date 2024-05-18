@@ -137,11 +137,11 @@ void Mesh::SetTextures(std::vector<std::shared_ptr<Texture>> const &Textures)
     }
 }
 
-void Mesh::BindBuffers(VkCommandBuffer const &CommandBuffer) const
+void Mesh::BindBuffers(VkCommandBuffer const &CommandBuffer, std::uint32_t const NumInstances) const
 {
-    VkBuffer const &AllocationBuffer = GetAllocationBuffer(GetBufferIndex());
+    VkBuffer const &AllocationBuffer = GetAllocationBuffer();
 
     vkCmdBindVertexBuffers(CommandBuffer, 0U, 1U, &AllocationBuffer, &m_VertexOffset);
     vkCmdBindIndexBuffer(CommandBuffer, AllocationBuffer, m_IndexOffset, VK_INDEX_TYPE_UINT32);
-    vkCmdDrawIndexed(CommandBuffer, static_cast<std::uint32_t>(std::size(m_Indices)), 1U, 0U, 0U, 0U);
+    vkCmdDrawIndexed(CommandBuffer, static_cast<std::uint32_t>(std::size(m_Indices)), NumInstances, 0U, 0U, 0U);
 }

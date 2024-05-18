@@ -25,6 +25,7 @@ layout(location = 1) in FragmentData {
     int   material_doubleSided;
     vec3  light_position;
     vec3  light_color;
+    float light_ambient;
 } fragData;
 
 void main() {
@@ -40,7 +41,7 @@ void main() {
     vec3 diffuse = baseColor.rgb * lightColor * NdotL;
 
     float occlusion = texture(samplerOcclusionMap, fragData.model_uv).r;
-    vec3 ambient = baseColor.rgb * (0.1 + 0.9 * occlusion);
+    vec3 ambient = baseColor.rgb * (0.1 + fragData.light_ambient * occlusion);
 
     vec3 emissive = texture(samplerEmissiveMap, fragData.model_uv).rgb * fragData.material_emissiveFactor;
 

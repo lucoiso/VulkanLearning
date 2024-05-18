@@ -71,6 +71,6 @@ namespace RenderCore
         [[nodiscard]] std::vector<std::shared_ptr<Texture>> const &GetTextures() const;
         void                                                       SetTextures(std::vector<std::shared_ptr<Texture>> const &Textures);
 
-        void BindBuffers(VkCommandBuffer const &) const;
+        void BindBuffers(VkCommandBuffer const &, std::uint32_t) const;
     };
 } // namespace RenderCore

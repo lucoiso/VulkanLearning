@@ -19,6 +19,7 @@ namespace RenderCore
     {
         mutable bool                                        m_IsRenderDirty { true };
         float                                               m_Intensity { 1.F };
+        float                                               m_Ambient { 1.F };
         glm::vec3                                           m_Position { 100.F, 100.F, 100.F };
         glm::vec3                                           m_Color { 1.F, 1.F, 1.F };
         std::pair<BufferAllocation, VkDescriptorBufferInfo> m_UniformBufferAllocation {};
@@ -34,6 +35,9 @@ namespace RenderCore
 
         void                SetIntensity(float);
         [[nodiscard]] float GetIntensity() const;
+
+        void                SetAmbient(float);
+        [[nodiscard]] float GetAmbient() const;
 
         [[nodiscard]] bool IsRenderDirty() const;
         void               SetRenderDirty(bool) const;

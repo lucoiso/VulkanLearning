@@ -33,6 +33,7 @@ FIND_PACKAGE(tinygltf CONFIG REQUIRED)
 
 FIND_PACKAGE(glfw3 CONFIG REQUIRED)
 FIND_PACKAGE(imgui CONFIG REQUIRED)
+FIND_PACKAGE(meshoptimizer CONFIG REQUIRED)
 
 TARGET_LINK_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Libraries)
 
@@ -41,6 +42,8 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC
         TinyGLTF::TinyGLTF
         glfw
         imgui::imgui
+        meshoptimizer::meshoptimizer
+
         ThreadPool
 )
 

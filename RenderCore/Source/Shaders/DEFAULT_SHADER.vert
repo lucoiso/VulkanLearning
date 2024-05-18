@@ -10,6 +10,7 @@ layout(std140, set = 0, binding = 0) uniform UBOCamera {
     mat4 projection_view;
     vec3 light_position;
     vec3 light_color;
+    float light_ambient;
 } uboCamera;
 
 layout(std140, set = 1, binding = 0) uniform UBOModel {
@@ -42,6 +43,7 @@ layout(location = 1) out FragmentData {
     int   material_doubleSided;
     vec3  light_position;
     vec3  light_color;
+    float light_ambient;
 } fragData;
 
 void main() {
@@ -67,4 +69,5 @@ void main() {
 
     fragData.light_position = uboCamera.light_position;
     fragData.light_color = uboCamera.light_color;
+    fragData.light_ambient = uboCamera.light_ambient;
 }

@@ -5,8 +5,8 @@
 module;
 
 #include <filesystem>
-#include <tiny_gltf.h>
 #include <glm/ext.hpp>
+#include <tiny_gltf.h>
 #include <vma/vk_mem_alloc.h>
 
 module RenderCore.Runtime.Model;

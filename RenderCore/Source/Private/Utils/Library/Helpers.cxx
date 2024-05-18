@@ -152,6 +152,7 @@ std::vector<VkVertexInputAttributeDescription> RenderCore::GetAttributeDescripti
     {
         Binding  = InBinding;
         Location = AttributeLocation;
+
         ++AttributeLocation;
     }
 

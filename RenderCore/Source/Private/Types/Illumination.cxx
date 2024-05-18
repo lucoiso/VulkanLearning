@@ -41,7 +41,7 @@ glm::vec3 const &Illumination::GetColor() const
     return m_Color;
 }
 
-void Illumination::SetIntensity(const float Value)
+void Illumination::SetIntensity(float const Value)
 {
     if (m_Intensity != Value)
     {
@@ -53,6 +53,20 @@ void Illumination::SetIntensity(const float Value)
 float Illumination::GetIntensity() const
 {
     return m_Intensity;
+}
+
+void Illumination::SetAmbient(float const Value)
+{
+    if (m_Ambient != Value)
+    {
+        m_Ambient       = Value;
+        m_IsRenderDirty = true;
+    }
+}
+
+float Illumination::GetAmbient() const
+{
+    return m_Ambient;
 }
 
 bool Illumination::IsRenderDirty() const

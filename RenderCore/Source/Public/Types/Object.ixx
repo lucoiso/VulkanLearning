@@ -6,6 +6,7 @@ module;
 
 #include <bitset>
 #include <memory>
+#include <vector>
 #include <glm/ext.hpp>
 #include <Volk/volk.h>
 
@@ -23,6 +24,7 @@ namespace RenderCore
     {
         mutable bool           m_IsRenderDirty { true };
         Transform              m_Transform {};
+        std::vector<Transform> m_InstanceTransform {};
         std::shared_ptr<Mesh>  m_Mesh { nullptr };
         std::uint32_t          m_UniformOffset {};
         VkDescriptorBufferInfo m_UniformBufferInfo {};
@@ -42,6 +44,12 @@ namespace RenderCore
 
         [[nodiscard]] Transform const &GetTransform() const;
         void                           SetTransform(Transform const &);
+
+        [[nodiscard]] std::uint32_t GetNumInstances() const;
+        void                        SetNumInstance(std::uint32_t);
+
+        [[nodiscard]] Transform const &GetInstanceTransform(std::uint32_t) const;
+        void                           SetInstanceTransform(std::uint32_t, Transform const &);
 
         [[nodiscard]] glm::vec3 GetPosition() const;
         void                    SetPosition(glm::vec3 const &);
@@ -73,5 +81,6 @@ namespace RenderCore
         void                                SetMesh(std::shared_ptr<Mesh> const &);
 
         [[nodiscard]] bool IsRenderDirty() const;
+        void MarkAsRenderDirty() const;
     };
 } // namespace RenderCore

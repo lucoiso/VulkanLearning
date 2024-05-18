@@ -4,10 +4,10 @@
 
 module;
 
-#include <array>
-#include <string>
-#include <glm/ext.hpp>
 #include <Volk/volk.h>
+#include <array>
+#include <glm/ext.hpp>
+#include <string>
 
 module RenderCore.Types.Object;
 
@@ -43,6 +43,35 @@ void Object::SetTransform(Transform const &Value)
     if (m_Transform != Value)
     {
         m_Transform     = Value;
+        m_IsRenderDirty = true;
+    }
+}
+
+std::uint32_t Object::GetNumInstances() const
+{
+    return static_cast<std::uint32_t>(std::size(m_InstanceTransform));
+}
+
+void Object::SetNumInstance(std::uint32_t const Value)
+{
+    if (GetNumInstances() != Value)
+    {
+        m_InstanceTransform.resize(Value);
+        m_IsRenderDirty = true;
+    }
+}
+
+Transform const &Object::GetInstanceTransform(std::uint32_t const Index) const
+{
+    return m_InstanceTransform.at(Index);
+}
+
+void Object::SetInstanceTransform(std::uint32_t const Index, Transform const &Value)
+{
+    if (Transform &TransformIt = m_InstanceTransform.at(Index);
+        TransformIt != Value)
+    {
+        TransformIt     = Value;
         m_IsRenderDirty = true;
     }
 }
@@ -103,6 +132,7 @@ void Object::SetMatrix(glm::mat4 const &Value)
 void Object::Destroy()
 {
     Resource::Destroy();
+    Renderer::RequestUnloadObjects({ GetID() });
 }
 
 std::uint32_t Object::GetUniformOffset() const
@@ -117,8 +147,8 @@ void Object::SetUniformOffset(std::uint32_t const &Offset)
 
 void Object::SetupUniformDescriptor()
 {
-    m_UniformBufferInfo = GetAllocationBufferDescriptor(GetBufferIndex(), m_UniformOffset, sizeof(ModelUniformData));
-    m_MappedData        = GetAllocationMappedData(GetBufferIndex());
+    m_UniformBufferInfo = GetAllocationBufferDescriptor(m_UniformOffset, sizeof(ModelUniformData));
+    m_MappedData        = GetAllocationMappedData();
 }
 
 void Object::UpdateUniformBuffers() const
@@ -160,7 +190,8 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
     auto const &[SceneData, ModelData, TextureData] = GetPipelineDescriptorData();
 
     std::array const BufferBindingInfos {
-            VkDescriptorBufferBindingInfoEXT {
+            VkDescriptorBufferBindingInfoEXT
+            {
                     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
                     .address = SceneData.BufferDeviceAddress.deviceAddress,
                     .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
@@ -197,7 +228,7 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
                                        std::data(BufferIndices),
                                        std::data(BufferOffsets));
 
-    m_Mesh->BindBuffers(CommandBuffer);
+    m_Mesh->BindBuffers(CommandBuffer, std::empty(m_InstanceTransform) ? 1U : GetNumInstances());
 }
 
 std::shared_ptr<Mesh> Object::GetMesh() const
@@ -213,4 +244,9 @@ void Object::SetMesh(std::shared_ptr<Mesh> const &Value)
 bool Object::IsRenderDirty() const
 {
     return m_IsRenderDirty;
+}
+
+void Object::MarkAsRenderDirty() const
+{
+    m_IsRenderDirty = true;
 }

@@ -16,10 +16,10 @@ class VulkanRendererRecipe(ConanFile):
         self.requires("glfw/3.4")
 
         # https://conan.io/center/recipes/imgui
-        self.requires("imgui/1.90.5-docking")
+        self.requires("imgui/1.90.6-docking")
 
         # https://conan.io/center/recipes/boost
-        self.requires("boost/1.84.0")
+        self.requires("boost/1.85.0")
 
         # https://conan.io/center/recipes/tinygltf
         self.requires("tinygltf/2.8.19")
@@ -28,7 +28,7 @@ class VulkanRendererRecipe(ConanFile):
         self.requires("benchmark/1.8.3")
 
         # https://conan.io/center/recipes/catch2
-        self.requires("catch2/3.5.4")
+        self.requires("catch2/3.6.0")
 
     def configure(self):
         self.options["glfw/*"].shared = False
@@ -40,7 +40,7 @@ class VulkanRendererRecipe(ConanFile):
         self.options["catch2/*"].enable_exceptions = True
 
     def build_requirements(self):
-        self.tool_requires("cmake/[>=3.29]")
+        self.tool_requires("cmake/[>=3.28]")
 
     def layout(self):
         cmake_layout(self)

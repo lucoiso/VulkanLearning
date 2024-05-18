@@ -30,7 +30,6 @@ namespace RenderCore
 {
     class Window;
 
-    void CheckObjectManagementFlags();
     void Tick();
 
     export void DrawFrame(GLFWwindow *, double, Control *);

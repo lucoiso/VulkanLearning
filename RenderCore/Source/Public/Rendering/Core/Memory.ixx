@@ -4,11 +4,11 @@
 
 module;
 
+#include <Volk/volk.h>
 #include <memory>
 #include <string_view>
 #include <vector>
 #include <vma/vk_mem_alloc.h>
-#include <Volk/volk.h>
 
 export module RenderCore.Runtime.Memory;
 
@@ -53,9 +53,9 @@ export namespace RenderCore
 
     void AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> const &);
 
-    [[nodiscard]] VkBuffer const &       GetAllocationBuffer(std::uint32_t);
-    [[nodiscard]] void *                 GetAllocationMappedData(std::uint32_t);
-    [[nodiscard]] VkDescriptorBufferInfo GetAllocationBufferDescriptor(std::uint32_t, std::uint32_t, std::uint32_t);
+    [[nodiscard]] VkBuffer const &       GetAllocationBuffer();
+    [[nodiscard]] void *                 GetAllocationMappedData();
+    [[nodiscard]] VkDescriptorBufferInfo GetAllocationBufferDescriptor(std::uint32_t, std::uint32_t);
     [[nodiscard]] VkDescriptorImageInfo  GetAllocationImageDescriptor(std::uint32_t);
 
     template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
@@ -167,19 +167,9 @@ export namespace RenderCore
 
     void SaveImageToFile(VkImage const &, std::string_view, VkExtent2D const &);
 
-    struct ObjectDeleter
-    {
-        void operator()(Object const *Object) const;
-    };
-
     struct TextureDeleter
     {
         void operator()(Texture const *Texture) const;
-    };
-
-    struct MeshDeleter
-    {
-        void operator()(Mesh const *Mesh) const;
     };
 
     void PrintMemoryAllocatorStats(bool);

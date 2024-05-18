@@ -30,17 +30,17 @@ export namespace RenderCore
     void DestroyObjects();
     void TickObjects(float);
 
-    [[nodiscard]] ImageAllocation const                &GetDepthImage();
-    [[nodiscard]] VkSampler const                      &GetSampler();
+    [[nodiscard]] ImageAllocation const &               GetDepthImage();
+    [[nodiscard]] VkSampler const &                     GetSampler();
     [[nodiscard]] std::vector<std::shared_ptr<Object>> &GetObjects();
     [[nodiscard]] std::uint32_t                         GetNumAllocations();
-    [[nodiscard]] BufferAllocation const               &GetSceneUniformBuffer();
-    [[nodiscard]] void                                 *GetSceneUniformData();
-    [[nodiscard]] VkDescriptorBufferInfo const         &GetSceneUniformDescriptor();
+    [[nodiscard]] BufferAllocation const &              GetSceneUniformBuffer();
+    [[nodiscard]] void *                                GetSceneUniformData();
+    [[nodiscard]] VkDescriptorBufferInfo const &        GetSceneUniformDescriptor();
 
     void UpdateSceneUniformBuffer();
     void UpdateObjectsUniformBuffer();
 
-    [[nodiscard]] Camera       &GetCamera();
+    [[nodiscard]] Camera &      GetCamera();
     [[nodiscard]] Illumination &GetIllumination();
 } // namespace RenderCore
