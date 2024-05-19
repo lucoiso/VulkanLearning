@@ -856,6 +856,14 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
     auto &      [CommandPool, CommandBuffer, Fence, PendingWait, Backbuffer] = WindowData.Frames.at(WindowData.FrameIndex);
     auto const &[ImageAcquiredSemaphore, RenderCompleteSemaphore]            = WindowData.FrameSemaphores.at(WindowData.SemaphoreIndex);
 
+    if (PendingWait)
+    {
+        CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &Fence, VK_FALSE, g_Timeout));
+        CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &Fence));
+        CheckVulkanResult(vkResetCommandPool(LogicalDevice, CommandPool, 0U));
+        PendingWait = false;
+    }
+
     if (vkAcquireNextImageKHR(LogicalDevice, WindowData.Swapchain, g_Timeout, ImageAcquiredSemaphore, VK_NULL_HANDLE, &WindowData.FrameIndex) !=
         VK_SUCCESS)
     {
@@ -925,9 +933,7 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
     };
 
     CheckVulkanResult(vkQueueSubmit2(Queue, 1U, &SubmitInfo, Fence));
-    CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &Fence, VK_FALSE, g_Timeout));
-    CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &Fence));
-    CheckVulkanResult(vkResetCommandPool(LogicalDevice, CommandPool, 0U));
+    PendingWait = true;
 }
 
 void ImGuiVulkanSwapBuffers(ImGuiViewport *Viewport, void *)
@@ -1202,6 +1208,22 @@ void RenderCore::ImGuiVulkanDestroyFrame(ImGuiVulkanFrame &FrameData)
 {
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
+    if (FrameData.PendingWait)
+    {
+        if (FrameData.CommandPool != VK_NULL_HANDLE)
+        {
+            CheckVulkanResult(vkResetCommandPool(LogicalDevice, FrameData.CommandPool, 0U));
+        }
+
+        if (FrameData.Fence != VK_NULL_HANDLE)
+        {
+            CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &FrameData.Fence, VK_FALSE, g_Timeout));
+            CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &FrameData.Fence));
+        }
+
+        FrameData.PendingWait = false;
+    }
+
     if (FrameData.CommandPool != VK_NULL_HANDLE)
     {
         if (FrameData.CommandBuffer != VK_NULL_HANDLE)
@@ -1240,6 +1262,8 @@ void RenderCore::ImGuiVulkanDestroyFrameSemaphores(ImGuiVulkanFrameSemaphores &F
 
 void RenderCore::ImGuiVulkanDestroyAllViewportsRenderBuffers()
 {
+    CheckVulkanResult(vkDeviceWaitIdle(GetLogicalDevice()));
+
     ImGuiPlatformIO &PlatformIO = ImGui::GetPlatformIO();
 
     for (std::int32_t ViewportIt = 0; ViewportIt < PlatformIO.Viewports.Size; ++ViewportIt)
@@ -1606,6 +1630,9 @@ void RenderCore::ImGuiVulkanRemoveTexture(VkDescriptorSet const DescriptorSet)
 
 void RenderCore::ImGuiVulkanCreateOrResizeWindow(ImGuiVulkanWindow &WindowData, std::int32_t const Width, std::int32_t const Height)
 {
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    vkDeviceWaitIdle(LogicalDevice);
+
     ImGuiVulkanCreateWindowSwapChain(WindowData, Width, Height);
     ImGuiVulkanCreateWindowCommandBuffers(WindowData);
 }

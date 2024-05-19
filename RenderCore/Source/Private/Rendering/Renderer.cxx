@@ -14,9 +14,9 @@ module;
 #include <Volk/volk.h>
 
 // Include glfw after vulkan
-#include <GLFW/glfw3.h>
 #include <execution>
 #include <future>
+#include <GLFW/glfw3.h>
 
 module RenderCore.Renderer;
 
