@@ -15,7 +15,7 @@ import RenderCore.Types.Allocation;
 
 namespace RenderCore
 {
-    export void               InitializeImGuiContext(GLFWwindow *);
+    export void               InitializeImGuiContext(GLFWwindow *, bool);
     export void               ReleaseImGuiResources();
     export void               DrawImGuiFrame(Control *);
     export [[nodiscard]] bool IsImGuiInitialized();

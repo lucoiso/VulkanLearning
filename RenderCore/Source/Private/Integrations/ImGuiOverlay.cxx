@@ -30,7 +30,7 @@ using namespace RenderCore;
 
 VkDescriptorPool g_ImGuiDescriptorPool { VK_NULL_HANDLE };
 
-void RenderCore::InitializeImGuiContext(GLFWwindow *const Window)
+void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, bool const EnableDocking)
 {
     IMGUI_CHECKVERSION();
 
@@ -45,7 +45,12 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window)
         return;
     }
 
-    ImIO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
+    ImIO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_NavEnableKeyboard;
+
+    if (EnableDocking)
+    {
+        ImIO.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    }
 
     ImGuiGLFWInitForVulkan(Window, false);
     ImGuiGLFWSetCallbacksChainForAllWindows(true);

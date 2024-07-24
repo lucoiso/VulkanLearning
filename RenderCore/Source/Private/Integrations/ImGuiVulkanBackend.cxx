@@ -1317,22 +1317,17 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
         return;
     }
 
-    VkViewport const Viewport {
-            .x = 0.F,
-            .y = 0.F,
-            .width = DrawData->DisplaySize.x,
-            .height = DrawData->DisplaySize.y,
-            .minDepth = 0.F,
-            .maxDepth = 1.F
-    };
-
-    VkRect2D const Scissor {
-            .offset = { 0, 0 },
-            .extent = { static_cast<std::uint32_t>(DrawData->DisplaySize.x), static_cast<std::uint32_t>(DrawData->DisplaySize.y) }
-    };
-
-    vkCmdSetViewport(CommandBuffer, 0U, 1U, &Viewport);
-    vkCmdSetScissor(CommandBuffer, 0U, 1U, &Scissor);
+    {
+        VkViewport const Viewport {
+                .x = 0.F,
+                .y = 0.F,
+                .width = DrawData->DisplaySize.x,
+                .height = DrawData->DisplaySize.y,
+                .minDepth = 0.F,
+                .maxDepth = 1.F
+        };
+        vkCmdSetViewport(CommandBuffer, 0U, 1U, &Viewport);
+    }
 
     VkDeviceSize const VertexSize = DrawData->TotalVtxCount * sizeof(ImDrawVert);
     VkDeviceSize const IndexSize  = DrawData->TotalIdxCount * sizeof(ImDrawIdx);
@@ -1353,19 +1348,21 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
     }
 
     vmaMapMemory(Allocator, RenderBuffers.Allocation, &RenderBuffers.MappedData);
-    auto *VertexBuffer = static_cast<char *>(RenderBuffers.MappedData);
-    auto *IndexBuffer  = static_cast<char *>(RenderBuffers.MappedData) + VertexSize;
-
-    for (ImDrawList *const &CmdIt : DrawData->CmdLists)
     {
-        memcpy(VertexBuffer, CmdIt->VtxBuffer.Data, CmdIt->VtxBuffer.Size * sizeof(ImDrawVert));
-        VertexBuffer += CmdIt->VtxBuffer.Size * sizeof(ImDrawVert);
+        auto *VertexBuffer = static_cast<char *>(RenderBuffers.MappedData);
+        auto *IndexBuffer  = static_cast<char *>(RenderBuffers.MappedData) + VertexSize;
 
-        memcpy(IndexBuffer, CmdIt->IdxBuffer.Data, CmdIt->IdxBuffer.Size * sizeof(ImDrawIdx));
-        IndexBuffer += CmdIt->IdxBuffer.Size * sizeof(ImDrawIdx);
+        for (ImDrawList *const &CmdIt : DrawData->CmdLists)
+        {
+            memcpy(VertexBuffer, CmdIt->VtxBuffer.Data, CmdIt->VtxBuffer.Size * sizeof(ImDrawVert));
+            VertexBuffer += CmdIt->VtxBuffer.Size * sizeof(ImDrawVert);
+
+            memcpy(IndexBuffer, CmdIt->IdxBuffer.Data, CmdIt->IdxBuffer.Size * sizeof(ImDrawIdx));
+            IndexBuffer += CmdIt->IdxBuffer.Size * sizeof(ImDrawIdx);
+        }
+
+        CheckVulkanResult(vmaFlushAllocation(Allocator, RenderBuffers.Allocation, 0U, TotalSize));
     }
-
-    CheckVulkanResult(vmaFlushAllocation(Allocator, RenderBuffers.Allocation, 0U, TotalSize));
     vmaUnmapMemory(Allocator, RenderBuffers.Allocation);
 
     ImGuiVulkanSetupRenderState(DrawData, Backend->PipelineData.MainPipeline, CommandBuffer, RenderBuffers);
@@ -1407,6 +1404,15 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
                 continue;
             }
 
+            {
+                VkRect2D const Scissor {
+                        .offset = { static_cast<std::int32_t>(MinClip.x), static_cast<std::int32_t>(MinClip.y) },
+                        .extent = { static_cast<std::uint32_t>(MaxClip.x - MinClip.x), static_cast<std::uint32_t>(MaxClip.y - MinClip.y) }
+                };
+
+                vkCmdSetScissor(CommandBuffer, 0U, 1U, &Scissor);
+            }
+
             auto const DescriptorSet = static_cast<VkDescriptorSet>(DrawCmdIt.TextureId);
 
             vkCmdBindDescriptorSets(CommandBuffer,
@@ -1422,13 +1428,19 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
                              DrawCmdIt.ElemCount,
                              1U,
                              DrawCmdIt.IdxOffset + GlobalIdxOffset,
-                             static_cast<int32_t>(DrawCmdIt.VtxOffset) + GlobalVtxOffset,
+                             static_cast<int32_t>(DrawCmdIt.VtxOffset + GlobalVtxOffset),
                              0U);
         }
 
         GlobalIdxOffset += CmdIt->IdxBuffer.Size;
         GlobalVtxOffset += CmdIt->VtxBuffer.Size;
     }
+
+    VkRect2D const Scissor {
+            .offset = { 0, 0 },
+            .extent = { static_cast<std::uint32_t>(DrawData->DisplaySize.x), static_cast<std::uint32_t>(DrawData->DisplaySize.y) }
+    };
+    vkCmdSetScissor(CommandBuffer, 0U, 1U, &Scissor);
 }
 
 bool RenderCore::ImGuiVulkanCreateFontsTexture()

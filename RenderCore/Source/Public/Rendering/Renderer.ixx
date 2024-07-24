@@ -33,7 +33,7 @@ namespace RenderCore
     void Tick();
 
     export void DrawFrame(GLFWwindow *, double, Control *);
-    export bool Initialize(GLFWwindow *, bool);
+    export bool Initialize(GLFWwindow *, bool, bool);
     export void Shutdown(Control *);
 
     export namespace Renderer

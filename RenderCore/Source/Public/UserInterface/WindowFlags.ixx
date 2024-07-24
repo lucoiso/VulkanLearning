@@ -18,5 +18,6 @@ namespace RenderCore
         MAXIMIZED    = 1 << 0,
         HEADLESS     = 1 << 1,
         ENABLE_IMGUI = 1 << 2,
+        ENABLE_DOCKING = 1 << 3,
     };
 } // namespace RenderCore

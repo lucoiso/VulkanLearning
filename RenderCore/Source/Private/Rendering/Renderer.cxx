@@ -48,6 +48,7 @@ double                     g_FrameTime { 0.F };
 double                     g_FrameRateCap { 0.016667F };
 bool                       g_UseVSync { true };
 bool                       g_RenderOffscreen { false };
+bool                       g_EnableDocking { false };
 bool                       g_EnableImGui { false };
 std::uint32_t              g_ImageIndex { g_ImageCount };
 
@@ -138,7 +139,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
 
                 if (g_EnableImGui)
                 {
-                    InitializeImGuiContext(Window);
+                    InitializeImGuiContext(Window, g_EnableDocking);
                 }
 
                 Owner->Initialize();
@@ -186,7 +187,7 @@ void RenderCore::Tick()
     TickObjects(static_cast<float>(g_FrameTime));
 }
 
-bool RenderCore::Initialize(GLFWwindow *const Window, bool const EnableImGui)
+bool RenderCore::Initialize(GLFWwindow *const Window, bool const EnableImGui, bool const EnableDocking)
 {
     if (Renderer::IsInitialized())
     {
@@ -194,6 +195,7 @@ bool RenderCore::Initialize(GLFWwindow *const Window, bool const EnableImGui)
     }
 
     g_EnableImGui = EnableImGui;
+    g_EnableDocking = EnableDocking;
 
     CheckVulkanResult(volkInitialize());
 

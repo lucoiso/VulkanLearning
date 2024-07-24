@@ -30,8 +30,10 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
     m_Height = Height;
     m_Flags  = Flags;
 
-    if (m_GLFWHandler.Initialize(m_Width, m_Height, m_Title, m_Flags)
-        && RenderCore::Initialize(m_GLFWHandler.GetWindow(), HasFlag(Flags, InitializationFlags::ENABLE_IMGUI)))
+    if (m_GLFWHandler.Initialize(m_Width, m_Height, m_Title, m_Flags) &&
+        RenderCore::Initialize(m_GLFWHandler.GetWindow(),
+                               HasFlag(Flags, InitializationFlags::ENABLE_IMGUI),
+                               HasFlag(Flags, InitializationFlags::ENABLE_DOCKING)))
     {
         OnInitialized();
         RefreshResources();
