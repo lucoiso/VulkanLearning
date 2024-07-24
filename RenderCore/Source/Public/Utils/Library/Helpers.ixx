@@ -77,7 +77,8 @@ export namespace RenderCore
                       {
                           if (std::ranges::find(Available, ResIter) == std::cend(Available))
                           {
-                              EmitFatalError(std::format("Required {} not available: {}", Identifier, ResIter));
+                              auto ErrorMessage = "Required " + std::string { Identifier } + " not available: " + std::string { ResIter };
+                              EmitFatalError(std::move(ErrorMessage));
                           }
                       });
 

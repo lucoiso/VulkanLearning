@@ -345,6 +345,11 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const    ImageInd
 
     for (std::uint32_t ThreadIndex = 0U; ThreadIndex < g_NumThreads; ++ThreadIndex)
     {
+        if (ThreadIndex >= g_ObjectsPerThread)
+        {
+            break;
+        }
+
         auto const &[CommandPool, CommandBuffer] = CommandResources.MultithreadResources.at(ThreadIndex);
 
         if (CommandBuffer == VK_NULL_HANDLE)
@@ -357,7 +362,8 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const    ImageInd
                                  CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
                                  {
                                      SetViewport(CommandBuffer, SwapchainAllocation.Extent);
-                                     vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
+
+                                     bool HasDraw = false;
 
                                      for (std::uint32_t ObjectIndex = 0U; ObjectIndex < g_ObjectsPerThread; ++ObjectIndex)
                                      {
@@ -371,6 +377,12 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const    ImageInd
                                          if (std::shared_ptr<Object> const &Object = Objects.at(ObjectAccessIndex);
                                              Camera.CanDrawObject(Object))
                                          {
+                                             if (!HasDraw)
+                                             {
+                                                 HasDraw = true;
+                                                 vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
+                                             }
+
                                              Object->UpdateUniformBuffers();
                                              Object->DrawObject(CommandBuffer, PipelineLayout, ObjectAccessIndex);
                                          }
