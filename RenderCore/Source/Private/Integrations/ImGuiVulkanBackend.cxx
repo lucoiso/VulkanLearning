@@ -901,8 +901,8 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
     vkCmdEndRendering(CommandBuffer);
 
     RenderCore::RequestImageLayoutTransition<g_AttachmentLayout, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, g_ImageAspect>(CommandBuffer,
-        Backbuffer.Image,
-        Backbuffer.Format);
+                                                                                                                 Backbuffer.Image,
+                                                                                                                 Backbuffer.Format);
 
     CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
 
