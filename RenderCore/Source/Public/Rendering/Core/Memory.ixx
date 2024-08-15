@@ -5,9 +5,6 @@
 module;
 
 #include <Volk/volk.h>
-#include <memory>
-#include <string_view>
-#include <vector>
 #include <vma/vk_mem_alloc.h>
 
 export module RenderCore.Runtime.Memory;
@@ -28,16 +25,16 @@ export namespace RenderCore
 
     [[nodiscard]] VmaAllocator const &GetAllocator();
 
-    VmaAllocationInfo CreateBuffer(VkDeviceSize const &, VkBufferUsageFlags, std::string_view, VkBuffer &, VmaAllocation &);
+    VmaAllocationInfo CreateBuffer(VkDeviceSize const &, VkBufferUsageFlags, strzilla::string_view, VkBuffer &, VmaAllocation &);
     void              CopyBuffer(VkCommandBuffer const &, VkBuffer const &, VkBuffer const &, VkDeviceSize const &);
-    void              CreateUniformBuffers(BufferAllocation &, VkDeviceSize, std::string_view);
+    void              CreateUniformBuffers(BufferAllocation &, VkDeviceSize, strzilla::string_view);
 
     void CreateImage(VkFormat const &,
                      VkExtent2D const &,
                      VkImageTiling const &,
                      VkImageUsageFlags,
                      VmaMemoryUsage,
-                     std::string_view,
+                     strzilla::string_view,
                      VkImage &,
                      VmaAllocation &);
     void CreateImageView(VkImage const &, VkFormat const &, VkImageAspectFlags const &, VkImageView &);
@@ -165,7 +162,7 @@ export namespace RenderCore
         vkCmdPipelineBarrier2(CommandBuffer, &DependencyInfo);
     }
 
-    void SaveImageToFile(VkImage const &, std::string_view, VkExtent2D const &);
+    void SaveImageToFile(VkImage const &, strzilla::string_view, VkExtent2D const &);
 
     struct TextureDeleter
     {
@@ -174,5 +171,5 @@ export namespace RenderCore
 
     void PrintMemoryAllocatorStats(bool);
 
-    [[nodiscard]] std::string GetMemoryAllocatorStats(bool);
+    [[nodiscard]] strzilla::string GetMemoryAllocatorStats(bool);
 } // namespace RenderCore

@@ -4,11 +4,6 @@
 
 module;
 
-#include <algorithm>
-#include <execution>
-#include <source_location>
-#include <string>
-#include <vector>
 #include <GLFW/glfw3.h>
 #include <Volk/volk.h>
 
@@ -18,7 +13,7 @@ import RenderCore.Runtime.Instance;
 
 export namespace RenderCore
 {
-    void EmitFatalError(std::string_view, std::source_location const &Location = std::source_location::current());
+    void EmitFatalError(strzilla::string_view, std::source_location const &Location = std::source_location::current());
 
     void CheckVulkanResult(VkResult InputOperation, std::source_location const &Location = std::source_location::current());
 
@@ -35,26 +30,26 @@ export namespace RenderCore
     }
 
     template <typename T>
-    constexpr T LoadVulkanProcedure(std::string_view const ProcedureName)
+    constexpr T LoadVulkanProcedure(strzilla::string_view const ProcedureName)
     {
         return reinterpret_cast<T>(vkGetInstanceProcAddr(GetInstance(), ProcedureName.data()));
     }
 
     [[nodiscard]] VkExtent2D GetWindowExtent(GLFWwindow *, VkSurfaceCapabilitiesKHR const &);
 
-    [[nodiscard]] std::vector<std::string> GetGLFWExtensions();
+    [[nodiscard]] std::vector<strzilla::string> GetGLFWExtensions();
 
     [[nodiscard]] std::vector<VkLayerProperties> GetAvailableInstanceLayers();
 
-    [[nodiscard]] std::vector<std::string> GetAvailableInstanceLayersNames();
+    [[nodiscard]] std::vector<strzilla::string> GetAvailableInstanceLayersNames();
 
     [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceExtensions();
 
-    [[nodiscard]] std::vector<std::string> GetAvailableInstanceExtensionsNames();
+    [[nodiscard]] std::vector<strzilla::string> GetAvailableInstanceExtensionsNames();
 
-    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceLayerExtensions(std::string_view);
+    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceLayerExtensions(strzilla::string_view);
 
-    [[nodiscard]] std::vector<std::string> GetAvailableInstanceLayerExtensionsNames(std::string_view);
+    [[nodiscard]] std::vector<strzilla::string> GetAvailableInstanceLayerExtensionsNames(strzilla::string_view);
 
     [[nodiscard]] VkVertexInputBindingDescription GetBindingDescriptors(std::uint32_t);
 
@@ -68,7 +63,7 @@ export namespace RenderCore
     }
 
     template <typename Out, typename Opt, typename Avail>
-    constexpr void GetAvailableResources(std::string_view const Identifier, Out &Resource, Opt const &Optional, Avail const &Available)
+    constexpr void GetAvailableResources(const char* const Identifier, Out &Resource, Opt const &Optional, Avail const &Available)
     {
         std::for_each(std::execution::unseq,
                       std::cbegin(Resource),
@@ -77,8 +72,7 @@ export namespace RenderCore
                       {
                           if (std::ranges::find(Available, ResIter) == std::cend(Available))
                           {
-                              auto ErrorMessage = "Required " + std::string { Identifier } + " not available: " + std::string { ResIter };
-                              EmitFatalError(std::move(ErrorMessage));
+                              EmitFatalError(std::format("Required {} not available: {}", Identifier, ResIter));
                           }
                       });
 

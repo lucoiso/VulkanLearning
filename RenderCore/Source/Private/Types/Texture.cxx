@@ -4,7 +4,6 @@
 
 module;
 
-#include <string_view>
 #include <Volk/volk.h>
 
 module RenderCore.Types.Texture;
@@ -14,12 +13,12 @@ import RenderCore.Runtime.Scene;
 
 using namespace RenderCore;
 
-Texture::Texture(std::uint32_t const ID, std::string_view const Path)
+Texture::Texture(std::uint32_t const ID, strzilla::string_view const Path)
     : Resource(ID, Path)
 {
 }
 
-Texture::Texture(std::uint32_t const ID, std::string_view const Path, std::string_view const Name)
+Texture::Texture(std::uint32_t const ID, strzilla::string_view const Path, strzilla::string_view const Name)
     : Resource(ID, Path, Name)
 {
 }

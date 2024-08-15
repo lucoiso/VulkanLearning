@@ -4,8 +4,6 @@
 
 module;
 
-#include <string_view>
-
 // Include vulkan before glfw
 #include <Volk/volk.h>
 
@@ -19,7 +17,7 @@ import RenderCore.Utils.EnumHelpers;
 
 using namespace RenderCore;
 
-bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, InitializationFlags const Flags)
+bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, strzilla::string_view const Title, InitializationFlags const Flags)
 {
     if (!glfwInit() || !glfwVulkanSupported())
     {

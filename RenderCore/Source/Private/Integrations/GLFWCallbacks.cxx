@@ -4,10 +4,10 @@
 
 module;
 
+#include <imgui.h>
 #include <GLFW/glfw3.h>
 #include <boost/log/trivial.hpp>
 #include <glm/ext.hpp>
-#include <imgui.h>
 
 module RenderCore.Integrations.GLFWCallbacks;
 

@@ -4,12 +4,6 @@
 
 module;
 
-#include <algorithm>
-#include <format>
-#include <optional>
-#include <ranges>
-#include <unordered_map>
-#include <GLFW/glfw3.h>
 #include <Volk/volk.h>
 
 module RenderCore.Runtime.Device;
@@ -351,10 +345,10 @@ std::vector<VkLayerProperties> RenderCore::GetAvailablePhysicalDeviceLayers()
     return Output;
 }
 
-std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(std::string_view const LayerName)
+std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerExtensions(strzilla::string_view const LayerName)
 {
-    if (std::vector<std::string> const AvailableLayers = GetAvailablePhysicalDeviceLayersNames();
-        std::ranges::find(AvailableLayers, LayerName) == std::cend(AvailableLayers))
+    if (std::vector<strzilla::string> const AvailableLayers = GetAvailablePhysicalDeviceLayersNames();
+        std::find(std::execution::unseq, std::cbegin(AvailableLayers), std::cend(AvailableLayers), LayerName) == std::cend(AvailableLayers))
     {
         return {};
     }
@@ -368,9 +362,9 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerEx
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames()
+std::vector<strzilla::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames()
 {
-    std::vector<std::string> Output;
+    std::vector<strzilla::string> Output;
     for (const auto &[Name, Version] : GetAvailablePhysicalDeviceExtensions())
     {
         Output.emplace_back(Name);
@@ -379,9 +373,9 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames()
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view const LayerName)
+std::vector<strzilla::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(strzilla::string_view const LayerName)
 {
-    std::vector<std::string> Output;
+    std::vector<strzilla::string> Output;
     for (const auto &[Name, Version] : GetAvailablePhysicalDeviceLayerExtensions(LayerName))
     {
         Output.emplace_back(Name);
@@ -390,9 +384,9 @@ std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNa
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailablePhysicalDeviceLayersNames()
+std::vector<strzilla::string> RenderCore::GetAvailablePhysicalDeviceLayersNames()
 {
-    std::vector<std::string> Output;
+    std::vector<strzilla::string> Output;
     for (const auto &[Name, SpecVer, ImplVer, Description] : GetAvailablePhysicalDeviceLayers())
     {
         Output.emplace_back(Name);

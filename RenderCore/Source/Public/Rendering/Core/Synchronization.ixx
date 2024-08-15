@@ -5,7 +5,6 @@
 module;
 
 #include <Volk/volk.h>
-#include <cstdint>
 
 export module RenderCore.Runtime.Synchronization;
 

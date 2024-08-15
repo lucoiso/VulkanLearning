@@ -6,10 +6,7 @@
 
 module;
 
-#include <array>
-#include <cstdint>
 #include <imgui.h>
-#include <vector>
 #include <Volk/volk.h>
 
 // GLFW after Volk
@@ -18,12 +15,11 @@ module;
 #ifdef _WIN32
 #undef APIENTRY
 #define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
 #endif
 #ifdef __APPLE__
 #define GLFW_EXPOSE_NATIVE_COCOA
-#include <GLFW/glfw3native.h>
 #endif
+#include <GLFW/glfw3native.h>
 
 module RenderCore.Integrations.ImGuiGLFWBackend;
 

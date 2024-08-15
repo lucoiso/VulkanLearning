@@ -4,9 +4,9 @@
 
 module;
 
-#include <ranges>
-#include <stb_image_write.h>
 #include <Volk/volk.h>
+#include <vma/vk_mem_alloc.h>
+#include <stb_image_write.h>
 
 #ifndef VMA_IMPLEMENTATION
 #include <boost/log/trivial.hpp>
@@ -14,12 +14,13 @@ module;
         do                                                                          \
         {                                                                           \
             std::size_t _BuffSize = snprintf(nullptr, 0, format, __VA_ARGS__);      \
-            std::string _Message(_BuffSize + 1, '\0');                              \
+            strzilla::string _Message(_BuffSize + 1, '\0');                              \
             snprintf(&_Message[0], _Message.size(), format, __VA_ARGS__);           \
             _Message.pop_back();                                                    \
             BOOST_LOG_TRIVIAL(debug) << _Message;                                   \
         }                                                                           \
         while (false)
+
 #define VMA_IMPLEMENTATION
 #endif
 #include <vma/vk_mem_alloc.h>
@@ -198,7 +199,7 @@ VmaAllocator const &RenderCore::GetAllocator()
 
 VmaAllocationInfo RenderCore::CreateBuffer(VkDeviceSize const &     Size,
                                            VkBufferUsageFlags const Usage,
-                                           std::string_view const   Identifier,
+                                           strzilla::string_view const   Identifier,
                                            VkBuffer &               Buffer,
                                            VmaAllocation &          Allocation)
 {
@@ -232,7 +233,7 @@ VmaAllocationInfo RenderCore::CreateBuffer(VkDeviceSize const &     Size,
     VmaAllocationInfo MemoryAllocationInfo;
     CheckVulkanResult(vmaCreateBuffer(Allocator, &BufferCreateInfo, &AllocationCreateInfo, &Buffer, &Allocation, &MemoryAllocationInfo));
 
-    vmaSetAllocationName(Allocator, Allocation, std::data(std::format("Buffer: {}", Identifier)));
+    vmaSetAllocationName(Allocator, Allocation, std::data(std::format("Buffer: {}", std::data(Identifier))));
 
     return MemoryAllocationInfo;
 }
@@ -243,7 +244,7 @@ void RenderCore::CopyBuffer(VkCommandBuffer const &CommandBuffer, VkBuffer const
     vkCmdCopyBuffer(CommandBuffer, Source, Destination, 1U, &BufferCopy);
 }
 
-void RenderCore::CreateUniformBuffers(BufferAllocation &BufferAllocation, VkDeviceSize const BufferSize, std::string_view const Identifier)
+void RenderCore::CreateUniformBuffers(BufferAllocation &BufferAllocation, VkDeviceSize const BufferSize, strzilla::string_view const Identifier)
 {
     VmaAllocator const &         Allocator  = GetAllocator();
     constexpr VkBufferUsageFlags UsageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -258,7 +259,7 @@ void RenderCore::CreateImage(VkFormat const &        ImageFormat,
                              VkImageTiling const &   Tiling,
                              VkImageUsageFlags const ImageUsage,
                              VmaMemoryUsage const    MemoryUsage,
-                             std::string_view const  Identifier,
+                             strzilla::string_view const  Identifier,
                              VkImage &               Image,
                              VmaAllocation &         Allocation)
 {
@@ -283,7 +284,7 @@ void RenderCore::CreateImage(VkFormat const &        ImageFormat,
     VmaAllocationInfo AllocationInfo;
     CheckVulkanResult(vmaCreateImage(Allocator, &ImageViewCreateInfo, &ImageCreateInfo, &Image, &Allocation, &AllocationInfo));
 
-    vmaSetAllocationName(Allocator, Allocation, std::data(std::format("Image: {}", Identifier)));
+    vmaSetAllocationName(Allocator, Allocation, std::data(std::format("Image: {}", std::data(Identifier))));
 }
 
 void RenderCore::CreateImageView(VkImage const &Image, VkFormat const &Format, VkImageAspectFlags const &AspectFlags, VkImageView &ImageView)
@@ -458,7 +459,7 @@ VkDescriptorImageInfo RenderCore::GetAllocationImageDescriptor(std::uint32_t con
     };
 }
 
-void RenderCore::SaveImageToFile(VkImage const &Image, std::string_view const Path, VkExtent2D const &Extent)
+void RenderCore::SaveImageToFile(VkImage const &Image, strzilla::string_view const Path, VkExtent2D const &Extent)
 {
     VkBuffer            Buffer;
     VmaAllocation       Allocation;
@@ -573,11 +574,11 @@ void RenderCore::PrintMemoryAllocatorStats(bool const DetailedMap)
     vmaFreeStatsString(g_Allocator, Stats);
 }
 
-std::string RenderCore::GetMemoryAllocatorStats(bool const DetailedMap)
+strzilla::string RenderCore::GetMemoryAllocatorStats(bool const DetailedMap)
 {
     char *Stats = nullptr;
     vmaBuildStatsString(g_Allocator, &Stats, DetailedMap);
-    std::string Output { Stats };
+    strzilla::string Output { Stats };
     vmaFreeStatsString(g_Allocator, Stats);
 
     return Output;

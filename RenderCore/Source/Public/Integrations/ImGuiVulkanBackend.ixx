@@ -6,10 +6,8 @@
 
 module;
 
-#include <cstdint>
 #include <imgui.h>
 #include <Volk/volk.h>
-#include "RenderCoreModule.hpp"
 
 export module RenderCore.Integrations.ImGuiVulkanBackend;
 

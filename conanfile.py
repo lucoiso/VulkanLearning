@@ -16,16 +16,16 @@ class VulkanRendererRecipe(ConanFile):
         self.requires("glfw/3.4")
 
         # https://conan.io/center/recipes/imgui
-        self.requires("imgui/1.90.6-docking")
+        self.requires("imgui/1.91.0-docking")
 
         # https://conan.io/center/recipes/boost
         self.requires("boost/1.85.0")
 
         # https://conan.io/center/recipes/tinygltf
-        self.requires("tinygltf/2.8.19")
+        self.requires("tinygltf/2.9.0")
 
         # https://conan.io/center/recipes/benchmark
-        self.requires("benchmark/1.8.3")
+        self.requires("benchmark/1.8.4")
 
         # https://conan.io/center/recipes/catch2
         self.requires("catch2/3.6.0")

@@ -4,12 +4,8 @@
 
 module;
 
-#include <array>
-#include <numeric>
-#include <ranges>
-#include <vector>
-#include <vma/vk_mem_alloc.h>
 #include <Volk/volk.h>
+#include <vma/vk_mem_alloc.h>
 
 module RenderCore.Runtime.Pipeline;
 

@@ -5,7 +5,6 @@
 module;
 
 #include <Volk/volk.h>
-#include <array>
 
 module RenderCore.Runtime.Synchronization;
 

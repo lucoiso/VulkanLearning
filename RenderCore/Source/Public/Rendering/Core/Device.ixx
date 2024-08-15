@@ -4,8 +4,6 @@
 
 module;
 
-#include <string>
-#include <vector>
 #include <GLFW/glfw3.h>
 #include <Volk/volk.h>
 
@@ -30,10 +28,10 @@ namespace RenderCore
 
     [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions();
     [[nodiscard]] std::vector<VkLayerProperties> GetAvailablePhysicalDeviceLayers();
-    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(std::string_view);
-    [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceExtensionsNames();
-    [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayerExtensionsNames(std::string_view);
-    [[nodiscard]] std::vector<std::string> GetAvailablePhysicalDeviceLayersNames();
+    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(strzilla::string_view);
+    [[nodiscard]] std::vector<strzilla::string> GetAvailablePhysicalDeviceExtensionsNames();
+    [[nodiscard]] std::vector<strzilla::string> GetAvailablePhysicalDeviceLayerExtensionsNames(strzilla::string_view);
+    [[nodiscard]] std::vector<strzilla::string> GetAvailablePhysicalDeviceLayersNames();
     [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats();
     [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes();
 } // namespace RenderCore

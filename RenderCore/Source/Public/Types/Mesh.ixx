@@ -4,13 +4,8 @@
 
 module;
 
-#include <memory>
-#include <string_view>
-#include <vector>
-#include <glm/ext.hpp>
 #include <Volk/volk.h>
-
-#include "RenderCoreModule.hpp"
+#include <glm/ext.hpp>
 
 export module RenderCore.Types.Mesh;
 
@@ -40,8 +35,8 @@ namespace RenderCore
         ~Mesh() override = default;
         Mesh()           = delete;
 
-        Mesh(std::uint32_t, std::string_view);
-        Mesh(std::uint32_t, std::string_view, std::string_view);
+        Mesh(std::uint32_t, strzilla::string_view);
+        Mesh(std::uint32_t, strzilla::string_view, strzilla::string_view);
 
         [[nodiscard]] Transform const &GetTransform() const;
         void                           SetTransform(Transform const &Transform);

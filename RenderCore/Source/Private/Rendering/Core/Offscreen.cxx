@@ -4,8 +4,6 @@
 
 module;
 
-#include <algorithm>
-#include <execution>
 #include <vma/vk_mem_alloc.h>
 
 module RenderCore.Integrations.Offscreen;

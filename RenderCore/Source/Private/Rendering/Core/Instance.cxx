@@ -4,8 +4,6 @@
 
 module;
 
-#include <string>
-#include <vector>
 #include <Volk/volk.h>
 
 module RenderCore.Runtime.Instance;
@@ -46,7 +44,7 @@ bool RenderCore::CreateVulkanInstance()
     // ReSharper disable once CppTooWideScopeInitStatement
     std::vector const GLFWExtensions = GetGLFWExtensions();
 
-    for (std::string const &ExtensionIter : GLFWExtensions)
+    for (strzilla::string const &ExtensionIter : GLFWExtensions)
     {
         Extensions.push_back(std::data(ExtensionIter));
     }

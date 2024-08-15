@@ -6,12 +6,8 @@
 
 module;
 
-#include <Volk/volk.h>
-#include <algorithm>
-#include <array>
-#include <cstdint>
 #include <imgui.h>
-#include <vector>
+#include <Volk/volk.h>
 #include <vma/vk_mem_alloc.h>
 
 module RenderCore.Integrations.ImGuiVulkanBackend;

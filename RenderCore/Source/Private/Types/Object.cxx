@@ -5,9 +5,7 @@
 module;
 
 #include <Volk/volk.h>
-#include <array>
 #include <glm/ext.hpp>
-#include <string>
 
 module RenderCore.Types.Object;
 
@@ -23,12 +21,12 @@ import RenderCore.Types.Texture;
 
 using namespace RenderCore;
 
-Object::Object(std::uint32_t const ID, std::string_view const Path)
+Object::Object(std::uint32_t const ID, strzilla::string_view const Path)
     : Resource(ID, Path)
 {
 }
 
-Object::Object(std::uint32_t const ID, std::string_view const Path, std::string_view const Name)
+Object::Object(std::uint32_t const ID, strzilla::string_view const Path, strzilla::string_view const Name)
     : Resource(ID, Path, Name)
 {
 }

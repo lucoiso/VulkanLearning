@@ -4,10 +4,6 @@
 
 module;
 
-#include <cstdint>
-#include <mutex>
-#include <string>
-#include <vector>
 #include <vma/vk_mem_alloc.h>
 
 export module RenderCore.Runtime.Scene;
@@ -24,7 +20,7 @@ export namespace RenderCore
     void CreateImageSampler();
     void CreateDepthResources(SurfaceProperties const &);
     void AllocateEmptyTexture(VkFormat);
-    void LoadScene(std::string_view);
+    void LoadScene(strzilla::string_view);
     void UnloadObjects(std::vector<std::uint32_t> const &);
     void ReleaseSceneResources();
     void DestroyObjects();

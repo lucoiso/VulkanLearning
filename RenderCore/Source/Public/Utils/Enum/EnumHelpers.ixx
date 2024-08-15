@@ -4,8 +4,6 @@
 
 module;
 
-#include <type_traits>
-
 export module RenderCore.Utils.EnumHelpers;
 
 #pragma region Operators

@@ -4,10 +4,8 @@
 
 module;
 
-#include <filesystem>
-#include <glm/ext.hpp>
 #include <tiny_gltf.h>
-#include <vma/vk_mem_alloc.h>
+#include <glm/ext.hpp>
 
 module RenderCore.Runtime.Model;
 
@@ -27,7 +25,7 @@ void RenderCore::InsertIndiceInContainer(std::vector<std::uint32_t> &Indices, ti
     }
 }
 
-float const *RenderCore::GetPrimitiveData(std::string_view const &   ID,
+float const *RenderCore::GetPrimitiveData(strzilla::string_view const &   ID,
                                           tinygltf::Model const &    Model,
                                           tinygltf::Primitive const &Primitive,
                                           std::uint32_t *            NumComponents = nullptr)

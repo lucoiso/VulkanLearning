@@ -4,15 +4,11 @@
 
 module;
 
-#include <filesystem>
-#include <fstream>
-#include <ranges>
 #include <boost/log/trivial.hpp>
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <glslang/SPIRV/Logger.h>
-#include <Volk/volk.h>
 
 #ifdef _DEBUG
 #include <spirv-tools/libspirv.hpp>
@@ -28,9 +24,9 @@ using namespace RenderCore;
 std::vector<ShaderStageData> g_StageInfos;
 
 bool CompileInternal(ShaderType const            ShaderType,
-                     std::string_view const      Source,
+                     strzilla::string_view const      Source,
                      EShLanguage const           Language,
-                     std::string_view const      EntryPoint,
+                     strzilla::string_view const      EntryPoint,
                      std::int32_t const          Version,
                      std::vector<std::uint32_t> &OutSPIRVCode)
 {
@@ -53,9 +49,11 @@ bool CompileInternal(ShaderType const            ShaderType,
     if (!Shader.parse(Resources, Version, ECoreProfile, false, true, MessageFlags))
     {
         glslang::FinalizeProcess();
-        std::string const InfoLog("Info Log: " + std::string(Shader.getInfoLog()));
-        std::string const DebugLog("Debug Log: " + std::string(Shader.getInfoDebugLog()));
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: " << std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog);
+
+        auto const InfoLog(strzilla::string { "Info Log: " } + Shader.getInfoLog());
+        auto const DebugLog(strzilla::string { "Debug Log: " } + Shader.getInfoDebugLog());
+
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: " << std::format("Failed to parse shader:\n{}\n{}", std::data(InfoLog), std::data(DebugLog));
         return false;
     }
 
@@ -65,9 +63,11 @@ bool CompileInternal(ShaderType const            ShaderType,
     if (!Program.link(MessageFlags))
     {
         glslang::FinalizeProcess();
-        std::string const InfoLog("Info Log: " + std::string(Program.getInfoLog()));
-        std::string const DebugLog("Debug Log: " + std::string(Program.getInfoDebugLog()));
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: " << std::format("Failed to parse shader:\n{}\n{}", InfoLog, DebugLog);
+
+        auto const InfoLog(strzilla::string { "Info Log: " } + Shader.getInfoLog());
+        auto const DebugLog(strzilla::string { "Debug Log: " } + Shader.getInfoDebugLog());
+
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: " << std::format("Failed to parse shader:\n{}\n{}", std::data(InfoLog), std::data(DebugLog));
         return false;
     }
 
@@ -80,7 +80,7 @@ bool CompileInternal(ShaderType const            ShaderType,
     GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
     glslang::FinalizeProcess();
 
-    if (std::string const GeneratedLogs = Logger.getAllMessages();
+    if (strzilla::string const GeneratedLogs = Logger.getAllMessages();
         !std::empty(GeneratedLogs))
     {
         BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Shader compilation result log:\n" << GeneratedLogs;
@@ -130,7 +130,7 @@ bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
     }
 
     // Uncomment to print SPIR-V disassembly
-    // if (std::string DisassemblySPIRVData; SPIRVToolsInstance.Disassemble(SPIRVData, &DisassemblySPIRVData))
+    // if (strzilla::string DisassemblySPIRVData; SPIRVToolsInstance.Disassemble(SPIRVData, &DisassemblySPIRVData))
     // {
     //     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Generated SPIR-V shader disassembly:\n" << DisassemblySPIRVData;
     // }
@@ -139,16 +139,16 @@ bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
 }
 #endif
 
-bool RenderCore::Compile(std::string_view const      Source,
+bool RenderCore::Compile(strzilla::string_view const      Source,
                          ShaderType const            ShaderType,
-                         std::string_view const      EntryPoint,
+                         strzilla::string_view const      EntryPoint,
                          std::int32_t const          Version,
                          EShLanguage const           Language,
                          std::vector<std::uint32_t> &OutSPIRVCode)
 {
-    std::filesystem::path const Path(Source);
+    std::filesystem::path const Path { std::data(Source) };
     std::stringstream           ShaderSource;
-    std::ifstream               File(Path);
+    std::ifstream               File { Path };
 
     if (!File.is_open())
     {
@@ -169,23 +169,23 @@ bool RenderCore::Compile(std::string_view const      Source,
         }
         #endif
 
-        std::string const SPIRVPath = std::format("{}_{}.spv", Source, static_cast<std::uint8_t>(Language));
+        strzilla::string const SPIRVPath = std::format("{}_{}.spv", std::data(Source), static_cast<std::uint8_t>(Language));
         std::ofstream     SPIRVFile(SPIRVPath, std::ios::binary);
         if (!SPIRVFile.is_open())
         {
             return false;
         }
 
-        SPIRVFile << std::string(reinterpret_cast<char const *>(std::data(OutSPIRVCode)), std::size(OutSPIRVCode) * sizeof(std::uint32_t));
+        SPIRVFile << strzilla::string(reinterpret_cast<char const *>(std::data(OutSPIRVCode)), std::size(OutSPIRVCode) * sizeof(std::uint32_t));
         SPIRVFile.close();
     }
 
     return Result;
 }
 
-bool RenderCore::Load(std::string_view const Source, std::vector<std::uint32_t> &OutSPIRVCode)
+bool RenderCore::Load(strzilla::string_view const Source, std::vector<std::uint32_t> &OutSPIRVCode)
 {
-    std::filesystem::path const Path(Source);
+    std::filesystem::path const Path { std::data(Source) };
     if (!exists(Path))
     {
         return false;
@@ -212,15 +212,15 @@ bool RenderCore::Load(std::string_view const Source, std::vector<std::uint32_t> 
     return !ReadResult.fail();
 }
 
-bool RenderCore::CompileOrLoadIfExists(std::string_view const      Source,
+bool RenderCore::CompileOrLoadIfExists(strzilla::string_view const      Source,
                                        ShaderType const            ShaderType,
-                                       std::string_view const      EntryPoint,
+                                       strzilla::string_view const      EntryPoint,
                                        std::int32_t const          Version,
                                        EShLanguage const           Language,
                                        std::vector<std::uint32_t> &OutSPIRVCode)
 {
-    if (std::string const CompiledShaderPath = std::format("{}_{}.spv", Source, static_cast<std::uint8_t>(Language));
-        std::filesystem::exists(CompiledShaderPath))
+    if (strzilla::string const CompiledShaderPath = std::format("{}_{}.spv", std::data(Source), static_cast<std::uint8_t>(Language));
+        std::filesystem::exists(std::data(CompiledShaderPath)))
     {
         return Load(CompiledShaderPath, OutSPIRVCode);
     }
@@ -243,7 +243,7 @@ void RenderCore::CompileDefaultShaders()
     constexpr auto GlslVersion = 450;
     constexpr auto EntryPoint  = "main";
 
-    auto const CompileAndStage = [EntryPoint, GlslVersion](std::string_view const Shader, EShLanguage const Language)
+    auto const CompileAndStage = [EntryPoint, GlslVersion](strzilla::string_view const Shader, EShLanguage const Language)
     {
         if (auto &[StageInfo, ShaderCode] = g_StageInfos.emplace_back();
             CompileOrLoadIfExists(Shader, ShaderType::GLSL, EntryPoint, GlslVersion, Language, ShaderCode))

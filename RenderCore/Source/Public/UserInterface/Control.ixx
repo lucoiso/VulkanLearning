@@ -4,12 +4,6 @@
 
 module;
 
-#include <algorithm>
-#include <execution>
-#include <memory>
-#include <vector>
-#include "RenderCoreModule.hpp"
-
 export module RenderCore.UserInterface.Control;
 
 namespace RenderCore

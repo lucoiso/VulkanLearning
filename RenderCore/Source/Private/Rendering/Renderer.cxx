@@ -4,9 +4,6 @@
 
 module;
 
-#include <filesystem>
-#include <vector>
-
 // Include vulkan before glfw
 #ifndef VOLK_IMPLEMENTATION
 #define VOLK_IMPLEMENTATION
@@ -14,8 +11,6 @@ module;
 #include <Volk/volk.h>
 
 // Include glfw after vulkan
-#include <execution>
-#include <future>
 #include <GLFW/glfw3.h>
 
 module RenderCore.Renderer;
@@ -42,7 +37,7 @@ using namespace RenderCore;
 
 auto                       g_StateFlags { RendererStateFlags::NONE };
 auto                       g_ObjectsManagementStateFlags { RendererObjectsManagementStateFlags::NONE };
-std::vector<std::string>   g_ModelsToLoad {};
+std::vector<strzilla::string>   g_ModelsToLoad {};
 std::vector<std::uint32_t> g_ModelsToUnload {};
 double                     g_FrameTime { 0.F };
 double                     g_FrameRateCap { 0.016667F };
@@ -278,7 +273,7 @@ RendererStateFlags Renderer::GetStateFlags()
     return g_StateFlags;
 }
 
-void Renderer::RequestLoadObject(std::string_view const ObjectPath)
+void Renderer::RequestLoadObject(strzilla::string_view const ObjectPath)
 {
     g_ModelsToLoad.emplace_back(ObjectPath);
     AddFlags(g_ObjectsManagementStateFlags, RendererObjectsManagementStateFlags::PENDING_LOAD);
@@ -414,7 +409,7 @@ bool Renderer::IsImGuiInitialized()
     return RenderCore::IsImGuiInitialized();
 }
 
-void Renderer::SaveOffscreenFrameToImage(std::string_view const Path)
+void Renderer::SaveOffscreenFrameToImage(strzilla::string_view const Path)
 {
     ImageAllocation const &OffscreenImage = RenderCore::GetOffscreenImages().at(g_ImageIndex);
     SaveImageToFile(OffscreenImage.Image, Path, OffscreenImage.Extent);
@@ -425,7 +420,7 @@ void Renderer::PrintMemoryAllocatorStats(bool const DetailedMap)
     RenderCore::PrintMemoryAllocatorStats(DetailedMap);
 }
 
-std::string Renderer::GetMemoryAllocatorStats(bool const DetailedMap)
+strzilla::string Renderer::GetMemoryAllocatorStats(bool const DetailedMap)
 {
     return RenderCore::GetMemoryAllocatorStats(DetailedMap);
 }

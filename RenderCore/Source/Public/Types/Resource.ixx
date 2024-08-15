@@ -4,10 +4,6 @@
 
 module;
 
-#include <string_view>
-
-#include "RenderCoreModule.hpp"
-
 export module RenderCore.Types.Resource;
 
 namespace RenderCore
@@ -16,20 +12,20 @@ namespace RenderCore
     {
         bool          m_IsPendingDestroy {false};
         std::uint32_t m_ID {};
-        std::string   m_Path {};
-        std::string   m_Name {};
+        strzilla::string   m_Path {};
+        strzilla::string   m_Name {};
         std::uint32_t m_BufferIndex {0U};
 
     public:
         virtual ~Resource() = default;
                  Resource() = delete;
 
-        Resource(std::uint32_t, std::string_view);
-        Resource(std::uint32_t, std::string_view, std::string_view);
+        Resource(std::uint32_t, strzilla::string_view);
+        Resource(std::uint32_t, strzilla::string_view, strzilla::string_view);
 
         [[nodiscard]] std::uint32_t      GetID() const;
-        [[nodiscard]] std::string const &GetPath() const;
-        [[nodiscard]] std::string const &GetName() const;
+        [[nodiscard]] strzilla::string const &GetPath() const;
+        [[nodiscard]] strzilla::string const &GetName() const;
 
         [[nodiscard]] std::uint32_t GetBufferIndex() const;
         void                        SetBufferIndex(std::uint32_t const &);

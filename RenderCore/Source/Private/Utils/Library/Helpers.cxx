@@ -4,21 +4,9 @@
 
 module;
 
-#include <filesystem>
-#include <format>
-#include <regex>
-#include <span>
-#include <boost/log/trivial.hpp>
 #include <GLFW/glfw3.h>
 #include <Volk/volk.h>
-
-#ifndef GLM_FORCE_RADIANS
-#define GLM_FORCE_RADIANS
-#endif
-#ifndef GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#endif
-#include <glm/ext.hpp>
+#include <boost/log/trivial.hpp>
 
 module RenderCore.Utils.Helpers;
 
@@ -38,19 +26,19 @@ std::string ExtractFunctionName(std::string const &FunctionName)
     return {};
 }
 
-std::string ExtractFileName(std::string const &FileName)
+std::string ExtractFileName(strzilla::string_view const &FileName)
 {
-    return std::filesystem::path(FileName).filename().string();
+    return std::filesystem::path(std::data(FileName)).filename().string();
 }
 
-void RenderCore::EmitFatalError(std::string_view const Message, std::source_location const &Location)
+void RenderCore::EmitFatalError(strzilla::string_view const Message, std::source_location const &Location)
 {
     BOOST_LOG_TRIVIAL(fatal) << std::format("[{}:{}:{}:{}] {}",
                                             ExtractFileName(Location.file_name()),
                                             ExtractFunctionName(Location.function_name()),
                                             Location.line(),
                                             Location.column(),
-                                            Message);
+                                            std::data(Message));
     std::terminate();
 }
 
@@ -76,13 +64,13 @@ VkExtent2D RenderCore::GetWindowExtent(GLFWwindow *const Window, VkSurfaceCapabi
     return ActualExtent;
 }
 
-std::vector<std::string> RenderCore::GetGLFWExtensions()
+std::vector<strzilla::string> RenderCore::GetGLFWExtensions()
 {
     std::uint32_t   GLFWExtensionsCount = 0U;
     char const **   GLFWExtensions      = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
     std::span const GLFWExtensionsSpan(GLFWExtensions, GLFWExtensionsCount);
 
-    std::vector<std::string> Output {};
+    std::vector<strzilla::string> Output {};
     Output.reserve(GLFWExtensionsCount);
 
     for (char const *const &ExtensionIter : GLFWExtensionsSpan)
@@ -104,9 +92,9 @@ std::vector<VkLayerProperties> RenderCore::GetAvailableInstanceLayers()
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailableInstanceLayersNames()
+std::vector<strzilla::string> RenderCore::GetAvailableInstanceLayersNames()
 {
-    std::vector<std::string> Output;
+    std::vector<strzilla::string> Output;
     for (auto const &[LayerName, SpecVer, ImplVer, Descr] : GetAvailableInstanceLayers())
     {
         Output.emplace_back(LayerName);
@@ -126,9 +114,9 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailableInstanceExtensions()
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailableInstanceExtensionsNames()
+std::vector<strzilla::string> RenderCore::GetAvailableInstanceExtensionsNames()
 {
-    std::vector<std::string> Output;
+    std::vector<strzilla::string> Output;
     for (auto const &[ExtName, SpecVer] : GetAvailableInstanceExtensions())
     {
         Output.emplace_back(ExtName);
@@ -159,10 +147,10 @@ std::vector<VkVertexInputAttributeDescription> RenderCore::GetAttributeDescripti
     return Output;
 }
 
-std::vector<VkExtensionProperties> RenderCore::GetAvailableInstanceLayerExtensions(std::string_view const LayerName)
+std::vector<VkExtensionProperties> RenderCore::GetAvailableInstanceLayerExtensions(strzilla::string_view const LayerName)
 {
-    if (std::vector<std::string> const AvailableLayers = GetAvailableInstanceLayersNames();
-        std::ranges::find(AvailableLayers, LayerName) == std::cend(AvailableLayers))
+    if (std::vector<strzilla::string> const AvailableLayers = GetAvailableInstanceLayersNames();
+        std::ranges::find(AvailableLayers, std::data(LayerName)) == std::cend(AvailableLayers))
     {
         return {};
     }
@@ -176,9 +164,9 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailableInstanceLayerExtensio
     return Output;
 }
 
-std::vector<std::string> RenderCore::GetAvailableInstanceLayerExtensionsNames(std::string_view const LayerName)
+std::vector<strzilla::string> RenderCore::GetAvailableInstanceLayerExtensionsNames(strzilla::string_view const LayerName)
 {
-    std::vector<std::string> Output;
+    std::vector<strzilla::string> Output;
     for (auto const &[ExtName, SpecVer] : GetAvailableInstanceLayerExtensions(LayerName))
     {
         Output.emplace_back(ExtName);

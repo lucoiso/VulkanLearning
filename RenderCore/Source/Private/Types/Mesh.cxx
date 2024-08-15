@@ -4,9 +4,8 @@
 
 module;
 
-#include <string_view>
-#include <glm/ext.hpp>
 #include <Volk/volk.h>
+#include <glm/ext.hpp>
 
 module RenderCore.Types.Mesh;
 
@@ -15,12 +14,12 @@ import RenderCore.Runtime.Memory;
 
 using namespace RenderCore;
 
-Mesh::Mesh(std::uint32_t const ID, std::string_view const Path)
+Mesh::Mesh(std::uint32_t const ID, strzilla::string_view const Path)
     : Resource(ID, Path)
 {
 }
 
-Mesh::Mesh(std::uint32_t const ID, std::string_view const Path, std::string_view const Name)
+Mesh::Mesh(std::uint32_t const ID, strzilla::string_view const Path, strzilla::string_view const Name)
     : Resource(ID, Path, Name)
 {
 }

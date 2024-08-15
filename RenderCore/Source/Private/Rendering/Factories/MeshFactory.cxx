@@ -4,10 +4,7 @@
 
 module;
 
-#include <Volk/volk.h>
-#include <format>
 #include <glm/ext.hpp>
-#include <string>
 #include <tiny_gltf.h>
 
 module RenderCore.Factories.Mesh;
@@ -25,7 +22,7 @@ std::shared_ptr<Mesh> RenderCore::ConstructMesh(MeshConstructionInputParameters 
         return nullptr;
     }
 
-    std::string const MeshName = std::format("{}_{:03d}", std::empty(Arguments.Mesh.name) ? "None" : Arguments.Mesh.name, Arguments.ID);
+    strzilla::string const MeshName = std::format("{}_{:03d}", std::empty(Arguments.Mesh.name) ? "None" : Arguments.Mesh.name, Arguments.ID);
     auto              NewMesh  = std::make_shared<Mesh>(Arguments.ID, Arguments.Path, MeshName);
 
     SetVertexAttributes(NewMesh, Arguments.Model, Arguments.Primitive);

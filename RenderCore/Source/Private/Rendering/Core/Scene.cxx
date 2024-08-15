@@ -4,10 +4,10 @@
 
 module;
 
-#include <Volk/volk.h>
 #include <boost/log/trivial.hpp>
-#include <glm/ext.hpp>
+#include <Volk/volk.h>
 #include <vma/vk_mem_alloc.h>
+#include <glm/ext.hpp>
 
 #ifndef TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_IMPLEMENTATION
@@ -18,7 +18,6 @@ module;
 #ifndef STB_IMAGE_WRITE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #endif
-#include <execution>
 #include <tiny_gltf.h>
 
 module RenderCore.Runtime.Scene;
@@ -135,14 +134,14 @@ void RenderCore::AllocateEmptyTexture(VkFormat const TextureFormat)
     vmaDestroyBuffer(Allocator, Buffer, Allocation);
 }
 
-void RenderCore::LoadScene(std::string_view const ModelPath)
+void RenderCore::LoadScene(strzilla::string_view const ModelPath)
 {
     tinygltf::Model Model {};
     {
         tinygltf::TinyGLTF          ModelLoader {};
         std::string                 Error {};
         std::string                 Warning {};
-        std::filesystem::path const ModelFilepath(ModelPath);
+        std::filesystem::path const ModelFilepath { std::data(ModelPath) };
         bool const                  LoadResult = ModelFilepath.extension() == ".gltf"
                                                      ? ModelLoader.LoadASCIIFromFile(&Model, &Error, &Warning, std::data(ModelPath))
                                                      : ModelLoader.LoadBinaryFromFile(&Model, &Error, &Warning, std::data(ModelPath));

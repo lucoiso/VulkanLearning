@@ -5,7 +5,6 @@
 module;
 
 #include <GLFW/glfw3.h>
-#include <chrono>
 
 module RenderCore.UserInterface.Window;
 
@@ -18,7 +17,7 @@ Window::Window() : Control(nullptr)
 {
 }
 
-bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, std::string_view const Title, InitializationFlags const Flags)
+bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, strzilla::string_view const Title, InitializationFlags const Flags)
 {
     if (Renderer::IsInitialized())
     {

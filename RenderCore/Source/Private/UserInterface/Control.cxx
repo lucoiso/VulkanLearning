@@ -4,8 +4,6 @@
 
 module;
 
-#include <vector>
-
 module RenderCore.UserInterface.Control;
 
 using namespace RenderCore;

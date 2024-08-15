@@ -4,8 +4,6 @@
 
 module;
 
-#include <cstdint>
-
 export module RenderCore.Types.RendererStateFlags;
 
 namespace RenderCore

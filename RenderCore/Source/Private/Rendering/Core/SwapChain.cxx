@@ -5,9 +5,6 @@
 module;
 
 #include <Volk/volk.h>
-#include <algorithm>
-#include <execution>
-#include <vector>
 #include <vma/vk_mem_alloc.h>
 
 #ifdef GLFW_INCLUDE_VULKAN

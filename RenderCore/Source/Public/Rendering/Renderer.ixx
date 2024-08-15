@@ -4,14 +4,8 @@
 
 module;
 
-#include <cstdint>
-#include <memory>
-#include <mutex>
-#include <string>
-#include <vector>
 #include <GLFW/glfw3.h>
 #include <Volk/volk.h>
-#include "RenderCoreModule.hpp"
 
 export module RenderCore.Renderer;
 
@@ -50,7 +44,7 @@ namespace RenderCore
 
         [[nodiscard]] RENDERCOREMODULE_API RendererStateFlags GetStateFlags();
 
-        RENDERCOREMODULE_API void RequestLoadObject(std::string_view);
+        RENDERCOREMODULE_API void RequestLoadObject(strzilla::string_view);
 
         RENDERCOREMODULE_API void RequestUnloadObjects(std::vector<std::uint32_t> const &);
 
@@ -96,10 +90,10 @@ namespace RenderCore
 
         [[nodiscard]] RENDERCOREMODULE_API bool IsImGuiInitialized();
 
-        RENDERCOREMODULE_API void SaveOffscreenFrameToImage(std::string_view);
+        RENDERCOREMODULE_API void SaveOffscreenFrameToImage(strzilla::string_view);
 
         RENDERCOREMODULE_API void PrintMemoryAllocatorStats(bool);
 
-        [[nodiscard]] RENDERCOREMODULE_API std::string GetMemoryAllocatorStats(bool);
+        [[nodiscard]] RENDERCOREMODULE_API strzilla::string GetMemoryAllocatorStats(bool);
     } // namespace Renderer
 }     // namespace RenderCore

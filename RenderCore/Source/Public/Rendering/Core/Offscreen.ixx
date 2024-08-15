@@ -4,8 +4,6 @@
 
 module;
 
-#include <vector>
-
 export module RenderCore.Integrations.Offscreen;
 
 import RenderCore.Types.Allocation;

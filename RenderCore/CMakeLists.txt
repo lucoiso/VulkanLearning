@@ -18,14 +18,25 @@ ADD_LIBRARY(${LIBRARY_NAME} SHARED ${PRIVATE_MODULES})
 SET_TARGET_PROPERTIES(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 TARGET_SOURCES(${LIBRARY_NAME}
-               PUBLIC
-               FILE_SET cxx_public_modules
-               TYPE CXX_MODULES
-               BASE_DIRS ${PUBLIC_MODULES_BASE_DIRECTORY}
-               FILES ${PUBLIC_MODULES}
+        PUBLIC
+        FILE_SET cxx_public_modules
+        TYPE CXX_MODULES
+        BASE_DIRS ${PUBLIC_MODULES_BASE_DIRECTORY}
+        FILES ${PUBLIC_MODULES}
+)
+
+FILE(GLOB_RECURSE PUBLIC_HEADERS "${PUBLIC_MODULES_BASE_DIRECTORY}/*.hpp")
+
+TARGET_SOURCES(${LIBRARY_NAME}
+        PUBLIC
+        FILE_SET cxx_public_headers
+        TYPE HEADERS
+        BASE_DIRS ${PUBLIC_MODULES_BASE_DIRECTORY}
+        FILES ${PUBLIC_HEADERS}
 )
 
 TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${PRIVATE_MODULES_BASE_DIRECTORY})
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PUBLIC ${PUBLIC_MODULES_BASE_DIRECTORY})
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 
 FIND_PACKAGE(Boost REQUIRED COMPONENTS log)
@@ -37,24 +48,24 @@ FIND_PACKAGE(imgui CONFIG REQUIRED)
 TARGET_LINK_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Libraries)
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC
-                      Boost::log
-                      TinyGLTF::TinyGLTF
-                      glfw
-                      imgui::imgui
+        Boost::log
+        TinyGLTF::TinyGLTF
+        glfw
+        imgui::imgui
 
-                      ThreadPool
+        ThreadPool
 )
 
 SET(VULKAN_LIBS_TO_LINK
-    volk
-    SPIRV-Tools
-    SPIRV-Tools-opt
-    GenericCodeGen
-    glslang
-    glslang-default-resource-limits
-    MachineIndependent
-    OSDependent
-    SPIRV
+        volk
+        SPIRV-Tools
+        SPIRV-Tools-opt
+        GenericCodeGen
+        glslang
+        glslang-default-resource-limits
+        MachineIndependent
+        OSDependent
+        SPIRV
 )
 
 FOREACH (VkLib ${VULKAN_LIBS_TO_LINK})
@@ -68,40 +79,60 @@ ENDFOREACH ()
 TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE $ENV{VULKAN_SDK}/Include)
 
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE
-                           # Assets directory (relative to binaries)
-                           DEFAULT_VERTEX_SHADER="Shaders/DEFAULT_SHADER.vert"
-                           DEFAULT_FRAGMENT_SHADER="Shaders/DEFAULT_SHADER.frag"
-                           DEFAULT_TASK_SHADER="Shaders/DEFAULT_SHADER.task"
-                           DEFAULT_MESH_SHADER="Shaders/DEFAULT_SHADER.mesh"
+        # Assets directory (relative to binaries)
+        DEFAULT_VERTEX_SHADER="Shaders/DEFAULT_SHADER.vert"
+        DEFAULT_FRAGMENT_SHADER="Shaders/DEFAULT_SHADER.frag"
+        DEFAULT_TASK_SHADER="Shaders/DEFAULT_SHADER.task"
+        DEFAULT_MESH_SHADER="Shaders/DEFAULT_SHADER.mesh"
 )
 
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC
-                           GPU_API_DUMP=0
+        GPU_API_DUMP=0
 )
 
 IF (WIN32)
     SET(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
 
     TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC
-                               VK_USE_PLATFORM_WIN32_KHR
-                               WIN32_LEAN_AND_MEAN
-                               NOMINMAX
-                               _WIN32_WINNT=0x0A00
+            VK_USE_PLATFORM_WIN32_KHR
+            WIN32_LEAN_AND_MEAN
+            NOMINMAX
+            _WIN32_WINNT=0x0A00
     )
 ELSEIF (MACOS)
     SET(VOLK_STATIC_DEFINES VK_USE_PLATFORM_MACOS_MVK)
 
     TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC
-                               VK_USE_PLATFORM_MACOS_MVK
+            VK_USE_PLATFORM_MACOS_MVK
     )
 ELSEIF (UNIX)
     SET(VOLK_STATIC_DEFINES VK_USE_PLATFORM_XCB_KHR)
 
     TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC
-                               VK_USE_PLATFORM_XCB_KHR
+            VK_USE_PLATFORM_XCB_KHR
     )
 ENDIF (WIN32)
 
+INCLUDE(FetchContent)
+
+FETCHCONTENT_DECLARE(
+        stringzilla
+        GIT_REPOSITORY https://github.com/ashvardanian/StringZilla
+        GIT_TAG main
+)
+FETCHCONTENT_MAKEAVAILABLE(stringzilla)
+
+IF (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    TARGET_COMPILE_OPTIONS(${LIBRARY_NAME} PUBLIC -Wno-unknown-pragmas)
+ELSEIF (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    TARGET_COMPILE_OPTIONS(${LIBRARY_NAME} PUBLIC /wd4068)
+ENDIF (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PUBLIC ${stringzilla_SOURCE_DIR}/include)
+
+SET(PCH_FILE ${PUBLIC_MODULES_BASE_DIRECTORY}/RenderCoreDefinitions.hpp)
+TARGET_PRECOMPILE_HEADERS(${LIBRARY_NAME} PUBLIC ${PCH_FILE})
+
 ADD_CUSTOM_COMMAND(TARGET ${LIBRARY_NAME} POST_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different "${SHADERS_RESOURCES_DIRECTORY}" "$<TARGET_FILE_DIR:${LIBRARY_NAME}>/Shaders"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different "${SHADERS_RESOURCES_DIRECTORY}" "$<TARGET_FILE_DIR:${LIBRARY_NAME}>/Shaders"
 )

@@ -4,16 +4,13 @@
 
 module;
 
-#include <cstdint>
-#include <string>
-#include "RenderCoreModule.hpp"
-
 export module RenderCore.UserInterface.Window;
 
-import RenderCore.Renderer;
-import RenderCore.UserInterface.Control;
-import RenderCore.UserInterface.Window.Flags;
 import RenderCore.Integrations.GLFWHandler;
+
+export import RenderCore.Renderer;
+export import RenderCore.UserInterface.Control;
+export import RenderCore.UserInterface.Window.Flags;
 
 namespace RenderCore
 {
@@ -23,7 +20,7 @@ namespace RenderCore
         GLFWHandler         m_GLFWHandler {};
         std::uint16_t       m_Width {};
         std::uint16_t       m_Height {};
-        std::string         m_Title {};
+        strzilla::string    m_Title {};
 
     public:
         Window();
@@ -34,7 +31,7 @@ namespace RenderCore
 
         ~Window() override = default;
 
-        bool Initialize(std::uint16_t, std::uint16_t, std::string_view, InitializationFlags Flags = InitializationFlags::NONE);
+        bool Initialize(std::uint16_t, std::uint16_t, strzilla::string_view, InitializationFlags Flags = InitializationFlags::NONE);
 
         void Shutdown();
 

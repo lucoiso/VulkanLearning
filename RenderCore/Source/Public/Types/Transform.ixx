@@ -5,7 +5,6 @@
 module;
 
 #include <glm/ext.hpp>
-#include "RenderCoreModule.hpp"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/matrix_decompose.hpp>

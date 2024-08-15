@@ -4,8 +4,6 @@
 
 module;
 
-#include <cstdint>
-
 export module RenderCore.UserInterface.Window.Flags;
 
 import RenderCore.Utils.EnumHelpers;

@@ -4,10 +4,7 @@
 
 module;
 
-#include <memory>
 #include <tiny_gltf.h>
-#include <unordered_map>
-#include <vma/vk_mem_alloc.h>
 
 export module RenderCore.Factories.Mesh;
 
@@ -19,7 +16,7 @@ namespace RenderCore
     export struct MeshConstructionInputParameters
     {
         std::uint32_t                                                      ID { 0U };
-        std::string_view const &                                           Path {};
+        strzilla::string_view const &                                           Path {};
         tinygltf::Model const &                                            Model {};
         tinygltf::Node const &                                             Node {};
         tinygltf::Mesh const &                                             Mesh {};

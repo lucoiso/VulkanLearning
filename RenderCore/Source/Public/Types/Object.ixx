@@ -4,13 +4,8 @@
 
 module;
 
-#include <bitset>
-#include <memory>
-#include <vector>
-#include <glm/ext.hpp>
 #include <Volk/volk.h>
-
-#include "RenderCoreModule.hpp"
+#include <glm/ext.hpp>
 
 export module RenderCore.Types.Object;
 
@@ -39,8 +34,8 @@ namespace RenderCore
             return GetID() == Rhs.GetID() && GetName() == Rhs.GetName() && GetPath() == Rhs.GetPath();
         }
 
-        Object(std::uint32_t, std::string_view);
-        Object(std::uint32_t, std::string_view, std::string_view);
+        Object(std::uint32_t, strzilla::string_view);
+        Object(std::uint32_t, strzilla::string_view, strzilla::string_view);
 
         [[nodiscard]] Transform const &GetTransform() const;
         void                           SetTransform(Transform const &);

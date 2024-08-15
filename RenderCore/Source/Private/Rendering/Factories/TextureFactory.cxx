@@ -5,8 +5,6 @@
 module;
 
 #include <Volk/volk.h>
-#include <format>
-#include <string>
 
 module RenderCore.Factories.Texture;
 
@@ -23,7 +21,7 @@ std::shared_ptr<Texture> RenderCore::ConstructTexture(TextureConstructionInputPa
         return nullptr;
     }
 
-    std::string const TextureName = std::format("{}_{:03d}", std::empty(Parameters.Image.name) ? "None" : Parameters.Image.name, Parameters.ID);
+    strzilla::string const TextureName = std::format("{}_{:03d}", std::empty(Parameters.Image.name) ? "None" : Parameters.Image.name, Parameters.ID);
     auto              NewTexture  = std::shared_ptr<Texture>(new Texture { Parameters.ID, Parameters.Image.uri, TextureName }, TextureDeleter {});
 
     auto [Index, Buffer, Allocation] = AllocateTexture(Parameters.AllocationCmdBuffer,
