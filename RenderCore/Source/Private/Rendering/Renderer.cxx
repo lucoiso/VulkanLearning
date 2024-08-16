@@ -219,7 +219,10 @@ void RenderCore::Shutdown(Control *Window)
     ReleaseSynchronizationObjects();
     ReleaseCommandsResources();
 
-    Window->DestroyChildren(true);
+    if (Window)
+    {
+        Window->DestroyChildren(true);
+    }
 
     if (g_EnableImGui)
     {

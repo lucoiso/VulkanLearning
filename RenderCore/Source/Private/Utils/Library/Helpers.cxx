@@ -37,6 +37,7 @@ void RenderCore::EmitFatalError(strzilla::string_view const Message, std::source
                                             Location.line(),
                                             Location.column(),
                                             std::data(Message));
+
     std::terminate();
 }
 

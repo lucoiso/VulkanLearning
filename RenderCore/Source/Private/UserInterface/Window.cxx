@@ -67,7 +67,15 @@ void Window::PollEvents()
     }
 
     glfwPollEvents();
-    Draw();
+
+    if (RenderCore::Renderer::IsInitialized())
+    {
+        Draw();
+    }
+    else
+    {
+        DestroyChildren(true);
+    }
 }
 
 void Window::Draw()

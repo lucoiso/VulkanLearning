@@ -8,10 +8,16 @@ module RenderCore.Types.Resource;
 
 using namespace RenderCore;
 
+strzilla::string NameParser(strzilla::string_view const Path)
+{
+    auto const LastSlash = Path.rfind('\\');
+    return LastSlash != strzilla::string::npos ? Path.substr(LastSlash + 1, Path.size() - LastSlash - 1) : "";
+}
+
 Resource::Resource(std::uint32_t const ID, strzilla::string_view const Path)
     : m_ID(ID)
   , m_Path(Path)
-  , m_Name(m_Path.substr(m_Path.find_last_of("\\") + 1, m_Path.find_last_of(".") - m_Path.find_last_of("\\") - 1))
+  , m_Name(NameParser(m_Path))
 {
 }
 
