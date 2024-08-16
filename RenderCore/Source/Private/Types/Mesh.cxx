@@ -4,9 +4,6 @@
 
 module;
 
-#include <Volk/volk.h>
-#include <glm/ext.hpp>
-
 module RenderCore.Types.Mesh;
 
 import RenderCore.Runtime.Scene;

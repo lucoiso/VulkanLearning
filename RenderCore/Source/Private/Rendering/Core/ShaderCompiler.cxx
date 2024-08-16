@@ -4,14 +4,13 @@
 
 module;
 
-#include <boost/log/trivial.hpp>
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <glslang/SPIRV/Logger.h>
 
 #ifdef _DEBUG
-#include <spirv-tools/libspirv.hpp>
+    #include <spirv-tools/libspirv.hpp>
 #endif
 
 module RenderCore.Runtime.ShaderCompiler;
@@ -24,9 +23,9 @@ using namespace RenderCore;
 std::vector<ShaderStageData> g_StageInfos;
 
 bool CompileInternal(ShaderType const            ShaderType,
-                     strzilla::string_view const      Source,
+                     strzilla::string_view const Source,
                      EShLanguage const           Language,
-                     strzilla::string_view const      EntryPoint,
+                     strzilla::string_view const EntryPoint,
                      std::int32_t const          Version,
                      std::vector<std::uint32_t> &OutSPIRVCode)
 {
@@ -53,7 +52,9 @@ bool CompileInternal(ShaderType const            ShaderType,
         auto const InfoLog(strzilla::string { "Info Log: " } + Shader.getInfoLog());
         auto const DebugLog(strzilla::string { "Debug Log: " } + Shader.getInfoDebugLog());
 
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: " << std::format("Failed to parse shader:\n{}\n{}", std::data(InfoLog), std::data(DebugLog));
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: " << std::format("Failed to parse shader:\n{}\n{}",
+                                                                            std::data(InfoLog),
+                                                                            std::data(DebugLog));
         return false;
     }
 
@@ -67,7 +68,9 @@ bool CompileInternal(ShaderType const            ShaderType,
         auto const InfoLog(strzilla::string { "Info Log: " } + Shader.getInfoLog());
         auto const DebugLog(strzilla::string { "Debug Log: " } + Shader.getInfoDebugLog());
 
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: " << std::format("Failed to parse shader:\n{}\n{}", std::data(InfoLog), std::data(DebugLog));
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: " << std::format("Failed to parse shader:\n{}\n{}",
+                                                                            std::data(InfoLog),
+                                                                            std::data(DebugLog));
         return false;
     }
 
@@ -103,28 +106,32 @@ bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
 
     if (!Initialized)
     {
-        SPIRVToolsInstance.SetMessageConsumer([_func_internal_ = __func__](spv_message_level_t const              Level,
-                                                                           [[maybe_unused]] const char *          Source,
-                                                                           [[maybe_unused]] const spv_position_t &Position,
-                                                                           const char *                           Message)
-        {
-            switch (Level)
-            {
-                case SPV_MSG_FATAL:
-                case SPV_MSG_INTERNAL_ERROR:
-                case SPV_MSG_ERROR: BOOST_LOG_TRIVIAL(error) << "[" << _func_internal_ << "]: " << std::format("Error: {}\n", Message);
-                    break;
+        SPIRVToolsInstance.SetMessageConsumer(
+                [_func_internal_ = __func__](spv_message_level_t const              Level,
+                                             [[maybe_unused]] const char           *Source,
+                                             [[maybe_unused]] const spv_position_t &Position,
+                                             const char                            *Message)
+                {
+                    switch (Level)
+                    {
+                        case SPV_MSG_FATAL:
+                        case SPV_MSG_INTERNAL_ERROR:
+                        case SPV_MSG_ERROR:
+                            BOOST_LOG_TRIVIAL(error) << "[" << _func_internal_ << "]: " << std::format("Error: {}\n", Message);
+                            break;
 
-                case SPV_MSG_WARNING: BOOST_LOG_TRIVIAL(warning) << "[" << _func_internal_ << "]: " << std::format("Warning: {}\n", Message);
-                    break;
+                        case SPV_MSG_WARNING:
+                            BOOST_LOG_TRIVIAL(warning) << "[" << _func_internal_ << "]: " << std::format("Warning: {}\n", Message);
+                            break;
 
-                case SPV_MSG_INFO: BOOST_LOG_TRIVIAL(info) << "[" << _func_internal_ << "]: " << std::format("Info: {}\n", Message);
-                    break;
+                        case SPV_MSG_INFO:
+                            BOOST_LOG_TRIVIAL(info) << "[" << _func_internal_ << "]: " << std::format("Info: {}\n", Message);
+                            break;
 
-                default:
-                    break;
-            }
-        });
+                        default:
+                            break;
+                    }
+                });
 
         Initialized = true;
     }
@@ -139,9 +146,9 @@ bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
 }
 #endif
 
-bool RenderCore::Compile(strzilla::string_view const      Source,
+bool RenderCore::Compile(strzilla::string_view const Source,
                          ShaderType const            ShaderType,
-                         strzilla::string_view const      EntryPoint,
+                         strzilla::string_view const EntryPoint,
                          std::int32_t const          Version,
                          EShLanguage const           Language,
                          std::vector<std::uint32_t> &OutSPIRVCode)
@@ -170,7 +177,7 @@ bool RenderCore::Compile(strzilla::string_view const      Source,
         #endif
 
         strzilla::string const SPIRVPath = std::format("{}_{}.spv", std::data(Source), static_cast<std::uint8_t>(Language));
-        std::ofstream     SPIRVFile(SPIRVPath, std::ios::binary);
+        std::ofstream          SPIRVFile(SPIRVPath, std::ios::binary);
         if (!SPIRVFile.is_open())
         {
             return false;
@@ -212,9 +219,9 @@ bool RenderCore::Load(strzilla::string_view const Source, std::vector<std::uint3
     return !ReadResult.fail();
 }
 
-bool RenderCore::CompileOrLoadIfExists(strzilla::string_view const      Source,
+bool RenderCore::CompileOrLoadIfExists(strzilla::string_view const Source,
                                        ShaderType const            ShaderType,
-                                       strzilla::string_view const      EntryPoint,
+                                       strzilla::string_view const EntryPoint,
                                        std::int32_t const          Version,
                                        EShLanguage const           Language,
                                        std::vector<std::uint32_t> &OutSPIRVCode)

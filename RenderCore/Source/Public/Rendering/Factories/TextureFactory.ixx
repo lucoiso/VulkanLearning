@@ -4,9 +4,6 @@
 
 module;
 
-#include <tiny_gltf.h>
-#include <vma/vk_mem_alloc.h>
-
 export module RenderCore.Factories.Texture;
 
 import RenderCore.Types.Texture;

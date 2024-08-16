@@ -4,8 +4,6 @@
 
 module;
 
-#include <vma/vk_mem_alloc.h>
-
 export module RenderCore.Utils.Constants;
 
 export namespace RenderCore

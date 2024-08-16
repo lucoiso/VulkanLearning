@@ -4,10 +4,6 @@
 
 module;
 
-#include <GLFW/glfw3.h>
-#include <Volk/volk.h>
-#include <boost/log/trivial.hpp>
-
 module RenderCore.Utils.Helpers;
 
 import RenderCore.Types.Vertex;
@@ -17,8 +13,10 @@ using namespace RenderCore;
 
 std::string ExtractFunctionName(std::string const &FunctionName)
 {
+    constexpr auto Pattern = R"(\b([a-zA-Z_][a-zA-Z0-9_]*)\b(?=\s*\())";
+
     if (std::smatch Match;
-        std::regex_search(FunctionName, Match, std::regex { R"(\b([a-zA-Z_][a-zA-Z0-9_]*)\b(?=\s*\())" }))
+        std::regex_search(FunctionName, Match, std::regex { Pattern }))
     {
         return Match.str();
     }

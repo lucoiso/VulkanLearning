@@ -4,10 +4,6 @@
 
 module;
 
-#include <imgui.h>
-#include <boost/log/trivial.hpp>
-#include <Volk/volk.h>
-
 module RenderCore.Integrations.ImGuiOverlay;
 
 import RenderCore.Renderer;

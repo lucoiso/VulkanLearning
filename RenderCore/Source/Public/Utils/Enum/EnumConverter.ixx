@@ -4,8 +4,6 @@
 
 module;
 
-#include <Volk/volk.h>
-
 export module RenderCore.Utils.EnumConverter;
 
 namespace RenderCore

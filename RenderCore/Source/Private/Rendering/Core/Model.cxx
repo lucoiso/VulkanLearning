@@ -4,9 +4,6 @@
 
 module;
 
-#include <tiny_gltf.h>
-#include <glm/ext.hpp>
-
 module RenderCore.Runtime.Model;
 
 import RenderCore.Runtime.Memory;
@@ -25,10 +22,10 @@ void RenderCore::InsertIndiceInContainer(std::vector<std::uint32_t> &Indices, ti
     }
 }
 
-float const *RenderCore::GetPrimitiveData(strzilla::string_view const &   ID,
-                                          tinygltf::Model const &    Model,
-                                          tinygltf::Primitive const &Primitive,
-                                          std::uint32_t *            NumComponents = nullptr)
+float const *RenderCore::GetPrimitiveData(strzilla::string_view const &ID,
+                                          tinygltf::Model const &      Model,
+                                          tinygltf::Primitive const &  Primitive,
+                                          std::uint32_t *              NumComponents = nullptr)
 {
     if (Primitive.attributes.contains(std::data(ID)))
     {

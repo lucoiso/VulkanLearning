@@ -4,8 +4,6 @@
 
 module;
 
-#include <glm/ext.hpp>
-
 export module RenderCore.Types.Material;
 
 import RenderCore.Types.Transform;

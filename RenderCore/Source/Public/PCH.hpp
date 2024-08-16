@@ -2,8 +2,8 @@
 // Year : 2024
 // Repo : https://github.com/lucoiso/vulkan-renderer
 
-#ifndef RENDERCOREDEFINITIONS_HPP
-#define RENDERCOREDEFINITIONS_HPP
+#ifndef PCH_HPP
+#define PCH_HPP
 
 #pragma once
 
@@ -33,7 +33,21 @@
 #include <unordered_map>
 #include <vector>
 
+#include <Volk/volk.h>
+
+#include <vma/vk_mem_alloc.h>
+
+#ifdef GLFW_INCLUDE_VULKAN
+    #undef GLFW_INCLUDE_VULKAN
+#endif
+#include <GLFW/glfw3.h>
+
+#include <boost/log/trivial.hpp>
+#include <glm/ext.hpp>
+#include <imgui.h>
+#include <tiny_gltf.h>
+
 #include <stringzilla/stringzilla.hpp>
 namespace strzilla = ashvardanian::stringzilla;
 
-#endif // RENDERCOREDEFINITIONS_HPP
+#endif // PCH_HPP

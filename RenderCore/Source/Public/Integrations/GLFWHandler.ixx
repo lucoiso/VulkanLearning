@@ -4,8 +4,6 @@
 
 module;
 
-#include <GLFW/glfw3.h>
-
 export module RenderCore.Integrations.GLFWHandler;
 
 import RenderCore.UserInterface.Window.Flags;

@@ -4,8 +4,6 @@
 
 module;
 
-#include <glm/ext.hpp>
-
 module RenderCore.Types.Illumination;
 
 import RenderCore.Runtime.Memory;

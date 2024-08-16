@@ -4,8 +4,6 @@
 
 module;
 
-#include <Volk/volk.h>
-
 module RenderCore.Runtime.Device;
 
 import RenderCore.Renderer;

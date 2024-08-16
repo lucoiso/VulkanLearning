@@ -6,9 +6,6 @@
 
 module;
 
-#include <imgui.h>
-#include <Volk/volk.h>
-
 export module RenderCore.Integrations.ImGuiVulkanBackend;
 
 import RenderCore.Types.Allocation;

@@ -4,8 +4,6 @@
 
 module;
 
-#include <vma/vk_mem_alloc.h>
-
 module RenderCore.Integrations.Offscreen;
 
 import RenderCore.Types.Allocation;

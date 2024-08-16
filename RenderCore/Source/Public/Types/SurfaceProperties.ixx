@@ -4,8 +4,6 @@
 
 module;
 
-#include <Volk/volk.h>
-
 export module RenderCore.Types.SurfaceProperties;
 
 import RenderCore.Types.Transform;

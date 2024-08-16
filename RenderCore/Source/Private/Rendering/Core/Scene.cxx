@@ -4,11 +4,6 @@
 
 module;
 
-#include <boost/log/trivial.hpp>
-#include <Volk/volk.h>
-#include <vma/vk_mem_alloc.h>
-#include <glm/ext.hpp>
-
 #ifndef TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_IMPLEMENTATION
 #endif

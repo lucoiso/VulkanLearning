@@ -4,9 +4,6 @@
 
 module;
 
-#include <glm/ext.hpp>
-#include <tiny_gltf.h>
-
 module RenderCore.Factories.Mesh;
 
 import RenderCore.Runtime.Memory;

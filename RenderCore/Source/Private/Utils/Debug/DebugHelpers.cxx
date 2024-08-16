@@ -4,11 +4,6 @@
 
 module;
 
-#ifdef _DEBUG
-    #include <Volk/volk.h>
-    #include <boost/log/trivial.hpp>
-#endif
-
 module RenderCore.Utils.DebugHelpers;
 
 import RenderCore.Utils.EnumHelpers;

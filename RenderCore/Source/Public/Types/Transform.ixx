@@ -4,9 +4,9 @@
 
 module;
 
-#include <glm/ext.hpp>
-
-#define GLM_ENABLE_EXPERIMENTAL
+#ifndef GLM_ENABLE_EXPERIMENTAL
+    #define GLM_ENABLE_EXPERIMENTAL
+#endif // GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/matrix_decompose.hpp>
 
 export module RenderCore.Types.Transform;

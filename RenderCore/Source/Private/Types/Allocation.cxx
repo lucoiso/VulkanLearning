@@ -4,9 +4,6 @@
 
 module;
 
-#include <Volk/volk.h>
-#include <vma/vk_mem_alloc.h>
-
 module RenderCore.Types.Allocation;
 
 import RenderCore.Runtime.Device;

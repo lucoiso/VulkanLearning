@@ -4,9 +4,6 @@
 
 module;
 
-#include <Volk/volk.h>
-#include <glm/ext.hpp>
-
 export module RenderCore.Types.Illumination;
 
 import RenderCore.Types.Transform;

@@ -4,9 +4,6 @@
 
 module;
 
-#include <GLFW/glfw3.h>
-#include <Volk/volk.h>
-
 export module RenderCore.Integrations.ImGuiOverlay;
 
 import RenderCore.UserInterface.Control;

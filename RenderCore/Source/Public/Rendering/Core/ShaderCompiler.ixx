@@ -4,7 +4,6 @@
 
 module;
 
-#include <Volk/volk.h>
 #include <glslang/Public/ShaderLang.h>
 
 export module RenderCore.Runtime.ShaderCompiler;

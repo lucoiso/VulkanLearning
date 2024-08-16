@@ -4,8 +4,6 @@
 
 module;
 
-#include <Volk/volk.h>
-
 module RenderCore.Factories.Texture;
 
 import RenderCore.Runtime.Memory;

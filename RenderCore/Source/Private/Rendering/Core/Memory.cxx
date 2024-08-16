@@ -4,21 +4,18 @@
 
 module;
 
-#include <Volk/volk.h>
-#include <vma/vk_mem_alloc.h>
 #include <stb_image_write.h>
 
 #ifndef VMA_IMPLEMENTATION
-#include <boost/log/trivial.hpp>
-#define VMA_LEAK_LOG_FORMAT(format, ...)                                            \
-        do                                                                          \
-        {                                                                           \
-            std::size_t _BuffSize = snprintf(nullptr, 0, format, __VA_ARGS__);      \
-            strzilla::string _Message(_BuffSize + 1, '\0');                              \
-            snprintf(&_Message[0], _Message.size(), format, __VA_ARGS__);           \
-            _Message.pop_back();                                                    \
-            BOOST_LOG_TRIVIAL(debug) << _Message;                                   \
-        }                                                                           \
+#define VMA_LEAK_LOG_FORMAT(format, ...)                                                                                                                   \
+        do                                                                                                                                                     \
+        {                                                                                                                                                      \
+            std::size_t      _BuffSize = snprintf(nullptr, 0, format, __VA_ARGS__);                                                                            \
+            strzilla::string _Message(_BuffSize + 1, '\0');                                                                                                    \
+            snprintf(&_Message[0], _Message.size(), format, __VA_ARGS__);                                                                                      \
+            _Message.pop_back();                                                                                                                               \
+            BOOST_LOG_TRIVIAL(debug) << _Message;                                                                                                              \
+        }                                                                                                                                                      \
         while (false)
 
 #define VMA_IMPLEMENTATION
@@ -197,11 +194,11 @@ VmaAllocator const &RenderCore::GetAllocator()
     return g_Allocator;
 }
 
-VmaAllocationInfo RenderCore::CreateBuffer(VkDeviceSize const &     Size,
-                                           VkBufferUsageFlags const Usage,
-                                           strzilla::string_view const   Identifier,
-                                           VkBuffer &               Buffer,
-                                           VmaAllocation &          Allocation)
+VmaAllocationInfo RenderCore::CreateBuffer(VkDeviceSize const &        Size,
+                                           VkBufferUsageFlags const    Usage,
+                                           strzilla::string_view const Identifier,
+                                           VkBuffer &                  Buffer,
+                                           VmaAllocation &             Allocation)
 {
     bool const IsStagingBuffer = Identifier.starts_with("STAGING_");
 
@@ -254,14 +251,14 @@ void RenderCore::CreateUniformBuffers(BufferAllocation &BufferAllocation, VkDevi
     vmaMapMemory(Allocator, BufferAllocation.Allocation, &BufferAllocation.MappedData);
 }
 
-void RenderCore::CreateImage(VkFormat const &        ImageFormat,
-                             VkExtent2D const &      Extent,
-                             VkImageTiling const &   Tiling,
-                             VkImageUsageFlags const ImageUsage,
-                             VmaMemoryUsage const    MemoryUsage,
-                             strzilla::string_view const  Identifier,
-                             VkImage &               Image,
-                             VmaAllocation &         Allocation)
+void RenderCore::CreateImage(VkFormat const &            ImageFormat,
+                             VkExtent2D const &          Extent,
+                             VkImageTiling const &       Tiling,
+                             VkImageUsageFlags const     ImageUsage,
+                             VmaMemoryUsage const        MemoryUsage,
+                             strzilla::string_view const Identifier,
+                             VkImage &                   Image,
+                             VmaAllocation &             Allocation)
 {
     VkImageCreateInfo const ImageViewCreateInfo {
             .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,

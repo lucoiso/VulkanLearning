@@ -4,9 +4,6 @@
 
 module;
 
-#include <Volk/volk.h>
-#include <glm/ext.hpp>
-
 module RenderCore.Types.Camera;
 
 import RenderCore.Runtime.Memory;

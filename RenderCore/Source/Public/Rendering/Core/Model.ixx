@@ -4,8 +4,6 @@
 
 module;
 
-#include <tiny_gltf.h>
-
 export module RenderCore.Runtime.Model;
 
 import RenderCore.Types.Vertex;

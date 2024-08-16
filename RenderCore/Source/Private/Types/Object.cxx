@@ -4,9 +4,6 @@
 
 module;
 
-#include <Volk/volk.h>
-#include <glm/ext.hpp>
-
 module RenderCore.Types.Object;
 
 import RenderCore.Renderer;

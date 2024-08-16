@@ -4,12 +4,6 @@
 
 module;
 
-// Include vulkan before glfw
-#include <Volk/volk.h>
-
-// Include glfw after vulkan
-#include <GLFW/glfw3.h>
-
 module RenderCore.Integrations.GLFWHandler;
 
 import RenderCore.Integrations.GLFWCallbacks;

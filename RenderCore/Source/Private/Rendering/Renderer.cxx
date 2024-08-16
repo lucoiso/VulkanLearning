@@ -4,14 +4,10 @@
 
 module;
 
-// Include vulkan before glfw
 #ifndef VOLK_IMPLEMENTATION
 #define VOLK_IMPLEMENTATION
 #endif
 #include <Volk/volk.h>
-
-// Include glfw after vulkan
-#include <GLFW/glfw3.h>
 
 module RenderCore.Renderer;
 

@@ -4,8 +4,6 @@
 
 module;
 
-#include <Volk/volk.h>
-
 export module RenderCore.Runtime.Command;
 
 import RenderCore.Types.Object;

@@ -4,8 +4,6 @@
 
 module;
 
-#include <GLFW/glfw3.h>
-
 module RenderCore.UserInterface.Window;
 
 import RenderCore.Renderer;

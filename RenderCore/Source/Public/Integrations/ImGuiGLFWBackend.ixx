@@ -6,8 +6,6 @@
 
 module;
 
-#include <GLFW/glfw3.h>
-
 export module RenderCore.Integrations.ImGuiGLFWBackend;
 
 namespace RenderCore
