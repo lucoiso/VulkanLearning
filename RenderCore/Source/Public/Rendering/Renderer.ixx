@@ -16,6 +16,7 @@ import RenderCore.Runtime.Pipeline;
 import RenderCore.Runtime.Command;
 import RenderCore.Runtime.Device;
 import RenderCore.UserInterface.Control;
+import RenderCore.UserInterface.Window.Flags;
 
 namespace RenderCore
 {
@@ -24,7 +25,7 @@ namespace RenderCore
     void Tick();
 
     export void DrawFrame(GLFWwindow *, double, Control *);
-    export bool Initialize(GLFWwindow *, bool, bool);
+    export bool Initialize(GLFWwindow *, InitializationFlags);
     export void Shutdown(Control *);
 
     export namespace Renderer
@@ -92,5 +93,7 @@ namespace RenderCore
         RENDERCOREMODULE_API void PrintMemoryAllocatorStats(bool);
 
         [[nodiscard]] RENDERCOREMODULE_API strzilla::string GetMemoryAllocatorStats(bool);
+
+        [[nodiscard]] RENDERCOREMODULE_API InitializationFlags GetWindowInitializationFlags();
     } // namespace Renderer
 }     // namespace RenderCore

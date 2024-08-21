@@ -39,8 +39,7 @@ double                     g_FrameTime { 0.F };
 double                     g_FrameRateCap { 0.016667F };
 bool                       g_UseVSync { true };
 bool                       g_RenderOffscreen { false };
-bool                       g_EnableDocking { false };
-bool                       g_EnableImGui { false };
+InitializationFlags        g_InitializationFlags { InitializationFlags::NONE };
 std::uint32_t              g_ImageIndex { g_ImageCount };
 
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
@@ -128,9 +127,11 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
                 SetupPipelineLayouts();
                 CreatePipelineLibraries();
 
-                if (g_EnableImGui)
+                if (HasFlag(g_InitializationFlags, InitializationFlags::ENABLE_IMGUI))
                 {
-                    InitializeImGuiContext(Window, g_EnableDocking);
+                    InitializeImGuiContext(Window,
+                        HasFlag(g_InitializationFlags, InitializationFlags::ENABLE_DOCKING),
+                        HasFlag(g_InitializationFlags, InitializationFlags::ENABLE_VIEWPORTS));
                 }
 
                 Owner->Initialize();
@@ -178,15 +179,14 @@ void RenderCore::Tick()
     TickObjects(static_cast<float>(g_FrameTime));
 }
 
-bool RenderCore::Initialize(GLFWwindow *const Window, bool const EnableImGui, bool const EnableDocking)
+bool RenderCore::Initialize(GLFWwindow *const Window, InitializationFlags const Flags)
 {
     if (Renderer::IsInitialized())
     {
         return false;
     }
 
-    g_EnableImGui = EnableImGui;
-    g_EnableDocking = EnableDocking;
+    g_InitializationFlags = Flags;
 
     CheckVulkanResult(volkInitialize());
 
@@ -224,7 +224,7 @@ void RenderCore::Shutdown(Control *Window)
         Window->DestroyChildren(true);
     }
 
-    if (g_EnableImGui)
+    if (HasFlag(g_InitializationFlags, InitializationFlags::ENABLE_IMGUI))
     {
         ReleaseImGuiResources();
     }
@@ -422,4 +422,9 @@ void Renderer::PrintMemoryAllocatorStats(bool const DetailedMap)
 strzilla::string Renderer::GetMemoryAllocatorStats(bool const DetailedMap)
 {
     return RenderCore::GetMemoryAllocatorStats(DetailedMap);
+}
+
+InitializationFlags Renderer::GetWindowInitializationFlags()
+{
+    return g_InitializationFlags;
 }

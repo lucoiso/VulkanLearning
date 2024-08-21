@@ -24,7 +24,7 @@ using namespace RenderCore;
 
 VkDescriptorPool g_ImGuiDescriptorPool { VK_NULL_HANDLE };
 
-void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, bool const EnableDocking)
+void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, bool const EnableDocking, bool const EnableViewports)
 {
     IMGUI_CHECKVERSION();
 
@@ -39,7 +39,12 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, bool const Ena
         return;
     }
 
-    ImIO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable | ImGuiConfigFlags_NavEnableKeyboard;
+    ImIO.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+    if (EnableViewports)
+    {
+        ImIO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    }
 
     if (EnableDocking)
     {

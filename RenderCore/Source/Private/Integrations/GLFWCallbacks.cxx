@@ -13,6 +13,7 @@ import RenderCore.Types.Transform;
 import RenderCore.Types.RendererStateFlags;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
+import RenderCore.UserInterface.Window.Flags;
 
 using namespace RenderCore;
 
@@ -119,12 +120,47 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow *const  Window,
     Camera.SetCameraMovementStateFlags(CurrentMovementState);
 }
 
-void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double const NewCursorPosX, double const NewCursorPosY)
+static void MovementWindow(GLFWwindow *const Window, double const NewCursorPosX, double const NewCursorPosY)
 {
+    static double InitialCursorPosX = 0.0;
+    static double InitialCursorPosY = 0.0;
+    static bool IsDragging = false;
+
+    if (HasFlag(RenderCore::Renderer::GetWindowInitializationFlags(), InitializationFlags::WITHOUT_TITLEBAR))
+    {
+        if (glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+        {
+            if (!IsDragging)
+            {
+                glfwGetCursorPos(Window, &InitialCursorPosX, &InitialCursorPosY);
+                IsDragging = true;
+            }
+
+            std::int32_t WindowX;
+            std::int32_t WindowY;
+            glfwGetWindowPos(Window, &WindowX, &WindowY);
+
+            auto const NewPosX = WindowX + static_cast<std::int32_t>(NewCursorPosX - InitialCursorPosX);
+            auto const NewPosY = WindowY + static_cast<std::int32_t>(NewCursorPosY - InitialCursorPosY);
+
+            glfwSetWindowPos(Window, NewPosX, NewPosY);
+        }
+        else
+        {
+            IsDragging = false;
+        }
+    }
+}
+
+static void MovementCamera(GLFWwindow *const Window, double const NewCursorPosX, double const NewCursorPosY)
+{
+    g_CanMovementCamera = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_RIGHT) != GLFW_RELEASE;
+
     static double LastCursorPosX = NewCursorPosX;
     static double LastCursorPosY = NewCursorPosY;
 
-    g_CanMovementCamera = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_RIGHT) != GLFW_RELEASE;
+    float const OffsetX { static_cast<float>(LastCursorPosX - NewCursorPosX) };
+    float const OffsetY { static_cast<float>(LastCursorPosY - NewCursorPosY) };
 
     if (g_CanMovementCamera)
     {
@@ -133,13 +169,11 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double con
         Camera &Camera { Renderer::GetMutableCamera() };
 
         float const Sensitivity { Camera.GetSensitivity() * 0.1F };
-        float const OffsetX { static_cast<float>(LastCursorPosX - NewCursorPosX) * Sensitivity };
-        float const OffsetY { static_cast<float>(LastCursorPosY - NewCursorPosY) * Sensitivity };
 
         glm::vec3 Rotation { Camera.GetRotation() };
 
-        Rotation.x -= OffsetX;
-        Rotation.y += OffsetY;
+        Rotation.x -= OffsetX * Sensitivity;
+        Rotation.y += OffsetY * Sensitivity;
 
         if (Rotation.y > 89.F)
         {
@@ -159,6 +193,12 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double con
 
     LastCursorPosX = NewCursorPosX;
     LastCursorPosY = NewCursorPosY;
+}
+
+void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double const NewCursorPosX, double const NewCursorPosY)
+{
+    MovementWindow(Window, NewCursorPosX, NewCursorPosY);
+    MovementCamera(Window, NewCursorPosX, NewCursorPosY);
 }
 
 void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow *const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)

@@ -16,6 +16,7 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Window : public Control
     {
+        bool m_PendingClose {false};
         InitializationFlags m_Flags {};
         GLFWHandler         m_GLFWHandler {};
         std::uint16_t       m_Width {};
@@ -32,6 +33,8 @@ namespace RenderCore
         ~Window() override = default;
 
         bool Initialize(std::uint16_t, std::uint16_t, strzilla::string_view, InitializationFlags Flags = InitializationFlags::NONE);
+
+        void RequestClose();
 
         void Shutdown();
 

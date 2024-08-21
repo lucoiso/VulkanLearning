@@ -892,7 +892,7 @@ void ImGuiGLFWCreateWindow(ImGuiViewport *Viewport)
 
     ViewportData->Window = glfwCreateWindow(static_cast<std::int32_t>(Viewport->Size.x),
                                             static_cast<std::int32_t>(Viewport->Size.y),
-                                            "Undef",
+                                            "Undefined",
                                             nullptr,
                                             nullptr);
     ViewportData->WindowOwned = true;
