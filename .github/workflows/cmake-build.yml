@@ -124,7 +124,7 @@ jobs:
           stripdown: true
 
       - name: Configure CMake
-        run: cmake --preset ${{env.CONAN_PRESET}}
+        run: cmake --preset conan-default
 
       - name: Build Project
         run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --preset ${{env.CONAN_PRESET}}
