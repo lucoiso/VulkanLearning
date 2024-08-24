@@ -14,10 +14,12 @@ import RenderCore.Types.RendererStateFlags;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
 import RenderCore.UserInterface.Window.Flags;
+import RenderCore.Integrations.ImGuiOverlay;
 
 using namespace RenderCore;
 
 bool g_CanMovementCamera = false;
+bool g_CanMovementWindow = false;
 
 void RenderCore::GLFWWindowCloseRequestedCallback(GLFWwindow *const Window)
 {
@@ -53,7 +55,7 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow *const  Window,
                                  std::int32_t const                  Action,
                                  [[maybe_unused]] std::int32_t const Mods)
 {
-    Camera &                 Camera               = Renderer::GetMutableCamera();
+    Camera                  &Camera               = Renderer::GetMutableCamera();
     CameraMovementStateFlags CurrentMovementState = Camera.GetCameraMovementStateFlags();
 
     if (!g_CanMovementCamera)
@@ -122,9 +124,14 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow *const  Window,
 
 static void MovementWindow(GLFWwindow *const Window, double const NewCursorPosX, double const NewCursorPosY)
 {
+    if (!g_CanMovementWindow)
+    {
+        return;
+    }
+
     static double InitialCursorPosX = 0.0;
     static double InitialCursorPosY = 0.0;
-    static bool IsDragging = false;
+    static bool   IsDragging        = false;
 
     if (HasFlag(RenderCore::Renderer::GetWindowInitializationFlags(), InitializationFlags::WITHOUT_TITLEBAR))
     {
@@ -154,23 +161,21 @@ static void MovementWindow(GLFWwindow *const Window, double const NewCursorPosX,
 
 static void MovementCamera(GLFWwindow *const Window, double const NewCursorPosX, double const NewCursorPosY)
 {
-    g_CanMovementCamera = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_RIGHT) != GLFW_RELEASE;
-
     static double LastCursorPosX = NewCursorPosX;
     static double LastCursorPosY = NewCursorPosY;
 
-    float const OffsetX { static_cast<float>(LastCursorPosX - NewCursorPosX) };
-    float const OffsetY { static_cast<float>(LastCursorPosY - NewCursorPosY) };
+    float const OffsetX{static_cast<float>(LastCursorPosX - NewCursorPosX)};
+    float const OffsetY{static_cast<float>(LastCursorPosY - NewCursorPosY)};
 
     if (g_CanMovementCamera)
     {
         glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-        Camera &Camera { Renderer::GetMutableCamera() };
+        Camera &Camera{Renderer::GetMutableCamera()};
 
-        float const Sensitivity { Camera.GetSensitivity() * 0.1F };
+        float const Sensitivity{Camera.GetSensitivity() * 0.1F};
 
-        glm::vec3 Rotation { Camera.GetRotation() };
+        glm::vec3 Rotation{Camera.GetRotation()};
 
         Rotation.x -= OffsetX * Sensitivity;
         Rotation.y += OffsetY * Sensitivity;
@@ -197,13 +202,27 @@ static void MovementCamera(GLFWwindow *const Window, double const NewCursorPosX,
 
 void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double const NewCursorPosX, double const NewCursorPosY)
 {
+    static bool HasReleasedLeft = true;
+    if (glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !g_CanMovementWindow && HasReleasedLeft)
+    {
+        g_CanMovementWindow = RenderCore::IsImGuiInitialized() && !ImGui::IsAnyItemHovered();
+        HasReleasedLeft     = false;
+    }
+    else if (glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
+    {
+        g_CanMovementWindow = false;
+        HasReleasedLeft     = true;
+    }
+
+    g_CanMovementCamera = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_RIGHT) != GLFW_RELEASE;
+
     MovementWindow(Window, NewCursorPosX, NewCursorPosY);
     MovementCamera(Window, NewCursorPosX, NewCursorPosY);
 }
 
 void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow *const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)
 {
-    Camera &    Camera = Renderer::GetMutableCamera();
+    Camera     &Camera = Renderer::GetMutableCamera();
     float const Zoom   = static_cast<float>(OffsetY) * 0.1f;
     Camera.SetPosition(Camera.GetPosition() + Camera.GetFront() * Zoom);
 }
