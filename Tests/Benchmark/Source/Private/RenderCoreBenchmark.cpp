@@ -7,7 +7,7 @@
 // User defined modules
 #include "RenderCore.hpp"
 
-int main(int ArgC, char **ArgV)
+std::int32_t main(std::int32_t ArgC, char **ArgV)
 {
     benchmark::Initialize(&ArgC, ArgV);
     benchmark::RunSpecifiedBenchmarks();

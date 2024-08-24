@@ -7,11 +7,11 @@
 // User defined modules
 #include "RenderCore.hpp"
 
-int main(int const ArgC, char **ArgV)
+std::int32_t main(std::int32_t const ArgC, char **ArgV)
 {
     Catch::Session Session;
 
-    if (int const Result = Session.applyCommandLine(ArgC, ArgV);
+    if (std::int32_t const Result = Session.applyCommandLine(ArgC, ArgV);
         Result != 0)
     {
         return Result;

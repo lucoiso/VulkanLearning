@@ -32,7 +32,7 @@ adlx_handle ADLX_CDECL_CALL CrossPlatformLoadLibrary(std::string_view const File
     #endif
 }
 
-int ADLX_CDECL_CALL CrossPlatformFreeLibrary(adlx_handle ModuleHandle)
+std::int32_t ADLX_CDECL_CALL CrossPlatformFreeLibrary(adlx_handle ModuleHandle)
 {
     #ifdef _WIN32
     return FreeLibrary(static_cast<HMODULE>(ModuleHandle)) == TRUE;
