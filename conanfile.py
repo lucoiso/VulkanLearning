@@ -30,6 +30,9 @@ class VulkanRendererRecipe(ConanFile):
         # https://conan.io/center/recipes/catch2
         self.requires("catch2/3.6.0")
 
+        # https://conan.io/center/recipes/easy_profiler
+        self.requires("easy_profiler/2.1.0")
+
     def configure(self):
         self.options["glfw/*"].shared = False
         self.options["imgui/*"].shared = True
@@ -38,6 +41,7 @@ class VulkanRendererRecipe(ConanFile):
         self.options["benchmark/*"].shared = True
         self.options["catch2/*"].shared = True
         self.options["catch2/*"].enable_exceptions = True
+        self.options["easy_profiler/*"].shared = True
 
     def build_requirements(self):
         self.tool_requires("cmake/[>=3.28]")

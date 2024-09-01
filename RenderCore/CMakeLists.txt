@@ -44,14 +44,14 @@ FIND_PACKAGE(tinygltf CONFIG REQUIRED)
 
 FIND_PACKAGE(glfw3 CONFIG REQUIRED)
 FIND_PACKAGE(imgui CONFIG REQUIRED)
-
-TARGET_LINK_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Libraries)
+FIND_PACKAGE(easy_profiler REQUIRED)
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC
         Boost::log
         TinyGLTF::TinyGLTF
         glfw
         imgui::imgui
+        easy_profiler
 
         ThreadPool
 )

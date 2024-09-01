@@ -47,6 +47,8 @@
 #include <imgui.h>
 #include <tiny_gltf.h>
 
+#include <easy/profiler.h>
+
 #include <stringzilla/stringzilla.hpp>
 namespace strzilla = ashvardanian::stringzilla;
 

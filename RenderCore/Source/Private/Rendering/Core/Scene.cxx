@@ -47,6 +47,8 @@ std::mutex                           g_ObjectMutex {};
 
 void RenderCore::CreateSceneUniformBuffer()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     constexpr VkDeviceSize BufferSize = sizeof(SceneUniformData);
     CreateUniformBuffers(m_UniformBufferAllocation.first, BufferSize, "SCENE_UNIFORM");
     m_UniformBufferAllocation.second = { .buffer = m_UniformBufferAllocation.first.Buffer, .offset = 0U, .range = BufferSize };
@@ -54,6 +56,8 @@ void RenderCore::CreateSceneUniformBuffer()
 
 void RenderCore::CreateImageSampler()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkPhysicalDeviceProperties SurfaceProperties;
     vkGetPhysicalDeviceProperties(GetPhysicalDevice(), &SurfaceProperties);
 
@@ -81,6 +85,8 @@ void RenderCore::CreateImageSampler()
 
 void RenderCore::CreateDepthResources(SurfaceProperties const &SurfaceProperties)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (g_DepthImage.IsValid())
     {
         VmaAllocator const &Allocator = GetAllocator();
@@ -106,6 +112,8 @@ void RenderCore::CreateDepthResources(SurfaceProperties const &SurfaceProperties
 
 void RenderCore::AllocateEmptyTexture(VkFormat const TextureFormat)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     constexpr std::uint32_t                                DefaultTextureHalfSize { 2U };
     constexpr std::uint32_t                                DefaultTextureSize { DefaultTextureHalfSize * DefaultTextureHalfSize };
     constexpr std::array<std::uint8_t, DefaultTextureSize> DefaultTextureData {};
@@ -131,6 +139,8 @@ void RenderCore::AllocateEmptyTexture(VkFormat const TextureFormat)
 
 void RenderCore::LoadScene(strzilla::string_view const ModelPath)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     tinygltf::Model Model {};
     {
         tinygltf::TinyGLTF          ModelLoader {};
@@ -237,6 +247,8 @@ void RenderCore::LoadScene(strzilla::string_view const ModelPath)
 
 void RenderCore::UnloadObjects(std::vector<std::uint32_t> const &ObjectIDs)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     std::lock_guard Lock { g_ObjectMutex };
 
     std::for_each(std::execution::unseq,
@@ -264,6 +276,8 @@ void RenderCore::UnloadObjects(std::vector<std::uint32_t> const &ObjectIDs)
 
 void RenderCore::ReleaseSceneResources()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
     if (g_Sampler != VK_NULL_HANDLE)
@@ -281,6 +295,8 @@ void RenderCore::ReleaseSceneResources()
 
 void RenderCore::DestroyObjects()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     std::lock_guard Lock { g_ObjectMutex };
 
     for (std::shared_ptr<Object> const &Object : g_Objects)
@@ -294,6 +310,8 @@ void RenderCore::DestroyObjects()
 
 void RenderCore::TickObjects(float const DeltaTime)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     std::lock_guard Lock { g_ObjectMutex };
 
     std::for_each(std::execution::unseq,
@@ -345,6 +363,8 @@ VkDescriptorBufferInfo const &RenderCore::GetSceneUniformDescriptor()
 
 void RenderCore::UpdateSceneUniformBuffer()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (g_Camera.IsRenderDirty() || g_Illumination.IsRenderDirty())
     {
         constexpr auto SceneUBOSize = sizeof(SceneUniformData);
@@ -362,6 +382,8 @@ void RenderCore::UpdateSceneUniformBuffer()
 
 void RenderCore::UpdateObjectsUniformBuffer()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     std::for_each(std::execution::unseq,
                   std::begin(g_Objects),
                   std::end(g_Objects),

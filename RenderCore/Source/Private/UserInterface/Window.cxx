@@ -17,6 +17,8 @@ Window::Window() : Control(nullptr)
 
 bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, strzilla::string_view const Title, InitializationFlags const Flags)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (Renderer::IsInitialized())
     {
         return false;
@@ -44,6 +46,8 @@ void Window::RequestClose()
 
 void Window::Shutdown()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (Renderer::IsInitialized())
     {
         RenderCore::Shutdown(this);
@@ -62,6 +66,8 @@ bool Window::IsOpen() const
 
 void Window::PollEvents()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (!IsOpen())
     {
         return;

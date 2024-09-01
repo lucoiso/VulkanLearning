@@ -58,6 +58,8 @@ export namespace RenderCore
                                                       std::uint32_t const FromQueueIndex = VK_QUEUE_FAMILY_IGNORED,
                                                       std::uint32_t const ToQueueIndex   = VK_QUEUE_FAMILY_IGNORED)
     {
+        EASY_FUNCTION(profiler::colors::Red);
+
         VkImageMemoryBarrier2 ImageBarrier {
                 .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                 .srcAccessMask = 0U,

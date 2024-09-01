@@ -23,6 +23,8 @@ std::vector<std::uint8_t>        g_UniqueQueueFamilyIndices {};
 
 bool IsPhysicalDeviceSuitable(VkPhysicalDevice const &Device)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (Device == VK_NULL_HANDLE)
     {
         return false;
@@ -42,6 +44,8 @@ bool GetQueueFamilyIndices(VkSurfaceKHR const &         VulkanSurface,
                            std::optional<std::uint8_t> &PresentationQueueFamilyIndex,
                            std::optional<std::uint8_t> &ComputeQueueFamilyIndex)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     std::uint32_t QueueFamilyCount = 0U;
     vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &QueueFamilyCount, nullptr);
 
@@ -81,6 +85,8 @@ bool GetQueueFamilyIndices(VkSurfaceKHR const &         VulkanSurface,
 
 void PickPhysicalDevice()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     for (VkPhysicalDevice const &Device : GetAvailablePhysicalDevices())
     {
         if (IsPhysicalDeviceSuitable(Device))
@@ -95,6 +101,8 @@ void PickPhysicalDevice()
 
 void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     std::optional<std::uint8_t> GraphicsQueueFamilyIndex { std::nullopt };
     std::optional<std::uint8_t> ComputeQueueFamilyIndex { std::nullopt };
     std::optional<std::uint8_t> PresentationQueueFamilyIndex { std::nullopt };
@@ -215,6 +223,8 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
 
 void RenderCore::InitializeDevice(VkSurfaceKHR const &VulkanSurface)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (g_PhysicalDevice != VK_NULL_HANDLE)
     {
         return;
@@ -226,6 +236,8 @@ void RenderCore::InitializeDevice(VkSurfaceKHR const &VulkanSurface)
 
 VkSurfaceCapabilitiesKHR RenderCore::GetSurfaceCapabilities()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkSurfaceCapabilitiesKHR Output;
     CheckVulkanResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g_PhysicalDevice, GetSurface(), &Output));
 
@@ -234,6 +246,8 @@ VkSurfaceCapabilitiesKHR RenderCore::GetSurfaceCapabilities()
 
 SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow *const Window)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     std::vector<VkSurfaceFormatKHR> const SupportedFormats           = GetAvailablePhysicalDeviceSurfaceFormats();
     std::vector<VkPresentModeKHR> const   SupportedPresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes();
 
@@ -301,6 +315,8 @@ std::vector<std::uint32_t> RenderCore::GetUniqueQueueFamilyIndicesU32()
 
 void RenderCore::ReleaseDeviceResources()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     vkDestroyDevice(g_Device, nullptr);
     g_Device = VK_NULL_HANDLE;
 

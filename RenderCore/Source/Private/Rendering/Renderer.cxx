@@ -175,12 +175,16 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
 
 void RenderCore::Tick()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     GetCamera().UpdateCameraMovement(g_FrameTime);
     TickObjects(static_cast<float>(g_FrameTime));
 }
 
 bool RenderCore::Initialize(GLFWwindow *const Window, InitializationFlags const Flags)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (Renderer::IsInitialized())
     {
         return false;
@@ -211,6 +215,8 @@ bool RenderCore::Initialize(GLFWwindow *const Window, InitializationFlags const 
 
 void RenderCore::Shutdown(Control *Window)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (!Renderer::IsInitialized())
     {
         return;

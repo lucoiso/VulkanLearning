@@ -63,6 +63,8 @@ bool PipelineData::IsValid() const
 
 void PipelineData::DestroyResources(VkDevice const &LogicalDevice, bool const IncludeStatic)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (MainPipeline != VK_NULL_HANDLE)
     {
         vkDestroyPipeline(LogicalDevice, MainPipeline, nullptr);
@@ -119,6 +121,8 @@ void PipelineData::DestroyResources(VkDevice const &LogicalDevice, bool const In
 
 void PipelineData::CreateMainCache(VkDevice const &LogicalDevice)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (g_PipelineData.PipelineCache == VK_NULL_HANDLE)
     {
         CheckVulkanResult(vkCreatePipelineCache(LogicalDevice, &g_PipelineCacheCreateInfo, nullptr, &g_PipelineData.PipelineCache));
@@ -127,6 +131,8 @@ void PipelineData::CreateMainCache(VkDevice const &LogicalDevice)
 
 void PipelineData::CreateLibraryCache(VkDevice const &LogicalDevice)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (g_PipelineData.PipelineLibraryCache == VK_NULL_HANDLE)
     {
         CheckVulkanResult(vkCreatePipelineCache(LogicalDevice, &g_PipelineCacheCreateInfo, nullptr, &g_PipelineData.PipelineLibraryCache));
@@ -140,6 +146,8 @@ bool PipelineDescriptorData::IsValid() const
 
 void PipelineDescriptorData::DestroyResources(VmaAllocator const &Allocator, bool const IncludeStatic)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     SceneData.DestroyResources(Allocator, IncludeStatic);
     ModelData.DestroyResources(Allocator, IncludeStatic);
     TextureData.DestroyResources(Allocator, IncludeStatic);
@@ -147,6 +155,8 @@ void PipelineDescriptorData::DestroyResources(VmaAllocator const &Allocator, boo
 
 void PipelineDescriptorData::SetDescriptorLayoutSize()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkPhysicalDeviceProperties2 DeviceProperties { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2, .pNext = &g_DescriptorBufferProperties };
     vkGetPhysicalDeviceProperties2(GetPhysicalDevice(), &DeviceProperties);
 
@@ -157,6 +167,8 @@ void PipelineDescriptorData::SetDescriptorLayoutSize()
 
 void PipelineDescriptorData::SetupSceneBuffer(BufferAllocation const &SceneAllocation)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
     {
@@ -205,6 +217,8 @@ void PipelineDescriptorData::SetupSceneBuffer(BufferAllocation const &SceneAlloc
 
 void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Object>> const &Objects)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (std::empty(Objects))
     {
         return;
@@ -326,6 +340,8 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
 void RenderCore::CreatePipelineDynamicResources()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     std::vector<VkPipelineShaderStageCreateInfo> ShaderStagesInfo {};
     std::vector<VkShaderModuleCreateInfo>        ShaderModuleInfo {};
 
@@ -348,6 +364,8 @@ void RenderCore::CreatePipelineDynamicResources()
 
 void RenderCore::CreatePipelineLibraries()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     std::vector<VkPipelineShaderStageCreateInfo> ShaderStagesInfo {};
     std::vector<VkShaderModuleCreateInfo>        ShaderModuleInfo {};
 
@@ -411,6 +429,8 @@ void RenderCore::CreatePipelineLibraries()
 
 void CreateDescriptorSetLayout(VkDescriptorSetLayoutBinding const &Binding, std::uint32_t const Bindings, VkDescriptorSetLayout &DescriptorSetLayout)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     std::vector LayoutBindings(Bindings, Binding);
     for (std::uint32_t Index = 0U; Index < Bindings; ++Index)
     {
@@ -430,6 +450,8 @@ void CreateDescriptorSetLayout(VkDescriptorSetLayoutBinding const &Binding, std:
 
 void RenderCore::SetupPipelineLayouts()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     constexpr std::array LayoutBindings {
             VkDescriptorSetLayoutBinding // Uniform Buffer
             {
@@ -472,6 +494,8 @@ void RenderCore::SetupPipelineLayouts()
 
 void RenderCore::ReleasePipelineResources(bool const IncludeStatic)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (g_PipelineData.IsValid())
     {
         VkDevice const &LogicalDevice = GetLogicalDevice();
@@ -504,6 +528,8 @@ PipelineDescriptorData &RenderCore::GetPipelineDescriptorData()
 
 void RenderCore::CreatePipelineLibraries(PipelineData &Data, PipelineLibraryCreationArguments const &Arguments, VkPipelineCreateFlags const Flags)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkDevice const &LogicalDevice = GetLogicalDevice();
     Data.CreateLibraryCache(LogicalDevice);
 
@@ -636,6 +662,8 @@ void RenderCore::CreateMainPipeline(PipelineData &                              
                                     VkPipelineDepthStencilStateCreateInfo const &       DepthStencilState,
                                     VkPipelineMultisampleStateCreateInfo const &        MultisampleState)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkDevice const &LogicalDevice = GetLogicalDevice();
     Data.CreateMainCache(LogicalDevice);
 

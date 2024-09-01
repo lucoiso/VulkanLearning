@@ -26,6 +26,8 @@ VkDescriptorPool g_ImGuiDescriptorPool { VK_NULL_HANDLE };
 
 void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, bool const EnableDocking, bool const EnableViewports)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     IMGUI_CHECKVERSION();
 
     ImGui::CreateContext();
@@ -101,6 +103,8 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, bool const Ena
 
 void RenderCore::ReleaseImGuiResources()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     ImGuiVulkanShutdown();
     ImGuiGLFWShutdown();
     ImGui::DestroyContext();
@@ -115,6 +119,8 @@ void RenderCore::ReleaseImGuiResources()
 
 void RenderCore::DrawImGuiFrame(Control *Control)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (!ImGui::GetCurrentContext() || !IsImGuiInitialized())
     {
         return;
@@ -148,6 +154,8 @@ void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
                                           ImageAllocation const &SwapchainAllocation,
                                           ImageAllocation const &DepthAllocation)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (IsImGuiInitialized())
     {
         if (ImDrawData *const ImGuiDrawData = ImGui::GetDrawData())

@@ -20,6 +20,8 @@ std::array<bool, g_ImageCount>        g_FenceInUse {};
 
 void RenderCore::WaitAndResetFence(std::uint32_t const Index)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (!g_ForceDefaultSync && (g_Fences.at(Index) == VK_NULL_HANDLE || !g_FenceInUse.at(Index)))
     {
         return;
@@ -35,6 +37,8 @@ void RenderCore::WaitAndResetFence(std::uint32_t const Index)
 
 void RenderCore::CreateSynchronizationObjects()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
     constexpr VkSemaphoreCreateInfo SemaphoreCreateInfo { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
@@ -59,6 +63,8 @@ void RenderCore::CreateSynchronizationObjects()
 
 void RenderCore::ReleaseSynchronizationObjects()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkDevice const &LogicalDevice = GetLogicalDevice();
     vkDeviceWaitIdle(LogicalDevice);
 
@@ -94,6 +100,8 @@ void RenderCore::ReleaseSynchronizationObjects()
 
 void RenderCore::ResetSemaphores()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     vkQueueWaitIdle(GetGraphicsQueue().second);
 
     VkDevice const &                LogicalDevice = GetLogicalDevice();
@@ -120,6 +128,8 @@ void RenderCore::ResetSemaphores()
 
 void RenderCore::ResetFenceStatus()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     for (std::uint8_t Iterator = 0U; Iterator < g_ImageCount; ++Iterator)
     {
         if (bool &FenceStatus = g_FenceInUse.at(Iterator);

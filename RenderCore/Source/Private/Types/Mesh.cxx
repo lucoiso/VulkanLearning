@@ -48,6 +48,8 @@ Bounds const &Mesh::GetBounds() const
 
 void Mesh::SetupBounds()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     for (const auto &VertexIter : m_Vertices)
     {
         glm::vec4 const TransformedVertex = glm::vec4(VertexIter.Position, 1.0f) * m_Transform.GetMatrix();
@@ -135,6 +137,8 @@ void Mesh::SetTextures(std::vector<std::shared_ptr<Texture>> const &Textures)
 
 void Mesh::BindBuffers(VkCommandBuffer const &CommandBuffer, std::uint32_t const NumInstances) const
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkBuffer const &AllocationBuffer = GetAllocationBuffer();
 
     vkCmdBindVertexBuffers(CommandBuffer, 0U, 1U, &AllocationBuffer, &m_VertexOffset);

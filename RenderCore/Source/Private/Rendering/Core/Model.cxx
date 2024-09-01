@@ -16,6 +16,8 @@ using namespace RenderCore;
 
 void RenderCore::InsertIndiceInContainer(std::vector<std::uint32_t> &Indices, tinygltf::Accessor const &IndexAccessor, auto const *Data)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     for (std::uint32_t Iterator = 0U; Iterator < IndexAccessor.count; ++Iterator)
     {
         Indices.push_back(static_cast<std::uint32_t>(Data[Iterator]));
@@ -27,6 +29,8 @@ float const *RenderCore::GetPrimitiveData(strzilla::string_view const &ID,
                                           tinygltf::Primitive const &  Primitive,
                                           std::uint32_t *              NumComponents = nullptr)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (Primitive.attributes.contains(std::data(ID)))
     {
         tinygltf::Accessor const &  Accessor   = Model.accessors.at(Primitive.attributes.at(std::data(ID)));
@@ -62,6 +66,8 @@ float const *RenderCore::GetPrimitiveData(strzilla::string_view const &ID,
 
 void RenderCore::SetVertexAttributes(std::shared_ptr<Mesh> const &Mesh, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     std::vector<Vertex> Vertices;
     {
         tinygltf::Accessor const &PositionAccessor = Model.accessors.at(Primitive.attributes.at("POSITION"));
@@ -132,6 +138,8 @@ void RenderCore::SetVertexAttributes(std::shared_ptr<Mesh> const &Mesh, tinygltf
 
 void RenderCore::AllocatePrimitiveIndices(std::shared_ptr<Mesh> const &Mesh, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     std::vector<std::uint32_t> Indices;
 
     if (Primitive.indices >= 0)
@@ -170,6 +178,8 @@ void RenderCore::AllocatePrimitiveIndices(std::shared_ptr<Mesh> const &Mesh, tin
 
 void RenderCore::SetPrimitiveTransform(std::shared_ptr<Mesh> const &Mesh, tinygltf::Node const &Node)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     Transform Transform {};
 
     if (!std::empty(Node.translation))

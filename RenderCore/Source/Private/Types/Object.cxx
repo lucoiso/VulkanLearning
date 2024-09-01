@@ -148,6 +148,8 @@ void Object::SetupUniformDescriptor()
 
 void Object::UpdateUniformBuffers() const
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (!m_MappedData)
     {
         return;
@@ -177,6 +179,8 @@ void Object::UpdateUniformBuffers() const
 
 void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout const &PipelineLayout, std::uint32_t const ObjectIndex) const
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (!m_Mesh)
     {
         return;

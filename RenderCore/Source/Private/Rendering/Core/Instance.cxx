@@ -20,6 +20,8 @@ VkDebugUtilsMessengerEXT g_DebugMessenger{VK_NULL_HANDLE};
 
 bool RenderCore::CreateVulkanInstance()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     constexpr VkApplicationInfo AppInfo {
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
             .pApplicationName = "VulkanApp",
@@ -82,6 +84,8 @@ bool RenderCore::CreateVulkanInstance()
 
 void RenderCore::DestroyVulkanInstance()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     #ifdef _DEBUG
     if (g_DebugMessenger != VK_NULL_HANDLE)
     {

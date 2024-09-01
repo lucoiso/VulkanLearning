@@ -17,6 +17,8 @@ bool ImageAllocation::IsValid() const
 
 void ImageAllocation::DestroyResources(VmaAllocator const &Allocator)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
     if (Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
@@ -45,6 +47,8 @@ bool BufferAllocation::IsValid() const
 
 void BufferAllocation::DestroyResources(VmaAllocator const &Allocator)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
     {
         if (MappedData)
@@ -87,6 +91,8 @@ bool DescriptorData::IsValid() const
 
 void DescriptorData::DestroyResources(VmaAllocator const &Allocator, bool const IncludeStatic)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (IncludeStatic)
     {
         if (SetLayout != VK_NULL_HANDLE)

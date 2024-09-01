@@ -30,6 +30,8 @@ constexpr VkCommandBufferBeginInfo g_CommandBufferBeginInfo {
 
 void ThreadResources::Allocate(VkDevice const &LogicalDevice, std::uint8_t const QueueFamilyIndex)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     CommandPool = CreateCommandPool(QueueFamilyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 
     VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
@@ -44,6 +46,8 @@ void ThreadResources::Allocate(VkDevice const &LogicalDevice, std::uint8_t const
 
 void ThreadResources::Free(VkDevice const &LogicalDevice)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (CommandBuffer == VK_NULL_HANDLE || CommandPool == VK_NULL_HANDLE)
     {
         return;
@@ -55,6 +59,8 @@ void ThreadResources::Free(VkDevice const &LogicalDevice)
 
 void ThreadResources::Destroy(VkDevice const &LogicalDevice)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (CommandPool == VK_NULL_HANDLE)
     {
         return;
@@ -68,6 +74,8 @@ void ThreadResources::Destroy(VkDevice const &LogicalDevice)
 
 void ThreadResources::Reset(VkDevice const &LogicalDevice)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (CommandPool == VK_NULL_HANDLE)
     {
         return;
@@ -90,6 +98,8 @@ std::array<CommandResources, g_ImageCount> g_CommandResources {};
 
 void RenderCore::SetNumObjectsPerThread(std::uint32_t const NumObjects)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (NumObjects > 0U)
     {
         g_ObjectsPerThread = static_cast<std::uint32_t>(std::ceil(static_cast<float>(NumObjects) / static_cast<float>(g_NumThreads)));
@@ -102,6 +112,8 @@ void RenderCore::SetNumObjectsPerThread(std::uint32_t const NumObjects)
 
 void RenderCore::ResetCommandPool(std::uint32_t const Index)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     g_ThreadPool.Wait();
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
@@ -120,6 +132,8 @@ void RenderCore::ResetCommandPool(std::uint32_t const Index)
 
 void RenderCore::FreeCommandBuffers()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     g_ThreadPool.Wait();
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
@@ -136,6 +150,8 @@ void RenderCore::FreeCommandBuffers()
 
 void RenderCore::InitializeCommandsResources(std::uint32_t const QueueFamily)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     g_NumThreads = static_cast<std::uint8_t>(std::thread::hardware_concurrency());
     g_ThreadPool.SetupCPUThreads("RenderThread");
 
@@ -165,6 +181,8 @@ void RenderCore::InitializeCommandsResources(std::uint32_t const QueueFamily)
 
 void RenderCore::ReleaseCommandsResources()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     g_ThreadPool.Wait();
 
     VkDevice const &LogicalDevice = GetLogicalDevice();
@@ -188,6 +206,8 @@ void RenderCore::ReleaseCommandsResources()
 
 VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex, VkCommandPoolCreateFlags const Flags)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkCommandPoolCreateInfo const CommandPoolCreateInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .flags = Flags,
@@ -204,6 +224,8 @@ VkCommandPool RenderCore::CreateCommandPool(std::uint8_t const FamilyQueueIndex,
 
 void SetViewport(VkCommandBuffer const &CommandBuffer, VkExtent2D const &SwapChainExtent)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkViewport const Viewport {
             .x = 0.F,
             .y = 0.F,
@@ -224,6 +246,8 @@ void BeginRendering(VkCommandBuffer const &CommandBuffer,
                     ImageAllocation const &DepthAllocation,
                     ImageAllocation const &OffscreenAllocation)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     std::vector ImageBarriers {
             RenderCore::MountImageBarrier<g_UndefinedLayout, g_AttachmentLayout,
                                           g_ImageAspect>(SwapchainAllocation.Image, SwapchainAllocation.Format),
@@ -283,6 +307,8 @@ void EndRendering(VkCommandBuffer const &CommandBuffer,
                   ImageAllocation const &DepthAllocation,
                   ImageAllocation const &OffscreenAllocation)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     vkCmdEndRendering(CommandBuffer);
 
     if (Renderer::GetRenderOffscreen())
@@ -303,6 +329,8 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const    ImageInd
                                                  ImageAllocation const &SwapchainAllocation,
                                                  ImageAllocation const &DepthAllocation)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkCommandBufferInheritanceRenderingInfo const InheritanceRenderingInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO,
             .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
@@ -396,6 +424,8 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const    ImageInd
 
 void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     ImageAllocation const &SwapchainAllocation = GetSwapChainImages().at(ImageIndex);
     ImageAllocation const &DepthAllocation     = GetDepthImage();
     ImageAllocation const &OffscreenAllocation = GetOffscreenImages().at(ImageIndex);
@@ -417,6 +447,8 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
 
 void RenderCore::SubmitCommandBuffers(std::uint32_t const ImageIndex)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VkSemaphoreSubmitInfo const WaitSemaphoreInfo {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
             .semaphore = GetImageAvailableSemaphore(ImageIndex),
@@ -458,6 +490,8 @@ void RenderCore::InitializeSingleCommandQueue(VkCommandPool &               Comm
                                               std::vector<VkCommandBuffer> &CommandBuffers,
                                               std::uint8_t const            QueueFamilyIndex)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (std::empty(CommandBuffers))
     {
         return;
@@ -483,6 +517,8 @@ void RenderCore::InitializeSingleCommandQueue(VkCommandPool &               Comm
 
 void RenderCore::FinishSingleCommandQueue(VkQueue const &Queue, VkCommandPool const &CommandPool, std::vector<VkCommandBuffer> const &CommandBuffers)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     if (std::empty(CommandBuffers) || CommandPool == VK_NULL_HANDLE)
     {
         return;

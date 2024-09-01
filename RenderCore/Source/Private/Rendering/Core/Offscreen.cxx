@@ -18,6 +18,8 @@ std::array<ImageAllocation, g_ImageCount> g_OffscreenImages {};
 
 void RenderCore::CreateOffscreenResources(SurfaceProperties const &SurfaceProperties)
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VmaAllocator const &Allocator = GetAllocator();
 
     std::for_each(std::execution::unseq,
@@ -58,6 +60,8 @@ std::array<ImageAllocation, g_ImageCount> const &RenderCore::GetOffscreenImages(
 
 void RenderCore::DestroyOffscreenImages()
 {
+    EASY_FUNCTION(profiler::colors::Red);
+
     VmaAllocator const &Allocator = GetAllocator();
 
     std::for_each(std::execution::unseq,
