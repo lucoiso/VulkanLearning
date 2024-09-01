@@ -31,16 +31,16 @@ import RenderCore.Types.Allocation;
 
 using namespace RenderCore;
 
-auto                       g_StateFlags { RendererStateFlags::NONE };
-auto                       g_ObjectsManagementStateFlags { RendererObjectsManagementStateFlags::NONE };
-std::vector<strzilla::string>   g_ModelsToLoad {};
-std::vector<std::uint32_t> g_ModelsToUnload {};
-double                     g_FrameTime { 0.F };
-double                     g_FrameRateCap { 0.016667F };
-bool                       g_UseVSync { true };
-bool                       g_RenderOffscreen { false };
-InitializationFlags        g_InitializationFlags { InitializationFlags::NONE };
-std::uint32_t              g_ImageIndex { g_ImageCount };
+auto                          g_StateFlags { RendererStateFlags::NONE };
+auto                          g_ObjectsManagementStateFlags { RendererObjectsManagementStateFlags::NONE };
+std::vector<strzilla::string> g_ModelsToLoad {};
+std::vector<std::uint32_t>    g_ModelsToUnload {};
+double                        g_FrameTime { 0.F };
+double                        g_FrameRateCap { 0.016667F };
+bool                          g_UseVSync { true };
+bool                          g_RenderOffscreen { false };
+InitializationFlags           g_InitializationFlags { InitializationFlags::NONE };
+std::uint32_t                 g_ImageIndex { g_ImageCount };
 
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
                                                        RendererStateFlags::PENDING_RESOURCES_DESTRUCTION |
@@ -130,8 +130,8 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
                 if (HasFlag(g_InitializationFlags, InitializationFlags::ENABLE_IMGUI))
                 {
                     InitializeImGuiContext(Window,
-                        HasFlag(g_InitializationFlags, InitializationFlags::ENABLE_DOCKING),
-                        HasFlag(g_InitializationFlags, InitializationFlags::ENABLE_VIEWPORTS));
+                                           HasFlag(g_InitializationFlags, InitializationFlags::ENABLE_DOCKING),
+                                           HasFlag(g_InitializationFlags, InitializationFlags::ENABLE_VIEWPORTS));
                 }
 
                 Owner->Initialize();
@@ -427,4 +427,9 @@ strzilla::string Renderer::GetMemoryAllocatorStats(bool const DetailedMap)
 InitializationFlags Renderer::GetWindowInitializationFlags()
 {
     return g_InitializationFlags;
+}
+
+std::uint8_t Renderer::GetFrameIndex()
+{
+    return static_cast<std::uint8_t>(g_ImageIndex);
 }

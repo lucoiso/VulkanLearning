@@ -12,7 +12,7 @@ namespace RenderCore
 {
     export class GLFWHandler final
     {
-        GLFWwindow *m_Window {nullptr};
+        GLFWwindow *m_Window { nullptr };
 
     public:
         [[nodiscard]] bool Initialize(std::uint16_t, std::uint16_t, strzilla::string_view, InitializationFlags);

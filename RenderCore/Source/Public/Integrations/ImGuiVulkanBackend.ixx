@@ -8,6 +8,7 @@ module;
 
 export module RenderCore.Integrations.ImGuiVulkanBackend;
 
+import RenderCore.Runtime.Command;
 import RenderCore.Types.Allocation;
 
 struct ImGuiVulkanWindowRenderBuffers;
@@ -21,6 +22,18 @@ namespace RenderCore
     {
         VkDescriptorPool              DescriptorPool;
         VkPipelineRenderingCreateInfo PipelineRenderingCreateInfo;
+    };
+
+    struct ImGuiVulkanSecondaryCommands
+    {
+        std::vector<RenderCore::ThreadResources> ThreadResources {};
+
+        [[nodiscard]] bool IsValid() const;
+        void Initialize(VkDevice const &, std::uint8_t);
+        void Free(VkDevice const &);
+        void Destroy(VkDevice const &);
+        void Reset(VkDevice const &);
+        void Wait();
     };
 
     export bool ImGuiVulkanInit(ImGuiVulkanInitInfo const &);
@@ -39,7 +52,7 @@ namespace RenderCore
     void ImGuiVulkanDestroyFrameRenderBuffers(BufferAllocation &);
     void ImGuiVulkanDestroyWindowRenderBuffers(ImGuiVulkanWindowRenderBuffers &);
 
-    void ImGuiVulkanDestroyFrame(ImGuiVulkanFrame &);
+    void ImGuiVulkanDestroyFrame(ImGuiVulkanFrame &, ImGuiVulkanSecondaryCommands&);
     void ImGuiVulkanDestroyFrameSemaphores(ImGuiVulkanFrameSemaphores &);
     void ImGuiVulkanDestroyAllViewportsRenderBuffers();
 
@@ -53,4 +66,6 @@ namespace RenderCore
     void ImGuiVulkanCreateOrResizeWindow(ImGuiVulkanWindow &, std::int32_t, std::int32_t);
 
     void ImGuiVulkanDestroyWindow(ImGuiVulkanWindow &);
+
+    export void ImGuiVulkanResetThreadResources(std::uint8_t);
 }

@@ -15,6 +15,7 @@ import RenderCore.Runtime.Device;
 import RenderCore.Runtime.Pipeline;
 import RenderCore.Integrations.Offscreen;
 import RenderCore.Integrations.ImGuiOverlay;
+import RenderCore.Integrations.ImGuiVulkanBackend;
 import RenderCore.Types.Allocation;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
@@ -27,63 +28,57 @@ constexpr VkCommandBufferBeginInfo g_CommandBufferBeginInfo {
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
 };
 
-struct ThreadResources
+void ThreadResources::Allocate(VkDevice const &LogicalDevice, std::uint8_t const QueueFamilyIndex)
 {
-    VkCommandPool   CommandPool { VK_NULL_HANDLE };
-    VkCommandBuffer CommandBuffer { VK_NULL_HANDLE };
+    CommandPool = CreateCommandPool(QueueFamilyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 
-    void Allocate(VkDevice const &LogicalDevice, std::uint8_t const QueueFamilyIndex)
+    VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool = CommandPool,
+            .level = VK_COMMAND_BUFFER_LEVEL_SECONDARY,
+            .commandBufferCount = 1U
+    };
+
+    CheckVulkanResult(vkAllocateCommandBuffers(LogicalDevice, &CommandBufferAllocateInfo, &CommandBuffer));
+}
+
+void ThreadResources::Free(VkDevice const &LogicalDevice)
+{
+    if (CommandBuffer == VK_NULL_HANDLE || CommandPool == VK_NULL_HANDLE)
     {
-        CommandPool = CreateCommandPool(QueueFamilyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-
-        VkCommandBufferAllocateInfo const CommandBufferAllocateInfo {
-                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                .commandPool = CommandPool,
-                .level = VK_COMMAND_BUFFER_LEVEL_SECONDARY,
-                .commandBufferCount = 1U
-        };
-
-        CheckVulkanResult(vkAllocateCommandBuffers(LogicalDevice, &CommandBufferAllocateInfo, &CommandBuffer));
+        return;
     }
 
-    void Free(VkDevice const &LogicalDevice)
-    {
-        if (CommandBuffer == VK_NULL_HANDLE || CommandPool == VK_NULL_HANDLE)
-        {
-            return;
-        }
+    vkFreeCommandBuffers(LogicalDevice, CommandPool, 1U, &CommandBuffer);
+    CommandBuffer = VK_NULL_HANDLE;
+}
 
-        vkFreeCommandBuffers(LogicalDevice, CommandPool, 1U, &CommandBuffer);
-        CommandBuffer = VK_NULL_HANDLE;
+void ThreadResources::Destroy(VkDevice const &LogicalDevice)
+{
+    if (CommandPool == VK_NULL_HANDLE)
+    {
+        return;
     }
 
-    void Destroy(VkDevice const &LogicalDevice)
+    Free(LogicalDevice);
+
+    vkDestroyCommandPool(LogicalDevice, CommandPool, nullptr);
+    CommandPool = VK_NULL_HANDLE;
+}
+
+void ThreadResources::Reset(VkDevice const &LogicalDevice)
+{
+    if (CommandPool == VK_NULL_HANDLE)
     {
-        if (CommandPool == VK_NULL_HANDLE)
-        {
-            return;
-        }
-
-        Free(LogicalDevice);
-
-        vkDestroyCommandPool(LogicalDevice, CommandPool, nullptr);
-        CommandPool = VK_NULL_HANDLE;
+        return;
     }
 
-    void Reset(VkDevice const &LogicalDevice)
-    {
-        if (CommandPool == VK_NULL_HANDLE)
-        {
-            return;
-        }
-
-        CheckVulkanResult(vkResetCommandPool(LogicalDevice, CommandPool, 0U));
-    }
-};
+    CheckVulkanResult(vkResetCommandPool(LogicalDevice, CommandPool, 0U));
+}
 
 struct CommandResources
 {
-    std::unordered_map<std::uint8_t, ThreadResources> MultithreadResources {};
+    std::unordered_map<std::uint8_t, ThreadResources> MultiThreadResources {};
     VkCommandPool                                     PrimaryCommandPool { VK_NULL_HANDLE };
     VkCommandBuffer                                   PrimaryCommandBuffer { VK_NULL_HANDLE };
 };
@@ -110,9 +105,14 @@ void RenderCore::ResetCommandPool(std::uint32_t const Index)
     g_ThreadPool.Wait();
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
-    for (auto &ThreadResources : g_CommandResources.at(Index).MultithreadResources | std::views::values)
+    for (auto &ThreadResources : g_CommandResources.at(Index).MultiThreadResources | std::views::values)
     {
         ThreadResources.Reset(LogicalDevice);
+    }
+
+    if (RenderCore::IsImGuiInitialized())
+    {
+        RenderCore::ImGuiVulkanResetThreadResources(static_cast<std::uint8_t>(Index));
     }
 
     vkResetCommandPool(LogicalDevice, g_CommandResources.at(Index).PrimaryCommandPool, 0U);
@@ -278,7 +278,10 @@ void BeginRendering(VkCommandBuffer const &CommandBuffer,
     vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
 }
 
-void EndRendering(VkCommandBuffer const &CommandBuffer, ImageAllocation const &SwapchainAllocation, ImageAllocation const &OffscreenAllocation)
+void EndRendering(VkCommandBuffer const &CommandBuffer,
+                  ImageAllocation const &SwapchainAllocation,
+                  ImageAllocation const &DepthAllocation,
+                  ImageAllocation const &OffscreenAllocation)
 {
     vkCmdEndRendering(CommandBuffer);
 
@@ -289,7 +292,7 @@ void EndRendering(VkCommandBuffer const &CommandBuffer, ImageAllocation const &S
                                                                                                   OffscreenAllocation.Format);
     }
 
-    RecordImGuiCommandBuffer(CommandBuffer, SwapchainAllocation);
+    RecordImGuiCommandBuffer(CommandBuffer, SwapchainAllocation, DepthAllocation);
 
     RenderCore::RequestImageLayoutTransition<g_AttachmentLayout, g_PresentLayout, g_ImageAspect>(CommandBuffer,
                                                                                                  SwapchainAllocation.Image,
@@ -341,7 +344,7 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const    ImageInd
             break;
         }
 
-        auto const &[CommandPool, CommandBuffer] = CommandResources.MultithreadResources.at(ThreadIndex);
+        auto const &[CommandPool, CommandBuffer] = CommandResources.MultiThreadResources.at(ThreadIndex);
 
         if (CommandBuffer == VK_NULL_HANDLE)
         {
@@ -408,7 +411,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
         vkCmdExecuteCommands(CommandBuffer, static_cast<std::uint32_t>(std::size(CommandBuffers)), std::data(CommandBuffers));
     }
 
-    EndRendering(CommandBuffer, SwapchainAllocation, OffscreenAllocation);
+    EndRendering(CommandBuffer, SwapchainAllocation, DepthAllocation, OffscreenAllocation);
     CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
 }
 
@@ -444,6 +447,11 @@ void RenderCore::SubmitCommandBuffers(std::uint32_t const ImageIndex)
     auto const &Queue = GetGraphicsQueue().second;
     CheckVulkanResult(vkQueueSubmit2(Queue, 1U, &SubmitInfo, GetFence(ImageIndex)));
     SetFenceWaitStatus(ImageIndex, true);
+
+    if (g_ForceDefaultSync)
+    {
+        WaitAndResetFence(ImageIndex);
+    }
 }
 
 void RenderCore::InitializeSingleCommandQueue(VkCommandPool &               CommandPool,
@@ -507,4 +515,9 @@ void RenderCore::FinishSingleCommandQueue(VkQueue const &Queue, VkCommandPool co
 
     vkFreeCommandBuffers(LogicalDevice, CommandPool, static_cast<std::uint32_t>(std::size(CommandBuffers)), std::data(CommandBuffers));
     vkDestroyCommandPool(LogicalDevice, CommandPool, nullptr);
+}
+
+ThreadPool::Pool &RenderCore::GetThreadPool()
+{
+    return g_ThreadPool;
 }

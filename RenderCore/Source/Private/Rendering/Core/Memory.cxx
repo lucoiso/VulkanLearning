@@ -354,9 +354,9 @@ std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(V
 
     CopyBufferToImage(CommandBuffer, Output.first, NewAllocation.Image, NewAllocation.Extent);
 
-    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, g_ImageAspect>(CommandBuffer,
-        NewAllocation.Image,
-        NewAllocation.Format);
+    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, g_ReadLayout, g_ImageAspect>(CommandBuffer,
+                                                                                                        NewAllocation.Image,
+                                                                                                        NewAllocation.Format);
 
     CreateImageView(NewAllocation.Image, NewAllocation.Format, g_ImageAspect, NewAllocation.View);
     vmaUnmapMemory(Allocator, Output.second);
@@ -449,11 +449,7 @@ VkDescriptorBufferInfo RenderCore::GetAllocationBufferDescriptor(std::uint32_t c
 
 VkDescriptorImageInfo RenderCore::GetAllocationImageDescriptor(std::uint32_t const Index)
 {
-    return VkDescriptorImageInfo {
-            .sampler = GetSampler(),
-            .imageView = g_AllocatedImages.at(Index).View,
-            .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL
-    };
+    return VkDescriptorImageInfo { .sampler = GetSampler(), .imageView = g_AllocatedImages.at(Index).View, .imageLayout = g_ReadLayout };
 }
 
 void RenderCore::SaveImageToFile(VkImage const &Image, strzilla::string_view const Path, VkExtent2D const &Extent)
@@ -518,7 +514,7 @@ void RenderCore::SaveImageToFile(VkImage const &Image, strzilla::string_view con
                 .dstStageMask = VK_PIPELINE_STAGE_2_NONE_KHR,
                 .dstAccessMask = VK_ACCESS_2_NONE_KHR,
                 .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                .newLayout = g_PresentLayout,
                 .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .image = Image,

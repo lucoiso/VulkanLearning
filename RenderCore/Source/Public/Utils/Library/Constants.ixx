@@ -61,7 +61,12 @@ export namespace RenderCore
     constexpr VkImageLayout g_PresentLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     constexpr VkImageLayout g_UndefinedLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
     constexpr VkImageLayout g_AttachmentLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-    constexpr VkImageLayout g_ReadLayout       = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+
+    // NOTE: ImGui causing weird bug and forcing VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
+    // Change to VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL after fixing it
+    constexpr VkImageLayout g_ReadLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    constexpr bool g_ForceDefaultSync = false;
 
     constexpr std::uint8_t g_ImageCount = 3U;
 

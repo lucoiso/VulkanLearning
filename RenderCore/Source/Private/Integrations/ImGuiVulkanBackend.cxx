@@ -12,12 +12,15 @@ import RenderCore.Types.Allocation;
 import RenderCore.Types.SurfaceProperties;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
+import RenderCore.Renderer;
 import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Device;
 import RenderCore.Runtime.Instance;
 import RenderCore.Runtime.Pipeline;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Runtime.Command;
+import RenderCore.Runtime.Scene;
+import ThreadPool;
 
 using namespace RenderCore;
 
@@ -604,6 +607,65 @@ namespace ShaderData
     };
 } // namespace ShaderData
 
+bool ImGuiVulkanSecondaryCommands::IsValid() const
+{
+    for (RenderCore::ThreadResources const &ThreadResourceIt : ThreadResources)
+    {
+        if (ThreadResourceIt.CommandPool == VK_NULL_HANDLE || ThreadResourceIt.CommandPool == VK_NULL_HANDLE)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void ImGuiVulkanSecondaryCommands::Initialize(VkDevice const &LogicalDevice, std::uint8_t const QueueFamilyIndex)
+{
+    ThreadResources.resize(std::thread::hardware_concurrency());
+
+    for (RenderCore::ThreadResources &ThreadResourceIt : ThreadResources)
+    {
+        ThreadResourceIt.Allocate(LogicalDevice, QueueFamilyIndex);
+    }
+}
+
+void ImGuiVulkanSecondaryCommands::Free(VkDevice const &LogicalDevice)
+{
+    Wait();
+
+    for (RenderCore::ThreadResources &ThreadResourceIt : ThreadResources)
+    {
+        ThreadResourceIt.Free(LogicalDevice);
+    }
+}
+
+void ImGuiVulkanSecondaryCommands::Destroy(VkDevice const &LogicalDevice)
+{
+    Wait();
+
+    for (RenderCore::ThreadResources &ThreadResourceIt : ThreadResources)
+    {
+        ThreadResourceIt.Destroy(LogicalDevice);
+    }
+}
+
+void ImGuiVulkanSecondaryCommands::Reset(VkDevice const &LogicalDevice)
+{
+    Wait();
+
+    for (RenderCore::ThreadResources &ThreadResourceIt : ThreadResources)
+    {
+        ThreadResourceIt.Reset(LogicalDevice);
+    }
+}
+
+void ImGuiVulkanSecondaryCommands::Wait()
+{
+    ThreadPool::Pool const &CommandThreadPool = RenderCore::GetThreadPool();
+    CommandThreadPool.Wait();
+}
+
 struct ImGuiVulkanFrame
 {
     VkCommandPool   CommandPool { VK_NULL_HANDLE };
@@ -621,14 +683,15 @@ struct ImGuiVulkanFrameSemaphores
 
 struct ImGuiVulkanWindow
 {
-    std::uint32_t                                        Width {};
-    std::uint32_t                                        Height {};
-    VkSwapchainKHR                                       Swapchain { VK_NULL_HANDLE };
-    VkSurfaceKHR                                         Surface { VK_NULL_HANDLE };
-    std::uint32_t                                        FrameIndex {};
-    std::uint32_t                                        SemaphoreIndex {};
-    std::array<ImGuiVulkanFrame, g_ImageCount>           Frames {};
-    std::array<ImGuiVulkanFrameSemaphores, g_ImageCount> FrameSemaphores {};
+    std::uint32_t                                          Width {};
+    std::uint32_t                                          Height {};
+    VkSwapchainKHR                                         Swapchain { VK_NULL_HANDLE };
+    VkSurfaceKHR                                           Surface { VK_NULL_HANDLE };
+    std::uint32_t                                          FrameIndex {};
+    std::uint32_t                                          SemaphoreIndex {};
+    std::array<ImGuiVulkanFrame, g_ImageCount>             Frames {};
+    std::array<ImGuiVulkanFrameSemaphores, g_ImageCount>   FrameSemaphores {};
+    std::array<ImGuiVulkanSecondaryCommands, g_ImageCount> SecondaryCommands {};
 };
 
 struct ImGuiVulkanWindowRenderBuffers
@@ -774,14 +837,21 @@ void ImGuiVulkanCreateWindow(ImGuiViewport *Viewport)
 {
     VkInstance const &      Instance       = GetInstance();
     VkPhysicalDevice const &PhysicalDevice = GetPhysicalDevice();
+    VkDevice const &        LogicalDevice  = GetLogicalDevice();
 
     auto const &[QueueFamilyIndex, Queue] = GetGraphicsQueue();
 
     ImGuiVulkanData const *Backend      = ImGuiVulkanGetBackendData();
     auto *                 ViewportData = IM_NEW(ImGuiVulkanViewportData)();
 
-    Viewport->RendererUserData    = ViewportData;
     ImGuiVulkanWindow &WindowData = ViewportData->Window;
+
+    for (std::uint8_t ImageIt = 0U; ImageIt < g_ImageCount; ++ImageIt)
+    {
+        WindowData.SecondaryCommands.at(ImageIt).Initialize(LogicalDevice, RenderCore::GetGraphicsQueue().first);
+    }
+
+    Viewport->RendererUserData = ViewportData;
 
     ImGuiVulkanInitInfo const &VulkanInfo = Backend->VulkanInitInfo;
 
@@ -845,13 +915,24 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
     auto *             ViewportData = static_cast<ImGuiVulkanViewportData *>(Viewport->RendererUserData);
     ImGuiVulkanWindow &WindowData   = ViewportData->Window;
 
-    auto &      [CommandPool, CommandBuffer, Fence, PendingWait, Backbuffer] = WindowData.Frames.at(WindowData.FrameIndex);
+    for (ImGuiVulkanSecondaryCommands &CommandIt : WindowData.SecondaryCommands)
+    {
+        if (!CommandIt.IsValid())
+        {
+            CommandIt.Initialize(LogicalDevice, RenderCore::GetGraphicsQueue().first);
+        }
+    }
+
+    auto &      [CommandPool, CommandBuffer, Fence, PendingWait, BackBuffer] = WindowData.Frames.at(WindowData.FrameIndex);
     auto const &[ImageAcquiredSemaphore, RenderCompleteSemaphore]            = WindowData.FrameSemaphores.at(WindowData.SemaphoreIndex);
 
-    if (PendingWait)
+    if (!g_ForceDefaultSync && PendingWait)
     {
         CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &Fence, VK_FALSE, g_Timeout));
         CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &Fence));
+
+        WindowData.SecondaryCommands.at(Renderer::GetImageIndex()).Reset(LogicalDevice);
+
         CheckVulkanResult(vkResetCommandPool(LogicalDevice, CommandPool, 0U));
         PendingWait = false;
     }
@@ -862,16 +943,19 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
         return;
     }
 
-    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo { .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = 0U };
+    constexpr VkCommandBufferBeginInfo CommandBufferBeginInfo {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+    };
 
     CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo));
 
     RenderCore::RequestImageLayoutTransition<g_UndefinedLayout, g_AttachmentLayout,
-                                             g_ImageAspect>(CommandBuffer, Backbuffer.Image, Backbuffer.Format);
+                                             g_ImageAspect>(CommandBuffer, BackBuffer.Image, BackBuffer.Format);
 
     VkRenderingAttachmentInfo const AttachmentInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-            .imageView = Backbuffer.View,
+            .imageView = BackBuffer.View,
             .imageLayout = g_AttachmentLayout,
             .resolveMode = VK_RESOLVE_MODE_NONE,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -879,22 +963,34 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
             .clearValue = g_ClearValues.at(0U)
     };
 
+    ImageAllocation const &DepthAllocation = RenderCore::GetDepthImage();
+
+    VkRenderingAttachmentInfo const DepthAttachmentInfo {
+            .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+            .imageView = DepthAllocation.View,
+            .imageLayout = g_AttachmentLayout,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+            .clearValue = g_ClearValues.at(1U)
+    };
+
     VkRenderingInfo const RenderingInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+            .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
             .renderArea = { { 0, 0 }, { static_cast<std::uint32_t>(Viewport->Size.x), static_cast<std::uint32_t>(Viewport->Size.y) } },
             .layerCount = 1U,
             .viewMask = 0U,
             .colorAttachmentCount = 1U,
-            .pColorAttachments = &AttachmentInfo
+            .pColorAttachments = &AttachmentInfo,
+            .pDepthAttachment = &DepthAttachmentInfo,
+            .pStencilAttachment = &DepthAttachmentInfo
     };
 
     vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
     ImGuiVulkanRenderDrawData(Viewport->DrawData, CommandBuffer);
     vkCmdEndRendering(CommandBuffer);
 
-    RenderCore::RequestImageLayoutTransition<g_AttachmentLayout, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, g_ImageAspect>(CommandBuffer,
-                                                                                                                 Backbuffer.Image,
-                                                                                                                 Backbuffer.Format);
+    RenderCore::RequestImageLayoutTransition<g_AttachmentLayout, g_PresentLayout, g_ImageAspect>(CommandBuffer, BackBuffer.Image, BackBuffer.Format);
 
     CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
 
@@ -926,6 +1022,16 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
 
     CheckVulkanResult(vkQueueSubmit2(Queue, 1U, &SubmitInfo, Fence));
     PendingWait = true;
+
+    if (g_ForceDefaultSync)
+    {
+        CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &Fence, VK_FALSE, g_Timeout));
+        CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &Fence));
+
+        WindowData.SecondaryCommands.at(Renderer::GetImageIndex()).Reset(LogicalDevice);
+
+        CheckVulkanResult(vkResetCommandPool(LogicalDevice, CommandPool, 0U));
+    }
 }
 
 void ImGuiVulkanSwapBuffers(ImGuiViewport *Viewport, void *)
@@ -1116,7 +1222,7 @@ void RenderCore::ImGuiVulkanCreateWindowSwapChain(ImGuiVulkanWindow &WindowData,
 
     for (std::uint32_t Iterator = 0U; Iterator < g_ImageCount; Iterator++)
     {
-        ImGuiVulkanDestroyFrame(WindowData.Frames.at(Iterator));
+        ImGuiVulkanDestroyFrame(WindowData.Frames.at(Iterator), WindowData.SecondaryCommands.at(Iterator));
     }
 
     for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(WindowData.FrameSemaphores)); Iterator++)
@@ -1196,11 +1302,13 @@ void RenderCore::ImGuiVulkanCreateWindowSwapChain(ImGuiVulkanWindow &WindowData,
     }
 }
 
-void RenderCore::ImGuiVulkanDestroyFrame(ImGuiVulkanFrame &FrameData)
+void RenderCore::ImGuiVulkanDestroyFrame(ImGuiVulkanFrame &FrameData, ImGuiVulkanSecondaryCommands &Commands)
 {
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
-    if (FrameData.PendingWait)
+    Commands.Destroy(LogicalDevice);
+
+    if (!g_ForceDefaultSync && FrameData.PendingWait)
     {
         if (FrameData.CommandPool != VK_NULL_HANDLE)
         {
@@ -1282,8 +1390,85 @@ void RenderCore::ImGuiVulkanShutdownPlatformInterface()
     ImGui::DestroyPlatformWindows();
 }
 
+static void DrawRenderingData(VkCommandBuffer const  CommandBuffer,
+                              ImGuiVulkanData const *Backend,
+                              ImDrawData *const &    DrawData,
+                              ImDrawCmd const &      DrawCmd,
+                              std::uint32_t const    GlobalIdxOffset,
+                              std::uint32_t const    GlobalVtxOffset)
+{
+    {
+        VkViewport const Viewport {
+                .x = 0.F,
+                .y = 0.F,
+                .width = DrawData->DisplaySize.x,
+                .height = DrawData->DisplaySize.y,
+                .minDepth = 0.F,
+                .maxDepth = 1.F
+        };
+        vkCmdSetViewport(CommandBuffer, 0U, 1U, &Viewport);
+    }
+
+    ImVec2 const &DisplayPosition = DrawData->DisplayPos;
+    ImVec2 const &BufferScale     = DrawData->FramebufferScale;
+
+    ImVec2 MinClip((DrawCmd.ClipRect.x - DisplayPosition.x) * BufferScale.x, (DrawCmd.ClipRect.y - DisplayPosition.y) * BufferScale.y);
+    ImVec2 MaxClip((DrawCmd.ClipRect.z - DisplayPosition.x) * BufferScale.x, (DrawCmd.ClipRect.w - DisplayPosition.y) * BufferScale.y);
+
+    if (MinClip.x < 0.F)
+    {
+        MinClip.x = 0.F;
+    }
+    if (MinClip.y < 0.F)
+    {
+        MinClip.y = 0.F;
+    }
+
+    if (MaxClip.x > DrawData->DisplaySize.x)
+    {
+        MaxClip.x = DrawData->DisplaySize.x;
+    }
+    if (MaxClip.y > DrawData->DisplaySize.y)
+    {
+        MaxClip.y = DrawData->DisplaySize.y;
+    }
+
+    if (MaxClip.x <= MinClip.x || MaxClip.y <= MinClip.y)
+    {
+        return;
+    }
+
+    {
+        VkRect2D const Scissor {
+                .offset = { static_cast<std::int32_t>(MinClip.x), static_cast<std::int32_t>(MinClip.y) },
+                .extent = { static_cast<std::uint32_t>(MaxClip.x - MinClip.x), static_cast<std::uint32_t>(MaxClip.y - MinClip.y) }
+        };
+
+        vkCmdSetScissor(CommandBuffer, 0U, 1U, &Scissor);
+    }
+
+    auto const DescriptorSet = static_cast<VkDescriptorSet>(DrawCmd.TextureId);
+
+    vkCmdBindDescriptorSets(CommandBuffer,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            Backend->PipelineData.PipelineLayout,
+                            0U,
+                            1U,
+                            &DescriptorSet,
+                            0U,
+                            nullptr);
+
+    vkCmdDrawIndexed(CommandBuffer,
+                     DrawCmd.ElemCount,
+                     1U,
+                     DrawCmd.IdxOffset + GlobalIdxOffset,
+                     static_cast<int32_t>(DrawCmd.VtxOffset + GlobalVtxOffset),
+                     0U);
+}
+
 void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkCommandBuffer const CommandBuffer)
 {
+    std::uint8_t const ImageIndex = RenderCore::Renderer::GetFrameIndex();
     if (DrawData->DisplaySize.x <= 0U || DrawData->DisplaySize.y <= 0U)
     {
         return;
@@ -1307,18 +1492,6 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
         }
 
         return;
-    }
-
-    {
-        VkViewport const Viewport {
-                .x = 0.F,
-                .y = 0.F,
-                .width = DrawData->DisplaySize.x,
-                .height = DrawData->DisplaySize.y,
-                .minDepth = 0.F,
-                .maxDepth = 1.F
-        };
-        vkCmdSetViewport(CommandBuffer, 0U, 1U, &Viewport);
     }
 
     VkDeviceSize const VertexSize = DrawData->TotalVtxCount * sizeof(ImDrawVert);
@@ -1357,75 +1530,76 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
     }
     vmaUnmapMemory(Allocator, RenderBuffers.Allocation);
 
-    ImGuiVulkanSetupRenderState(DrawData, Backend->PipelineData.MainPipeline, CommandBuffer, RenderBuffers);
+    VkCommandBufferInheritanceRenderingInfo const InheritanceRenderingInfo {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO,
+            .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
+            .colorAttachmentCount = Backend->VulkanInitInfo.PipelineRenderingCreateInfo.colorAttachmentCount,
+            .pColorAttachmentFormats = Backend->VulkanInitInfo.PipelineRenderingCreateInfo.pColorAttachmentFormats,
+            .depthAttachmentFormat = Backend->VulkanInitInfo.PipelineRenderingCreateInfo.depthAttachmentFormat,
+            .stencilAttachmentFormat = Backend->VulkanInitInfo.PipelineRenderingCreateInfo.depthAttachmentFormat,
+            .rasterizationSamples = g_MSAASamples,
+    };
 
-    ImVec2 const &DisplayPosition = DrawData->DisplayPos;
-    ImVec2 const &BufferScale     = DrawData->FramebufferScale;
+    VkCommandBufferInheritanceInfo const InheritanceInfo {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
+            .pNext = &InheritanceRenderingInfo
+    };
+
+    VkCommandBufferBeginInfo const SecondaryBeginInfo {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
+            .pInheritanceInfo = &InheritanceInfo,
+    };
 
     std::uint32_t GlobalVtxOffset = 0U;
     std::uint32_t GlobalIdxOffset = 0U;
 
-    for (ImDrawList *const &CmdIt : DrawData->CmdLists)
+    ThreadPool::Pool const &CommandThreadPool = RenderCore::GetThreadPool();
+    std::uint8_t            ThreadIndex       = 0U;
+
+    std::vector WorkerThreads(std::thread::hardware_concurrency(), false);
+
+    ImGuiVulkanSecondaryCommands &SecondaryCommands = ViewportRenderData->Window.SecondaryCommands.at(ImageIndex);
+
+    for (std::uint8_t CmdIt = 0U; CmdIt < std::size(DrawData->CmdLists); ++CmdIt)
     {
-        for (ImDrawCmd const &DrawCmdIt : CmdIt->CmdBuffer)
+        ImDrawList *const&CmdList = DrawData->CmdLists[CmdIt];
+
+        for (std::uint8_t BufferIt = 0U; BufferIt < std::size(CmdList->CmdBuffer); ++BufferIt)
         {
-            ImVec2 MinClip((DrawCmdIt.ClipRect.x - DisplayPosition.x) * BufferScale.x, (DrawCmdIt.ClipRect.y - DisplayPosition.y) * BufferScale.y);
-            ImVec2 MaxClip((DrawCmdIt.ClipRect.z - DisplayPosition.x) * BufferScale.x, (DrawCmdIt.ClipRect.w - DisplayPosition.y) * BufferScale.y);
+            ImDrawCmd &Buffer = CmdList->CmdBuffer[BufferIt];
 
-            if (MinClip.x < 0.F)
-            {
-                MinClip.x = 0.F;
-            }
-            if (MinClip.y < 0.F)
-            {
-                MinClip.y = 0.F;
-            }
-
-            if (MaxClip.x > DrawData->DisplaySize.x)
-            {
-                MaxClip.x = DrawData->DisplaySize.x;
-            }
-
-            if (MaxClip.y > DrawData->DisplaySize.y)
-            {
-                MaxClip.y = DrawData->DisplaySize.y;
-            }
-
-            if (MaxClip.x <= MinClip.x || MaxClip.y <= MinClip.y)
+            if (Buffer.ElemCount <= 0U)
             {
                 continue;
             }
 
+            CommandThreadPool.AddTask([&SecondaryBeginInfo, SecondaryCommands, ThreadIndex, DrawData, Backend, RenderBuffers, Buffer, GlobalIdxOffset, GlobalVtxOffset]
+                                      {
+                                          RenderCore::ThreadResources const Resource      = SecondaryCommands.ThreadResources.at(ThreadIndex);
+                                          VkCommandBuffer const            CommandBuffer = Resource.CommandBuffer;
+
+                                          CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
+                                          {
+                                              ImGuiVulkanSetupRenderState(DrawData, Backend->PipelineData.MainPipeline, CommandBuffer, RenderBuffers);
+                                              DrawRenderingData(CommandBuffer, Backend, DrawData, Buffer, GlobalIdxOffset, GlobalVtxOffset);
+                                          }
+                                          CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
+                                      },
+                                      ThreadIndex);
+
+            WorkerThreads.at(ThreadIndex) = true;
+
+            ++ThreadIndex;
+
+            if (ThreadIndex >= std::size(SecondaryCommands.ThreadResources))
             {
-                VkRect2D const Scissor {
-                        .offset = { static_cast<std::int32_t>(MinClip.x), static_cast<std::int32_t>(MinClip.y) },
-                        .extent = { static_cast<std::uint32_t>(MaxClip.x - MinClip.x), static_cast<std::uint32_t>(MaxClip.y - MinClip.y) }
-                };
-
-                vkCmdSetScissor(CommandBuffer, 0U, 1U, &Scissor);
+                ThreadIndex = 0U;
             }
-
-            auto const DescriptorSet = static_cast<VkDescriptorSet>(DrawCmdIt.TextureId);
-
-            vkCmdBindDescriptorSets(CommandBuffer,
-                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    Backend->PipelineData.PipelineLayout,
-                                    0U,
-                                    1U,
-                                    &DescriptorSet,
-                                    0U,
-                                    nullptr);
-
-            vkCmdDrawIndexed(CommandBuffer,
-                             DrawCmdIt.ElemCount,
-                             1U,
-                             DrawCmdIt.IdxOffset + GlobalIdxOffset,
-                             static_cast<int32_t>(DrawCmdIt.VtxOffset + GlobalVtxOffset),
-                             0U);
         }
 
-        GlobalIdxOffset += CmdIt->IdxBuffer.Size;
-        GlobalVtxOffset += CmdIt->VtxBuffer.Size;
+        GlobalIdxOffset += CmdList->IdxBuffer.Size;
+        GlobalVtxOffset += CmdList->VtxBuffer.Size;
     }
 
     VkRect2D const Scissor {
@@ -1433,6 +1607,28 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
             .extent = { static_cast<std::uint32_t>(DrawData->DisplaySize.x), static_cast<std::uint32_t>(DrawData->DisplaySize.y) }
     };
     vkCmdSetScissor(CommandBuffer, 0U, 1U, &Scissor);
+
+    std::vector<VkCommandBuffer> SecondaryBuffers;
+    SecondaryBuffers.reserve(std::size(WorkerThreads));
+
+    for (std::uint8_t WorkerIt = 0U; WorkerIt < std::size(WorkerThreads); ++WorkerIt)
+    {
+        if (WorkerThreads.at(WorkerIt))
+        {
+            SecondaryBuffers.emplace_back(SecondaryCommands.ThreadResources.at(WorkerIt).CommandBuffer);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    CommandThreadPool.Wait();
+
+    if (!std::empty(SecondaryBuffers))
+    {
+        vkCmdExecuteCommands(CommandBuffer, static_cast<std::uint32_t>(std::size(SecondaryBuffers)), std::data(SecondaryBuffers));
+    }
 }
 
 bool RenderCore::ImGuiVulkanCreateFontsTexture()
@@ -1490,9 +1686,9 @@ bool RenderCore::ImGuiVulkanCreateFontsTexture()
 
     CopyBufferToImage(CommandBuffers.back(), StagingAllocation.first, NewAllocation.Image, NewAllocation.Extent);
 
-    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, g_ImageAspect>(CommandBuffers.back(),
-        NewAllocation.Image,
-        NewAllocation.Format);
+    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, g_ReadLayout, g_ImageAspect>(CommandBuffers.back(),
+                                                                                                        NewAllocation.Image,
+                                                                                                        NewAllocation.Format);
 
     CreateImageView(NewAllocation.Image, NewAllocation.Format, g_ImageAspect, NewAllocation.View);
     vmaUnmapMemory(Allocator, StagingAllocation.second);
@@ -1503,7 +1699,7 @@ bool RenderCore::ImGuiVulkanCreateFontsTexture()
 
     Backend->FontImage = std::move(NewAllocation);
 
-    Backend->FontDescriptorSet = ImGuiVulkanAddTexture(Backend->FontSampler, Backend->FontImage.View, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    Backend->FontDescriptorSet = ImGuiVulkanAddTexture(Backend->FontSampler, Backend->FontImage.View, g_ReadLayout);
     ImGuiIO.Fonts->SetTexID(Backend->FontDescriptorSet);
 
     return true;
@@ -1545,9 +1741,17 @@ bool RenderCore::ImGuiVulkanInit(ImGuiVulkanInitInfo const &VulkanInfo)
     ImGuiViewport *MainViewport    = ImGui::GetMainViewport();
     MainViewport->RendererUserData = IM_NEW(ImGuiVulkanViewportData)();
 
+    auto *ViewportRenderData = static_cast<ImGuiVulkanViewportData *>(MainViewport->RendererUserData);
+
     if (ImGuiIO.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
         ImGuiVulkanInitPlatformInterface();
+    }
+
+    for (std::uint8_t ImageIt = 0U; ImageIt < g_ImageCount; ++ImageIt)
+    {
+        ImGuiVulkanSecondaryCommands &SecondaryCommands = ViewportRenderData->Window.SecondaryCommands.at(ImageIt);
+        SecondaryCommands.Initialize(RenderCore::GetLogicalDevice(), RenderCore::GetGraphicsQueue().first);
     }
 
     return true;
@@ -1561,6 +1765,16 @@ void RenderCore::ImGuiVulkanShutdown()
     ImGuiVulkanDestroyDeviceObjects();
 
     ImGuiViewport *MainViewport = ImGui::GetMainViewport();
+
+    auto *ViewportRenderData = static_cast<ImGuiVulkanViewportData *>(MainViewport->RendererUserData);
+
+    VkDevice const &LogicalDevice = RenderCore::GetLogicalDevice();
+    for (std::uint8_t ImageIt = 0U; ImageIt < g_ImageCount; ++ImageIt)
+    {
+        ImGuiVulkanSecondaryCommands &SecondaryCommands = ViewportRenderData->Window.SecondaryCommands.at(ImageIt);
+        SecondaryCommands.Destroy(LogicalDevice);
+    }
+
     if (auto *ViewportData = static_cast<ImGuiVulkanViewportData *>(MainViewport->RendererUserData))
     {
         IM_DELETE(ViewportData);
@@ -1648,7 +1862,7 @@ void RenderCore::ImGuiVulkanDestroyWindow(ImGuiVulkanWindow &WindowData)
 
     for (std::uint32_t Iterator = 0U; Iterator < g_ImageCount; Iterator++)
     {
-        ImGuiVulkanDestroyFrame(WindowData.Frames.at(Iterator));
+        ImGuiVulkanDestroyFrame(WindowData.Frames.at(Iterator), WindowData.SecondaryCommands.at(Iterator));
     }
 
     for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(WindowData.FrameSemaphores)); Iterator++)
@@ -1658,4 +1872,14 @@ void RenderCore::ImGuiVulkanDestroyWindow(ImGuiVulkanWindow &WindowData)
 
     vkDestroySwapchainKHR(LogicalDevice, WindowData.Swapchain, nullptr);
     vkDestroySurfaceKHR(GetInstance(), WindowData.Surface, nullptr);
+}
+
+void RenderCore::ImGuiVulkanResetThreadResources(std::uint8_t const ImageIndex)
+{
+    ImGuiViewport const *MainViewport = ImGui::GetMainViewport();
+
+    auto *ViewportRenderData = static_cast<ImGuiVulkanViewportData *>(MainViewport->RendererUserData);
+
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    ViewportRenderData->Window.SecondaryCommands.at(ImageIndex).Reset(LogicalDevice);
 }

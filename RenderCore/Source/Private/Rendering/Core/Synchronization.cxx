@@ -20,7 +20,7 @@ std::array<bool, g_ImageCount>        g_FenceInUse {};
 
 void RenderCore::WaitAndResetFence(std::uint32_t const Index)
 {
-    if (g_Fences.at(Index) == VK_NULL_HANDLE || !g_FenceInUse.at(Index))
+    if (!g_ForceDefaultSync && (g_Fences.at(Index) == VK_NULL_HANDLE || !g_FenceInUse.at(Index)))
     {
         return;
     }

@@ -84,7 +84,7 @@ export namespace RenderCore
             }
         }
 
-        if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL)
+        if constexpr (OldLayout == g_UndefinedLayout && NewLayout == g_AttachmentLayout)
         {
             if constexpr (HasFlag<VkImageAspectFlags>(Aspect, g_DepthAspect))
             {
@@ -101,35 +101,35 @@ export namespace RenderCore
                 ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
             }
         }
-        else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL)
+        else if constexpr (OldLayout == g_UndefinedLayout && NewLayout == g_ReadLayout)
         {
             ImageBarrier.srcAccessMask = VK_ACCESS_2_NONE;
             ImageBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
             ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_NONE;
             ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
         }
-        else if constexpr (OldLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL)
+        else if constexpr (OldLayout == g_AttachmentLayout && NewLayout == g_ReadLayout)
         {
             ImageBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
             ImageBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
             ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
             ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
         }
-        else if constexpr (OldLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+        else if constexpr (OldLayout == g_AttachmentLayout && NewLayout == g_PresentLayout)
         {
             ImageBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
             ImageBarrier.dstAccessMask = VK_ACCESS_2_NONE;
             ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
             ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
         }
-        else if constexpr (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+        else if constexpr (OldLayout == g_UndefinedLayout && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
         {
             ImageBarrier.srcAccessMask = VK_ACCESS_2_NONE;
             ImageBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
             ImageBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_NONE;
             ImageBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
         }
-        else if constexpr (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL)
+        else if constexpr (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && NewLayout == g_ReadLayout)
         {
             ImageBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
             ImageBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;

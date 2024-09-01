@@ -90,7 +90,11 @@ bool RenderCore::RequestSwapChainImage(std::uint32_t &Output)
     std::uint8_t const SyncIndex     = Output + 1U >= g_ImageCount ? 0U : Output + 1U;
     VkSemaphore const &Semaphore     = GetImageAvailableSemaphore(SyncIndex);
 
-    WaitAndResetFence(SyncIndex);
+    if (!g_ForceDefaultSync)
+    {
+        WaitAndResetFence(SyncIndex);
+    }
+
     return vkAcquireNextImageKHR(LogicalDevice, g_SwapChain, g_Timeout, Semaphore, VK_NULL_HANDLE, &Output) == VK_SUCCESS;
 }
 

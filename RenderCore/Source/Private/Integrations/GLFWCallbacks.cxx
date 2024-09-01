@@ -161,6 +161,11 @@ static void MovementWindow(GLFWwindow *const Window, double const NewCursorPosX,
 
 static void MovementCamera(GLFWwindow *const Window, double const NewCursorPosX, double const NewCursorPosY)
 {
+    if (RenderCore::IsImGuiInitialized() && ImGui::IsAnyItemHovered())
+    {
+        return;
+    }
+
     static double LastCursorPosX = NewCursorPosX;
     static double LastCursorPosY = NewCursorPosY;
 
@@ -222,6 +227,11 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double con
 
 void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow *const Window, [[maybe_unused]] double const OffsetX, double const OffsetY)
 {
+    if (RenderCore::IsImGuiInitialized() && ImGui::IsAnyItemHovered())
+    {
+        return;
+    }
+
     Camera     &Camera = Renderer::GetMutableCamera();
     float const Zoom   = static_cast<float>(OffsetY) * 0.1f;
     Camera.SetPosition(Camera.GetPosition() + Camera.GetFront() * Zoom);

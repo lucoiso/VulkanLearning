@@ -95,5 +95,7 @@ namespace RenderCore
         [[nodiscard]] RENDERCOREMODULE_API strzilla::string GetMemoryAllocatorStats(bool);
 
         [[nodiscard]] RENDERCOREMODULE_API InitializationFlags GetWindowInitializationFlags();
+
+        [[nodiscard]] RENDERCOREMODULE_API std::uint8_t GetFrameIndex();
     } // namespace Renderer
 }     // namespace RenderCore
