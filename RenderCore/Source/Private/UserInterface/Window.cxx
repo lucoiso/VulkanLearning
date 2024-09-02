@@ -8,6 +8,7 @@ module RenderCore.UserInterface.Window;
 
 import RenderCore.Renderer;
 import RenderCore.Utils.EnumHelpers;
+import RenderCore.Integrations.ImGuiGLFWBackend;
 
 import Timer.Manager;
 
@@ -54,7 +55,6 @@ bool Window::Initialize(std::uint16_t const Width, std::uint16_t const Height, s
                                 });
 
         s_TimerManager.SetActive(true);
-
         Sync.acquire();
 
         return true;
@@ -109,6 +109,17 @@ void Window::PollEvents()
     }
 
     glfwWaitEvents();
+
+    {
+        std::queue<std::function<void()>> &DispatchQueue = GetMainThreadDispatchQueue();
+
+        while (!DispatchQueue.empty())
+        {
+            auto &Dispatch = DispatchQueue.front();
+            Dispatch();
+            DispatchQueue.pop();
+        }
+    }
 
     if (m_PendingClose)
     {

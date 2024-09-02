@@ -17,6 +17,9 @@ module;
 
 module RenderCore.Integrations.ImGuiGLFWBackend;
 
+import RenderCore.Renderer;
+import RenderCore.Runtime.Device;
+
 using namespace RenderCore;
 
 struct ImGuiGLFWData
@@ -702,6 +705,11 @@ void ImGuiGLFWUpdateMouseData()
                   {
                       auto *Window = static_cast<GLFWwindow *>(Iterator->PlatformHandle);
 
+                      if (Window == nullptr)
+                      {
+                          return;
+                      }
+
                       if (!glfwGetWindowAttrib(Window, GLFW_HOVERED))
                       {
                           return;
@@ -761,6 +769,11 @@ void ImGuiGLFWUpdateMouseCursor()
                   [&](ImGuiViewport const *const &Iterator)
                   {
                       auto *Window = static_cast<GLFWwindow *>(Iterator->PlatformHandle);
+
+                      if (Window == nullptr)
+                      {
+                          return;
+                      }
 
                       if (!glfwGetWindowAttrib(Window, GLFW_HOVERED))
                       {
@@ -847,33 +860,38 @@ void RenderCore::ImGuiGLFWUpdateMonitors()
     }
 }
 
-void RenderCore::ImGuiGLFWNewFrame()
+void RenderCore::ImGuiGLFWUpdateFrameBufferSizes()
 {
     EASY_FUNCTION(profiler::colors::Amber);
 
     ImGuiIO &      ImGuiIO = ImGui::GetIO();
     ImGuiGLFWData *Backend = ImGuiGLFWGetBackendData();
 
-    std::int32_t Width;
-    std::int32_t Height;
-    std::int32_t DisplayWidth;
-    std::int32_t DisplayHeight;
+    auto const SurfaceProperties = GetSurfaceProperties(Backend->Window);
 
-    glfwGetWindowSize(Backend->Window, &Width, &Height);
-    glfwGetFramebufferSize(Backend->Window, &DisplayWidth, &DisplayHeight);
-
-    ImGuiIO.DisplaySize = ImVec2(static_cast<float>(Width), static_cast<float>(Height));
-
-    if (Width > 0 && Height > 0)
-    {
-        ImGuiIO.DisplayFramebufferScale = ImVec2(static_cast<float>(DisplayWidth) / static_cast<float>(Width),
-                                                 static_cast<float>(DisplayHeight) / static_cast<float>(Height));
-    }
+    ImGuiIO.DisplaySize             = ImVec2(static_cast<float>(SurfaceProperties.Extent.width), static_cast<float>(SurfaceProperties.Extent.height));
+    ImGuiIO.DisplayFramebufferScale = ImVec2(1.F, 1.F);
 
     if (Backend->WantUpdateMonitors)
     {
         ImGuiGLFWUpdateMonitors();
     }
+}
+
+void RenderCore::ImGuiGLFWUpdateMouse()
+{
+    EASY_FUNCTION(profiler::colors::Amber);
+
+    ImGuiGLFWUpdateMouseData();
+    ImGuiGLFWUpdateMouseCursor();
+}
+
+void RenderCore::ImGuiGLFWNewFrame()
+{
+    EASY_FUNCTION(profiler::colors::Amber);
+
+    ImGuiIO &      ImGuiIO = ImGui::GetIO();
+    ImGuiGLFWData *Backend = ImGuiGLFWGetBackendData();
 
     double CurrentTime = glfwGetTime();
 
@@ -882,11 +900,8 @@ void RenderCore::ImGuiGLFWNewFrame()
         CurrentTime = Backend->Time + 0.00001F;
     }
 
-    ImGuiIO.DeltaTime = Backend->Time > 0.0 ? static_cast<float>(CurrentTime - Backend->Time) : 1.F / 60.F;
+    ImGuiIO.DeltaTime = static_cast<float>(Renderer::GetFrameTime());
     Backend->Time     = CurrentTime;
-
-    ImGuiGLFWUpdateMouseData();
-    ImGuiGLFWUpdateMouseCursor();
 }
 
 void ImGuiGLFWWindowCloseCallback(GLFWwindow *Window)
@@ -939,41 +954,48 @@ void ImGuiGLFWCreateWindow(ImGuiViewport *Viewport)
 {
     EASY_FUNCTION(profiler::colors::Amber);
 
-    auto *ViewportData         = IM_NEW(ImGuiGLFWViewportData)();
-    Viewport->PlatformUserData = ViewportData;
+    DispatchToMainThread([Viewport]
+    {
+        std::lock_guard const Lock { GetRendererMutex() };
 
-    glfwWindowHint(GLFW_VISIBLE, false);
-    glfwWindowHint(GLFW_FOCUSED, false);
-    glfwWindowHint(GLFW_FOCUS_ON_SHOW, false);
-    glfwWindowHint(GLFW_DECORATED, Viewport->Flags & ImGuiViewportFlags_NoDecoration ? false : true);
-    glfwWindowHint(GLFW_FLOATING, Viewport->Flags & ImGuiViewportFlags_TopMost ? true : false);
+        auto *ViewportData         = IM_NEW(ImGuiGLFWViewportData)();
+        Viewport->PlatformUserData = ViewportData;
 
-    ViewportData->Window = glfwCreateWindow(static_cast<std::int32_t>(Viewport->Size.x),
-                                            static_cast<std::int32_t>(Viewport->Size.y),
-                                            "Undefined",
-                                            nullptr,
-                                            nullptr);
-    ViewportData->WindowOwned = true;
-    Viewport->PlatformHandle  = static_cast<void *>(ViewportData->Window);
+        glfwWindowHint(GLFW_VISIBLE, false);
+        glfwWindowHint(GLFW_FOCUSED, false);
+        glfwWindowHint(GLFW_FOCUS_ON_SHOW, false);
+        glfwWindowHint(GLFW_DECORATED, Viewport->Flags & ImGuiViewportFlags_NoDecoration ? false : true);
+        glfwWindowHint(GLFW_FLOATING, Viewport->Flags & ImGuiViewportFlags_TopMost ? true : false);
 
-    #ifdef _WIN32
-    Viewport->PlatformHandleRaw = glfwGetWin32Window(ViewportData->Window);
-    #elif defined(__APPLE__)
-    Viewport->PlatformHandleRaw = static_cast<void *>(glfwGetCocoaWindow(ViewportData->Window));
-    #endif
+        ViewportData->Window = glfwCreateWindow(static_cast<std::int32_t>(Viewport->Size.x),
+                                                static_cast<std::int32_t>(Viewport->Size.y),
+                                                "Undefined",
+                                                nullptr,
+                                                nullptr);
+        ViewportData->WindowOwned = true;
+        Viewport->PlatformHandle  = static_cast<void *>(ViewportData->Window);
 
-    glfwSetWindowPos(ViewportData->Window, static_cast<std::int32_t>(Viewport->Pos.x), static_cast<std::int32_t>(Viewport->Pos.y));
+        #ifdef _WIN32
+        Viewport->PlatformHandleRaw = glfwGetWin32Window(ViewportData->Window);
+        #elif defined(__APPLE__)
+            Viewport->PlatformHandleRaw = static_cast<void *>(glfwGetCocoaWindow(ViewportData->Window));
+        #endif
 
-    glfwSetWindowFocusCallback(ViewportData->Window, ImGuiGLFWWindowFocusCallback);
-    glfwSetCursorEnterCallback(ViewportData->Window, ImGuiGLFWCursorEnterCallback);
-    glfwSetCursorPosCallback(ViewportData->Window, ImGuiGLFWCursorPosCallback);
-    glfwSetMouseButtonCallback(ViewportData->Window, ImGuiGLFWMouseButtonCallback);
-    glfwSetScrollCallback(ViewportData->Window, ImGuiGLFWScrollCallback);
-    glfwSetKeyCallback(ViewportData->Window, ImGuiGLFWKeyCallback);
-    glfwSetCharCallback(ViewportData->Window, ImGuiGLFWCharCallback);
-    glfwSetWindowCloseCallback(ViewportData->Window, ImGuiGLFWWindowCloseCallback);
-    glfwSetWindowPosCallback(ViewportData->Window, ImGuiGLFWWindowPosCallback);
-    glfwSetWindowSizeCallback(ViewportData->Window, ImGuiGLFWWindowSizeCallback);
+        glfwSetWindowPos(ViewportData->Window, static_cast<std::int32_t>(Viewport->Pos.x), static_cast<std::int32_t>(Viewport->Pos.y));
+
+        glfwSetWindowFocusCallback(ViewportData->Window, ImGuiGLFWWindowFocusCallback);
+        glfwSetCursorEnterCallback(ViewportData->Window, ImGuiGLFWCursorEnterCallback);
+        glfwSetCursorPosCallback(ViewportData->Window, ImGuiGLFWCursorPosCallback);
+        glfwSetMouseButtonCallback(ViewportData->Window, ImGuiGLFWMouseButtonCallback);
+        glfwSetScrollCallback(ViewportData->Window, ImGuiGLFWScrollCallback);
+        glfwSetKeyCallback(ViewportData->Window, ImGuiGLFWKeyCallback);
+        glfwSetCharCallback(ViewportData->Window, ImGuiGLFWCharCallback);
+        glfwSetWindowCloseCallback(ViewportData->Window, ImGuiGLFWWindowCloseCallback);
+        glfwSetWindowPosCallback(ViewportData->Window, ImGuiGLFWWindowPosCallback);
+        glfwSetWindowSizeCallback(ViewportData->Window, ImGuiGLFWWindowSizeCallback);
+    });
+
+    glfwPostEmptyEvent();
 }
 
 void ImGuiGLFWDestroyWindow(ImGuiViewport *Viewport)
@@ -994,7 +1016,11 @@ void ImGuiGLFWDestroyWindow(ImGuiViewport *Viewport)
                 }
             }
 
-            glfwDestroyWindow(ViewportData->Window);
+            auto *Window = ViewportData->Window;
+            DispatchToMainThread([Window]
+            {
+                glfwDestroyWindow(Window);
+            });
         }
 
         ViewportData->Window = nullptr;
@@ -1003,26 +1029,31 @@ void ImGuiGLFWDestroyWindow(ImGuiViewport *Viewport)
 
     Viewport->PlatformUserData = nullptr;
     Viewport->PlatformHandle   = nullptr;
+
+    glfwPostEmptyEvent();
 }
 
 void ImGuiGLFWShowWindow(ImGuiViewport *Viewport)
 {
     EASY_FUNCTION(profiler::colors::Amber);
 
-    ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
-
-    #ifdef _WIN32
-    if (Viewport->Flags & ImGuiViewportFlags_NoTaskBarIcon)
+    DispatchToMainThread([Viewport]
     {
-        auto const Handle = static_cast<HWND>(Viewport->PlatformHandleRaw);
-        LONG       Style  = ::GetWindowLong(Handle, GWL_EXSTYLE);
-        Style &= ~WS_EX_APPWINDOW;
-        Style |= WS_EX_TOOLWINDOW;
-        ::SetWindowLong(Handle, GWL_EXSTYLE, Style);
-    }
-    #endif
+        ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
 
-    glfwShowWindow(ViewportData->Window);
+        #ifdef _WIN32
+        if (Viewport->Flags & ImGuiViewportFlags_NoTaskBarIcon)
+        {
+            auto const Handle = static_cast<HWND>(Viewport->PlatformHandleRaw);
+            LONG       Style  = ::GetWindowLong(Handle, GWL_EXSTYLE);
+            Style &= ~WS_EX_APPWINDOW;
+            Style |= WS_EX_TOOLWINDOW;
+            ::SetWindowLong(Handle, GWL_EXSTYLE, Style);
+        }
+        #endif
+
+        glfwShowWindow(ViewportData->Window);
+    });
 }
 
 ImVec2 ImGuiGLFWGetWindowPos(ImGuiViewport *Viewport)
@@ -1039,9 +1070,12 @@ void ImGuiGLFWSetWindowPos(ImGuiViewport *Viewport, ImVec2 const Position)
 {
     EASY_FUNCTION(profiler::colors::Amber);
 
-    auto *ViewportData                      = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
-    ViewportData->IgnoreWindowPosEventFrame = ImGui::GetFrameCount();
-    glfwSetWindowPos(ViewportData->Window, static_cast<std::int32_t>(Position.x), static_cast<std::int32_t>(Position.y));
+    DispatchToMainThread([Viewport, Position]
+    {
+        auto *ViewportData                      = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
+        ViewportData->IgnoreWindowPosEventFrame = ImGui::GetFrameCount();
+        glfwSetWindowPos(ViewportData->Window, static_cast<std::int32_t>(Position.x), static_cast<std::int32_t>(Position.y));
+    });
 }
 
 ImVec2 ImGuiGLFWGetWindowSize(ImGuiViewport *Viewport)
@@ -1057,36 +1091,65 @@ void ImGuiGLFWSetWindowSize(ImGuiViewport *Viewport, ImVec2 const Size)
 {
     EASY_FUNCTION(profiler::colors::Amber);
 
-    auto *ViewportData                       = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
-    ViewportData->IgnoreWindowSizeEventFrame = ImGui::GetFrameCount();
-    glfwSetWindowSize(ViewportData->Window, static_cast<std::int32_t>(Size.x), static_cast<std::int32_t>(Size.y));
+    DispatchToMainThread([Viewport, Size]
+    {
+        auto *ViewportData                       = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
+        ViewportData->IgnoreWindowSizeEventFrame = ImGui::GetFrameCount();
+        glfwSetWindowSize(ViewportData->Window, static_cast<std::int32_t>(Size.x), static_cast<std::int32_t>(Size.y));
+    });
 }
 
 void ImGuiGLFWSetWindowTitle(ImGuiViewport *Viewport, const char *Title)
 {
     EASY_FUNCTION(profiler::colors::Amber);
 
-    ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
-    glfwSetWindowTitle(ViewportData->Window, Title);
+    DispatchToMainThread([Viewport, Title]
+    {
+        ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
+        glfwSetWindowTitle(ViewportData->Window, Title);
+    });
 }
 
 void ImGuiGLFWSetWindowFocus(ImGuiViewport *Viewport)
 {
     EASY_FUNCTION(profiler::colors::Amber);
 
-    ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
-    glfwFocusWindow(ViewportData->Window);
+    DispatchToMainThread([Viewport]
+    {
+        ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
+        glfwFocusWindow(ViewportData->Window);
+    });
 }
 
 bool ImGuiGLFWGetWindowFocus(ImGuiViewport *Viewport)
 {
+    if (Viewport == nullptr)
+    {
+        return false;
+    }
+
     ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
+    if (ViewportData == nullptr)
+    {
+        return false;
+    }
+
     return glfwGetWindowAttrib(ViewportData->Window, GLFW_FOCUSED);
 }
 
 bool ImGuiGLFWGetWindowMinimized(ImGuiViewport *Viewport)
 {
+    if (Viewport == nullptr)
+    {
+        return false;
+    }
+
     ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
+    if (ViewportData == nullptr)
+    {
+        return false;
+    }
+
     return glfwGetWindowAttrib(ViewportData->Window, GLFW_ICONIFIED);
 }
 
@@ -1094,8 +1157,11 @@ void ImGuiGLFWSetWindowAlpha(ImGuiViewport *Viewport, float const Alpha)
 {
     EASY_FUNCTION(profiler::colors::Amber);
 
-    ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
-    glfwSetWindowOpacity(ViewportData->Window, Alpha);
+    DispatchToMainThread([Viewport, Alpha]
+    {
+        ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
+        glfwSetWindowOpacity(ViewportData->Window, Alpha);
+    });
 }
 
 std::int32_t ImGuiGLFWCreateVkSurface(ImGuiViewport *Viewport, ImU64 const Instance, const void *Allocator, ImU64 *Surface)

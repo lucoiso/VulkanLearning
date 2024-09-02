@@ -15,6 +15,7 @@ import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
 import RenderCore.UserInterface.Window.Flags;
 import RenderCore.Integrations.ImGuiOverlay;
+import RenderCore.Integrations.ImGuiGLFWBackend;
 
 using namespace RenderCore;
 
@@ -23,6 +24,7 @@ bool g_CanMovementWindow = false;
 
 void RenderCore::GLFWWindowCloseRequestedCallback(GLFWwindow *const Window)
 {
+    std::lock_guard const Lock { GetRendererMutex() };
     glfwSetWindowShouldClose(Window, GLFW_TRUE);
 }
 
@@ -30,6 +32,8 @@ void RenderCore::GLFWWindowResizedCallback([[maybe_unused]] GLFWwindow *const  W
                                            [[maybe_unused]] std::int32_t const Width,
                                            [[maybe_unused]] std::int32_t const Height)
 {
+    std::lock_guard const Lock { GetRendererMutex() };
+
     constexpr RendererStateFlags RefreshFlags = RendererStateFlags::INVALID_SIZE | RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE;
 
     if (Width <= 0 || Height <= 0)
@@ -207,6 +211,11 @@ static void MovementCamera(GLFWwindow *const Window, double const NewCursorPosX,
 
 void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double const NewCursorPosX, double const NewCursorPosY)
 {
+    if (IsImGuiInitialized())
+    {
+        ImGuiGLFWUpdateMouse();
+    }
+
     static bool HasReleasedLeft = true;
     if (glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !g_CanMovementWindow && HasReleasedLeft)
     {

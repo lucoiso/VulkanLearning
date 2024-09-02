@@ -28,19 +28,22 @@ import RenderCore.Utils.Helpers;
 import RenderCore.Utils.EnumHelpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Types.Allocation;
+import RenderCore.Integrations.ImGuiGLFWBackend;
 
 using namespace RenderCore;
 
-auto                          g_StateFlags { RendererStateFlags::NONE };
-auto                          g_ObjectsManagementStateFlags { RendererObjectsManagementStateFlags::NONE };
-std::vector<strzilla::string> g_ModelsToLoad {};
-std::vector<std::uint32_t>    g_ModelsToUnload {};
-double                        g_FrameTime { 0.F };
-double                        g_FrameRateCap { 0.016667F };
-bool                          g_UseVSync { true };
-bool                          g_RenderOffscreen { false };
-InitializationFlags           g_InitializationFlags { InitializationFlags::NONE };
-std::uint32_t                 g_ImageIndex { g_ImageCount };
+auto                              g_StateFlags { RendererStateFlags::NONE };
+auto                              g_ObjectsManagementStateFlags { RendererObjectsManagementStateFlags::NONE };
+std::vector<strzilla::string>     g_ModelsToLoad {};
+std::vector<std::uint32_t>        g_ModelsToUnload {};
+double                            g_FrameTime { 0.F };
+double                            g_FrameRateCap { 0.016667F };
+bool                              g_UseVSync { true };
+bool                              g_RenderOffscreen { false };
+InitializationFlags               g_InitializationFlags { InitializationFlags::NONE };
+std::uint32_t                     g_ImageIndex { g_ImageCount };
+std::mutex                        g_RendererMutex {};
+std::queue<std::function<void()>> g_MainThreadDispatchQueue {};
 
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
                                                        RendererStateFlags::PENDING_RESOURCES_DESTRUCTION |
@@ -49,6 +52,11 @@ constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDI
 
 void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Control *const Owner)
 {
+    if (!g_RendererMutex.try_lock())
+    {
+        return;
+    }
+
     g_FrameTime = DeltaTime;
 
     if (HasAnyFlag(g_ObjectsManagementStateFlags))
@@ -144,6 +152,11 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
                 CreateOffscreenResources(SurfaceProperties);
             }
 
+            if (IsImGuiInitialized())
+            {
+                ImGuiGLFWUpdateFrameBufferSizes();
+            }
+
             Owner->RefreshResources();
 
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::INVALID_SIZE);
@@ -171,6 +184,8 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         SubmitCommandBuffers(g_ImageIndex);
         PresentFrame(g_ImageIndex);
     }
+
+    g_RendererMutex.unlock();
 }
 
 void RenderCore::Tick()
@@ -246,6 +261,21 @@ void RenderCore::Shutdown(Control *Window)
     DestroyVulkanInstance();
 
     g_StateFlags = RendererStateFlags::NONE;
+}
+
+std::mutex &RenderCore::GetRendererMutex()
+{
+    return g_RendererMutex;
+}
+
+void RenderCore::DispatchToMainThread(std::function<void()> &&Functor)
+{
+    g_MainThreadDispatchQueue.emplace(std::move(Functor));
+}
+
+std::queue<std::function<void()>> &RenderCore::GetMainThreadDispatchQueue()
+{
+    return g_MainThreadDispatchQueue;
 }
 
 bool Renderer::IsInitialized()

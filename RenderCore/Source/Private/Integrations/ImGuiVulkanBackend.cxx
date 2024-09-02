@@ -849,51 +849,56 @@ void ImGuiVulkanCreatePipeline()
 
 void ImGuiVulkanCreateWindow(ImGuiViewport *Viewport)
 {
-    EASY_FUNCTION(profiler::colors::Blue50);
-
-    VkInstance const &      Instance       = GetInstance();
-    VkPhysicalDevice const &PhysicalDevice = GetPhysicalDevice();
-    VkDevice const &        LogicalDevice  = GetLogicalDevice();
-
-    auto const &[QueueFamilyIndex, Queue] = GetGraphicsQueue();
-
-    ImGuiVulkanData const *Backend      = ImGuiVulkanGetBackendData();
-    auto *                 ViewportData = IM_NEW(ImGuiVulkanViewportData)();
-
-    ImGuiVulkanWindow &WindowData = ViewportData->Window;
-
-    for (std::uint8_t ImageIt = 0U; ImageIt < g_ImageCount; ++ImageIt)
+    DispatchToMainThread([Viewport]
     {
-        WindowData.SecondaryCommands.at(ImageIt).Initialize(LogicalDevice, RenderCore::GetGraphicsQueue().first);
-    }
+        std::lock_guard const Lock { GetRendererMutex() };
 
-    Viewport->RendererUserData = ViewportData;
+        EASY_FUNCTION(profiler::colors::Blue50);
 
-    ImGuiVulkanInitInfo const &VulkanInfo = Backend->VulkanInitInfo;
+        VkInstance const &      Instance       = GetInstance();
+        VkPhysicalDevice const &PhysicalDevice = GetPhysicalDevice();
+        VkDevice const &        LogicalDevice  = GetLogicalDevice();
 
-    ImGuiPlatformIO const &PlatformIO = ImGui::GetPlatformIO();
-    CheckVulkanResult(static_cast<VkResult>(PlatformIO.Platform_CreateVkSurface(Viewport,
-                                                                                reinterpret_cast<ImU64>(Instance),
-                                                                                nullptr,
-                                                                                reinterpret_cast<ImU64 *>(&WindowData.Surface))));
+        auto const &[QueueFamilyIndex, Queue] = GetGraphicsQueue();
 
-    VkBool32 SupportResult = VK_FALSE;
-    vkGetPhysicalDeviceSurfaceSupportKHR(PhysicalDevice, QueueFamilyIndex, WindowData.Surface, &SupportResult);
+        ImGuiVulkanData const *Backend      = ImGuiVulkanGetBackendData();
+        auto *                 ViewportData = IM_NEW(ImGuiVulkanViewportData)();
 
-    ImVector<VkFormat> SurfaceFormats;
+        ImGuiVulkanWindow &WindowData = ViewportData->Window;
 
-    for (std::int32_t FormatIt = 0; FormatIt < VulkanInfo.PipelineRenderingCreateInfo.colorAttachmentCount; ++FormatIt)
-    {
-        SurfaceFormats.push_back(VulkanInfo.PipelineRenderingCreateInfo.pColorAttachmentFormats[FormatIt]);
-    }
+        for (std::uint8_t ImageIt = 0U; ImageIt < g_ImageCount; ++ImageIt)
+        {
+            WindowData.SecondaryCommands.at(ImageIt).Initialize(LogicalDevice, RenderCore::GetGraphicsQueue().first);
+        }
 
-    for (VkFormat const FormatIt : g_PreferredImageFormats)
-    {
-        SurfaceFormats.push_back(FormatIt);
-    }
+        Viewport->RendererUserData = ViewportData;
 
-    ImGuiVulkanCreateOrResizeWindow(WindowData, static_cast<std::int32_t>(Viewport->Size.x), static_cast<std::int32_t>(Viewport->Size.y));
-    ViewportData->WindowOwned = true;
+        ImGuiVulkanInitInfo const &VulkanInfo = Backend->VulkanInitInfo;
+
+        ImGuiPlatformIO const &PlatformIO = ImGui::GetPlatformIO();
+        CheckVulkanResult(static_cast<VkResult>(PlatformIO.Platform_CreateVkSurface(Viewport,
+                                                                                    reinterpret_cast<ImU64>(Instance),
+                                                                                    nullptr,
+                                                                                    reinterpret_cast<ImU64 *>(&WindowData.Surface))));
+
+        VkBool32 SupportResult = VK_FALSE;
+        vkGetPhysicalDeviceSurfaceSupportKHR(PhysicalDevice, QueueFamilyIndex, WindowData.Surface, &SupportResult);
+
+        ImVector<VkFormat> SurfaceFormats;
+
+        for (std::int32_t FormatIt = 0; FormatIt < VulkanInfo.PipelineRenderingCreateInfo.colorAttachmentCount; ++FormatIt)
+        {
+            SurfaceFormats.push_back(VulkanInfo.PipelineRenderingCreateInfo.pColorAttachmentFormats[FormatIt]);
+        }
+
+        for (VkFormat const FormatIt : g_PreferredImageFormats)
+        {
+            SurfaceFormats.push_back(FormatIt);
+        }
+
+        ImGuiVulkanCreateOrResizeWindow(WindowData, static_cast<std::int32_t>(Viewport->Size.x), static_cast<std::int32_t>(Viewport->Size.y));
+        ViewportData->WindowOwned = true;
+    });
 }
 
 void ImGuiVulkanDestroyViewport(ImGuiViewport *Viewport)
@@ -934,8 +939,13 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
     VkDevice const &LogicalDevice             = GetLogicalDevice();
     auto const &    [QueueFamilyIndex, Queue] = GetGraphicsQueue();
 
-    auto *             ViewportData = static_cast<ImGuiVulkanViewportData *>(Viewport->RendererUserData);
-    ImGuiVulkanWindow &WindowData   = ViewportData->Window;
+    auto *ViewportData = static_cast<ImGuiVulkanViewportData *>(Viewport->RendererUserData);
+    if (ViewportData == nullptr)
+    {
+        return;
+    }
+
+    ImGuiVulkanWindow &WindowData = ViewportData->Window;
 
     for (ImGuiVulkanSecondaryCommands &CommandIt : WindowData.SecondaryCommands)
     {
@@ -1065,8 +1075,13 @@ void ImGuiVulkanSwapBuffers(ImGuiViewport *Viewport, void *)
 
     auto const &[QueueFamilyIndex, Queue] = GetGraphicsQueue();
 
-    auto *             ViewportData = static_cast<ImGuiVulkanViewportData *>(Viewport->RendererUserData);
-    ImGuiVulkanWindow &WindowData   = ViewportData->Window;
+    auto *ViewportData = static_cast<ImGuiVulkanViewportData *>(Viewport->RendererUserData);
+    if (ViewportData == nullptr)
+    {
+        return;
+    }
+
+    ImGuiVulkanWindow &WindowData = ViewportData->Window;
 
     std::uint32_t const               FrameIndex      = WindowData.FrameIndex;
     ImGuiVulkanFrameSemaphores const &FrameSemaphores = WindowData.FrameSemaphores.at(WindowData.SemaphoreIndex);

@@ -17,6 +17,9 @@ namespace RenderCore
     export void ImGuiGLFWRestoreCallbacks(GLFWwindow *);
     export void ImGuiGLFWSetCallbacksChainForAllWindows(bool);
 
+    export void ImGuiGLFWUpdateFrameBufferSizes();
+    export void ImGuiGLFWUpdateMouse();
+
     void ImGuiGLFWUpdateMonitors();
     void ImGuiGLFWInitPlatformInterface();
     void ImGuiGLFWShutdownPlatformInterface();

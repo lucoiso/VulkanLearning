@@ -54,8 +54,12 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, bool const Ena
     }
 
     ImGuiGLFWInitForVulkan(Window, false);
-    ImGuiGLFWSetCallbacksChainForAllWindows(true);
-    ImGuiGLFWInstallCallbacks(Window);
+
+    DispatchToMainThread([Window]
+    {
+        ImGuiGLFWSetCallbacksChainForAllWindows(true);
+        ImGuiGLFWInstallCallbacks(Window);
+    });
 
     constexpr std::uint32_t DescriptorCount = 100U;
 

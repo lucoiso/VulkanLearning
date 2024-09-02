@@ -24,9 +24,12 @@ namespace RenderCore
 
     void Tick();
 
-    export void DrawFrame(GLFWwindow *, double, Control *);
-    export bool Initialize(GLFWwindow *, InitializationFlags);
-    export void Shutdown(Control *);
+    export void                                             DrawFrame(GLFWwindow *, double, Control *);
+    export [[nodiscard]] bool                               Initialize(GLFWwindow *, InitializationFlags);
+    export void                                             Shutdown(Control *);
+    export [[nodiscard]] std::mutex &                       GetRendererMutex();
+    export void                                             DispatchToMainThread(std::function<void()> &&);
+    export [[nodiscard]] std::queue<std::function<void()>> &GetMainThreadDispatchQueue();
 
     export namespace Renderer
     {
