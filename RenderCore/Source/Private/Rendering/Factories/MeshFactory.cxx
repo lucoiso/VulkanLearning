@@ -14,7 +14,7 @@ using namespace RenderCore;
 
 std::shared_ptr<Mesh> RenderCore::ConstructMesh(MeshConstructionInputParameters const &Arguments)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Red50);
 
     if (Arguments.Primitive.material < 0)
     {

@@ -351,7 +351,7 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const    ImageInd
     SecondaryBeginInfo.pInheritanceInfo = &InheritanceInfo;
 
     auto const &Objects = GetObjects();
-    if (std::empty(Objects))
+    if (Objects.empty())
     {
         return {};
     }
@@ -360,61 +360,72 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const    ImageInd
     VkPipelineLayout const &PipelineLayout = GetPipelineLayout();
     Camera const &          Camera         = GetCamera();
 
-    std::vector<VkCommandBuffer> Output {};
+    std::vector<VkCommandBuffer> Output;
     Output.reserve(g_NumThreads);
 
     CommandResources const &CommandResources = g_CommandResources.at(ImageIndex);
 
-    for (std::uint32_t ThreadIndex = 0U; ThreadIndex < g_NumThreads; ++ThreadIndex)
-    {
-        if (ThreadIndex >= g_ObjectsPerThread)
-        {
-            break;
-        }
+    std::vector<std::uint32_t> ThreadIndices(g_NumThreads);
+    std::iota(std::begin(ThreadIndices), std::end(ThreadIndices), 0U);
 
+    auto ProcessCommandBuffer = [&](std::uint32_t const ThreadIndex)
+    {
         auto const &[CommandPool, CommandBuffer] = CommandResources.MultiThreadResources.at(ThreadIndex);
 
         if (CommandBuffer == VK_NULL_HANDLE)
         {
-            break;
+            return;
         }
 
-        g_ThreadPool.AddTask([CommandBuffer, ThreadIndex, &Objects, &Camera, &Pipeline, &PipelineLayout, &SecondaryBeginInfo, &SwapchainAllocation]
-                             {
-                                 CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
-                                 {
-                                     SetViewport(CommandBuffer, SwapchainAllocation.Extent);
+        CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
+        SetViewport(CommandBuffer, SwapchainAllocation.Extent);
 
-                                     bool HasDraw = false;
+        bool HasDraw = false;
 
-                                     for (std::uint32_t ObjectIndex = 0U; ObjectIndex < g_ObjectsPerThread; ++ObjectIndex)
-                                     {
-                                         std::uint32_t const ObjectAccessIndex = ThreadIndex * g_ObjectsPerThread + ObjectIndex;
+        for (std::uint32_t ObjectIndex = 0U; ObjectIndex < g_ObjectsPerThread; ++ObjectIndex)
+        {
+            std::uint32_t const ObjectAccessIndex = ThreadIndex * g_ObjectsPerThread + ObjectIndex;
 
-                                         if (ObjectAccessIndex >= std::size(Objects))
-                                         {
-                                             break;
-                                         }
+            if (ObjectAccessIndex >= Objects.size())
+            {
+                break;
+            }
 
-                                         if (std::shared_ptr<Object> const &Object = Objects.at(ObjectAccessIndex);
-                                             Camera.CanDrawObject(Object))
-                                         {
-                                             if (!HasDraw)
-                                             {
-                                                 HasDraw = true;
-                                                 vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
-                                             }
+            if (const auto &Object = Objects.at(ObjectAccessIndex);
+                Camera.CanDrawObject(Object))
+            {
+                if (!HasDraw)
+                {
+                    HasDraw = true;
+                    vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
+                }
 
-                                             Object->UpdateUniformBuffers();
-                                             Object->DrawObject(CommandBuffer, PipelineLayout, ObjectAccessIndex);
-                                         }
-                                     }
-                                 }
-                                 CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
-                             },
-                             ThreadIndex);
+                Object->UpdateUniformBuffers();
+                Object->DrawObject(CommandBuffer, PipelineLayout, ObjectAccessIndex);
+            }
+        }
 
-        Output.push_back(CommandBuffer);
+        CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
+    };
+
+    std::for_each(std::execution::unseq,
+                  std::cbegin(ThreadIndices),
+                  std::cend(ThreadIndices),
+                  [&](std::uint32_t const ThreadIndex)
+                  {
+                      g_ThreadPool.AddTask([ProcessCommandBuffer, ThreadIndex]
+                                           {
+                                               ProcessCommandBuffer(ThreadIndex);
+                                           },
+                                           ThreadIndex);
+                  });
+
+    for (auto const &[Index, Resource] : CommandResources.MultiThreadResources)
+    {
+        if (Resource.CommandBuffer != VK_NULL_HANDLE)
+        {
+            Output.push_back(Resource.CommandBuffer);
+        }
     }
 
     g_ThreadPool.Wait();
@@ -480,7 +491,7 @@ void RenderCore::SubmitCommandBuffers(std::uint32_t const ImageIndex)
     CheckVulkanResult(vkQueueSubmit2(Queue, 1U, &SubmitInfo, GetFence(ImageIndex)));
     SetFenceWaitStatus(ImageIndex, true);
 
-    if (g_ForceDefaultSync)
+    if constexpr (g_ForceDefaultSync)
     {
         WaitAndResetFence(ImageIndex);
     }

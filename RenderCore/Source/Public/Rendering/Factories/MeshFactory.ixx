@@ -14,7 +14,7 @@ namespace RenderCore
     export struct MeshConstructionInputParameters
     {
         std::uint32_t                                                      ID { 0U };
-        strzilla::string_view const &                                           Path {};
+        strzilla::string_view const &                                      Path {};
         tinygltf::Model const &                                            Model {};
         tinygltf::Node const &                                             Node {};
         tinygltf::Mesh const &                                             Mesh {};

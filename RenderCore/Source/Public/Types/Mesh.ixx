@@ -35,6 +35,8 @@ namespace RenderCore
         Mesh(std::uint32_t, strzilla::string_view);
         Mesh(std::uint32_t, strzilla::string_view, strzilla::string_view);
 
+        void Optimize();
+
         [[nodiscard]] Transform const &GetTransform() const;
         void                           SetTransform(Transform const &Transform);
 
@@ -50,6 +52,8 @@ namespace RenderCore
         void                                            SetIndices(std::vector<std::uint32_t> const &Indices);
 
         [[nodiscard]] std::uint32_t GetNumTriangles() const;
+        [[nodiscard]] std::uint32_t GetNumVertices() const;
+        [[nodiscard]] std::uint32_t GetNumIndices() const;
 
         [[nodiscard]] VkDeviceSize GetVertexOffset() const;
         void                       SetVertexOffset(VkDeviceSize const &VertexOffset);

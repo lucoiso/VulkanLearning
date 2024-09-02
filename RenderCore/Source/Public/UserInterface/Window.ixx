@@ -46,8 +46,5 @@ namespace RenderCore
         virtual void OnInitialized()
         {
         }
-
-    private:
-        void Draw();
     };
 } // namespace RenderCore

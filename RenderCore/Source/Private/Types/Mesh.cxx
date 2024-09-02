@@ -4,6 +4,8 @@
 
 module;
 
+#include <meshoptimizer.h>
+
 module RenderCore.Types.Mesh;
 
 import RenderCore.Runtime.Scene;
@@ -19,6 +21,47 @@ Mesh::Mesh(std::uint32_t const ID, strzilla::string_view const Path)
 Mesh::Mesh(std::uint32_t const ID, strzilla::string_view const Path, strzilla::string_view const Name)
     : Resource(ID, Path, Name)
 {
+}
+
+void Mesh::Optimize()
+{
+    std::size_t const IndexCount  = m_NumTriangles * 3;
+    std::size_t const VertexCount = std::size(m_Vertices);
+
+    std::vector<unsigned int> Remap(IndexCount);
+    std::size_t const         NewVertexCount = meshopt_generateVertexRemap(std::data(Remap),
+                                                                           std::data(m_Indices),
+                                                                           IndexCount,
+                                                                           std::data(m_Vertices),
+                                                                           VertexCount,
+                                                                           sizeof(Vertex));
+
+    std::vector<Vertex>       NewVertices(NewVertexCount);
+    std::vector<unsigned int> NewIndices(IndexCount);
+
+    meshopt_remapIndexBuffer(std::data(NewIndices), std::data(m_Indices), IndexCount, std::data(Remap));
+    meshopt_remapVertexBuffer(std::data(NewVertices), std::data(m_Vertices), VertexCount, sizeof(Vertex), std::data(Remap));
+
+    m_Vertices     = std::move(NewVertices);
+    m_Indices      = std::move(NewIndices);
+    m_NumTriangles = static_cast<std::uint32_t>(std::size(m_Indices) / 3U);
+
+    meshopt_optimizeVertexCache(std::data(m_Indices), std::data(m_Indices), IndexCount, std::size(m_Vertices));
+
+    meshopt_optimizeOverdraw(std::data(m_Indices),
+                             std::data(m_Indices),
+                             IndexCount,
+                             &m_Vertices[0].Position.x,
+                             std::size(m_Vertices),
+                             sizeof(Vertex),
+                             1.05f);
+
+    meshopt_optimizeVertexFetch(std::data(m_Vertices),
+                                std::data(m_Indices),
+                                IndexCount,
+                                std::data(m_Vertices),
+                                std::size(m_Vertices),
+                                sizeof(Vertex));
 }
 
 Transform const &Mesh::GetTransform() const
@@ -48,7 +91,7 @@ Bounds const &Mesh::GetBounds() const
 
 void Mesh::SetupBounds()
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Red50);
 
     for (const auto &VertexIter : m_Vertices)
     {
@@ -88,6 +131,16 @@ void Mesh::SetIndices(std::vector<std::uint32_t> const &Indices)
 std::uint32_t Mesh::GetNumTriangles() const
 {
     return m_NumTriangles;
+}
+
+std::uint32_t Mesh::GetNumVertices() const
+{
+    return static_cast<std::uint32_t>(std::size(m_Vertices));
+}
+
+std::uint32_t Mesh::GetNumIndices() const
+{
+    return static_cast<std::uint32_t>(std::size(m_Indices));
 }
 
 VkDeviceSize Mesh::GetVertexOffset() const
@@ -137,7 +190,7 @@ void Mesh::SetTextures(std::vector<std::shared_ptr<Texture>> const &Textures)
 
 void Mesh::BindBuffers(VkCommandBuffer const &CommandBuffer, std::uint32_t const NumInstances) const
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Red50);
 
     VkBuffer const &AllocationBuffer = GetAllocationBuffer();
 

@@ -22,9 +22,12 @@ void RenderCore::WaitAndResetFence(std::uint32_t const Index)
 {
     EASY_FUNCTION(profiler::colors::Red);
 
-    if (!g_ForceDefaultSync && (g_Fences.at(Index) == VK_NULL_HANDLE || !g_FenceInUse.at(Index)))
+    if constexpr (!g_ForceDefaultSync)
     {
-        return;
+        if (g_Fences.at(Index) == VK_NULL_HANDLE || !g_FenceInUse.at(Index))
+        {
+            return;
+        }
     }
 
     VkDevice const &LogicalDevice = GetLogicalDevice();

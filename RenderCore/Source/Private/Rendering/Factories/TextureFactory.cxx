@@ -14,7 +14,7 @@ using namespace RenderCore;
 std::shared_ptr<Texture> RenderCore::ConstructTexture(TextureConstructionInputParameters const &Parameters,
                                                       TextureConstructionOutputParameters &     Output)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Red50);
 
     if (std::empty(Parameters.Image.image))
     {

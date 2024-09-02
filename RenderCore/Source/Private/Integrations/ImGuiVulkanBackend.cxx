@@ -622,7 +622,7 @@ bool ImGuiVulkanSecondaryCommands::IsValid() const
 
 void ImGuiVulkanSecondaryCommands::Initialize(VkDevice const &LogicalDevice, std::uint8_t const QueueFamilyIndex)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     ThreadResources.resize(std::thread::hardware_concurrency());
 
@@ -634,7 +634,7 @@ void ImGuiVulkanSecondaryCommands::Initialize(VkDevice const &LogicalDevice, std
 
 void ImGuiVulkanSecondaryCommands::Free(VkDevice const &LogicalDevice)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     Wait();
 
@@ -646,7 +646,7 @@ void ImGuiVulkanSecondaryCommands::Free(VkDevice const &LogicalDevice)
 
 void ImGuiVulkanSecondaryCommands::Destroy(VkDevice const &LogicalDevice)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     Wait();
 
@@ -658,7 +658,7 @@ void ImGuiVulkanSecondaryCommands::Destroy(VkDevice const &LogicalDevice)
 
 void ImGuiVulkanSecondaryCommands::Reset(VkDevice const &LogicalDevice)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     Wait();
 
@@ -670,7 +670,7 @@ void ImGuiVulkanSecondaryCommands::Reset(VkDevice const &LogicalDevice)
 
 void ImGuiVulkanSecondaryCommands::Wait()
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     ThreadPool::Pool const &CommandThreadPool = RenderCore::GetThreadPool();
     CommandThreadPool.Wait();
@@ -738,7 +738,7 @@ void ImGuiVulkanSetupRenderState(ImDrawData const *const &DrawData,
                                  VkCommandBuffer const &  CommandBuffer,
                                  BufferAllocation const & RenderBuffers)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     if (DrawData->TotalVtxCount <= 0)
     {
@@ -771,7 +771,7 @@ void ImGuiVulkanSetupRenderState(ImDrawData const *const &DrawData,
 
 void ImGuiVulkanCreatePipeline()
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     constexpr VkVertexInputBindingDescription VertexBindingDescription {
             .binding = 0U,
@@ -849,7 +849,7 @@ void ImGuiVulkanCreatePipeline()
 
 void ImGuiVulkanCreateWindow(ImGuiViewport *Viewport)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     VkInstance const &      Instance       = GetInstance();
     VkPhysicalDevice const &PhysicalDevice = GetPhysicalDevice();
@@ -898,7 +898,7 @@ void ImGuiVulkanCreateWindow(ImGuiViewport *Viewport)
 
 void ImGuiVulkanDestroyViewport(ImGuiViewport *Viewport)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     if (auto *ViewportData = static_cast<ImGuiVulkanViewportData *>(Viewport->RendererUserData))
     {
@@ -916,7 +916,7 @@ void ImGuiVulkanDestroyViewport(ImGuiViewport *Viewport)
 
 void ImGuiVulkanSetWindowSize(ImGuiViewport *Viewport, ImVec2 const Size)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     auto *ViewportData = static_cast<ImGuiVulkanViewportData *>(Viewport->RendererUserData);
     if (ViewportData == nullptr)
@@ -929,7 +929,7 @@ void ImGuiVulkanSetWindowSize(ImGuiViewport *Viewport, ImVec2 const Size)
 
 void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     VkDevice const &LogicalDevice             = GetLogicalDevice();
     auto const &    [QueueFamilyIndex, Queue] = GetGraphicsQueue();
@@ -948,15 +948,18 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
     auto &      [CommandPool, CommandBuffer, Fence, PendingWait, BackBuffer] = WindowData.Frames.at(WindowData.FrameIndex);
     auto const &[ImageAcquiredSemaphore, RenderCompleteSemaphore]            = WindowData.FrameSemaphores.at(WindowData.SemaphoreIndex);
 
-    if (!g_ForceDefaultSync && PendingWait)
+    if constexpr (!g_ForceDefaultSync)
     {
-        CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &Fence, VK_FALSE, g_Timeout));
-        CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &Fence));
+        if (PendingWait)
+        {
+            CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &Fence, VK_FALSE, g_Timeout));
+            CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &Fence));
 
-        WindowData.SecondaryCommands.at(Renderer::GetImageIndex()).Reset(LogicalDevice);
+            WindowData.SecondaryCommands.at(Renderer::GetImageIndex()).Reset(LogicalDevice);
 
-        CheckVulkanResult(vkResetCommandPool(LogicalDevice, CommandPool, 0U));
-        PendingWait = false;
+            CheckVulkanResult(vkResetCommandPool(LogicalDevice, CommandPool, 0U));
+            PendingWait = false;
+        }
     }
 
     if (vkAcquireNextImageKHR(LogicalDevice, WindowData.Swapchain, g_Timeout, ImageAcquiredSemaphore, VK_NULL_HANDLE, &WindowData.FrameIndex) !=
@@ -1045,7 +1048,7 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
     CheckVulkanResult(vkQueueSubmit2(Queue, 1U, &SubmitInfo, Fence));
     PendingWait = true;
 
-    if (g_ForceDefaultSync)
+    if constexpr (g_ForceDefaultSync)
     {
         CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &Fence, VK_FALSE, g_Timeout));
         CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &Fence));
@@ -1058,7 +1061,7 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
 
 void ImGuiVulkanSwapBuffers(ImGuiViewport *Viewport, void *)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     auto const &[QueueFamilyIndex, Queue] = GetGraphicsQueue();
 
@@ -1091,7 +1094,7 @@ void ImGuiVulkanSwapBuffers(ImGuiViewport *Viewport, void *)
 
 bool RenderCore::ImGuiVulkanCreateDeviceObjects()
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     ImGuiVulkanData *Backend       = ImGuiVulkanGetBackendData();
     VkDevice const & LogicalDevice = GetLogicalDevice();
@@ -1152,7 +1155,7 @@ bool RenderCore::ImGuiVulkanCreateDeviceObjects()
 
 void RenderCore::ImGuiVulkanDestroyDeviceObjects()
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     ImGuiVulkanData *Backend       = ImGuiVulkanGetBackendData();
     VkDevice const & LogicalDevice = GetLogicalDevice();
@@ -1177,14 +1180,14 @@ void RenderCore::ImGuiVulkanDestroyDeviceObjects()
 
 void RenderCore::ImGuiVulkanDestroyFrameRenderBuffers(BufferAllocation &FrameBuffers)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     FrameBuffers.DestroyResources(GetAllocator());
 }
 
 void RenderCore::ImGuiVulkanDestroyWindowRenderBuffers(ImGuiVulkanWindowRenderBuffers &Buffers)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     for (BufferAllocation &Buffer : Buffers.Buffers)
     {
@@ -1196,7 +1199,7 @@ void RenderCore::ImGuiVulkanDestroyWindowRenderBuffers(ImGuiVulkanWindowRenderBu
 
 void RenderCore::ImGuiVulkanCreateWindowCommandBuffers(ImGuiVulkanWindow &WindowData)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     VkDevice const &LogicalDevice             = GetLogicalDevice();
     auto const &    [QueueFamilyIndex, Queue] = GetGraphicsQueue();
@@ -1241,7 +1244,7 @@ void RenderCore::ImGuiVulkanCreateWindowCommandBuffers(ImGuiVulkanWindow &Window
 
 void RenderCore::ImGuiVulkanCreateWindowSwapChain(ImGuiVulkanWindow &WindowData, std::int32_t const WindowWidth, std::int32_t const WindowHeight)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     if (WindowWidth <= 0 || WindowHeight <= 0)
     {
@@ -1340,26 +1343,29 @@ void RenderCore::ImGuiVulkanCreateWindowSwapChain(ImGuiVulkanWindow &WindowData,
 
 void RenderCore::ImGuiVulkanDestroyFrame(ImGuiVulkanFrame &FrameData, ImGuiVulkanSecondaryCommands &Commands)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
     Commands.Destroy(LogicalDevice);
 
-    if (!g_ForceDefaultSync && FrameData.PendingWait)
+    if constexpr (!g_ForceDefaultSync)
     {
-        if (FrameData.CommandPool != VK_NULL_HANDLE)
+        if (FrameData.PendingWait)
         {
-            CheckVulkanResult(vkResetCommandPool(LogicalDevice, FrameData.CommandPool, 0U));
-        }
+            if (FrameData.CommandPool != VK_NULL_HANDLE)
+            {
+                CheckVulkanResult(vkResetCommandPool(LogicalDevice, FrameData.CommandPool, 0U));
+            }
 
-        if (FrameData.Fence != VK_NULL_HANDLE)
-        {
-            CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &FrameData.Fence, VK_FALSE, g_Timeout));
-            CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &FrameData.Fence));
-        }
+            if (FrameData.Fence != VK_NULL_HANDLE)
+            {
+                CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &FrameData.Fence, VK_FALSE, g_Timeout));
+                CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &FrameData.Fence));
+            }
 
-        FrameData.PendingWait = false;
+            FrameData.PendingWait = false;
+        }
     }
 
     if (FrameData.CommandPool != VK_NULL_HANDLE)
@@ -1386,7 +1392,7 @@ void RenderCore::ImGuiVulkanDestroyFrame(ImGuiVulkanFrame &FrameData, ImGuiVulka
 
 void RenderCore::ImGuiVulkanDestroyFrameSemaphores(ImGuiVulkanFrameSemaphores &FrameSemaphore)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     auto const &[QueueFamilyIndex, Queue] = GetGraphicsQueue();
     CheckVulkanResult(vkQueueWaitIdle(Queue));
@@ -1402,7 +1408,7 @@ void RenderCore::ImGuiVulkanDestroyFrameSemaphores(ImGuiVulkanFrameSemaphores &F
 
 void RenderCore::ImGuiVulkanDestroyAllViewportsRenderBuffers()
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     CheckVulkanResult(vkDeviceWaitIdle(GetLogicalDevice()));
 
@@ -1419,7 +1425,7 @@ void RenderCore::ImGuiVulkanDestroyAllViewportsRenderBuffers()
 
 void RenderCore::ImGuiVulkanInitPlatformInterface()
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     ImGuiPlatformIO &PlatformIO       = ImGui::GetPlatformIO();
     PlatformIO.Renderer_CreateWindow  = ImGuiVulkanCreateWindow;
@@ -1431,7 +1437,7 @@ void RenderCore::ImGuiVulkanInitPlatformInterface()
 
 void RenderCore::ImGuiVulkanShutdownPlatformInterface()
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     ImGui::DestroyPlatformWindows();
 }
@@ -1443,7 +1449,7 @@ static void DrawRenderingData(VkCommandBuffer const  CommandBuffer,
                               std::uint32_t const    GlobalIdxOffset,
                               std::uint32_t const    GlobalVtxOffset)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     {
         VkViewport const Viewport {
@@ -1516,7 +1522,7 @@ static void DrawRenderingData(VkCommandBuffer const  CommandBuffer,
 
 void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkCommandBuffer const CommandBuffer)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     std::uint8_t const ImageIndex = RenderCore::Renderer::GetFrameIndex();
     if (DrawData->DisplaySize.x <= 0U || DrawData->DisplaySize.y <= 0U)
@@ -1567,14 +1573,17 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
         auto *VertexBuffer = static_cast<char *>(RenderBuffers.MappedData);
         auto *IndexBuffer  = static_cast<char *>(RenderBuffers.MappedData) + VertexSize;
 
-        for (ImDrawList *const &CmdIt : DrawData->CmdLists)
-        {
-            memcpy(VertexBuffer, CmdIt->VtxBuffer.Data, CmdIt->VtxBuffer.Size * sizeof(ImDrawVert));
-            VertexBuffer += CmdIt->VtxBuffer.Size * sizeof(ImDrawVert);
+        std::for_each(std::execution::unseq,
+                      std::cbegin(DrawData->CmdLists),
+                      std::cend(DrawData->CmdLists),
+                      [&](ImDrawList *const &CmdList)
+                      {
+                          memcpy(VertexBuffer, CmdList->VtxBuffer.Data, CmdList->VtxBuffer.Size * sizeof(ImDrawVert));
+                          VertexBuffer += CmdList->VtxBuffer.Size * sizeof(ImDrawVert);
 
-            memcpy(IndexBuffer, CmdIt->IdxBuffer.Data, CmdIt->IdxBuffer.Size * sizeof(ImDrawIdx));
-            IndexBuffer += CmdIt->IdxBuffer.Size * sizeof(ImDrawIdx);
-        }
+                          memcpy(IndexBuffer, CmdList->IdxBuffer.Data, CmdList->IdxBuffer.Size * sizeof(ImDrawIdx));
+                          IndexBuffer += CmdList->IdxBuffer.Size * sizeof(ImDrawIdx);
+                      });
 
         CheckVulkanResult(vmaFlushAllocation(Allocator, RenderBuffers.Allocation, 0U, TotalSize));
     }
@@ -1601,56 +1610,63 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
             .pInheritanceInfo = &InheritanceInfo,
     };
 
-    std::uint32_t GlobalVtxOffset = 0U;
-    std::uint32_t GlobalIdxOffset = 0U;
+    std::atomic<std::uint8_t> ThreadIndex { 0U };
 
     ThreadPool::Pool const &CommandThreadPool = RenderCore::GetThreadPool();
-    std::uint8_t            ThreadIndex       = 0U;
-
-    std::vector WorkerThreads(std::thread::hardware_concurrency(), false);
+    std::vector             WorkerThreads(std::thread::hardware_concurrency(), false);
 
     ImGuiVulkanSecondaryCommands &SecondaryCommands = ViewportRenderData->Window.SecondaryCommands.at(ImageIndex);
 
-    for (std::uint8_t CmdIt = 0U; CmdIt < std::size(DrawData->CmdLists); ++CmdIt)
-    {
-        ImDrawList *const&CmdList = DrawData->CmdLists[CmdIt];
+    std::uint32_t GlobalIdxOffset = 0u;
+    std::uint32_t GlobalVtxOffset = 0u;
 
-        for (std::uint8_t BufferIt = 0U; BufferIt < std::size(CmdList->CmdBuffer); ++BufferIt)
-        {
-            ImDrawCmd &Buffer = CmdList->CmdBuffer[BufferIt];
+    std::for_each(std::execution::unseq,
+                  std::cbegin(DrawData->CmdLists),
+                  std::cend(DrawData->CmdLists),
+                  [&](ImDrawList *const &CmdList)
+                  {
+                      std::for_each(std::execution::unseq,
+                                    std::cbegin(CmdList->CmdBuffer),
+                                    std::cend(CmdList->CmdBuffer),
+                                    [&](ImDrawCmd const &Buffer)
+                                    {
+                                        if (Buffer.ElemCount <= 0U)
+                                        {
+                                            return;
+                                        }
 
-            if (Buffer.ElemCount <= 0U)
-            {
-                continue;
-            }
+                                        std::uint8_t MyIndex = ThreadIndex.fetch_add(1U) % std::size(WorkerThreads);
 
-            CommandThreadPool.AddTask([&SecondaryBeginInfo, SecondaryCommands, ThreadIndex, DrawData, Backend, RenderBuffers, Buffer, GlobalIdxOffset, GlobalVtxOffset]
-                                      {
-                                          RenderCore::ThreadResources const Resource      = SecondaryCommands.ThreadResources.at(ThreadIndex);
-                                          VkCommandBuffer const            CommandBuffer = Resource.CommandBuffer;
+                                        CommandThreadPool.AddTask([&SecondaryBeginInfo, &SecondaryCommands, MyIndex, DrawData, Backend, RenderBuffers,
+                                                                      Buffer, GlobalIdxOffset, GlobalVtxOffset]
+                                                                  {
+                                                                      ThreadResources const &Resource = SecondaryCommands.ThreadResources.at(MyIndex);
+                                                                      VkCommandBuffer const &CommandBuffer = Resource.CommandBuffer;
 
-                                          CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
-                                          {
-                                              ImGuiVulkanSetupRenderState(DrawData, Backend->PipelineData.MainPipeline, CommandBuffer, RenderBuffers);
-                                              DrawRenderingData(CommandBuffer, Backend, DrawData, Buffer, GlobalIdxOffset, GlobalVtxOffset);
-                                          }
-                                          CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
-                                      },
-                                      ThreadIndex);
+                                                                      CheckVulkanResult(vkBeginCommandBuffer(CommandBuffer, &SecondaryBeginInfo));
+                                                                      {
+                                                                          ImGuiVulkanSetupRenderState(DrawData,
+                                                                              Backend->PipelineData.MainPipeline,
+                                                                              CommandBuffer,
+                                                                              RenderBuffers);
 
-            WorkerThreads.at(ThreadIndex) = true;
+                                                                          DrawRenderingData(CommandBuffer,
+                                                                                            Backend,
+                                                                                            DrawData,
+                                                                                            Buffer,
+                                                                                            GlobalIdxOffset,
+                                                                                            GlobalVtxOffset);
+                                                                      }
+                                                                      CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
+                                                                  },
+                                                                  MyIndex);
 
-            ++ThreadIndex;
+                                        WorkerThreads.at(MyIndex) = true;
+                                    });
 
-            if (ThreadIndex >= std::size(SecondaryCommands.ThreadResources))
-            {
-                ThreadIndex = 0U;
-            }
-        }
-
-        GlobalIdxOffset += CmdList->IdxBuffer.Size;
-        GlobalVtxOffset += CmdList->VtxBuffer.Size;
-    }
+                      GlobalIdxOffset += CmdList->IdxBuffer.Size;
+                      GlobalVtxOffset += CmdList->VtxBuffer.Size;
+                  });
 
     VkRect2D const Scissor {
             .offset = { 0, 0 },
@@ -1683,7 +1699,7 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
 
 bool RenderCore::ImGuiVulkanCreateFontsTexture()
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     ImGuiIO const &  ImGuiIO = ImGui::GetIO();
     ImGuiVulkanData *Backend = ImGuiVulkanGetBackendData();
@@ -1759,7 +1775,7 @@ bool RenderCore::ImGuiVulkanCreateFontsTexture()
 
 void RenderCore::ImGuiVulkanDestroyFontsTexture()
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     ImGuiIO const &  ImGuiIO = ImGui::GetIO();
     ImGuiVulkanData *Backend = ImGuiVulkanGetBackendData();
@@ -1781,7 +1797,7 @@ void RenderCore::ImGuiVulkanDestroyFontsTexture()
 
 bool RenderCore::ImGuiVulkanInit(ImGuiVulkanInitInfo const &VulkanInfo)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     ImGuiIO &ImGuiIO = ImGui::GetIO();
 
@@ -1815,7 +1831,7 @@ bool RenderCore::ImGuiVulkanInit(ImGuiVulkanInitInfo const &VulkanInfo)
 
 void RenderCore::ImGuiVulkanShutdown()
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     ImGuiVulkanData *Backend = ImGuiVulkanGetBackendData();
     ImGuiIO &        ImGuiIO = ImGui::GetIO();
@@ -1851,7 +1867,7 @@ void RenderCore::ImGuiVulkanShutdown()
 
 void RenderCore::ImGuiVulkanNewFrame()
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     if (ImGuiVulkanData const *Backend = ImGuiVulkanGetBackendData();
         !Backend->FontDescriptorSet)
@@ -1862,7 +1878,7 @@ void RenderCore::ImGuiVulkanNewFrame()
 
 VkDescriptorSet RenderCore::ImGuiVulkanAddTexture(VkSampler const Sampler, VkImageView const ImageView, VkImageLayout const ImageLayout)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     if (ImageView == VK_NULL_HANDLE)
     {
@@ -1902,7 +1918,7 @@ VkDescriptorSet RenderCore::ImGuiVulkanAddTexture(VkSampler const Sampler, VkIma
 
 void RenderCore::ImGuiVulkanRemoveTexture(VkDescriptorSet const DescriptorSet)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     VkDevice const &           LogicalDevice = GetLogicalDevice();
     ImGuiVulkanData const *    Backend       = ImGuiVulkanGetBackendData();
@@ -1912,7 +1928,7 @@ void RenderCore::ImGuiVulkanRemoveTexture(VkDescriptorSet const DescriptorSet)
 
 void RenderCore::ImGuiVulkanCreateOrResizeWindow(ImGuiVulkanWindow &WindowData, std::int32_t const Width, std::int32_t const Height)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     VkDevice const &LogicalDevice = GetLogicalDevice();
     vkDeviceWaitIdle(LogicalDevice);
@@ -1923,7 +1939,7 @@ void RenderCore::ImGuiVulkanCreateOrResizeWindow(ImGuiVulkanWindow &WindowData, 
 
 void RenderCore::ImGuiVulkanDestroyWindow(ImGuiVulkanWindow &WindowData)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     VkDevice const &LogicalDevice = GetLogicalDevice();
     vkDeviceWaitIdle(LogicalDevice);
@@ -1944,7 +1960,7 @@ void RenderCore::ImGuiVulkanDestroyWindow(ImGuiVulkanWindow &WindowData)
 
 void RenderCore::ImGuiVulkanResetThreadResources(std::uint8_t const ImageIndex)
 {
-    EASY_FUNCTION(profiler::colors::Red);
+    EASY_FUNCTION(profiler::colors::Blue50);
 
     ImGuiViewport const *MainViewport = ImGui::GetMainViewport();
 

@@ -44,6 +44,7 @@ FIND_PACKAGE(tinygltf CONFIG REQUIRED)
 
 FIND_PACKAGE(glfw3 CONFIG REQUIRED)
 FIND_PACKAGE(imgui CONFIG REQUIRED)
+FIND_PACKAGE(meshoptimizer REQUIRED)
 FIND_PACKAGE(easy_profiler REQUIRED)
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC
@@ -51,6 +52,7 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC
         TinyGLTF::TinyGLTF
         glfw
         imgui::imgui
+        meshoptimizer::meshoptimizer
         easy_profiler
 
         ThreadPool

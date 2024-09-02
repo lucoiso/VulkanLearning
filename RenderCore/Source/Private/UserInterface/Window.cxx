@@ -66,41 +66,37 @@ bool Window::IsOpen() const
 
 void Window::PollEvents()
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     if (!IsOpen())
     {
         return;
     }
 
-    glfwPollEvents();
-
-    if (RenderCore::Renderer::IsInitialized())
-    {
-        Draw();
-    }
-    else
-    {
-        DestroyChildren(true);
-    }
-
-    if (m_PendingClose)
-    {
-        Shutdown();
-    }
-}
-
-void Window::Draw()
-{
     static auto LastTime    = std::chrono::high_resolution_clock::now();
     auto const  CurrentTime = std::chrono::high_resolution_clock::now();
 
-    auto const     Milliseconds = std::chrono::duration<double, std::milli>(CurrentTime - LastTime).count();
+    auto const Milliseconds = std::chrono::duration<double, std::milli>(CurrentTime - LastTime).count();
     constexpr auto Denominator  = static_cast<double>(std::milli::den);
 
-    if (auto const DeltaTime = static_cast<double>(Milliseconds) / Denominator; DeltaTime >= Renderer::GetFPSLimit())
+    if (auto const DeltaTime = Milliseconds / Denominator; DeltaTime >= Renderer::GetFPSLimit())
     {
+        EASY_FUNCTION(profiler::colors::Red);
+
         LastTime = CurrentTime;
-        DrawFrame(m_GLFWHandler.GetWindow(), DeltaTime, this);
+
+        glfwPollEvents();
+
+        if (RenderCore::Renderer::IsInitialized())
+        {
+            DrawFrame(m_GLFWHandler.GetWindow(), DeltaTime, this);
+        }
+        else
+        {
+            DestroyChildren(true);
+        }
+
+        if (m_PendingClose)
+        {
+            Shutdown();
+        }
     }
 }

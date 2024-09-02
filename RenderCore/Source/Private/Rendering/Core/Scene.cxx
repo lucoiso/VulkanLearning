@@ -228,7 +228,10 @@ void RenderCore::LoadScene(strzilla::string_view const ModelPath)
                 {
                     std::uint32_t const ObjectID  = g_ObjectAllocationIDCounter.fetch_add(1U);
                     auto                NewObject = std::make_shared<Object>(ObjectID, ModelPath);
+
+                    NewMesh->Optimize();
                     NewObject->SetMesh(std::move(NewMesh));
+
                     g_Objects.push_back(std::move(NewObject));
                 }
             }
