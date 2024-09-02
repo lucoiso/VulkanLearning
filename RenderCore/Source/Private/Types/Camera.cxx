@@ -166,6 +166,8 @@ void Camera::SetCameraMovementStateFlags(CameraMovementStateFlags const Value)
 
 void Camera::UpdateCameraMovement(float const DeltaTime)
 {
+    EASY_FUNCTION(profiler::colors::Red100);
+
     float const     CameraSpeed = GetSpeed();
     glm::vec3 const CameraFront = GetFront();
     glm::vec3 const CameraUp    = GetUp();
@@ -207,6 +209,8 @@ void Camera::UpdateCameraMovement(float const DeltaTime)
 
 bool Camera::IsInsideCameraFrustum(std::shared_ptr<Object> const &Object) const
 {
+    EASY_FUNCTION(profiler::colors::Red100);
+
     std::shared_ptr<Mesh> const &Mesh = Object->GetMesh();
 
     if (!Mesh)
@@ -232,6 +236,8 @@ bool Camera::IsInsideCameraFrustum(std::shared_ptr<Object> const &Object) const
 
 void Camera::CalculateFrustumPlanes(glm::mat4 const &viewProjectionMatrix, std::array<glm::vec4, 6U> &FrustumPlanes)
 {
+    EASY_FUNCTION(profiler::colors::Red100);
+
     FrustumPlanes = {
             row(viewProjectionMatrix, 3) + row(viewProjectionMatrix, 0),
             row(viewProjectionMatrix, 3) - row(viewProjectionMatrix, 0),
@@ -249,6 +255,8 @@ void Camera::CalculateFrustumPlanes(glm::mat4 const &viewProjectionMatrix, std::
 
 bool Camera::BoxIntersectsPlane(Bounds const &Bounds, glm::vec4 const &Plane)
 {
+    EASY_FUNCTION(profiler::colors::Red100);
+
     glm::vec3 const Min(Bounds.Min.x, Bounds.Min.y, Bounds.Min.z);
     glm::vec3 const Max(Bounds.Max.x, Bounds.Max.y, Bounds.Max.z);
 
@@ -278,6 +286,8 @@ bool Camera::BoxIntersectsPlane(Bounds const &Bounds, glm::vec4 const &Plane)
 
 bool Camera::IsInAllowedDistance(std::shared_ptr<Object> const &Object) const
 {
+    EASY_FUNCTION(profiler::colors::Red100);
+
     std::shared_ptr<Mesh> const &Mesh = Object->GetMesh();
 
     if (!Mesh)
@@ -293,6 +303,8 @@ bool Camera::IsInAllowedDistance(std::shared_ptr<Object> const &Object) const
 
 bool Camera::CanDrawObject(std::shared_ptr<Object> const &Object) const
 {
+    EASY_FUNCTION(profiler::colors::Red100);
+
     if (Object->IsPendingDestroy())
     {
         return false;

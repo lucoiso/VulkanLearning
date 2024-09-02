@@ -66,7 +66,7 @@ export namespace RenderCore
     // Change to VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL after fixing it
     constexpr VkImageLayout g_ReadLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    constexpr bool g_ForceDefaultSync = true; // NOTE: Using default sync until fixing deadlock in thread pool shared with ImGui
+    constexpr bool g_ForceDefaultSync = false; // NOTE: Using default sync until fixing deadlock in thread pool shared with ImGui
 
     constexpr std::uint8_t g_ImageCount = 3U;
 

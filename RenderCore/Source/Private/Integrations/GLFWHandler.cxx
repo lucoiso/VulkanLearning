@@ -11,14 +11,18 @@ import RenderCore.Utils.EnumHelpers;
 
 using namespace RenderCore;
 
-bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Height, strzilla::string_view const Title, InitializationFlags const Flags)
+bool GLFWHandler::Initialize(std::uint16_t const         Width,
+                             std::uint16_t const         Height,
+                             strzilla::string_view const Title,
+                             InitializationFlags const   Flags)
 {
     if (!glfwInit() || !glfwVulkanSupported())
     {
         return false;
     }
 
-    if (static bool GLFWErrorCallbacksSet = false; !GLFWErrorCallbacksSet)
+    if (static bool GLFWErrorCallbacksSet = false;
+        !GLFWErrorCallbacksSet)
     {
         glfwSetErrorCallback(&GLFWErrorCallback);
         GLFWErrorCallbacksSet = true;
@@ -29,13 +33,13 @@ bool GLFWHandler::Initialize(std::uint16_t const Width, std::uint16_t const Heig
     glfwWindowHint(GLFW_MAXIMIZED, HasFlag(Flags, InitializationFlags::MAXIMIZED) ? GLFW_TRUE : GLFW_FALSE);
     glfwWindowHint(GLFW_VISIBLE, HasFlag(Flags, InitializationFlags::HEADLESS) ? GLFW_FALSE : GLFW_TRUE);
     glfwWindowHint(GLFW_DECORATED, HasFlag(Flags, InitializationFlags::WITHOUT_TITLEBAR) ? GLFW_FALSE : GLFW_TRUE);
-    glfwWindowHint(GLFW_FLOATING , HasFlag(Flags, InitializationFlags::ALWAYS_ON_TOP) ? GLFW_TRUE : GLFW_FALSE);
+    glfwWindowHint(GLFW_FLOATING, HasFlag(Flags, InitializationFlags::ALWAYS_ON_TOP) ? GLFW_TRUE : GLFW_FALSE);
 
     m_Window = glfwCreateWindow(Width, Height, std::data(Title), nullptr, nullptr);
 
-    if (GLFWmonitor* const Monitor = glfwGetPrimaryMonitor())
+    if (GLFWmonitor *const Monitor = glfwGetPrimaryMonitor())
     {
-        if (GLFWvidmode const* const VideoMode = glfwGetVideoMode(Monitor))
+        if (GLFWvidmode const *const VideoMode = glfwGetVideoMode(Monitor))
         {
             std::int32_t const WinPosX = (VideoMode->width - Width) / 2;
             std::int32_t const WinPosY = (VideoMode->height - Height) / 2;

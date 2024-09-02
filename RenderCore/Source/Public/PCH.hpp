@@ -26,6 +26,7 @@
 #include <optional>
 #include <ranges>
 #include <regex>
+#include <semaphore>
 #include <source_location>
 #include <span>
 #include <thread>
@@ -48,6 +49,7 @@
 #include <tiny_gltf.h>
 
 #include <easy/profiler.h>
+#include <easy/arbitrary_value.h>
 
 #include <stringzilla/stringzilla.hpp>
 namespace strzilla = ashvardanian::stringzilla;

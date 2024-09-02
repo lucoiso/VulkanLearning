@@ -55,6 +55,7 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC
         meshoptimizer::meshoptimizer
         easy_profiler
 
+        Timer
         ThreadPool
 )
 

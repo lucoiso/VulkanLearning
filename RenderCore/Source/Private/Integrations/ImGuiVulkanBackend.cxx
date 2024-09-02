@@ -1442,14 +1442,16 @@ void RenderCore::ImGuiVulkanShutdownPlatformInterface()
     ImGui::DestroyPlatformWindows();
 }
 
-static void DrawRenderingData(VkCommandBuffer const  CommandBuffer,
-                              ImGuiVulkanData const *Backend,
-                              ImDrawData *const &    DrawData,
-                              ImDrawCmd const &      DrawCmd,
-                              std::uint32_t const    GlobalIdxOffset,
-                              std::uint32_t const    GlobalVtxOffset)
+static void ImGuiVulkanDrawRenderingData(VkCommandBuffer const  CommandBuffer,
+                                         ImGuiVulkanData const *Backend,
+                                         ImDrawData *const &    DrawData,
+                                         ImDrawCmd const &      DrawCmd,
+                                         std::uint32_t const    GlobalIdxOffset,
+                                         std::uint32_t const    GlobalVtxOffset)
 {
     EASY_FUNCTION(profiler::colors::Blue50);
+
+    EASY_VALUE("ImGuiVulkanDrawRenderingData: Element count", DrawCmd.ElemCount);
 
     {
         VkViewport const Viewport {
@@ -1524,6 +1526,8 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
 {
     EASY_FUNCTION(profiler::colors::Blue50);
 
+    EASY_BLOCK("ImGuiVulkanRenderDrawData: Preparing buffers", profiler::colors::Blue500);
+
     std::uint8_t const ImageIndex = RenderCore::Renderer::GetFrameIndex();
     if (DrawData->DisplaySize.x <= 0U || DrawData->DisplaySize.y <= 0U)
     {
@@ -1589,6 +1593,10 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
     }
     vmaUnmapMemory(Allocator, RenderBuffers.Allocation);
 
+    EASY_END_BLOCK;
+
+    EASY_BLOCK("ImGuiVulkanRenderDrawData: Preparing workers data", profiler::colors::Blue500);
+
     VkCommandBufferInheritanceRenderingInfo const InheritanceRenderingInfo {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO,
             .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
@@ -1620,6 +1628,10 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
     std::uint32_t GlobalIdxOffset = 0u;
     std::uint32_t GlobalVtxOffset = 0u;
 
+    EASY_END_BLOCK;
+
+    EASY_BLOCK("ImGuiVulkanRenderDrawData: Running Execution", profiler::colors::Blue500);
+
     std::for_each(std::execution::unseq,
                   std::cbegin(DrawData->CmdLists),
                   std::cend(DrawData->CmdLists),
@@ -1650,12 +1662,12 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
                                                                               CommandBuffer,
                                                                               RenderBuffers);
 
-                                                                          DrawRenderingData(CommandBuffer,
-                                                                                            Backend,
-                                                                                            DrawData,
-                                                                                            Buffer,
-                                                                                            GlobalIdxOffset,
-                                                                                            GlobalVtxOffset);
+                                                                          ImGuiVulkanDrawRenderingData(CommandBuffer,
+                                                                              Backend,
+                                                                              DrawData,
+                                                                              Buffer,
+                                                                              GlobalIdxOffset,
+                                                                              GlobalVtxOffset);
                                                                       }
                                                                       CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
                                                                   },
@@ -1689,7 +1701,13 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
         }
     }
 
+    EASY_END_BLOCK;
+
+    EASY_BLOCK("ImGuiVulkanRenderDrawData: Waiting for the thread pool", profiler::colors::Blue500);
+
     CommandThreadPool.Wait();
+
+    EASY_END_BLOCK;
 
     if (!std::empty(SecondaryBuffers))
     {

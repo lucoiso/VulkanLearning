@@ -316,6 +316,8 @@ ImGuiKey ImGuiGLFWKeyToImGuiKey(std::int32_t const Key)
 
 void ImGuiGLFWUpdateKeyModifiers(GLFWwindow *Window)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiIO &ImGuiIO = ImGui::GetIO();
 
     ImGuiIO.AddKeyEvent(ImGuiMod_Ctrl,
@@ -341,6 +343,8 @@ void RenderCore::ImGuiGLFWMouseButtonCallback(GLFWwindow *       Window,
                                               std::int32_t const Action,
                                               std::int32_t const Modifications)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     if (ImGuiGLFWData const *Backend = ImGuiGLFWGetBackendData();
         Backend->PrevUserCallbackMousebutton && ImGuiGLFWShouldChainCallback(Window))
     {
@@ -357,6 +361,8 @@ void RenderCore::ImGuiGLFWMouseButtonCallback(GLFWwindow *       Window,
 
 void RenderCore::ImGuiGLFWScrollCallback(GLFWwindow *Window, double const OffsetX, double const OffsetY)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     if (ImGuiGLFWData const *Backend = ImGuiGLFWGetBackendData();
         Backend->PrevUserCallbackScroll && ImGuiGLFWShouldChainCallback(Window))
     {
@@ -372,6 +378,8 @@ void RenderCore::ImGuiGLFWKeyCallback(GLFWwindow *       Window,
                                       std::int32_t const Action,
                                       std::int32_t const Modifications)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWData *Backend = ImGuiGLFWGetBackendData();
     if (Backend->PrevUserCallbackKey != nullptr && ImGuiGLFWShouldChainCallback(Window))
     {
@@ -399,6 +407,8 @@ void RenderCore::ImGuiGLFWKeyCallback(GLFWwindow *       Window,
 
 void RenderCore::ImGuiGLFWWindowFocusCallback(GLFWwindow *Window, std::int32_t const Focus)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     if (ImGuiGLFWData const *Backend = ImGuiGLFWGetBackendData();
         Backend->PrevUserCallbackWindowFocus != nullptr && ImGuiGLFWShouldChainCallback(Window))
     {
@@ -410,6 +420,8 @@ void RenderCore::ImGuiGLFWWindowFocusCallback(GLFWwindow *Window, std::int32_t c
 
 void RenderCore::ImGuiGLFWCursorPosCallback(GLFWwindow *Window, double PosX, double PosY)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWData *Backend = ImGuiGLFWGetBackendData();
     if (Backend->PrevUserCallbackCursorPos != nullptr && ImGuiGLFWShouldChainCallback(Window))
     {
@@ -432,6 +444,8 @@ void RenderCore::ImGuiGLFWCursorPosCallback(GLFWwindow *Window, double PosX, dou
 
 void RenderCore::ImGuiGLFWCursorEnterCallback(GLFWwindow *Window, std::int32_t const Entered)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWData *Backend = ImGuiGLFWGetBackendData();
     if (Backend->PrevUserCallbackCursorEnter != nullptr && ImGuiGLFWShouldChainCallback(Window))
     {
@@ -455,6 +469,8 @@ void RenderCore::ImGuiGLFWCursorEnterCallback(GLFWwindow *Window, std::int32_t c
 
 void RenderCore::ImGuiGLFWCharCallback(GLFWwindow *Window, std::uint32_t const Character)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     if (ImGuiGLFWData const *Backend = ImGuiGLFWGetBackendData();
         Backend->PrevUserCallbackChar != nullptr && ImGuiGLFWShouldChainCallback(Window))
     {
@@ -467,12 +483,16 @@ void RenderCore::ImGuiGLFWCharCallback(GLFWwindow *Window, std::uint32_t const C
 
 void RenderCore::ImGuiGLFWMonitorCallback([[maybe_unused]] GLFWmonitor *const Monitor, [[maybe_unused]] std::int32_t const Index)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWData *Backend      = ImGuiGLFWGetBackendData();
     Backend->WantUpdateMonitors = true;
 }
 
 void RenderCore::ImGuiGLFWInstallCallbacks(GLFWwindow *Window)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWData *Backend = ImGuiGLFWGetBackendData();
 
     Backend->PrevUserCallbackWindowFocus = glfwSetWindowFocusCallback(Window, ImGuiGLFWWindowFocusCallback);
@@ -488,6 +508,8 @@ void RenderCore::ImGuiGLFWInstallCallbacks(GLFWwindow *Window)
 
 void RenderCore::ImGuiGLFWRestoreCallbacks(GLFWwindow *Window)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWData *Backend = ImGuiGLFWGetBackendData();
 
     glfwSetWindowFocusCallback(Window, Backend->PrevUserCallbackWindowFocus);
@@ -512,6 +534,8 @@ void RenderCore::ImGuiGLFWRestoreCallbacks(GLFWwindow *Window)
 
 void RenderCore::ImGuiGLFWSetCallbacksChainForAllWindows(bool const Chain)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWData *Backend               = ImGuiGLFWGetBackendData();
     Backend->CallbacksChainForAllWindows = Chain;
 }
@@ -558,6 +582,8 @@ LRESULT CALLBACK ImGuiGLFWWndProc(HWND const Handle, UINT const Message, WPARAM 
 
 bool ImGuiGLFWInit(GLFWwindow *Window, bool const InstallCallbacks)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiIO &ImGuiIO = ImGui::GetIO();
 
     auto *Backend                   = IM_NEW(ImGuiGLFWData)();
@@ -622,11 +648,15 @@ bool ImGuiGLFWInit(GLFWwindow *Window, bool const InstallCallbacks)
 
 bool RenderCore::ImGuiGLFWInitForVulkan(GLFWwindow *Window, bool const InstallCallbacks)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     return ImGuiGLFWInit(Window, InstallCallbacks);
 }
 
 void RenderCore::ImGuiGLFWShutdown()
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWData *Backend = ImGuiGLFWGetBackendData();
     ImGuiIO &      ImGuiIO = ImGui::GetIO();
 
@@ -658,56 +688,38 @@ void RenderCore::ImGuiGLFWShutdown()
 
 void ImGuiGLFWUpdateMouseData()
 {
-    ImGuiGLFWData *  Backend    = ImGuiGLFWGetBackendData();
-    ImGuiIO &        ImGuiIO    = ImGui::GetIO();
-    ImGuiPlatformIO &PlatformIO = ImGui::GetPlatformIO();
+    EASY_FUNCTION(profiler::colors::Amber);
 
-    ImGuiID      MouseViewportId = 0U;
-    const ImVec2 MousePosPrev    = ImGuiIO.MousePos;
+    ImGuiIO &              ImGuiIO    = ImGui::GetIO();
+    ImGuiPlatformIO const &PlatformIO = ImGui::GetPlatformIO();
 
-    for (std::uint32_t ViewportSizeIt = 0U; ViewportSizeIt < PlatformIO.Viewports.Size; ++ViewportSizeIt)
-    {
-        ImGuiViewport const *Viewport = PlatformIO.Viewports[static_cast<std::int32_t>(ViewportSizeIt)];
-        auto *               Window   = static_cast<GLFWwindow *>(Viewport->PlatformHandle);
+    ImGuiID MouseViewportId = 0U;
 
-        if (glfwGetWindowAttrib(Window, GLFW_FOCUSED))
-        {
-            if (ImGuiIO.WantSetMousePos)
-            {
-                glfwSetCursorPos(Window, MousePosPrev.x - Viewport->Pos.x, MousePosPrev.y - Viewport->Pos.y);
-            }
+    std::for_each(std::execution::unseq,
+                  std::cbegin(PlatformIO.Viewports),
+                  std::cend(PlatformIO.Viewports),
+                  [&](ImGuiViewport const *const &Iterator)
+                  {
+                      auto *Window = static_cast<GLFWwindow *>(Iterator->PlatformHandle);
 
-            if (Backend->MouseWindow == nullptr)
-            {
-                double MouseX = 0.0;
-                double MouseY = 0.0;
+                      if (!glfwGetWindowAttrib(Window, GLFW_HOVERED))
+                      {
+                          return;
+                      }
 
-                glfwGetCursorPos(Window, &MouseX, &MouseY);
+                      MouseViewportId = Iterator->ID;
 
-                if (ImGuiIO.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-                {
-                    std::int32_t WindowX;
-                    std::int32_t WindowY;
+                      if (!glfwGetWindowAttrib(Window, GLFW_FOCUSED))
+                      {
+                          return;
+                      }
 
-                    glfwGetWindowPos(Window, &WindowX, &WindowY);
-
-                    MouseX += WindowX;
-                    MouseY += WindowY;
-                }
-
-                Backend->LastValidMousePos = ImVec2(static_cast<float>(MouseX), static_cast<float>(MouseY));
-                ImGuiIO.AddMousePosEvent(static_cast<float>(MouseX), static_cast<float>(MouseY));
-            }
-        }
-
-        const bool HasNoInputFlag = Viewport->Flags & ImGuiViewportFlags_NoInputs;
-        glfwSetWindowAttrib(Window, GLFW_MOUSE_PASSTHROUGH, HasNoInputFlag);
-
-        if (glfwGetWindowAttrib(Window, GLFW_HOVERED))
-        {
-            MouseViewportId = Viewport->ID;
-        }
-    }
+                      if (auto const HasNoInputFlag = Iterator->Flags & ImGuiViewportFlags_NoInputs;
+                          HasNoInputFlag != glfwGetWindowAttrib(Window, GLFW_MOUSE_PASSTHROUGH))
+                      {
+                          glfwSetWindowAttrib(Window, GLFW_MOUSE_PASSTHROUGH, HasNoInputFlag);
+                      }
+                  });
 
     if (ImGuiIO.BackendFlags & ImGuiBackendFlags_HasMouseHoveredViewport)
     {
@@ -717,37 +729,73 @@ void ImGuiGLFWUpdateMouseData()
 
 void ImGuiGLFWUpdateMouseCursor()
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiIO const &      ImGuiIO = ImGui::GetIO();
     ImGuiGLFWData const *Backend = ImGuiGLFWGetBackendData();
+
     if (ImGuiIO.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange || glfwGetInputMode(Backend->Window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED)
     {
         return;
     }
 
     ImGuiMouseCursor const ImGuiCursor = ImGui::GetMouseCursor();
-    ImGuiPlatformIO &      PlatformIO  = ImGui::GetPlatformIO();
-    for (std::uint32_t ViewportIt = 0U; ViewportIt < PlatformIO.Viewports.Size; ++ViewportIt)
+    static GLFWcursor *    SetCursor   = nullptr;
+
+    bool SetNewCursor = false;
+
+    if (GLFWcursor *NewCursor = Backend->MouseCursors.at(ImGuiCursor)
+                                    ? Backend->MouseCursors.at(ImGuiCursor)
+                                    : Backend->MouseCursors.at(ImGuiMouseCursor_Arrow);
+        SetCursor != NewCursor)
     {
-        auto *Window = static_cast<GLFWwindow *>(PlatformIO.Viewports[static_cast<std::int32_t>(ViewportIt)]->PlatformHandle);
-
-        if (ImGuiCursor == ImGuiMouseCursor_None || ImGuiIO.MouseDrawCursor)
-        {
-            glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-        }
-        else
-        {
-            glfwSetCursor(Window,
-                          Backend->MouseCursors.at(ImGuiCursor)
-                              ? Backend->MouseCursors.at(ImGuiCursor)
-                              : Backend->MouseCursors.at(ImGuiMouseCursor_Arrow));
-
-            glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        }
+        SetCursor    = NewCursor;
+        SetNewCursor = true;
     }
+
+    ImGuiPlatformIO const &PlatformIO = ImGui::GetPlatformIO();
+
+    std::for_each(std::execution::unseq,
+                  std::cbegin(PlatformIO.Viewports),
+                  std::cend(PlatformIO.Viewports),
+                  [&](ImGuiViewport const *const &Iterator)
+                  {
+                      auto *Window = static_cast<GLFWwindow *>(Iterator->PlatformHandle);
+
+                      if (!glfwGetWindowAttrib(Window, GLFW_HOVERED))
+                      {
+                          return;
+                      }
+
+                      if (!glfwGetWindowAttrib(Window, GLFW_FOCUSED))
+                      {
+                          return;
+                      }
+
+                      if (std::int32_t const InputMode = glfwGetInputMode(Window, GLFW_CURSOR);
+                          InputMode != GLFW_CURSOR_HIDDEN && (ImGuiCursor == ImGuiMouseCursor_None || ImGuiIO.MouseDrawCursor))
+                      {
+                          glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+                      }
+                      else
+                      {
+                          if (SetNewCursor)
+                          {
+                              glfwSetCursor(Window, SetCursor);
+                          }
+
+                          if (InputMode != GLFW_CURSOR_NORMAL)
+                          {
+                              glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                          }
+                      }
+                  });
 }
 
 void RenderCore::ImGuiGLFWUpdateMonitors()
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWData *  Backend    = ImGuiGLFWGetBackendData();
     ImGuiPlatformIO &PlatformIO = ImGui::GetPlatformIO();
     Backend->WantUpdateMonitors = false;
@@ -801,6 +849,8 @@ void RenderCore::ImGuiGLFWUpdateMonitors()
 
 void RenderCore::ImGuiGLFWNewFrame()
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiIO &      ImGuiIO = ImGui::GetIO();
     ImGuiGLFWData *Backend = ImGuiGLFWGetBackendData();
 
@@ -841,6 +891,8 @@ void RenderCore::ImGuiGLFWNewFrame()
 
 void ImGuiGLFWWindowCloseCallback(GLFWwindow *Window)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     if (ImGuiViewport *Viewport = ImGui::FindViewportByPlatformHandle(Window))
     {
         Viewport->PlatformRequestClose = true;
@@ -849,6 +901,8 @@ void ImGuiGLFWWindowCloseCallback(GLFWwindow *Window)
 
 void ImGuiGLFWWindowPosCallback(GLFWwindow *Window, std::int32_t, std::int32_t)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     if (ImGuiViewport *Viewport = ImGui::FindViewportByPlatformHandle(Window))
     {
         if (ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData))
@@ -865,6 +919,8 @@ void ImGuiGLFWWindowPosCallback(GLFWwindow *Window, std::int32_t, std::int32_t)
 
 void ImGuiGLFWWindowSizeCallback(GLFWwindow *Window, std::int32_t, std::int32_t)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     if (ImGuiViewport *Viewport = ImGui::FindViewportByPlatformHandle(Window))
     {
         if (ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData))
@@ -881,6 +937,8 @@ void ImGuiGLFWWindowSizeCallback(GLFWwindow *Window, std::int32_t, std::int32_t)
 
 void ImGuiGLFWCreateWindow(ImGuiViewport *Viewport)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     auto *ViewportData         = IM_NEW(ImGuiGLFWViewportData)();
     Viewport->PlatformUserData = ViewportData;
 
@@ -920,6 +978,8 @@ void ImGuiGLFWCreateWindow(ImGuiViewport *Viewport)
 
 void ImGuiGLFWDestroyWindow(ImGuiViewport *Viewport)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWData const *Backend = ImGuiGLFWGetBackendData();
 
     if (auto *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData))
@@ -947,6 +1007,8 @@ void ImGuiGLFWDestroyWindow(ImGuiViewport *Viewport)
 
 void ImGuiGLFWShowWindow(ImGuiViewport *Viewport)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
 
     #ifdef _WIN32
@@ -975,6 +1037,8 @@ ImVec2 ImGuiGLFWGetWindowPos(ImGuiViewport *Viewport)
 
 void ImGuiGLFWSetWindowPos(ImGuiViewport *Viewport, ImVec2 const Position)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     auto *ViewportData                      = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
     ViewportData->IgnoreWindowPosEventFrame = ImGui::GetFrameCount();
     glfwSetWindowPos(ViewportData->Window, static_cast<std::int32_t>(Position.x), static_cast<std::int32_t>(Position.y));
@@ -991,6 +1055,8 @@ ImVec2 ImGuiGLFWGetWindowSize(ImGuiViewport *Viewport)
 
 void ImGuiGLFWSetWindowSize(ImGuiViewport *Viewport, ImVec2 const Size)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     auto *ViewportData                       = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
     ViewportData->IgnoreWindowSizeEventFrame = ImGui::GetFrameCount();
     glfwSetWindowSize(ViewportData->Window, static_cast<std::int32_t>(Size.x), static_cast<std::int32_t>(Size.y));
@@ -998,12 +1064,16 @@ void ImGuiGLFWSetWindowSize(ImGuiViewport *Viewport, ImVec2 const Size)
 
 void ImGuiGLFWSetWindowTitle(ImGuiViewport *Viewport, const char *Title)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
     glfwSetWindowTitle(ViewportData->Window, Title);
 }
 
 void ImGuiGLFWSetWindowFocus(ImGuiViewport *Viewport)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
     glfwFocusWindow(ViewportData->Window);
 }
@@ -1022,12 +1092,16 @@ bool ImGuiGLFWGetWindowMinimized(ImGuiViewport *Viewport)
 
 void ImGuiGLFWSetWindowAlpha(ImGuiViewport *Viewport, float const Alpha)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
     glfwSetWindowOpacity(ViewportData->Window, Alpha);
 }
 
 std::int32_t ImGuiGLFWCreateVkSurface(ImGuiViewport *Viewport, ImU64 const Instance, const void *Allocator, ImU64 *Surface)
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWViewportData const *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData);
     VkResult const               Result       = glfwCreateWindowSurface(reinterpret_cast<VkInstance>(Instance),
                                                                         ViewportData->Window,
@@ -1038,6 +1112,8 @@ std::int32_t ImGuiGLFWCreateVkSurface(ImGuiViewport *Viewport, ImU64 const Insta
 
 void RenderCore::ImGuiGLFWInitPlatformInterface()
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGuiGLFWData const *Backend           = ImGuiGLFWGetBackendData();
     ImGuiPlatformIO &    PlatformIO        = ImGui::GetPlatformIO();
     PlatformIO.Platform_CreateWindow       = ImGuiGLFWCreateWindow;
@@ -1064,5 +1140,7 @@ void RenderCore::ImGuiGLFWInitPlatformInterface()
 
 void RenderCore::ImGuiGLFWShutdownPlatformInterface()
 {
+    EASY_FUNCTION(profiler::colors::Amber);
+
     ImGui::DestroyPlatformWindows();
 }

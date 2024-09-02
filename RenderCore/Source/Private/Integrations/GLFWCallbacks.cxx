@@ -55,7 +55,7 @@ void RenderCore::GLFWKeyCallback([[maybe_unused]] GLFWwindow *const  Window,
                                  std::int32_t const                  Action,
                                  [[maybe_unused]] std::int32_t const Mods)
 {
-    Camera                  &Camera               = Renderer::GetMutableCamera();
+    Camera &                 Camera               = Renderer::GetMutableCamera();
     CameraMovementStateFlags CurrentMovementState = Camera.GetCameraMovementStateFlags();
 
     if (!g_CanMovementCamera)
@@ -169,18 +169,18 @@ static void MovementCamera(GLFWwindow *const Window, double const NewCursorPosX,
     static double LastCursorPosX = NewCursorPosX;
     static double LastCursorPosY = NewCursorPosY;
 
-    float const OffsetX{static_cast<float>(LastCursorPosX - NewCursorPosX)};
-    float const OffsetY{static_cast<float>(LastCursorPosY - NewCursorPosY)};
+    float const OffsetX { static_cast<float>(LastCursorPosX - NewCursorPosX) };
+    float const OffsetY { static_cast<float>(LastCursorPosY - NewCursorPosY) };
 
     if (g_CanMovementCamera)
     {
         glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-        Camera &Camera{Renderer::GetMutableCamera()};
+        Camera &Camera { Renderer::GetMutableCamera() };
 
-        float const Sensitivity{Camera.GetSensitivity() * 0.1F};
+        float const Sensitivity { Camera.GetSensitivity() * 0.1F };
 
-        glm::vec3 Rotation{Camera.GetRotation()};
+        glm::vec3 Rotation { Camera.GetRotation() };
 
         Rotation.x -= OffsetX * Sensitivity;
         Rotation.y += OffsetY * Sensitivity;
@@ -232,7 +232,7 @@ void RenderCore::GLFWCursorScrollCallback([[maybe_unused]] GLFWwindow *const Win
         return;
     }
 
-    Camera     &Camera = Renderer::GetMutableCamera();
+    Camera &    Camera = Renderer::GetMutableCamera();
     float const Zoom   = static_cast<float>(OffsetY) * 0.1f;
     Camera.SetPosition(Camera.GetPosition() + Camera.GetFront() * Zoom);
 }

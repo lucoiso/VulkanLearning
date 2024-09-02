@@ -130,6 +130,7 @@ void RenderCore::DrawImGuiFrame(Control *Control)
     {
         ImGuiVulkanNewFrame();
         ImGuiGLFWNewFrame();
+
         ImGui::NewFrame();
         {
             Control->Update();

@@ -227,7 +227,7 @@ void RenderCore::Shutdown(Control *Window)
 
     if (Window)
     {
-        Window->DestroyChildren(true);
+        Window->DestroyChildren();
     }
 
     if (HasFlag(g_InitializationFlags, InitializationFlags::ENABLE_IMGUI))

@@ -192,6 +192,11 @@ void Mesh::BindBuffers(VkCommandBuffer const &CommandBuffer, std::uint32_t const
 {
     EASY_FUNCTION(profiler::colors::Red50);
 
+    EASY_VALUE("ID",        GetID());
+    EASY_VALUE("Triangles", GetNumTriangles());
+    EASY_VALUE("Indices",   GetNumVertices());
+    EASY_VALUE("Vertices",  GetNumIndices());
+
     VkBuffer const &AllocationBuffer = GetAllocationBuffer();
 
     vkCmdBindVertexBuffers(CommandBuffer, 0U, 1U, &AllocationBuffer, &m_VertexOffset);

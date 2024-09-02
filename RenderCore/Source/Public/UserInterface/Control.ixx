@@ -12,15 +12,14 @@ namespace RenderCore
     {
         Control *                             m_Parent { nullptr };
         std::vector<std::shared_ptr<Control>> m_Children {};
-        std::vector<std::shared_ptr<Control>> m_IndependentChildren {};
 
     protected:
         explicit Control(Control *Parent);
 
     public:
-        Control() = delete;
+        Control()                           = delete;
         Control &operator=(Control const &) = delete;
-        virtual ~Control();
+        virtual  ~Control();
 
         template <typename ControlTy, typename... Args>
         std::shared_ptr<Control> const &AddChild(Args &&... Arguments)
@@ -28,25 +27,13 @@ namespace RenderCore
             return m_Children.emplace_back(std::make_shared<ControlTy>(this, std::forward<Args>(Arguments)...));
         }
 
-        template <typename ControlTy, typename... Args>
-        std::shared_ptr<Control> const &AddIndependentChild(Args &&... Arguments)
-        {
-            return m_IndependentChildren.emplace_back(std::make_shared<ControlTy>(this, std::forward<Args>(Arguments)...));
-        }
-
         void RemoveChild(std::shared_ptr<Control> const &);
 
-        void DestroyChildren(bool);
-
-        void RemoveIndependentChild(std::shared_ptr<Control> const &);
-
-        void DestroyIndependentChildren();
+        void DestroyChildren();
 
         [[nodiscard]] Control *GetParent() const;
 
         [[nodiscard]] std::vector<std::shared_ptr<Control>> const &GetChildren() const;
-
-        [[nodiscard]] std::vector<std::shared_ptr<Control>> const &GetIndependentChildren() const;
 
         void Initialize();
 
@@ -102,11 +89,11 @@ namespace RenderCore
             std::for_each(std::execution::unseq,
                           std::begin(Children),
                           std::end(Children),
-                          [&Call](auto const &Child)
+                          [&Call](std::shared_ptr<Control> const &Child)
                           {
                               if (Child)
                               {
-                                  (Child.get()->*Call)();
+                                  Call(Child);
                               }
                           });
         }

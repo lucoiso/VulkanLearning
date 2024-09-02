@@ -16,7 +16,7 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Window : public Control
     {
-        bool m_PendingClose {false};
+        bool                m_PendingClose { false };
         InitializationFlags m_Flags {};
         GLFWHandler         m_GLFWHandler {};
         std::uint16_t       m_Width {};
@@ -43,6 +43,8 @@ namespace RenderCore
         virtual void PollEvents();
 
     protected:
+        void Draw();
+
         virtual void OnInitialized()
         {
         }
