@@ -703,7 +703,7 @@ void ImGuiGLFWUpdateMouseData()
     ImGuiID      MouseViewportId = 0U;
     const ImVec2 MousePosPrev    = ImGuiIO.MousePos;
 
-    std::for_each(std::execution::unseq,
+    std::for_each(std::execution::seq,
                   std::cbegin(PlatformIO.Viewports),
                   std::cend(PlatformIO.Viewports),
                   [=, &MouseViewportId, &ImGuiIO](ImGuiViewport const *const &Viewport)
@@ -712,12 +712,6 @@ void ImGuiGLFWUpdateMouseData()
                       if (Window == nullptr)
                       {
                           return;
-                      }
-
-                      if (auto const HasNoInputFlag = Viewport->Flags & ImGuiViewportFlags_NoInputs;
-                          HasNoInputFlag != glfwGetWindowAttrib(Window, GLFW_MOUSE_PASSTHROUGH))
-                      {
-                          glfwSetWindowAttrib(Window, GLFW_MOUSE_PASSTHROUGH, HasNoInputFlag);
                       }
 
                       if (glfwGetWindowAttrib(Window, GLFW_HOVERED))
@@ -1054,6 +1048,11 @@ void ImGuiGLFWDestroyWindow(ImGuiViewport *Viewport)
 
         Viewport->PlatformUserData = nullptr;
         Viewport->PlatformHandle   = nullptr;
+
+        if (Backend->Window)
+        {
+            glfwFocusWindow(Backend->Window);
+        }
     });
 }
 
