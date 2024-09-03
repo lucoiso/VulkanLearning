@@ -424,7 +424,7 @@ void RenderCore::CreatePipelineLibraries()
             .ShaderStages = ShaderStagesInfo
     };
 
-    CreatePipelineLibraries(g_PipelineData, Arguments, VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
+    CreatePipelineLibraries(g_PipelineData, Arguments, VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT, true);
 }
 
 void CreateDescriptorSetLayout(VkDescriptorSetLayoutBinding const &Binding, std::uint32_t const Bindings, VkDescriptorSetLayout &DescriptorSetLayout)
@@ -526,7 +526,10 @@ PipelineDescriptorData &RenderCore::GetPipelineDescriptorData()
     return g_DescriptorData;
 }
 
-void RenderCore::CreatePipelineLibraries(PipelineData &Data, PipelineLibraryCreationArguments const &Arguments, VkPipelineCreateFlags const Flags)
+void RenderCore::CreatePipelineLibraries(PipelineData &                          Data,
+                                         PipelineLibraryCreationArguments const &Arguments,
+                                         VkPipelineCreateFlags const             Flags,
+                                         bool const                              EnableDepth)
 {
     EASY_FUNCTION(profiler::colors::Red);
 
@@ -612,7 +615,7 @@ void RenderCore::CreatePipelineLibraries(PipelineData &Data, PipelineLibraryCrea
     // Fragment output library
     {
         VkFormat const SwapChainImageFormat = GetSwapChainImageFormat();
-        VkFormat const DepthFormat          = GetDepthImage().Format;
+        VkFormat const DepthFormat          = EnableDepth ? GetDepthImage().Format : VK_FORMAT_UNDEFINED;
 
         VkPipelineRenderingCreateInfo const RenderingCreateInfo {
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,

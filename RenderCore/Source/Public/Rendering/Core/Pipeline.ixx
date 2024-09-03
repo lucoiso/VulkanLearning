@@ -63,7 +63,7 @@ export namespace RenderCore
         std::vector<VkPipelineShaderStageCreateInfo>   ShaderStages {};
     };
 
-    void CreatePipelineLibraries(PipelineData &, PipelineLibraryCreationArguments const &, VkPipelineCreateFlags);
+    void CreatePipelineLibraries(PipelineData &, PipelineLibraryCreationArguments const &, VkPipelineCreateFlags, bool);
     void CreateMainPipeline(PipelineData &,
                             std::vector<VkPipelineShaderStageCreateInfo> const &,
                             VkPipelineCreateFlags,

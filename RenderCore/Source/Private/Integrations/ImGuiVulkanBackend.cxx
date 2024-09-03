@@ -843,7 +843,7 @@ void ImGuiVulkanCreatePipeline()
 
     ImGuiVulkanData *Backend = ImGuiVulkanGetBackendData();
 
-    CreatePipelineLibraries(Backend->PipelineData, Arguments, 0U);
+    CreatePipelineLibraries(Backend->PipelineData, Arguments, 0U, false);
     CreateMainPipeline(Backend->PipelineData, { ShaderData::g_FragmentShaderStage }, 0U, DepthInfo, MsInfo);
 }
 
@@ -1000,15 +1000,6 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
 
     ImageAllocation const &DepthAllocation = RenderCore::GetDepthImage();
 
-    VkRenderingAttachmentInfo const DepthAttachmentInfo {
-            .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            .imageView = DepthAllocation.View,
-            .imageLayout = g_AttachmentLayout,
-            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .clearValue = g_ClearValues.at(1U)
-    };
-
     VkRenderingInfo const RenderingInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
             .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
@@ -1016,9 +1007,7 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
             .layerCount = 1U,
             .viewMask = 0U,
             .colorAttachmentCount = 1U,
-            .pColorAttachments = &AttachmentInfo,
-            .pDepthAttachment = &DepthAttachmentInfo,
-            .pStencilAttachment = &DepthAttachmentInfo
+            .pColorAttachments = &AttachmentInfo
     };
 
     vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
@@ -1617,8 +1606,8 @@ void RenderCore::ImGuiVulkanRenderDrawData(ImDrawData *const &DrawData, VkComman
             .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
             .colorAttachmentCount = Backend->VulkanInitInfo.PipelineRenderingCreateInfo.colorAttachmentCount,
             .pColorAttachmentFormats = Backend->VulkanInitInfo.PipelineRenderingCreateInfo.pColorAttachmentFormats,
-            .depthAttachmentFormat = Backend->VulkanInitInfo.PipelineRenderingCreateInfo.depthAttachmentFormat,
-            .stencilAttachmentFormat = Backend->VulkanInitInfo.PipelineRenderingCreateInfo.depthAttachmentFormat,
+            .depthAttachmentFormat = VK_FORMAT_UNDEFINED,
+            .stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
             .rasterizationSamples = g_MSAASamples,
     };
 

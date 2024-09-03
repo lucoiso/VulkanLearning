@@ -154,7 +154,10 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
 
             if (IsImGuiInitialized())
             {
-                ImGuiGLFWUpdateFrameBufferSizes();
+                DispatchToMainThread([]
+                {
+                    ImGuiGLFWUpdateFrameBufferSizes();
+                });
             }
 
             Owner->RefreshResources();
@@ -271,6 +274,7 @@ std::mutex &RenderCore::GetRendererMutex()
 void RenderCore::DispatchToMainThread(std::function<void()> &&Functor)
 {
     g_MainThreadDispatchQueue.emplace(std::move(Functor));
+    glfwPostEmptyEvent();
 }
 
 std::queue<std::function<void()>> &RenderCore::GetMainThreadDispatchQueue()

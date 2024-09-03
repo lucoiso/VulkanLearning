@@ -320,10 +320,7 @@ void BeginRendering(VkCommandBuffer const &CommandBuffer,
     vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
 }
 
-void EndRendering(VkCommandBuffer const &CommandBuffer,
-                  ImageAllocation const &SwapchainAllocation,
-                  ImageAllocation const &DepthAllocation,
-                  ImageAllocation const &OffscreenAllocation)
+void EndRendering(VkCommandBuffer const &CommandBuffer, ImageAllocation const &SwapchainAllocation, ImageAllocation const &OffscreenAllocation)
 {
     EASY_FUNCTION(profiler::colors::Red);
 
@@ -336,7 +333,7 @@ void EndRendering(VkCommandBuffer const &CommandBuffer,
                                                                                                   OffscreenAllocation.Format);
     }
 
-    RecordImGuiCommandBuffer(CommandBuffer, SwapchainAllocation, DepthAllocation);
+    RecordImGuiCommandBuffer(CommandBuffer, SwapchainAllocation);
 
     RenderCore::RequestImageLayoutTransition<g_AttachmentLayout, g_PresentLayout, g_ImageAspect>(CommandBuffer,
                                                                                                  SwapchainAllocation.Image,
@@ -485,7 +482,7 @@ void RenderCore::RecordCommandBuffers(std::uint32_t const ImageIndex)
         vkCmdExecuteCommands(CommandBuffer, static_cast<std::uint32_t>(std::size(CommandBuffers)), std::data(CommandBuffers));
     }
 
-    EndRendering(CommandBuffer, SwapchainAllocation, DepthAllocation, OffscreenAllocation);
+    EndRendering(CommandBuffer, SwapchainAllocation, OffscreenAllocation);
     CheckVulkanResult(vkEndCommandBuffer(CommandBuffer));
 }
 

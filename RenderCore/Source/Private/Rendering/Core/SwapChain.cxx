@@ -128,11 +128,7 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
             .pImageIndices = &ImageIndice
     };
 
-    if (VkResult const Result = vkQueuePresentKHR(GetGraphicsQueue().second, &PresentInfo);
-        Result != VK_SUBOPTIMAL_KHR)
-    {
-        CheckVulkanResult(Result);
-    }
+    CheckVulkanResult(vkQueuePresentKHR(GetGraphicsQueue().second, &PresentInfo));
 }
 
 void RenderCore::ReleaseSwapChainResources()

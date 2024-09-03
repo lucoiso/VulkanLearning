@@ -16,5 +16,5 @@ namespace RenderCore
     export void               ReleaseImGuiResources();
     export void               DrawImGuiFrame(Control *);
     export [[nodiscard]] bool IsImGuiInitialized();
-    export void               RecordImGuiCommandBuffer(VkCommandBuffer const &, ImageAllocation const &, ImageAllocation const &);
+    export void               RecordImGuiCommandBuffer(VkCommandBuffer const &, ImageAllocation const &);
 } // namespace RenderCore

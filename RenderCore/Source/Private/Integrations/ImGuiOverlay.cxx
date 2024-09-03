@@ -88,7 +88,6 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, bool const Ena
     CheckVulkanResult(vkCreateDescriptorPool(GetLogicalDevice(), &DescriptorPoolCreateInfo, nullptr, &g_ImGuiDescriptorPool));
 
     static std::vector const ColorAttachmentFormat { GetSwapChainImageFormat() };
-    VkFormat const &         DepthFormat = GetDepthImage().Format;
 
     ImGuiVulkanInitInfo const ImGuiVulkanInitInfo {
             .DescriptorPool = g_ImGuiDescriptorPool,
@@ -96,7 +95,7 @@ void RenderCore::InitializeImGuiContext(GLFWwindow *const Window, bool const Ena
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
                     .colorAttachmentCount = static_cast<std::uint32_t>(std::size(ColorAttachmentFormat)),
                     .pColorAttachmentFormats = std::data(ColorAttachmentFormat),
-                    .depthAttachmentFormat = DepthFormat,
+                    .depthAttachmentFormat = VK_FORMAT_UNDEFINED,
                     .stencilAttachmentFormat = VK_FORMAT_UNDEFINED
             }
     };
@@ -155,9 +154,7 @@ bool RenderCore::IsImGuiInitialized()
     return g_ImGuiDescriptorPool != VK_NULL_HANDLE;
 }
 
-void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
-                                          ImageAllocation const &SwapchainAllocation,
-                                          ImageAllocation const &DepthAllocation)
+void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer, ImageAllocation const &SwapchainAllocation)
 {
     EASY_FUNCTION(profiler::colors::Blue50);
 
@@ -174,15 +171,6 @@ void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
                     .clearValue = g_ClearValues.at(0U)
             };
 
-            VkRenderingAttachmentInfo const DepthAttachmentInfo {
-                    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                    .imageView = DepthAllocation.View,
-                    .imageLayout = g_AttachmentLayout,
-                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                    .clearValue = g_ClearValues.at(1U)
-            };
-
             VkRenderingInfo const RenderingInfo {
                     .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
                     .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
@@ -190,8 +178,6 @@ void RenderCore::RecordImGuiCommandBuffer(VkCommandBuffer const &CommandBuffer,
                     .layerCount = 1U,
                     .colorAttachmentCount = 1U,
                     .pColorAttachments = &ColorAttachmentInfo,
-                    .pDepthAttachment = &DepthAttachmentInfo,
-                    .pStencilAttachment = &DepthAttachmentInfo
             };
 
             vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
