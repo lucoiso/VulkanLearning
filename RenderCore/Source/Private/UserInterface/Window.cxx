@@ -111,7 +111,7 @@ void Window::PollEvents()
 
     glfwWaitEvents();
 
-    if (auto* MainWindow = m_GLFWHandler.GetWindow();
+    if (auto *MainWindow = m_GLFWHandler.GetWindow();
         IsResizingMainWindow() && glfwGetMouseButton(MainWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
     {
         constexpr double DoubleMin = std::numeric_limits<double>::min();
