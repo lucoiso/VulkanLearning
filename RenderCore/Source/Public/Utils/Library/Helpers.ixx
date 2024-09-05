@@ -32,6 +32,10 @@ export namespace RenderCore
         return reinterpret_cast<T>(vkGetInstanceProcAddr(GetInstance(), ProcedureName.data()));
     }
 
+    [[nodiscard]] bool operator==(VkExtent2D, VkExtent2D);
+
+    [[nodiscard]] VkExtent2D GetFramebufferSize(GLFWwindow *);
+
     [[nodiscard]] VkExtent2D GetWindowExtent(GLFWwindow *, VkSurfaceCapabilitiesKHR const &);
 
     [[nodiscard]] std::vector<strzilla::string> GetGLFWExtensions();

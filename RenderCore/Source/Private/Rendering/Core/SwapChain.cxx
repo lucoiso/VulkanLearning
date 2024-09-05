@@ -43,9 +43,9 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface = GetSurface(),
             .minImageCount = g_ImageCount,
-            .imageFormat = SurfaceProperties.Format.format,
-            .imageColorSpace = SurfaceProperties.Format.colorSpace,
-            .imageExtent = SurfaceProperties.Extent,
+            .imageFormat = g_CachedProperties.Format.format,
+            .imageColorSpace = g_CachedProperties.Format.colorSpace,
+            .imageExtent = g_CachedProperties.Extent,
             .imageArrayLayers = 1U,
             .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             .imageSharingMode = QueueFamilyIndicesCount > 1U ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
@@ -53,7 +53,7 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
             .pQueueFamilyIndices = std::data(QueueFamilyIndices),
             .preTransform = SurfaceCapabilities.currentTransform,
             .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-            .presentMode = SurfaceProperties.Mode,
+            .presentMode = g_CachedProperties.Mode,
             .clipped = VK_TRUE,
             .oldSwapchain = g_OldSwapChain
     };
@@ -128,7 +128,11 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
             .pImageIndices = &ImageIndice
     };
 
-    CheckVulkanResult(vkQueuePresentKHR(GetGraphicsQueue().second, &PresentInfo));
+    if (VkResult const PresentResult = vkQueuePresentKHR(GetGraphicsQueue().second, &PresentInfo);
+        PresentResult != VK_SUBOPTIMAL_KHR && PresentResult != VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        CheckVulkanResult(PresentResult);
+    }
 }
 
 void RenderCore::ReleaseSwapChainResources()

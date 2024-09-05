@@ -140,7 +140,7 @@ void RenderCore::DrawImGuiFrame(Control *Control)
         }
         ImGui::Render();
 
-        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable && !std::empty(ImGui::GetPlatformIO().Viewports))
         {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();

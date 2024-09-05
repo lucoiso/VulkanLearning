@@ -763,6 +763,11 @@ void ImGuiGLFWUpdateMouseCursor()
     ImGuiIO const &      ImGuiIO = ImGui::GetIO();
     ImGuiGLFWData const *Backend = ImGuiGLFWGetBackendData();
 
+    if (Backend == nullptr)
+    {
+        return;
+    }
+
     if (ImGuiIO.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange || glfwGetInputMode(Backend->Window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED)
     {
         return;
@@ -983,11 +988,11 @@ void ImGuiGLFWCreateWindow(ImGuiViewport *Viewport)
         auto *ViewportData         = IM_NEW(ImGuiGLFWViewportData)();
         Viewport->PlatformUserData = ViewportData;
 
-        glfwWindowHint(GLFW_VISIBLE, false);
-        glfwWindowHint(GLFW_FOCUSED, false);
-        glfwWindowHint(GLFW_FOCUS_ON_SHOW, false);
-        glfwWindowHint(GLFW_DECORATED, Viewport->Flags & ImGuiViewportFlags_NoDecoration ? false : true);
-        glfwWindowHint(GLFW_FLOATING, Viewport->Flags & ImGuiViewportFlags_TopMost ? true : false);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_FOCUSED, GLFW_FALSE);
+        glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_FALSE);
+        glfwWindowHint(GLFW_DECORATED, Viewport->Flags & ImGuiViewportFlags_NoDecoration ? GLFW_FALSE : GLFW_TRUE);
+        glfwWindowHint(GLFW_FLOATING, Viewport->Flags & ImGuiViewportFlags_TopMost ? GLFW_TRUE : GLFW_FALSE);
 
         ViewportData->Window = glfwCreateWindow(static_cast<std::int32_t>(Viewport->Size.x),
                                                 static_cast<std::int32_t>(Viewport->Size.y),
@@ -1022,38 +1027,37 @@ void ImGuiGLFWDestroyWindow(ImGuiViewport *Viewport)
 {
     EASY_FUNCTION(profiler::colors::Amber);
 
-    DispatchToMainThread([Viewport]
+    ImGuiGLFWData const *Backend = ImGuiGLFWGetBackendData();
+
+    if (auto *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData))
     {
-        ImGuiGLFWData const *Backend = ImGuiGLFWGetBackendData();
-
-        if (auto *ViewportData = static_cast<ImGuiGLFWViewportData *>(Viewport->PlatformUserData))
+        if (ViewportData->WindowOwned)
         {
-            if (ViewportData->WindowOwned)
+            for (std::int32_t KeyIt = 0; KeyIt < std::size(Backend->KeyOwnerWindows); ++KeyIt)
             {
-                for (std::uint32_t KeyIt = 0U; KeyIt < std::size(Backend->KeyOwnerWindows); ++KeyIt)
+                if (Backend->KeyOwnerWindows.at(KeyIt) == ViewportData->Window)
                 {
-                    if (Backend->KeyOwnerWindows.at(KeyIt) == ViewportData->Window)
-                    {
-                        ImGuiGLFWKeyCallback(ViewportData->Window, KeyIt, 0, GLFW_RELEASE, 0);
-                    }
+                    ImGuiGLFWKeyCallback(ViewportData->Window, KeyIt, 0, GLFW_RELEASE, 0);
                 }
-
-                auto *Window = ViewportData->Window;
-                glfwDestroyWindow(Window);
             }
 
-            ViewportData->Window = nullptr;
-            IM_DELETE(ViewportData);
+            DispatchToMainThread([WindowToClose = ViewportData->Window, WindowToFocus = Backend->Window]
+            {
+                glfwDestroyWindow(WindowToClose);
+
+                if (WindowToFocus)
+                {
+                    glfwFocusWindow(WindowToFocus);
+                }
+            });
         }
 
-        Viewport->PlatformUserData = nullptr;
-        Viewport->PlatformHandle   = nullptr;
+        ViewportData->Window = nullptr;
+        IM_DELETE(ViewportData);
+    }
 
-        if (Backend->Window)
-        {
-            glfwFocusWindow(Backend->Window);
-        }
-    });
+    Viewport->PlatformUserData = nullptr;
+    Viewport->PlatformHandle   = nullptr;
 }
 
 void ImGuiGLFWShowWindow(ImGuiViewport *Viewport)

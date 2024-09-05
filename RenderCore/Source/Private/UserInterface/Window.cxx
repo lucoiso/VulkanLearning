@@ -9,6 +9,7 @@ module RenderCore.UserInterface.Window;
 import RenderCore.Renderer;
 import RenderCore.Utils.EnumHelpers;
 import RenderCore.Integrations.ImGuiGLFWBackend;
+import RenderCore.Integrations.GLFWCallbacks;
 
 import Timer.Manager;
 
@@ -109,6 +110,29 @@ void Window::PollEvents()
     }
 
     glfwWaitEvents();
+
+    if (auto* MainWindow = m_GLFWHandler.GetWindow();
+        IsResizingMainWindow() && glfwGetMouseButton(MainWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
+    {
+        constexpr double DoubleMin = std::numeric_limits<double>::min();
+
+        static double CursorX = DoubleMin;
+        static double CursorY = DoubleMin;
+
+        if (CursorX == DoubleMin || CursorY == DoubleMin)
+        {
+            glfwGetCursorPos(MainWindow, &CursorX, &CursorY);
+        }
+
+        double CursorPosX = CursorX;
+        double CursorPosY = CursorY;
+        glfwGetCursorPos(MainWindow, &CursorPosX, &CursorPosY);
+
+        if (CursorPosX != DoubleMin || CursorPosY != DoubleMin)
+        {
+            GLFWCursorPositionCallback(MainWindow, CursorPosX, CursorPosY);
+        }
+    }
 
     {
         std::queue<std::function<void()>> &DispatchQueue = GetMainThreadDispatchQueue();

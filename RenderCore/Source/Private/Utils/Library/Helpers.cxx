@@ -49,13 +49,23 @@ void RenderCore::CheckVulkanResult(VkResult const InputOperation, std::source_lo
     }
 }
 
-VkExtent2D RenderCore::GetWindowExtent(GLFWwindow *const Window, VkSurfaceCapabilitiesKHR const &Capabilities)
+bool RenderCore::operator==(VkExtent2D const Lhs, VkExtent2D const Rhs)
+{
+    return Lhs.width == Rhs.width && Lhs.height == Rhs.height;
+}
+
+VkExtent2D RenderCore::GetFramebufferSize(GLFWwindow *const Window)
 {
     std::int32_t Width  = 0U;
     std::int32_t Height = 0U;
     glfwGetFramebufferSize(Window, &Width, &Height);
 
-    VkExtent2D ActualExtent { .width = static_cast<std::uint32_t>(Width), .height = static_cast<std::uint32_t>(Height) };
+    return VkExtent2D { .width = static_cast<std::uint32_t>(Width), .height = static_cast<std::uint32_t>(Height) };
+}
+
+VkExtent2D RenderCore::GetWindowExtent(GLFWwindow *const Window, VkSurfaceCapabilitiesKHR const &Capabilities)
+{
+    VkExtent2D ActualExtent = GetFramebufferSize(Window);
 
     ActualExtent.width  = std::clamp(ActualExtent.width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
     ActualExtent.height = std::clamp(ActualExtent.height, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);

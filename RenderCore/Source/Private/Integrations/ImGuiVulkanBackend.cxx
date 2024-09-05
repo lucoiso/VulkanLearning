@@ -998,8 +998,6 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
             .clearValue = g_ClearValues.at(0U)
     };
 
-    ImageAllocation const &DepthAllocation = RenderCore::GetDepthImage();
-
     VkRenderingInfo const RenderingInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
             .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
@@ -1971,9 +1969,9 @@ void RenderCore::ImGuiVulkanDestroyWindow(ImGuiVulkanWindow &WindowData)
         ImGuiVulkanDestroyFrame(WindowData.Frames.at(Iterator), WindowData.SecondaryCommands.at(Iterator));
     }
 
-    for (std::uint32_t Iterator = 0U; Iterator < static_cast<std::uint32_t>(std::size(WindowData.FrameSemaphores)); Iterator++)
+    for (auto &FrameSemaphore : WindowData.FrameSemaphores)
     {
-        ImGuiVulkanDestroyFrameSemaphores(WindowData.FrameSemaphores.at(Iterator));
+        ImGuiVulkanDestroyFrameSemaphores(FrameSemaphore);
     }
 
     vkDestroySwapchainKHR(LogicalDevice, WindowData.Swapchain, nullptr);

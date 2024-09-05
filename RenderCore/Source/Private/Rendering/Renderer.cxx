@@ -29,6 +29,7 @@ import RenderCore.Utils.EnumHelpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Types.Allocation;
 import RenderCore.Integrations.ImGuiGLFWBackend;
+import RenderCore.Integrations.GLFWCallbacks;
 
 using namespace RenderCore;
 
@@ -40,7 +41,7 @@ double                            g_FrameTime { 0.F };
 double                            g_FrameRateCap { 0.016667F };
 bool                              g_UseVSync { true };
 bool                              g_RenderOffscreen { false };
-InitializationFlags               g_InitializationFlags { InitializationFlags::NONE };
+auto                              g_InitializationFlags { InitializationFlags::NONE };
 std::uint32_t                     g_ImageIndex { g_ImageCount };
 std::mutex                        g_RendererMutex {};
 std::queue<std::function<void()>> g_MainThreadDispatchQueue {};
@@ -52,7 +53,9 @@ constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDI
 
 void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Control *const Owner)
 {
-    if (!g_RendererMutex.try_lock())
+    std::lock_guard const Lock { g_RendererMutex };
+
+    if (IsResizingMainWindow())
     {
         return;
     }
@@ -66,8 +69,7 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
 
     if (HasAnyFlag(g_StateFlags, g_InvalidStatesToRender))
     {
-        if (!HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION) && HasFlag(g_StateFlags,
-                                                                                              RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
+        if (HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION))
         {
             CheckVulkanResult(vkDeviceWaitIdle(GetLogicalDevice()));
 
@@ -114,8 +116,9 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
             AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
         }
-        else if (!HasAnyFlag(g_StateFlags, RendererStateFlags::INVALID_SIZE | RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE) &&
-                 HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION))
+
+        if (!HasAnyFlag(g_StateFlags, RendererStateFlags::INVALID_SIZE | RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE) &&
+            HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION))
         {
             auto const SurfaceProperties = GetSurfaceProperties(Window);
 
@@ -160,12 +163,16 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
                 });
             }
 
-            Owner->RefreshResources();
+            if (Owner)
+            {
+                Owner->RefreshResources();
+            }
 
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::INVALID_SIZE);
             AddFlags(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
         }
-        else if (HasFlag(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH))
+
+        if (HasFlag(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH))
         {
             CreatePipelineDynamicResources();
             PipelineDescriptorData &PipelineDescriptor = GetPipelineDescriptorData();
@@ -176,7 +183,8 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
         }
     }
-    else if (RequestSwapChainImage(g_ImageIndex))
+
+    if (!HasAnyFlag(g_StateFlags, g_InvalidStatesToRender) && !IsResizingMainWindow() && RequestSwapChainImage(g_ImageIndex))
     {
         DrawImGuiFrame(Owner);
 
@@ -187,8 +195,6 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
         SubmitCommandBuffers(g_ImageIndex);
         PresentFrame(g_ImageIndex);
     }
-
-    g_RendererMutex.unlock();
 }
 
 void RenderCore::Tick()

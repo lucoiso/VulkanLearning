@@ -19,8 +19,14 @@ import RenderCore.Integrations.ImGuiGLFWBackend;
 
 using namespace RenderCore;
 
-bool g_CanMovementCamera = false;
-bool g_CanMovementWindow = false;
+bool g_CanMovementCamera    = false;
+bool g_CanMovementWindow    = false;
+bool g_IsResizingMainWindow = false;
+
+bool RenderCore::IsResizingMainWindow()
+{
+    return g_IsResizingMainWindow;
+}
 
 void RenderCore::GLFWWindowCloseRequestedCallback(GLFWwindow *const Window)
 {
@@ -32,8 +38,7 @@ void RenderCore::GLFWWindowResizedCallback([[maybe_unused]] GLFWwindow *const  W
                                            [[maybe_unused]] std::int32_t const Width,
                                            [[maybe_unused]] std::int32_t const Height)
 {
-    std::lock_guard const Lock { GetRendererMutex() };
-
+    g_IsResizingMainWindow                    = true;
     constexpr RendererStateFlags RefreshFlags = RendererStateFlags::INVALID_SIZE | RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE;
 
     if (Width <= 0 || Height <= 0)
@@ -224,8 +229,9 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double con
     }
     else if (glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
     {
-        g_CanMovementWindow = false;
-        HasReleasedLeft     = true;
+        g_CanMovementWindow    = false;
+        HasReleasedLeft        = true;
+        g_IsResizingMainWindow = false;
     }
 
     g_CanMovementCamera = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_RIGHT) != GLFW_RELEASE;
@@ -253,7 +259,7 @@ void RenderCore::InstallGLFWCallbacks(GLFWwindow *const Window, bool const Insta
         glfwSetWindowCloseCallback(Window, &GLFWWindowCloseRequestedCallback);
     }
 
-    glfwSetWindowSizeCallback(Window, &GLFWWindowResizedCallback);
+    glfwSetFramebufferSizeCallback(Window, &GLFWWindowResizedCallback);
     glfwSetKeyCallback(Window, &GLFWKeyCallback);
     glfwSetCursorPosCallback(Window, &GLFWCursorPositionCallback);
     glfwSetScrollCallback(Window, &GLFWCursorScrollCallback);
