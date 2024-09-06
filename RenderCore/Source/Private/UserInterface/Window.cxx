@@ -137,7 +137,7 @@ void Window::PollEvents()
     {
         std::queue<std::function<void()>> &DispatchQueue = GetMainThreadDispatchQueue();
 
-        while (!DispatchQueue.empty())
+        while (!std::empty(DispatchQueue))
         {
             auto &Dispatch = DispatchQueue.front();
             Dispatch();

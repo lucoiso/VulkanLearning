@@ -41,10 +41,12 @@ double                            g_FrameTime { 0.F };
 double                            g_FrameRateCap { 0.016667F };
 bool                              g_UseVSync { true };
 bool                              g_RenderOffscreen { false };
+bool                              g_UseDefaultSync { true };
 auto                              g_InitializationFlags { InitializationFlags::NONE };
 std::uint32_t                     g_ImageIndex { g_ImageCount };
 std::mutex                        g_RendererMutex {};
 std::queue<std::function<void()>> g_MainThreadDispatchQueue {};
+std::queue<std::function<void()>> g_NextTickDispatchQueue {};
 
 constexpr RendererStateFlags g_InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
                                                        RendererStateFlags::PENDING_RESOURCES_DESTRUCTION |
@@ -61,6 +63,13 @@ void RenderCore::DrawFrame(GLFWwindow *const Window, double const DeltaTime, Con
     }
 
     g_FrameTime = DeltaTime;
+
+    while (!std::empty(g_NextTickDispatchQueue))
+    {
+        auto &Dispatch = g_NextTickDispatchQueue.front();
+        Dispatch();
+        g_NextTickDispatchQueue.pop();
+    }
 
     if (HasAnyFlag(g_ObjectsManagementStateFlags))
     {
@@ -283,6 +292,11 @@ void RenderCore::DispatchToMainThread(std::function<void()> &&Functor)
     glfwPostEmptyEvent();
 }
 
+void RenderCore::DispatchToNextTick(std::function<void()> &&Functor)
+{
+    g_NextTickDispatchQueue.emplace(std::move(Functor));
+}
+
 std::queue<std::function<void()>> &RenderCore::GetMainThreadDispatchQueue()
 {
     return g_MainThreadDispatchQueue;
@@ -365,7 +379,12 @@ bool const &Renderer::GetVSync()
 
 void Renderer::SetVSync(bool const Value)
 {
-    g_UseVSync = Value;
+    DispatchToNextTick([Value]
+    {
+        g_UseVSync = Value;
+    });
+
+    RequestUpdateResources();
 }
 
 bool const &Renderer::GetRenderOffscreen()
@@ -375,10 +394,33 @@ bool const &Renderer::GetRenderOffscreen()
 
 void Renderer::SetRenderOffscreen(bool const Value)
 {
+    DispatchToNextTick([Value]
+    {
     if (g_RenderOffscreen != Value)
     {
         g_RenderOffscreen = Value;
     }
+    });
+
+    RequestUpdateResources();
+}
+
+bool const &Renderer::GetUseDefaultSync()
+{
+    return g_UseDefaultSync;
+}
+
+void Renderer::SetUseDefaultSync(bool const Value)
+{
+    DispatchToNextTick([Value]
+    {
+        if (g_UseDefaultSync != Value)
+        {
+            g_UseDefaultSync = Value;
+        }
+    });
+
+    RequestUpdateResources();
 }
 
 Camera const &Renderer::GetCamera()

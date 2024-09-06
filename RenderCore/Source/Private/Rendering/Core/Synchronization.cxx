@@ -6,6 +6,7 @@ module;
 
 module RenderCore.Runtime.Synchronization;
 
+import RenderCore.Renderer;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 import RenderCore.Runtime.Device;
@@ -22,12 +23,9 @@ void RenderCore::WaitAndResetFence(std::uint32_t const Index)
 {
     EASY_FUNCTION(profiler::colors::Red);
 
-    if constexpr (!g_ForceDefaultSync)
+    if (!Renderer::GetUseDefaultSync() && g_Fences.at(Index) == VK_NULL_HANDLE || !g_FenceInUse.at(Index))
     {
-        if (g_Fences.at(Index) == VK_NULL_HANDLE || !g_FenceInUse.at(Index))
-        {
-            return;
-        }
+        return;
     }
 
     VkDevice const &LogicalDevice = GetLogicalDevice();

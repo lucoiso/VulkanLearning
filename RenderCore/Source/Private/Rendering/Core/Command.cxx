@@ -521,7 +521,7 @@ void RenderCore::SubmitCommandBuffers(std::uint32_t const ImageIndex)
     CheckVulkanResult(vkQueueSubmit2(Queue, 1U, &SubmitInfo, GetFence(ImageIndex)));
     SetFenceWaitStatus(ImageIndex, true);
 
-    if constexpr (g_ForceDefaultSync)
+    if (Renderer::GetUseDefaultSync())
     {
         WaitAndResetFence(ImageIndex);
     }

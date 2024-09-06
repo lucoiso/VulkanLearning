@@ -29,6 +29,7 @@ namespace RenderCore
     export void                                             Shutdown(Control *);
     export [[nodiscard]] std::mutex &                       GetRendererMutex();
     export void                                             DispatchToMainThread(std::function<void()> &&);
+    export void                                             DispatchToNextTick(std::function<void()> &&);
     export [[nodiscard]] std::queue<std::function<void()>> &GetMainThreadDispatchQueue();
 
     export namespace Renderer
@@ -66,6 +67,10 @@ namespace RenderCore
         [[nodiscard]] RENDERCOREMODULE_API bool const &GetRenderOffscreen();
 
         RENDERCOREMODULE_API void SetRenderOffscreen(bool);
+
+        [[nodiscard]] RENDERCOREMODULE_API bool const &GetUseDefaultSync();
+
+        RENDERCOREMODULE_API void SetUseDefaultSync(bool);
 
         [[nodiscard]] RENDERCOREMODULE_API Camera const &GetCamera();
 

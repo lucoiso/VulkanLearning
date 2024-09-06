@@ -96,7 +96,7 @@ bool RenderCore::RequestSwapChainImage(std::uint32_t &Output)
     std::uint8_t const SyncIndex     = Output + 1U >= g_ImageCount ? 0U : Output + 1U;
     VkSemaphore const &Semaphore     = GetImageAvailableSemaphore(SyncIndex);
 
-    if (!g_ForceDefaultSync)
+    if (!Renderer::GetUseDefaultSync())
     {
         WaitAndResetFence(SyncIndex);
     }

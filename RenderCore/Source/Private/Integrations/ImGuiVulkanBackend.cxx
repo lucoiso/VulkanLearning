@@ -958,18 +958,15 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
     auto &      [CommandPool, CommandBuffer, Fence, PendingWait, BackBuffer] = WindowData.Frames.at(WindowData.FrameIndex);
     auto const &[ImageAcquiredSemaphore, RenderCompleteSemaphore]            = WindowData.FrameSemaphores.at(WindowData.SemaphoreIndex);
 
-    if constexpr (!g_ForceDefaultSync)
+    if (!Renderer::GetUseDefaultSync() && PendingWait)
     {
-        if (PendingWait)
-        {
-            CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &Fence, VK_FALSE, g_Timeout));
-            CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &Fence));
+        CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &Fence, VK_FALSE, g_Timeout));
+        CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &Fence));
 
-            WindowData.SecondaryCommands.at(Renderer::GetImageIndex()).Reset(LogicalDevice);
+        WindowData.SecondaryCommands.at(Renderer::GetImageIndex()).Reset(LogicalDevice);
 
-            CheckVulkanResult(vkResetCommandPool(LogicalDevice, CommandPool, 0U));
-            PendingWait = false;
-        }
+        CheckVulkanResult(vkResetCommandPool(LogicalDevice, CommandPool, 0U));
+        PendingWait = false;
     }
 
     if (vkAcquireNextImageKHR(LogicalDevice, WindowData.Swapchain, g_Timeout, ImageAcquiredSemaphore, VK_NULL_HANDLE, &WindowData.FrameIndex) !=
@@ -1045,7 +1042,7 @@ void ImGuiVulkanRenderWindow(ImGuiViewport *Viewport, void *)
     CheckVulkanResult(vkQueueSubmit2(Queue, 1U, &SubmitInfo, Fence));
     PendingWait = true;
 
-    if constexpr (g_ForceDefaultSync)
+    if (Renderer::GetUseDefaultSync())
     {
         CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &Fence, VK_FALSE, g_Timeout));
         CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &Fence));
@@ -1351,23 +1348,20 @@ void RenderCore::ImGuiVulkanDestroyFrame(ImGuiVulkanFrame &FrameData, ImGuiVulka
 
     Commands.Destroy(LogicalDevice);
 
-    if constexpr (!g_ForceDefaultSync)
+    if (!Renderer::GetUseDefaultSync() && FrameData.PendingWait)
     {
-        if (FrameData.PendingWait)
+        if (FrameData.CommandPool != VK_NULL_HANDLE)
         {
-            if (FrameData.CommandPool != VK_NULL_HANDLE)
-            {
-                CheckVulkanResult(vkResetCommandPool(LogicalDevice, FrameData.CommandPool, 0U));
-            }
-
-            if (FrameData.Fence != VK_NULL_HANDLE)
-            {
-                CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &FrameData.Fence, VK_FALSE, g_Timeout));
-                CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &FrameData.Fence));
-            }
-
-            FrameData.PendingWait = false;
+            CheckVulkanResult(vkResetCommandPool(LogicalDevice, FrameData.CommandPool, 0U));
         }
+
+        if (FrameData.Fence != VK_NULL_HANDLE)
+        {
+            CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &FrameData.Fence, VK_FALSE, g_Timeout));
+            CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &FrameData.Fence));
+        }
+
+        FrameData.PendingWait = false;
     }
 
     if (FrameData.CommandPool != VK_NULL_HANDLE)
