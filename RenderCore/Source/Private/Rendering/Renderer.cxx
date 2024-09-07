@@ -30,6 +30,7 @@ import RenderCore.Utils.Constants;
 import RenderCore.Types.Allocation;
 import RenderCore.Integrations.ImGuiGLFWBackend;
 import RenderCore.Integrations.GLFWCallbacks;
+import RenderCore.Factories.Texture;
 
 using namespace RenderCore;
 
@@ -396,10 +397,10 @@ void Renderer::SetRenderOffscreen(bool const Value)
 {
     DispatchToNextTick([Value]
     {
-    if (g_RenderOffscreen != Value)
-    {
-        g_RenderOffscreen = Value;
-    }
+        if (g_RenderOffscreen != Value)
+        {
+            g_RenderOffscreen = Value;
+        }
     });
 
     RequestUpdateResources();
@@ -520,4 +521,48 @@ InitializationFlags Renderer::GetWindowInitializationFlags()
 std::uint8_t Renderer::GetFrameIndex()
 {
     return static_cast<std::uint8_t>(g_ImageIndex);
+}
+
+std::vector<std::shared_ptr<Texture>> Renderer::LoadImages(std::vector<strzilla::string> const &Paths)
+{
+    if (std::empty(Paths))
+    {
+        return {};
+    }
+
+    std::vector<std::shared_ptr<Texture>> OutputImages;
+    OutputImages.reserve(std::size(Paths));
+
+    VkCommandPool                CommandPool { VK_NULL_HANDLE };
+    std::vector<VkCommandBuffer> CommandBuffers { VK_NULL_HANDLE };
+
+    auto const &                                                [QueueIndex, Queue] = GetGraphicsQueue();
+    std::unordered_map<VkBuffer, VmaAllocation>                 BufferAllocations {};
+    std::unordered_map<std::uint32_t, std::shared_ptr<Texture>> TextureMap {};
+
+    InitializeSingleCommandQueue(CommandPool, CommandBuffers, QueueIndex);
+    {
+        VkCommandBuffer &CommandBuffer = CommandBuffers.at(0U);
+
+        for (strzilla::string const& PathIt : Paths)
+        {
+            TextureConstructionOutputParameters Output {};
+
+            if (std::shared_ptr<Texture> NewTexture = ConstructTextureFromFile(PathIt, CommandBuffer, Output);
+                NewTexture)
+            {
+                OutputImages.push_back(std::move(NewTexture));
+                BufferAllocations.emplace(std::move(Output.StagingBuffer), std::move(Output.StagingAllocation));
+            }
+        }
+    }
+    FinishSingleCommandQueue(Queue, CommandPool, CommandBuffers);
+
+    VmaAllocator const &Allocator = GetAllocator();
+    for (auto &[Buffer, Allocation] : BufferAllocations)
+    {
+        vmaDestroyBuffer(Allocator, Buffer, Allocation);
+    }
+
+    return OutputImages;
 }

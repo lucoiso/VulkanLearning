@@ -7,15 +7,15 @@ module;
 #include <stb_image_write.h>
 
 #ifndef VMA_IMPLEMENTATION
-#define VMA_LEAK_LOG_FORMAT(format, ...)                                                                                                                   \
-        do                                                                                                                                                     \
-        {                                                                                                                                                      \
-            std::size_t      _BuffSize = snprintf(nullptr, 0, format, __VA_ARGS__);                                                                            \
-            strzilla::string _Message(_BuffSize + 1, '\0');                                                                                                    \
-            snprintf(&_Message[0], _Message.size(), format, __VA_ARGS__);                                                                                      \
-            _Message.pop_back();                                                                                                                               \
-            BOOST_LOG_TRIVIAL(debug) << _Message;                                                                                                              \
-        }                                                                                                                                                      \
+#define VMA_LEAK_LOG_FORMAT(format, ...)                                            \
+        do                                                                          \
+        {                                                                           \
+            std::size_t      _BuffSize = snprintf(nullptr, 0, format, __VA_ARGS__); \
+            strzilla::string _Message(_BuffSize + 1, '\0');                         \
+            snprintf(&_Message[0], _Message.size(), format, __VA_ARGS__);           \
+            _Message.pop_back();                                                    \
+            BOOST_LOG_TRIVIAL(debug) << _Message;                                   \
+        }                                                                           \
         while (false)
 
 #define VMA_IMPLEMENTATION
@@ -570,8 +570,10 @@ void RenderCore::SaveImageToFile(VkImage const &Image, strzilla::string_view con
     vmaDestroyBuffer(g_Allocator, Buffer, Allocation);
 }
 
-void TextureDeleter::operator()(Texture const *const Texture) const
+void TextureDeleter::operator()(Texture *const Texture) const
 {
+    Texture->SetRenderAsImage(false);
+    
     std::uint32_t const BufferIndex = Texture->GetBufferIndex();
     g_ImageAllocationCounter.at(BufferIndex) -= 1U;
 

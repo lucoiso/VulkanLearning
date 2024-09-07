@@ -11,6 +11,7 @@ import RenderCore.Types.Camera;
 import RenderCore.Types.Illumination;
 import RenderCore.Types.Transform;
 import RenderCore.Types.Object;
+import RenderCore.Types.Texture;
 import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Pipeline;
 import RenderCore.Runtime.Command;
@@ -105,5 +106,7 @@ namespace RenderCore
         [[nodiscard]] RENDERCOREMODULE_API InitializationFlags GetWindowInitializationFlags();
 
         [[nodiscard]] RENDERCOREMODULE_API std::uint8_t GetFrameIndex();
+
+        [[nodiscard]] RENDERCOREMODULE_API std::vector<std::shared_ptr<Texture>> LoadImages(std::vector<strzilla::string> const &);
     } // namespace Renderer
 }     // namespace RenderCore

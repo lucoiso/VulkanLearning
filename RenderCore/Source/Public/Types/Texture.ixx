@@ -13,8 +13,10 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Texture : public Resource
     {
+        bool m_RenderAsImage {false};
+        VkDescriptorImageInfo m_ImageDescriptor {};
+        VkDescriptorSet m_DescriptorSet {};
         std::vector<TextureType> m_Types {};
-        VkDescriptorImageInfo    m_ImageDescriptor {};
 
     public:
         ~Texture() override = default;
@@ -30,5 +32,9 @@ namespace RenderCore
         void SetupTexture();
 
         [[nodiscard]] VkDescriptorImageInfo GetImageDescriptor() const;
+        [[nodiscard]] VkDescriptorSet const& GetDescriptorSet() const;
+
+        void SetRenderAsImage(bool);
+        void UpdateImageRendering();
     };
 } // namespace RenderCore

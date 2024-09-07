@@ -23,6 +23,7 @@ export namespace RenderCore
     void ReleaseSceneResources();
     void DestroyObjects();
     void TickObjects(float);
+    [[nodiscard]] std::uint32_t FetchID();
 
     [[nodiscard]] ImageAllocation const &               GetDepthImage();
     [[nodiscard]] VkSampler const &                     GetSampler();

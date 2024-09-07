@@ -6,8 +6,11 @@ module;
 
 module RenderCore.Types.Texture;
 
+import RenderCore.Renderer;
 import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Scene;
+import RenderCore.Utils.Constants;
+import RenderCore.Integrations.ImGuiVulkanBackend;
 
 using namespace RenderCore;
 
@@ -49,4 +52,44 @@ void Texture::SetupTexture()
 VkDescriptorImageInfo Texture::GetImageDescriptor() const
 {
     return m_ImageDescriptor;
+}
+
+VkDescriptorSet const & Texture::GetDescriptorSet() const
+{
+    return m_DescriptorSet;
+}
+
+void Texture::SetRenderAsImage(bool const Value)
+{
+    if (m_RenderAsImage == Value)
+    {
+        return;
+    }
+
+    m_RenderAsImage = Value;
+    UpdateImageRendering();
+}
+
+void Texture::UpdateImageRendering()
+{
+    if (!Renderer::IsImGuiInitialized())
+    {
+        return;
+    }
+
+    if (m_DescriptorSet != VK_NULL_HANDLE)
+    {
+        ImGuiVulkanRemoveTexture(m_DescriptorSet);
+    }
+
+    if (m_RenderAsImage)
+    {
+        VkSampler const Sampler { Renderer::GetSampler() };
+        VkImageView const View = GetImageDescriptor().imageView;
+
+        if (Sampler != VK_NULL_HANDLE && View != VK_NULL_HANDLE)
+        {
+            m_DescriptorSet = ImGuiVulkanAddTexture(Sampler, View, g_ReadLayout);
+        }
+    }
 }

@@ -19,6 +19,8 @@ import RenderCore.Integrations.ImGuiGLFWBackend;
 
 using namespace RenderCore;
 
+bool g_ViewportControlsCamera = false;
+bool g_ViewportHovering = false;
 bool g_CanMovementCamera    = false;
 bool g_CanMovementWindow    = false;
 bool g_IsResizingMainWindow = false;
@@ -234,7 +236,16 @@ void RenderCore::GLFWCursorPositionCallback(GLFWwindow *const Window, double con
         g_IsResizingMainWindow = false;
     }
 
-    g_CanMovementCamera = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_RIGHT) != GLFW_RELEASE;
+    bool const PressingRight = glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_RIGHT) != GLFW_RELEASE;
+
+    if (g_ViewportControlsCamera)
+    {
+        g_CanMovementCamera = g_ViewportHovering && PressingRight;
+    }
+    else
+    {
+        g_CanMovementCamera = PressingRight;
+    }
 
     MovementWindow(Window, NewCursorPosX, NewCursorPosY);
     MovementCamera(Window, NewCursorPosX, NewCursorPosY);
@@ -263,4 +274,19 @@ void RenderCore::InstallGLFWCallbacks(GLFWwindow *const Window, bool const Insta
     glfwSetKeyCallback(Window, &GLFWKeyCallback);
     glfwSetCursorPosCallback(Window, &GLFWCursorPositionCallback);
     glfwSetScrollCallback(Window, &GLFWCursorScrollCallback);
+}
+
+void RenderCore::SetViewportControlsCamera(bool const Value)
+{
+    g_ViewportControlsCamera = Value;
+}
+
+bool RenderCore::ViewportControlsCamera()
+{
+    return g_ViewportControlsCamera;
+}
+
+void RenderCore::SetViewportHovering(bool const Value)
+{
+    g_ViewportHovering = Value;
 }

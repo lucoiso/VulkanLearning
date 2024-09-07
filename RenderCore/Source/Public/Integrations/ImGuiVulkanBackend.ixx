@@ -43,8 +43,8 @@ namespace RenderCore
     export bool ImGuiVulkanCreateFontsTexture();
     export void ImGuiVulkanDestroyFontsTexture();
 
-    export RENDERCOREMODULE_API VkDescriptorSet ImGuiVulkanAddTexture(VkSampler, VkImageView, VkImageLayout);
-    export RENDERCOREMODULE_API void            ImGuiVulkanRemoveTexture(VkDescriptorSet);
+    export VkDescriptorSet ImGuiVulkanAddTexture(VkSampler, VkImageView, VkImageLayout);
+    export void            ImGuiVulkanRemoveTexture(VkDescriptorSet);
 
     bool ImGuiVulkanCreateDeviceObjects();
     void ImGuiVulkanDestroyDeviceObjects();

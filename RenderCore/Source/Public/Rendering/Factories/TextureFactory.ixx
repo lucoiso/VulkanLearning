@@ -25,4 +25,6 @@ namespace RenderCore
     };
 
     export [[nodiscard]] std::shared_ptr<Texture> ConstructTexture(TextureConstructionInputParameters const &, TextureConstructionOutputParameters &);
+
+    export [[nodiscard]] std::shared_ptr<Texture> ConstructTextureFromFile(strzilla::string_view const &, VkCommandBuffer&, TextureConstructionOutputParameters &);
 }; // namespace RenderCore

@@ -187,7 +187,7 @@ void RenderCore::LoadScene(strzilla::string_view const ModelPath)
             }
 
             TextureConstructionInputParameters Input {
-                    .ID = static_cast<std::uint32_t>(g_ObjectAllocationIDCounter.fetch_add(1U)),
+                    .ID = FetchID(),
                     .Image = Model.images.at(TextureIter.source),
                     .AllocationCmdBuffer = CommandBuffer
             };
@@ -214,7 +214,7 @@ void RenderCore::LoadScene(strzilla::string_view const ModelPath)
                  tinygltf::Primitive const &PrimitiveIter : LoadedMesh.primitives)
             {
                 MeshConstructionInputParameters Arguments {
-                        .ID = static_cast<std::uint32_t>(g_ObjectAllocationIDCounter.fetch_add(1U)),
+                        .ID = FetchID(),
                         .Path = ModelPath,
                         .Model = Model,
                         .Node = Node,
@@ -226,7 +226,7 @@ void RenderCore::LoadScene(strzilla::string_view const ModelPath)
                 if (std::shared_ptr<Mesh> NewMesh = ConstructMesh(Arguments);
                     NewMesh)
                 {
-                    std::uint32_t const ObjectID  = g_ObjectAllocationIDCounter.fetch_add(1U);
+                    std::uint32_t const ObjectID  = FetchID();
                     auto                NewObject = std::make_shared<Object>(ObjectID, ModelPath);
 
                     NewMesh->Optimize();
@@ -327,6 +327,11 @@ void RenderCore::TickObjects(float const DeltaTime)
                           ObjectIter->Tick(DeltaTime);
                       }
                   });
+}
+
+std::uint32_t RenderCore::FetchID()
+{
+    return g_ObjectAllocationIDCounter.fetch_add(1U);
 }
 
 ImageAllocation const &RenderCore::GetDepthImage()

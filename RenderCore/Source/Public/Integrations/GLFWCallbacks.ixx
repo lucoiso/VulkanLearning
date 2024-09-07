@@ -16,4 +16,7 @@ namespace RenderCore
     export void               GLFWCursorPositionCallback(GLFWwindow *, double, double);
     void                      GLFWCursorScrollCallback(GLFWwindow *, double, double);
     export void               InstallGLFWCallbacks(GLFWwindow *, bool);
+    export void SetViewportControlsCamera(bool);
+    export [[nodiscard]] bool  ViewportControlsCamera();
+    export void SetViewportHovering(bool);
 } // namespace RenderCore
