@@ -128,11 +128,3 @@ jobs:
 
       - name: Build Project
         run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --preset ${{env.CONAN_PRESET}}
-
-      # - name: Run Tests
-      #   working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      #   run: ctest --build-config ${{ matrix.build_type }}
-
-      # - name: Run Benchmark
-      #   working-directory: ${{ steps.strings.outputs.build-output-dir }}/Release/bin
-      #   run: ./RenderCoreBenchmark.exe
