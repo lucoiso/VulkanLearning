@@ -38,7 +38,7 @@ void RenderCore::EmitFatalError(strzilla::string_view const Message, std::source
                                             Location.column(),
                                             std::data(Message));
 
-    std::terminate();
+    std::exit(EXIT_FAILURE);
 }
 
 void RenderCore::CheckVulkanResult(VkResult const InputOperation, std::source_location const &Location)
