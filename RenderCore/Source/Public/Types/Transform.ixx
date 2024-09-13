@@ -15,8 +15,8 @@ namespace RenderCore
 {
     export struct RENDERCOREMODULE_API Bounds
     {
-        glm::vec3 Min { FLT_MAX };
-        glm::vec3 Max { FLT_MIN };
+        glm::vec3 Min { std::numeric_limits<float>::max() };
+        glm::vec3 Max { std::numeric_limits<float>::min() };
     };
 
     export class RENDERCOREMODULE_API Transform
@@ -70,7 +70,7 @@ namespace RenderCore
             return Matrix;
         }
 
-        void SetMatrix(glm::mat4 const &Matrix)
+        inline void SetMatrix(glm::mat4 const &Matrix)
         {
             glm::quat Quaternion;
             glm::vec3 _1;
@@ -80,12 +80,12 @@ namespace RenderCore
             m_Rotation = eulerAngles(Quaternion);
         }
 
-        bool operator==(Transform const &Rhs) const
+        inline bool operator==(Transform const &Rhs) const
         {
             return m_Position == Rhs.m_Position && m_Scale == Rhs.m_Scale && m_Rotation == Rhs.m_Rotation;
         }
 
-        bool operator!=(Transform const &Rhs) const
+        inline bool operator!=(Transform const &Rhs) const
         {
             return !(*this == Rhs);
         }

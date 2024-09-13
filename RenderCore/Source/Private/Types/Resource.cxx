@@ -27,38 +27,3 @@ Resource::Resource(std::uint32_t const ID, strzilla::string_view const Path, str
   , m_Name(Name)
 {
 }
-
-std::uint32_t Resource::GetID() const
-{
-    return m_ID;
-}
-
-strzilla::string const &Resource::GetPath() const
-{
-    return m_Path;
-}
-
-strzilla::string const &Resource::GetName() const
-{
-    return m_Name;
-}
-
-std::uint32_t Resource::GetBufferIndex() const
-{
-    return m_BufferIndex;
-}
-
-void Resource::SetBufferIndex(std::uint32_t const &Offset)
-{
-    m_BufferIndex = Offset;
-}
-
-bool Resource::IsPendingDestroy() const
-{
-    return m_IsPendingDestroy;
-}
-
-void Resource::Destroy()
-{
-    m_IsPendingDestroy = true;
-}

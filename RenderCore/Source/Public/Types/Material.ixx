@@ -6,24 +6,11 @@ module;
 
 export module RenderCore.Types.Material;
 
-import RenderCore.Types.Transform;
-
 namespace RenderCore
 {
-    export enum class TextureType : std::uint8_t
-    {
-        BaseColor,
-        Normal,
-        Occlusion,
-        Emissive,
-        MetallicRoughness,
-
-        Count
-    };
-
     export enum class AlphaMode : std::uint8_t { ALPHA_OPAQUE, ALPHA_MASK, ALPHA_BLEND };
 
-    export struct MaterialData
+    export struct RENDERCOREMODULE_API MaterialData
     {
         glm::vec4 BaseColorFactor {};
         glm::vec3 EmissiveFactor {};
@@ -35,14 +22,14 @@ namespace RenderCore
         AlphaMode AlphaMode {};
         bool      DoubleSided {};
 
-        bool operator==(MaterialData const &Rhs) const
+        inline bool operator==(MaterialData const &Rhs) const
         {
             return BaseColorFactor == Rhs.BaseColorFactor && EmissiveFactor == Rhs.EmissiveFactor && MetallicFactor == Rhs.MetallicFactor &&
                    RoughnessFactor == Rhs.RoughnessFactor && AlphaCutoff == Rhs.AlphaCutoff && NormalScale == Rhs.NormalScale && OcclusionStrength ==
                    Rhs.OcclusionStrength && AlphaMode == Rhs.AlphaMode && DoubleSided == Rhs.DoubleSided;
         }
 
-        bool operator!=(MaterialData const &Rhs) const
+        inline bool operator!=(MaterialData const &Rhs) const
         {
             return !(*this == Rhs);
         }

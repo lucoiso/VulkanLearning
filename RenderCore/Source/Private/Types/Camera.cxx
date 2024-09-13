@@ -6,118 +6,10 @@ module;
 
 module RenderCore.Types.Camera;
 
-import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Utils.EnumHelpers;
-import RenderCore.Utils.Constants;
-import RenderCore.Types.Mesh;
-import RenderCore.Types.UniformBufferObject;
 
 using namespace RenderCore;
-
-glm::vec3 Camera::GetPosition() const
-{
-    return m_Position;
-}
-
-void Camera::SetPosition(glm::vec3 const &Value)
-{
-    if (m_Position != Value)
-    {
-        m_Position      = Value;
-        m_IsRenderDirty = true;
-    }
-}
-
-glm::vec3 Camera::GetRotation() const
-{
-    return m_Rotation;
-}
-
-void Camera::SetRotation(glm::vec3 const &Value)
-{
-    if (m_Rotation != Value)
-    {
-        m_Rotation      = Value;
-        m_IsRenderDirty = true;
-    }
-}
-
-float Camera::GetSpeed() const
-{
-    return m_Speed;
-}
-
-void Camera::SetSpeed(float const Value)
-{
-    m_Speed = Value;
-}
-
-float Camera::GetSensitivity() const
-{
-    return m_Sensitivity;
-}
-
-void Camera::SetSensitivity(float const Value)
-{
-    m_Sensitivity = Value;
-}
-
-float Camera::GetFieldOfView() const
-{
-    return m_FieldOfView;
-}
-
-void Camera::SetFieldOfView(float const Value)
-{
-    if (m_FieldOfView != Value)
-    {
-        m_FieldOfView   = Value;
-        m_IsRenderDirty = true;
-    }
-}
-
-float Camera::GetNearPlane() const
-{
-    return m_NearPlane;
-}
-
-void Camera::SetNearPlane(float const Value)
-{
-    if (m_NearPlane != Value)
-    {
-        m_NearPlane     = Value;
-        m_IsRenderDirty = true;
-    }
-}
-
-float Camera::GetFarPlane() const
-{
-    return m_FarPlane;
-}
-
-void Camera::SetFarPlane(float const Value)
-{
-    if (m_FarPlane != Value)
-    {
-        m_FarPlane      = Value;
-        m_IsRenderDirty = true;
-    }
-}
-
-float Camera::GetDrawDistance() const
-{
-    return m_DrawDistance;
-}
-
-void Camera::SetDrawDistance(float const Value)
-{
-    if (m_DrawDistance != Value)
-    {
-        m_DrawDistance  = Value;
-        m_IsRenderDirty = true;
-    }
-}
 
 glm::vec3 Camera::GetFront() const
 {
@@ -154,20 +46,8 @@ glm::mat4 Camera::GetProjectionMatrix() const
     return Projection;
 }
 
-CameraMovementStateFlags Camera::GetCameraMovementStateFlags() const
-{
-    return m_MovementStateFlags;
-}
-
-void Camera::SetCameraMovementStateFlags(CameraMovementStateFlags const Value)
-{
-    m_MovementStateFlags = Value;
-}
-
 void Camera::UpdateCameraMovement(float const DeltaTime)
 {
-    EASY_FUNCTION(profiler::colors::Red100);
-
     float const     CameraSpeed = GetSpeed();
     glm::vec3 const CameraFront = GetFront();
     glm::vec3 const CameraUp    = GetUp();
@@ -209,8 +89,6 @@ void Camera::UpdateCameraMovement(float const DeltaTime)
 
 bool Camera::IsInsideCameraFrustum(std::shared_ptr<Object> const &Object) const
 {
-    EASY_FUNCTION(profiler::colors::Red100);
-
     std::shared_ptr<Mesh> const &Mesh = Object->GetMesh();
 
     if (!Mesh)
@@ -236,8 +114,6 @@ bool Camera::IsInsideCameraFrustum(std::shared_ptr<Object> const &Object) const
 
 void Camera::CalculateFrustumPlanes(glm::mat4 const &viewProjectionMatrix, std::array<glm::vec4, 6U> &FrustumPlanes)
 {
-    EASY_FUNCTION(profiler::colors::Red100);
-
     FrustumPlanes = {
             row(viewProjectionMatrix, 3) + row(viewProjectionMatrix, 0),
             row(viewProjectionMatrix, 3) - row(viewProjectionMatrix, 0),
@@ -255,8 +131,6 @@ void Camera::CalculateFrustumPlanes(glm::mat4 const &viewProjectionMatrix, std::
 
 bool Camera::BoxIntersectsPlane(Bounds const &Bounds, glm::vec4 const &Plane)
 {
-    EASY_FUNCTION(profiler::colors::Red100);
-
     glm::vec3 const Min(Bounds.Min.x, Bounds.Min.y, Bounds.Min.z);
     glm::vec3 const Max(Bounds.Max.x, Bounds.Max.y, Bounds.Max.z);
 
@@ -286,8 +160,6 @@ bool Camera::BoxIntersectsPlane(Bounds const &Bounds, glm::vec4 const &Plane)
 
 bool Camera::IsInAllowedDistance(std::shared_ptr<Object> const &Object) const
 {
-    EASY_FUNCTION(profiler::colors::Red100);
-
     std::shared_ptr<Mesh> const &Mesh = Object->GetMesh();
 
     if (!Mesh)
@@ -303,22 +175,10 @@ bool Camera::IsInAllowedDistance(std::shared_ptr<Object> const &Object) const
 
 bool Camera::CanDrawObject(std::shared_ptr<Object> const &Object) const
 {
-    EASY_FUNCTION(profiler::colors::Red100);
-
     if (Object->IsPendingDestroy())
     {
         return false;
     }
 
     return IsInsideCameraFrustum(Object) && IsInAllowedDistance(Object);
-}
-
-bool Camera::IsRenderDirty() const
-{
-    return m_IsRenderDirty;
-}
-
-void Camera::SetRenderDirty(bool const Value) const
-{
-    m_IsRenderDirty = Value;
 }

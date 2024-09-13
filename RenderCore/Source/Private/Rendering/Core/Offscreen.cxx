@@ -4,22 +4,14 @@
 
 module;
 
-module RenderCore.Integrations.Offscreen;
+module RenderCore.Runtime.Offscreen;
 
-import RenderCore.Types.Allocation;
-import RenderCore.Types.SurfaceProperties;
-import RenderCore.Utils.Constants;
 import RenderCore.Runtime.Memory;
-import RenderCore.Runtime.SwapChain;
 
 using namespace RenderCore;
 
-std::array<ImageAllocation, g_ImageCount> g_OffscreenImages {};
-
 void RenderCore::CreateOffscreenResources(SurfaceProperties const &SurfaceProperties)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VmaAllocator const &Allocator = GetAllocator();
 
     std::for_each(std::execution::unseq,
@@ -53,15 +45,8 @@ void RenderCore::CreateOffscreenResources(SurfaceProperties const &SurfaceProper
                   });
 }
 
-std::array<ImageAllocation, g_ImageCount> const &RenderCore::GetOffscreenImages()
-{
-    return g_OffscreenImages;
-}
-
 void RenderCore::DestroyOffscreenImages()
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VmaAllocator const &Allocator = GetAllocator();
 
     std::for_each(std::execution::unseq,

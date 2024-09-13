@@ -6,12 +6,11 @@ module;
 
 export module RenderCore.Factories.Mesh;
 
-import RenderCore.Types.Mesh;
-import RenderCore.Types.Texture;
+export import RenderCore.Types.Mesh;
 
 namespace RenderCore
 {
-    export struct MeshConstructionInputParameters
+    export struct RENDERCOREMODULE_API MeshConstructionInputParameters
     {
         std::uint32_t                                                      ID { 0U };
         strzilla::string_view const &                                      Path {};
@@ -22,5 +21,5 @@ namespace RenderCore
         std::unordered_map<std::uint32_t, std::shared_ptr<Texture>> const &TextureMap {};
     };
 
-    export [[nodiscard]] std::shared_ptr<Mesh> ConstructMesh(MeshConstructionInputParameters const &);
+    export RENDERCOREMODULE_API [[nodiscard]] std::shared_ptr<Mesh> ConstructMesh(MeshConstructionInputParameters const &);
 }; // namespace RenderCore

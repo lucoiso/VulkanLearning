@@ -6,8 +6,6 @@ module;
 
 module RenderCore.Utils.DebugHelpers;
 
-import RenderCore.Utils.EnumHelpers;
-
 using namespace RenderCore;
 
 #ifdef _DEBUG

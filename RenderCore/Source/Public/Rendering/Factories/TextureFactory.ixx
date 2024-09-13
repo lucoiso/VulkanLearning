@@ -6,11 +6,11 @@ module;
 
 export module RenderCore.Factories.Texture;
 
-import RenderCore.Types.Texture;
+export import RenderCore.Types.Texture;
 
 namespace RenderCore
 {
-    export struct TextureConstructionInputParameters
+    export struct RENDERCOREMODULE_API TextureConstructionInputParameters
     {
         std::uint32_t          ID { 0U };
         tinygltf::Image const &Image {};
@@ -18,13 +18,13 @@ namespace RenderCore
         VkCommandBuffer AllocationCmdBuffer { VK_NULL_HANDLE };
     };
 
-    export struct TextureConstructionOutputParameters
+    export struct RENDERCOREMODULE_API TextureConstructionOutputParameters
     {
         VkBuffer      StagingBuffer {};
         VmaAllocation StagingAllocation {};
     };
 
-    export [[nodiscard]] std::shared_ptr<Texture> ConstructTexture(TextureConstructionInputParameters const &, TextureConstructionOutputParameters &);
+    export RENDERCOREMODULE_API [[nodiscard]] std::shared_ptr<Texture> ConstructTexture(TextureConstructionInputParameters const &, TextureConstructionOutputParameters &);
 
-    export [[nodiscard]] std::shared_ptr<Texture> ConstructTextureFromFile(strzilla::string_view const &, VkCommandBuffer&, TextureConstructionOutputParameters &);
+    export RENDERCOREMODULE_API [[nodiscard]] std::shared_ptr<Texture> ConstructTextureFromFile(strzilla::string_view const &, VkCommandBuffer&, TextureConstructionOutputParameters &);
 }; // namespace RenderCore

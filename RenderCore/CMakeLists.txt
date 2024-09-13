@@ -10,11 +10,72 @@ SET(PRIVATE_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Source/Private)
 SET(PUBLIC_MODULES_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Source/Public)
 SET(SHADERS_RESOURCES_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Source/Shaders)
 
-FILE(GLOB_RECURSE PRIVATE_MODULES "${PRIVATE_MODULES_BASE_DIRECTORY}/*.cxx")
-FILE(GLOB_RECURSE PUBLIC_MODULES "${PUBLIC_MODULES_BASE_DIRECTORY}/*.ixx")
+SET(PRIVATE_MODULES
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Renderer.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Core/Command.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Core/Device.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Core/Instance.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Core/Memory.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Core/Model.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Core/Offscreen.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Core/Pipeline.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Core/Scene.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Core/ShaderCompiler.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Core/SwapChain.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Core/Synchronization.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Factories/MeshFactory.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Rendering/Factories/TextureFactory.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Types/Allocation.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Types/Camera.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Types/Illumination.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Types/Mesh.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Types/Object.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Types/Resource.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Types/Texture.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Debug/DebugHelpers.cxx"
+        "${PRIVATE_MODULES_BASE_DIRECTORY}/Utils/Library/Helpers.cxx"
+)
 
-ADD_LIBRARY(${LIBRARY_NAME} SHARED ${PRIVATE_MODULES})
+SET(PUBLIC_MODULES
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Renderer.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Core/Command.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Core/Device.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Core/Instance.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Core/Memory.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Core/Model.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Core/Offscreen.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Core/Pipeline.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Core/Scene.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Core/ShaderCompiler.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Core/SwapChain.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Core/Synchronization.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Factories/MeshFactory.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Rendering/Factories/TextureFactory.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Allocation.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Camera.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Illumination.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Mesh.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Object.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Resource.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Texture.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Material.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Types/RendererStateFlags.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Types/UniformBufferObject.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Vertex.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Types/SurfaceProperties.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Types/Transform.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Debug/DebugHelpers.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Enum/EnumConverter.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Enum/EnumHelpers.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Library/Constants.ixx"
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/Utils/Library/Helpers.ixx"
+)
 
+SET(PUBLIC_HEADERS
+        "${PUBLIC_MODULES_BASE_DIRECTORY}/RenderCoreModule.hpp"
+)
+
+ADD_LIBRARY(${LIBRARY_NAME} STATIC ${PRIVATE_MODULES})
 SET_TARGET_PROPERTIES(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 TARGET_SOURCES(${LIBRARY_NAME}
@@ -24,8 +85,6 @@ TARGET_SOURCES(${LIBRARY_NAME}
         BASE_DIRS ${PUBLIC_MODULES_BASE_DIRECTORY}
         FILES ${PUBLIC_MODULES}
 )
-
-FILE(GLOB_RECURSE PUBLIC_HEADERS "${PUBLIC_MODULES_BASE_DIRECTORY}/*.hpp")
 
 TARGET_SOURCES(${LIBRARY_NAME}
         PUBLIC
@@ -45,7 +104,6 @@ FIND_PACKAGE(tinygltf CONFIG REQUIRED)
 FIND_PACKAGE(glfw3 CONFIG REQUIRED)
 FIND_PACKAGE(imgui CONFIG REQUIRED)
 FIND_PACKAGE(meshoptimizer REQUIRED)
-FIND_PACKAGE(easy_profiler REQUIRED)
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC
         Boost::log
@@ -53,7 +111,6 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC
         glfw
         imgui::imgui
         meshoptimizer::meshoptimizer
-        easy_profiler
 
         Timer
         ThreadPool
@@ -136,6 +193,7 @@ TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PUBLIC ${stringzilla_SOURCE_DIR}/incl
 SET(PCH_FILE ${PUBLIC_MODULES_BASE_DIRECTORY}/PCH.hpp)
 TARGET_PRECOMPILE_HEADERS(${LIBRARY_NAME} PUBLIC ${PCH_FILE})
 
-ADD_CUSTOM_COMMAND(TARGET ${LIBRARY_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different "${SHADERS_RESOURCES_DIRECTORY}" "$<TARGET_FILE_DIR:${LIBRARY_NAME}>/Shaders"
+ADD_CUSTOM_TARGET(COPY_SHADERS
+        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different "${SHADERS_RESOURCES_DIRECTORY}" "${CMAKE_INSTALL_BINDIR}/Shaders"
+        COMMENT "Copying shaders"
 )

@@ -6,65 +6,57 @@ module;
 
 export module RenderCore.Utils.Helpers;
 
-import RenderCore.Runtime.Instance;
-
 export namespace RenderCore
 {
-    void EmitFatalError(strzilla::string_view, std::source_location const &Location = std::source_location::current());
+    RENDERCOREMODULE_API void EmitFatalError(strzilla::string_view, std::source_location const &Location = std::source_location::current());
 
-    void CheckVulkanResult(VkResult InputOperation, std::source_location const &Location = std::source_location::current());
+    RENDERCOREMODULE_API void CheckVulkanResult(VkResult InputOperation, std::source_location const &Location = std::source_location::current());
 
     template <typename T>
         requires std::is_invocable_v<T> && (std::is_same_v<std::invoke_result_t<T>, VkResult> || std::is_same_v<std::invoke_result_t<T>, VkResult &>)
-    constexpr void CheckVulkanResult(T &&InputOperation, std::source_location const &Location = std::source_location::current())
+    RENDERCOREMODULE_API constexpr void CheckVulkanResult(T &&InputOperation, std::source_location const &Location = std::source_location::current())
     {
         CheckVulkanResult(InputOperation(), Location);
     }
 
-    constexpr bool DepthHasStencil(VkFormat const &Format)
+    RENDERCOREMODULE_API constexpr bool DepthHasStencil(VkFormat const &Format)
     {
         return Format >= VK_FORMAT_D16_UNORM_S8_UINT && Format <= VK_FORMAT_D32_SFLOAT_S8_UINT;
     }
 
-    template <typename T>
-    constexpr T LoadVulkanProcedure(strzilla::string_view const ProcedureName)
-    {
-        return reinterpret_cast<T>(vkGetInstanceProcAddr(GetInstance(), ProcedureName.data()));
-    }
+    RENDERCOREMODULE_API [[nodiscard]] bool operator==(VkExtent2D, VkExtent2D);
 
-    [[nodiscard]] bool operator==(VkExtent2D, VkExtent2D);
+    RENDERCOREMODULE_API [[nodiscard]] VkExtent2D GetFramebufferSize(GLFWwindow *);
 
-    [[nodiscard]] VkExtent2D GetFramebufferSize(GLFWwindow *);
+    RENDERCOREMODULE_API [[nodiscard]] VkExtent2D GetWindowExtent(GLFWwindow *, VkSurfaceCapabilitiesKHR const &);
 
-    [[nodiscard]] VkExtent2D GetWindowExtent(GLFWwindow *, VkSurfaceCapabilitiesKHR const &);
+    RENDERCOREMODULE_API [[nodiscard]] std::vector<strzilla::string> GetGLFWExtensions();
 
-    [[nodiscard]] std::vector<strzilla::string> GetGLFWExtensions();
+    RENDERCOREMODULE_API [[nodiscard]] std::vector<VkLayerProperties> GetAvailableInstanceLayers();
 
-    [[nodiscard]] std::vector<VkLayerProperties> GetAvailableInstanceLayers();
+    RENDERCOREMODULE_API [[nodiscard]] std::vector<strzilla::string> GetAvailableInstanceLayersNames();
 
-    [[nodiscard]] std::vector<strzilla::string> GetAvailableInstanceLayersNames();
+    RENDERCOREMODULE_API [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceExtensions();
 
-    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceExtensions();
+    RENDERCOREMODULE_API [[nodiscard]] std::vector<strzilla::string> GetAvailableInstanceExtensionsNames();
 
-    [[nodiscard]] std::vector<strzilla::string> GetAvailableInstanceExtensionsNames();
+    RENDERCOREMODULE_API [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceLayerExtensions(strzilla::string_view);
 
-    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailableInstanceLayerExtensions(strzilla::string_view);
+    RENDERCOREMODULE_API [[nodiscard]] std::vector<strzilla::string> GetAvailableInstanceLayerExtensionsNames(strzilla::string_view);
 
-    [[nodiscard]] std::vector<strzilla::string> GetAvailableInstanceLayerExtensionsNames(strzilla::string_view);
+    RENDERCOREMODULE_API [[nodiscard]] VkVertexInputBindingDescription GetBindingDescriptors(std::uint32_t);
 
-    [[nodiscard]] VkVertexInputBindingDescription GetBindingDescriptors(std::uint32_t);
-
-    [[nodiscard]] std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(std::uint32_t,
+    RENDERCOREMODULE_API [[nodiscard]] std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(std::uint32_t,
                                                                                           std::vector<VkVertexInputAttributeDescription> const &);
 
     template <typename ItemType, typename ContainerType>
-    constexpr bool Contains(ContainerType const &Container, ItemType const &Item)
+    RENDERCOREMODULE_API constexpr bool Contains(ContainerType const &Container, ItemType const &Item)
     {
         return std::ranges::find(Container, Item) != std::cend(Container);
     }
 
     template <typename Out, typename Opt, typename Avail>
-    constexpr void GetAvailableResources(const char* const Identifier, Out &Resource, Opt const &Optional, Avail const &Available)
+    RENDERCOREMODULE_API constexpr void GetAvailableResources(const char* const Identifier, Out &Resource, Opt const &Optional, Avail const &Available)
     {
         std::for_each(std::execution::unseq,
                       std::cbegin(Resource),
@@ -88,4 +80,6 @@ export namespace RenderCore
                           }
                       });
     }
+
+    RENDERCOREMODULE_API void DispatchQueue(std::queue<std::function<void()>> &);
 } // namespace RenderCore

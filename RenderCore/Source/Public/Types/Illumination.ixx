@@ -6,7 +6,6 @@ module;
 
 export module RenderCore.Types.Illumination;
 
-import RenderCore.Types.Transform;
 import RenderCore.Types.Allocation;
 
 namespace RenderCore
@@ -23,19 +22,70 @@ namespace RenderCore
     public:
         Illumination() = default;
 
-        void                           SetPosition(glm::vec3 const &);
-        [[nodiscard]] glm::vec3 const &GetPosition() const;
+        inline void SetPosition(glm::vec3 const &Value)
+        {
+            if (m_Position != Value)
+            {
+                m_Position      = Value;
+                m_IsRenderDirty = true;
+            }
+        }
 
-        void                           SetColor(glm::vec3 const &);
-        [[nodiscard]] glm::vec3 const &GetColor() const;
+        [[nodiscard]] inline glm::vec3 const &GetPosition() const
+        {
+            return m_Position;
+        }
 
-        void                SetIntensity(float);
-        [[nodiscard]] float GetIntensity() const;
+        inline void SetColor(glm::vec3 const &Value)
+        {
+            if (m_Color != Value)
+            {
+                m_Color         = Value;
+                m_IsRenderDirty = true;
+            }
+        }
 
-        void                SetAmbient(float);
-        [[nodiscard]] float GetAmbient() const;
+        [[nodiscard]] inline glm::vec3 const &GetColor() const
+        {
+            return m_Color;
+        }
 
-        [[nodiscard]] bool IsRenderDirty() const;
-        void               SetRenderDirty(bool) const;
+        inline void SetIntensity(float const Value)
+        {
+            if (m_Intensity != Value)
+            {
+                m_Intensity     = Value;
+                m_IsRenderDirty = true;
+            }
+        }
+
+        [[nodiscard]] inline float GetIntensity() const
+        {
+            return m_Intensity;
+        }
+
+        inline void SetAmbient(float const Value)
+        {
+            if (m_Ambient != Value)
+            {
+                m_Ambient       = Value;
+                m_IsRenderDirty = true;
+            }
+        }
+
+        [[nodiscard]] inline float GetAmbient() const
+        {
+            return m_Ambient;
+        }
+
+        [[nodiscard]] inline bool IsRenderDirty() const
+        {
+            return m_IsRenderDirty;
+        }
+
+        inline void SetRenderDirty(bool const Value) const
+        {
+            m_IsRenderDirty = Value;
+        }
     };
 } // namespace RenderCore

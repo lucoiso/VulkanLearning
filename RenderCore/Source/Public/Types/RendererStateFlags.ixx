@@ -8,8 +8,7 @@ export module RenderCore.Types.RendererStateFlags;
 
 namespace RenderCore
 {
-    export enum class RendererStateFlags : std::uint8_t
-    {
+    export enum class RendererStateFlags : std::uint8_t {
         NONE                             = 0,
         INITIALIZED                      = 1 << 0,
         PENDING_DEVICE_PROPERTIES_UPDATE = 1 << 1,
@@ -19,8 +18,7 @@ namespace RenderCore
         INVALID_SIZE                     = 1 << 5,
     };
 
-    export enum class RendererObjectsManagementStateFlags : std::uint8_t
-    {
+    export enum class RendererObjectsManagementStateFlags : std::uint8_t {
         NONE           = 0,
         PENDING_LOAD   = 1 << 0,
         PENDING_UNLOAD = 1 << 1,

@@ -8,7 +8,7 @@ export module RenderCore.Types.UniformBufferObject;
 
 namespace RenderCore
 {
-    export struct SceneUniformData
+    export struct RENDERCOREMODULE_API SceneUniformData
     {
         alignas(16) glm::mat4 ProjectionView {};
         alignas(16) glm::vec3 LightPosition {};
@@ -16,7 +16,7 @@ namespace RenderCore
         alignas(8) double     AmbientLight {};
     };
 
-    export struct ModelUniformData
+    export struct RENDERCOREMODULE_API ModelUniformData
     {
         alignas(16) glm::mat4   Model {};
         alignas(16) glm::vec4   BaseColorFactor {};

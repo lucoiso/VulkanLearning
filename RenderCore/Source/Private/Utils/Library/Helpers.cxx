@@ -82,9 +82,26 @@ std::vector<strzilla::string> RenderCore::GetGLFWExtensions()
     std::vector<strzilla::string> Output {};
     Output.reserve(GLFWExtensionsCount);
 
-    for (char const *const &ExtensionIter : GLFWExtensionsSpan)
+    if (!std::empty(GLFWExtensionsSpan))
     {
-        Output.emplace_back(ExtensionIter);
+        for (char const *const &ExtensionIter : GLFWExtensionsSpan)
+        {
+            Output.emplace_back(ExtensionIter);
+        }
+    }
+    else
+    {
+        Output.emplace_back("VK_KHR_surface");
+
+        #ifdef WIN32
+        Output.emplace_back("VK_KHR_win32_surface");
+        #elif __linux__
+        Output.emplace_back("VK_KHR_xcb_surface");
+        #elif __APPLE__
+        Output.emplace_back("VK_KHR_macos_surface");
+        elif __ANDROID__
+        Output.emplace_back("VK_KHR_android_surface");
+        #endif
     }
 
     return Output;
@@ -182,4 +199,14 @@ std::vector<strzilla::string> RenderCore::GetAvailableInstanceLayerExtensionsNam
     }
 
     return Output;
+}
+
+void RenderCore::DispatchQueue(std::queue<std::function<void()>> &Queue)
+{
+    while (!std::empty(Queue))
+    {
+        auto &Dispatch = Queue.front();
+        Dispatch();
+        Queue.pop();
+    }
 }

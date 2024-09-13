@@ -24,33 +24,15 @@ module;
 
 module RenderCore.Runtime.Memory;
 
-import RenderCore.Utils.Helpers;
-import RenderCore.Utils.Constants;
-import RenderCore.Runtime.Command;
 import RenderCore.Runtime.Device;
-import RenderCore.Runtime.Scene;
 import RenderCore.Runtime.Instance;
-import RenderCore.Types.Object;
+import RenderCore.Runtime.Command;
 import RenderCore.Types.UniformBufferObject;
 
 using namespace RenderCore;
 
-VmaPool      g_StagingBufferPool { VK_NULL_HANDLE };
-VmaPool      g_DescriptorBufferPool { VK_NULL_HANDLE };
-VmaPool      g_BufferPool { VK_NULL_HANDLE };
-VmaPool      g_ImagePool { VK_NULL_HANDLE };
-VmaAllocator g_Allocator { VK_NULL_HANDLE };
-
-BufferAllocation g_BufferAllocation {};
-
-std::atomic<std::uint64_t>                         g_ImageAllocationIDCounter { 0U };
-std::unordered_map<std::uint32_t, ImageAllocation> g_AllocatedImages {};
-std::unordered_map<std::uint32_t, std::uint32_t>   g_ImageAllocationCounter {};
-
 void RenderCore::CreateMemoryAllocator()
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VkPhysicalDevice const &PhysicalDevice = GetPhysicalDevice();
     VkDevice const &        LogicalDevice  = GetLogicalDevice();
 
@@ -167,8 +149,6 @@ void RenderCore::CreateMemoryAllocator()
 
 void RenderCore::ReleaseMemoryResources()
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     g_BufferAllocation.DestroyResources(g_Allocator);
 
     for (auto &ImageIter : g_AllocatedImages | std::views::values)
@@ -193,19 +173,12 @@ void RenderCore::ReleaseMemoryResources()
     g_Allocator = VK_NULL_HANDLE;
 }
 
-VmaAllocator const &RenderCore::GetAllocator()
-{
-    return g_Allocator;
-}
-
 VmaAllocationInfo RenderCore::CreateBuffer(VkDeviceSize const &        Size,
                                            VkBufferUsageFlags const    Usage,
                                            strzilla::string_view const Identifier,
                                            VkBuffer &                  Buffer,
                                            VmaAllocation &             Allocation)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     bool const IsStagingBuffer = Identifier.starts_with("STAGING_");
 
     VmaAllocationCreateInfo AllocationCreateInfo {
@@ -243,16 +216,12 @@ VmaAllocationInfo RenderCore::CreateBuffer(VkDeviceSize const &        Size,
 
 void RenderCore::CopyBuffer(VkCommandBuffer const &CommandBuffer, VkBuffer const &Source, VkBuffer const &Destination, VkDeviceSize const &Size)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VkBufferCopy const BufferCopy { .size = Size, };
     vkCmdCopyBuffer(CommandBuffer, Source, Destination, 1U, &BufferCopy);
 }
 
 void RenderCore::CreateUniformBuffers(BufferAllocation &BufferAllocation, VkDeviceSize const BufferSize, strzilla::string_view const Identifier)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VmaAllocator const &         Allocator  = GetAllocator();
     constexpr VkBufferUsageFlags UsageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
@@ -270,8 +239,6 @@ void RenderCore::CreateImage(VkFormat const &            ImageFormat,
                              VkImage &                   Image,
                              VmaAllocation &             Allocation)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VkImageCreateInfo const ImageViewCreateInfo {
             .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             .imageType = VK_IMAGE_TYPE_2D,
@@ -298,8 +265,6 @@ void RenderCore::CreateImage(VkFormat const &            ImageFormat,
 
 void RenderCore::CreateImageView(VkImage const &Image, VkFormat const &Format, VkImageAspectFlags const &AspectFlags, VkImageView &ImageView)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VkImageViewCreateInfo const ImageViewCreateInfo {
             .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             .image = Image,
@@ -314,15 +279,11 @@ void RenderCore::CreateImageView(VkImage const &Image, VkFormat const &Format, V
 
 void RenderCore::CreateTextureImageView(ImageAllocation &Allocation, VkFormat const ImageFormat)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     CreateImageView(Allocation.Image, ImageFormat, g_ImageAspect, Allocation.View);
 }
 
 void RenderCore::CopyBufferToImage(VkCommandBuffer const &CommandBuffer, VkBuffer const &Source, VkImage const &Destination, VkExtent2D const &Extent)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VkBufferImageCopy const BufferImageCopy {
             .bufferOffset = 0U,
             .bufferRowLength = 0U,
@@ -342,8 +303,6 @@ std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(V
                                                                                VkFormat const         ImageFormat,
                                                                                VkDeviceSize const     AllocationSize)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     if (std::empty(g_AllocatedImages))
     {
         g_ImageAllocationIDCounter.fetch_sub(g_ImageAllocationIDCounter.load());
@@ -398,8 +357,6 @@ std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(V
 
 void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> const &Objects)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     if (g_BufferAllocation.IsValid())
     {
         g_BufferAllocation.DestroyResources(g_Allocator);
@@ -454,30 +411,8 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
     }
 }
 
-VkBuffer const &RenderCore::GetAllocationBuffer()
-{
-    return g_BufferAllocation.Buffer;
-}
-
-void *RenderCore::GetAllocationMappedData()
-{
-    return g_BufferAllocation.MappedData;
-}
-
-VkDescriptorBufferInfo RenderCore::GetAllocationBufferDescriptor(std::uint32_t const Offset, std::uint32_t const Range)
-{
-    return VkDescriptorBufferInfo { .buffer = GetAllocationBuffer(), .offset = Offset, .range = Range };
-}
-
-VkDescriptorImageInfo RenderCore::GetAllocationImageDescriptor(std::uint32_t const Index)
-{
-    return VkDescriptorImageInfo { .sampler = GetSampler(), .imageView = g_AllocatedImages.at(Index).View, .imageLayout = g_ReadLayout };
-}
-
 void RenderCore::SaveImageToFile(VkImage const &Image, strzilla::string_view const Path, VkExtent2D const &Extent)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VkBuffer            Buffer;
     VmaAllocation       Allocation;
     VkSubresourceLayout Layout;
@@ -572,8 +507,6 @@ void RenderCore::SaveImageToFile(VkImage const &Image, strzilla::string_view con
 
 void TextureDeleter::operator()(Texture *const Texture) const
 {
-    Texture->SetRenderAsImage(false);
-    
     std::uint32_t const BufferIndex = Texture->GetBufferIndex();
     g_ImageAllocationCounter.at(BufferIndex) -= 1U;
 
@@ -587,8 +520,6 @@ void TextureDeleter::operator()(Texture *const Texture) const
 
 void RenderCore::PrintMemoryAllocatorStats(bool const DetailedMap)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     char *Stats;
     vmaBuildStatsString(g_Allocator, &Stats, DetailedMap);
     BOOST_LOG_TRIVIAL(info) << Stats;

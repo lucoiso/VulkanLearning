@@ -6,16 +6,12 @@ module;
 
 module RenderCore.Factories.Mesh;
 
-import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Model;
-import RenderCore.Types.Material;
 
 using namespace RenderCore;
 
 std::shared_ptr<Mesh> RenderCore::ConstructMesh(MeshConstructionInputParameters const &Arguments)
 {
-    EASY_FUNCTION(profiler::colors::Red50);
-
     if (Arguments.Primitive.material < 0)
     {
         return nullptr;

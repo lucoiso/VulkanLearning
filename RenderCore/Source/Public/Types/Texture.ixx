@@ -6,16 +6,24 @@ module;
 
 export module RenderCore.Types.Texture;
 
-import RenderCore.Types.Resource;
-import RenderCore.Types.Material;
+export import RenderCore.Types.Resource;
 
-namespace RenderCore
+export namespace RenderCore
 {
-    export class RENDERCOREMODULE_API Texture : public Resource
+    enum class TextureType : std::uint8_t
     {
-        bool m_RenderAsImage {false};
+        BaseColor,
+        Normal,
+        Occlusion,
+        Emissive,
+        MetallicRoughness,
+
+        Count
+    };
+
+    class RENDERCOREMODULE_API Texture : public Resource
+    {
         VkDescriptorImageInfo m_ImageDescriptor {};
-        VkDescriptorSet m_DescriptorSet {};
         std::vector<TextureType> m_Types {};
 
     public:
@@ -25,16 +33,19 @@ namespace RenderCore
         Texture(std::uint32_t, strzilla::string_view);
         Texture(std::uint32_t, strzilla::string_view, strzilla::string_view);
 
-        [[nodiscard]] std::vector<TextureType> GetTypes() const;
-        void                                   SetTypes(std::vector<TextureType> const &);
-        void                                   AppendType(TextureType);
+        [[nodiscard]] inline std::vector<TextureType> const &GetTypes() const
+        {
+            return m_Types;
+        }
+
+        void SetTypes(std::vector<TextureType> const &);
+        void AppendType(TextureType);
 
         void SetupTexture();
 
-        [[nodiscard]] VkDescriptorImageInfo GetImageDescriptor() const;
-        [[nodiscard]] VkDescriptorSet const& GetDescriptorSet() const;
-
-        void SetRenderAsImage(bool);
-        void UpdateImageRendering();
+        [[nodiscard]] inline VkDescriptorImageInfo const &GetImageDescriptor() const
+        {
+            return m_ImageDescriptor;
+        }
     };
 } // namespace RenderCore

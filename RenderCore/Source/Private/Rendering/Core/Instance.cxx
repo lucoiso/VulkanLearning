@@ -6,13 +6,11 @@ module;
 
 module RenderCore.Runtime.Instance;
 
+import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 import RenderCore.Utils.DebugHelpers;
-import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
-
-VkInstance g_Instance { VK_NULL_HANDLE };
 
 #ifdef _DEBUG
 VkDebugUtilsMessengerEXT g_DebugMessenger{VK_NULL_HANDLE};
@@ -20,8 +18,6 @@ VkDebugUtilsMessengerEXT g_DebugMessenger{VK_NULL_HANDLE};
 
 bool RenderCore::CreateVulkanInstance()
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     constexpr VkApplicationInfo AppInfo {
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
             .pApplicationName = "VulkanApp",
@@ -84,8 +80,6 @@ bool RenderCore::CreateVulkanInstance()
 
 void RenderCore::DestroyVulkanInstance()
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     #ifdef _DEBUG
     if (g_DebugMessenger != VK_NULL_HANDLE)
     {
@@ -96,9 +90,4 @@ void RenderCore::DestroyVulkanInstance()
 
     vkDestroyInstance(g_Instance, nullptr);
     g_Instance = VK_NULL_HANDLE;
-}
-
-VkInstance const &RenderCore::GetInstance()
-{
-    return g_Instance;
 }

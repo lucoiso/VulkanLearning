@@ -10,28 +10,52 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Resource
     {
-        bool          m_IsPendingDestroy {false};
-        std::uint32_t m_ID {};
-        strzilla::string   m_Path {};
-        strzilla::string   m_Name {};
-        std::uint32_t m_BufferIndex {0U};
+        bool             m_IsPendingDestroy { false };
+        std::uint32_t    m_ID {};
+        strzilla::string m_Path {};
+        strzilla::string m_Name {};
+        std::uint32_t    m_BufferIndex { 0U };
 
     public:
         virtual ~Resource() = default;
-                 Resource() = delete;
+        Resource()          = delete;
 
         Resource(std::uint32_t, strzilla::string_view);
         Resource(std::uint32_t, strzilla::string_view, strzilla::string_view);
 
-        [[nodiscard]] std::uint32_t      GetID() const;
-        [[nodiscard]] strzilla::string const &GetPath() const;
-        [[nodiscard]] strzilla::string const &GetName() const;
+        [[nodiscard]] inline std::uint32_t GetID() const
+        {
+            return m_ID;
+        }
 
-        [[nodiscard]] std::uint32_t GetBufferIndex() const;
-        void                        SetBufferIndex(std::uint32_t const &);
+        [[nodiscard]] inline strzilla::string const &GetPath() const
+        {
+            return m_Path;
+        }
 
-        [[nodiscard]] bool IsPendingDestroy() const;
+        [[nodiscard]] inline strzilla::string const &GetName() const
+        {
+            return m_Name;
+        }
 
-        virtual void Destroy();
+        [[nodiscard]] inline std::uint32_t GetBufferIndex() const
+        {
+            return m_BufferIndex;
+        }
+
+        inline void SetBufferIndex(std::uint32_t const &Offset)
+        {
+            m_BufferIndex = Offset;
+        }
+
+        [[nodiscard]] inline bool IsPendingDestroy() const
+        {
+            return m_IsPendingDestroy;
+        }
+
+        virtual inline void Destroy()
+        {
+            m_IsPendingDestroy = true;
+        }
     };
 } // namespace RenderCore

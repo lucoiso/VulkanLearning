@@ -8,17 +8,14 @@ module;
 
 module RenderCore.Factories.Texture;
 
-import RenderCore.Runtime.Scene;
 import RenderCore.Runtime.Memory;
-import RenderCore.Types.Texture;
+import RenderCore.Runtime.Scene;
 
 using namespace RenderCore;
 
 std::shared_ptr<Texture> RenderCore::ConstructTexture(TextureConstructionInputParameters const &Parameters,
                                                       TextureConstructionOutputParameters &     Output)
 {
-    EASY_FUNCTION(profiler::colors::Red50);
-
     if (std::empty(Parameters.Image.image))
     {
         return nullptr;

@@ -7,22 +7,14 @@ module;
 module RenderCore.Runtime.Synchronization;
 
 import RenderCore.Renderer;
-import RenderCore.Utils.Helpers;
-import RenderCore.Utils.Constants;
 import RenderCore.Runtime.Device;
 import RenderCore.Runtime.Command;
+import RenderCore.Utils.Helpers;
 
 using namespace RenderCore;
 
-std::array<VkSemaphore, g_ImageCount> g_ImageAvailableSemaphores {};
-std::array<VkSemaphore, g_ImageCount> g_RenderFinishedSemaphores {};
-std::array<VkFence, g_ImageCount>     g_Fences {};
-std::array<bool, g_ImageCount>        g_FenceInUse {};
-
 void RenderCore::WaitAndResetFence(std::uint32_t const Index)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     if (!Renderer::GetUseDefaultSync() && g_Fences.at(Index) == VK_NULL_HANDLE || !g_FenceInUse.at(Index))
     {
         return;
@@ -38,8 +30,6 @@ void RenderCore::WaitAndResetFence(std::uint32_t const Index)
 
 void RenderCore::CreateSynchronizationObjects()
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
     constexpr VkSemaphoreCreateInfo SemaphoreCreateInfo { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
@@ -64,8 +54,6 @@ void RenderCore::CreateSynchronizationObjects()
 
 void RenderCore::ReleaseSynchronizationObjects()
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VkDevice const &LogicalDevice = GetLogicalDevice();
     vkDeviceWaitIdle(LogicalDevice);
 
@@ -101,8 +89,6 @@ void RenderCore::ReleaseSynchronizationObjects()
 
 void RenderCore::ResetSemaphores()
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     vkQueueWaitIdle(GetGraphicsQueue().second);
 
     VkDevice const &                LogicalDevice = GetLogicalDevice();
@@ -129,8 +115,6 @@ void RenderCore::ResetSemaphores()
 
 void RenderCore::ResetFenceStatus()
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     for (std::uint8_t Iterator = 0U; Iterator < g_ImageCount; ++Iterator)
     {
         if (bool &FenceStatus = g_FenceInUse.at(Iterator);
@@ -140,29 +124,4 @@ void RenderCore::ResetFenceStatus()
             FenceStatus = false;
         }
     }
-}
-
-void RenderCore::SetFenceWaitStatus(std::uint32_t const Index, bool const Value)
-{
-    g_FenceInUse.at(Index) = Value;
-}
-
-bool const &RenderCore::GetFenceWaitStatus(std::uint32_t const Index)
-{
-    return g_FenceInUse.at(Index);
-}
-
-VkSemaphore const &RenderCore::GetImageAvailableSemaphore(std::uint32_t const Index)
-{
-    return g_ImageAvailableSemaphores.at(Index);
-}
-
-VkSemaphore const &RenderCore::GetRenderFinishedSemaphore(std::uint32_t const Index)
-{
-    return g_RenderFinishedSemaphores.at(Index);
-}
-
-VkFence const &RenderCore::GetFence(std::uint32_t const Index)
-{
-    return g_Fences.at(Index);
 }

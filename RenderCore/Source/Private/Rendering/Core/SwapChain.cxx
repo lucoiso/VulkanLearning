@@ -8,31 +8,20 @@ module RenderCore.Runtime.SwapChain;
 
 import RenderCore.Renderer;
 import RenderCore.Runtime.Device;
+import RenderCore.Runtime.Instance;
 import RenderCore.Runtime.Synchronization;
 import RenderCore.Runtime.Memory;
-import RenderCore.Runtime.Instance;
 import RenderCore.Utils.Helpers;
-import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
-SurfaceProperties                         g_CachedProperties {};
-VkSurfaceKHR                              g_Surface { VK_NULL_HANDLE };
-VkSwapchainKHR                            g_SwapChain { VK_NULL_HANDLE };
-VkSwapchainKHR                            g_OldSwapChain { VK_NULL_HANDLE };
-std::array<ImageAllocation, g_ImageCount> g_SwapChainImages {};
-
 void RenderCore::CreateVulkanSurface(GLFWwindow *const Window)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     CheckVulkanResult(glfwCreateWindowSurface(GetInstance(), Window, nullptr, &g_Surface));
 }
 
 void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkSurfaceCapabilitiesKHR const &SurfaceCapabilities)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     auto const QueueFamilyIndices      = GetUniqueQueueFamilyIndicesU32();
     auto const QueueFamilyIndicesCount = static_cast<std::uint32_t>(std::size(QueueFamilyIndices));
 
@@ -90,8 +79,6 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
 
 bool RenderCore::RequestSwapChainImage(std::uint32_t &Output)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VkDevice const &   LogicalDevice = GetLogicalDevice();
     std::uint8_t const SyncIndex     = Output + 1U >= g_ImageCount ? 0U : Output + 1U;
     VkSemaphore const &Semaphore     = GetImageAvailableSemaphore(SyncIndex);
@@ -106,8 +93,6 @@ bool RenderCore::RequestSwapChainImage(std::uint32_t &Output)
 
 void RenderCore::CreateSwapChainImageViews(std::array<ImageAllocation, g_ImageCount> &Images)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     std::for_each(std::execution::unseq,
                   std::begin(Images),
                   std::end(Images),
@@ -137,8 +122,6 @@ void RenderCore::PresentFrame(std::uint32_t const ImageIndice)
 
 void RenderCore::ReleaseSwapChainResources()
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VkDevice const &LogicalDevice = GetLogicalDevice();
     DestroySwapChainImages();
 
@@ -160,8 +143,6 @@ void RenderCore::ReleaseSwapChainResources()
 
 void RenderCore::DestroySwapChainImages()
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VmaAllocator const &Allocator = GetAllocator();
     std::for_each(std::execution::unseq,
                   std::begin(g_SwapChainImages),
@@ -170,34 +151,4 @@ void RenderCore::DestroySwapChainImages()
                   {
                       ImageIter.DestroyResources(Allocator);
                   });
-}
-
-VkSurfaceKHR const &RenderCore::GetSurface()
-{
-    return g_Surface;
-}
-
-VkSwapchainKHR const &RenderCore::GetSwapChain()
-{
-    return g_SwapChain;
-}
-
-VkExtent2D const &RenderCore::GetSwapChainExtent()
-{
-    return g_SwapChainImages.at(0U).Extent;
-}
-
-VkFormat const &RenderCore::GetSwapChainImageFormat()
-{
-    return g_SwapChainImages.at(0U).Format;
-}
-
-std::array<ImageAllocation, g_ImageCount> const &RenderCore::GetSwapChainImages()
-{
-    return g_SwapChainImages;
-}
-
-SurfaceProperties const &RenderCore::GetCachedSurfaceProperties()
-{
-    return g_CachedProperties;
 }

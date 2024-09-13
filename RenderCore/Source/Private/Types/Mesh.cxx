@@ -8,7 +8,6 @@ module;
 
 module RenderCore.Types.Mesh;
 
-import RenderCore.Runtime.Scene;
 import RenderCore.Runtime.Memory;
 
 using namespace RenderCore;
@@ -64,35 +63,8 @@ void Mesh::Optimize()
                                 sizeof(Vertex));
 }
 
-Transform const &Mesh::GetTransform() const
-{
-    return m_Transform;
-}
-
-void Mesh::SetTransform(Transform const &Transform)
-{
-    m_Transform = Transform;
-}
-
-glm::vec3 Mesh::GetCenter() const
-{
-    return (m_Bounds.Min + m_Bounds.Max) / 2.0f;
-}
-
-float Mesh::GetSize() const
-{
-    return distance(m_Bounds.Min, m_Bounds.Max);
-}
-
-Bounds const &Mesh::GetBounds() const
-{
-    return m_Bounds;
-}
-
 void Mesh::SetupBounds()
 {
-    EASY_FUNCTION(profiler::colors::Red50);
-
     for (const auto &VertexIter : m_Vertices)
     {
         glm::vec4 const TransformedVertex = glm::vec4(VertexIter.Position, 1.0f) * m_Transform.GetMatrix();
@@ -107,96 +79,8 @@ void Mesh::SetupBounds()
     }
 }
 
-std::vector<Vertex> const &Mesh::GetVertices() const
-{
-    return m_Vertices;
-}
-
-void Mesh::SetVertices(std::vector<Vertex> const &Vertices)
-{
-    m_Vertices = Vertices;
-}
-
-std::vector<std::uint32_t> const &Mesh::GetIndices() const
-{
-    return m_Indices;
-}
-
-void Mesh::SetIndices(std::vector<std::uint32_t> const &Indices)
-{
-    m_Indices      = Indices;
-    m_NumTriangles = static_cast<std::uint32_t>(std::size(m_Indices) / 3U);
-}
-
-std::uint32_t Mesh::GetNumTriangles() const
-{
-    return m_NumTriangles;
-}
-
-std::uint32_t Mesh::GetNumVertices() const
-{
-    return static_cast<std::uint32_t>(std::size(m_Vertices));
-}
-
-std::uint32_t Mesh::GetNumIndices() const
-{
-    return static_cast<std::uint32_t>(std::size(m_Indices));
-}
-
-VkDeviceSize Mesh::GetVertexOffset() const
-{
-    return m_VertexOffset;
-}
-
-void Mesh::SetVertexOffset(VkDeviceSize const &VertexOffset)
-{
-    m_VertexOffset = VertexOffset;
-}
-
-VkDeviceSize Mesh::GetIndexOffset() const
-{
-    return m_IndexOffset;
-}
-
-void Mesh::SetIndexOffset(VkDeviceSize const &IndexOffset)
-{
-    m_IndexOffset = IndexOffset;
-}
-
-MaterialData const &Mesh::GetMaterialData() const
-{
-    return m_MaterialData;
-}
-
-void Mesh::SetMaterialData(MaterialData const &MaterialData)
-{
-    m_MaterialData = MaterialData;
-}
-
-std::vector<std::shared_ptr<Texture>> const &Mesh::GetTextures() const
-{
-    return m_Textures;
-}
-
-void Mesh::SetTextures(std::vector<std::shared_ptr<Texture>> const &Textures)
-{
-    m_Textures = Textures;
-
-    for (auto const &Texture : m_Textures)
-    {
-        Texture->SetupTexture();
-    }
-}
-
 void Mesh::BindBuffers(VkCommandBuffer const &CommandBuffer, std::uint32_t const NumInstances) const
 {
-    EASY_FUNCTION(profiler::colors::Red50);
-
-    EASY_VALUE("ID",        GetID());
-    EASY_VALUE("Triangles", GetNumTriangles());
-    EASY_VALUE("Indices",   GetNumVertices());
-    EASY_VALUE("Vertices",  GetNumIndices());
-
     VkBuffer const &AllocationBuffer = GetAllocationBuffer();
 
     vkCmdBindVertexBuffers(CommandBuffer, 0U, 1U, &AllocationBuffer, &m_VertexOffset);

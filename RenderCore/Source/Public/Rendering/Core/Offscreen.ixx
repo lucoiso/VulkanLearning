@@ -4,17 +4,24 @@
 
 module;
 
-export module RenderCore.Integrations.Offscreen;
+export module RenderCore.Runtime.Offscreen;
 
-import RenderCore.Types.Allocation;
-import RenderCore.Types.SurfaceProperties;
-import RenderCore.Utils.Constants;
+export import RenderCore.Utils.Constants;
+export import RenderCore.Types.Allocation;
+export import RenderCore.Types.SurfaceProperties;
+
+namespace RenderCore
+{
+    RENDERCOREMODULE_API std::array<ImageAllocation, g_ImageCount> g_OffscreenImages {};
+}
 
 export namespace RenderCore
 {
     void CreateOffscreenResources(SurfaceProperties const &);
-
-    [[nodiscard]] std::array<ImageAllocation, g_ImageCount> const &GetOffscreenImages();
-
     void DestroyOffscreenImages();
+
+    RENDERCOREMODULE_API [[nodiscard]] inline std::array<ImageAllocation, g_ImageCount> const &GetOffscreenImages()
+    {
+        return g_OffscreenImages;
+    }
 } // namespace RenderCore

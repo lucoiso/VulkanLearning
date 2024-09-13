@@ -6,9 +6,7 @@ module;
 
 export module RenderCore.Types.Camera;
 
-import RenderCore.Types.Transform;
-import RenderCore.Types.Object;
-import RenderCore.Types.Allocation;
+export import RenderCore.Types.Object;
 
 namespace RenderCore
 {
@@ -40,29 +38,109 @@ namespace RenderCore
     public:
         Camera() = default;
 
-        [[nodiscard]] glm::vec3 GetPosition() const;
-        void                    SetPosition(glm::vec3 const &);
+        [[nodiscard]] inline glm::vec3 GetPosition() const
+        {
+            return m_Position;
+        }
 
-        [[nodiscard]] glm::vec3 GetRotation() const;
-        void                    SetRotation(glm::vec3 const &);
+        inline void SetPosition(glm::vec3 const &Value)
+        {
+            if (m_Position != Value)
+            {
+                m_Position      = Value;
+                m_IsRenderDirty = true;
+            }
+        }
 
-        [[nodiscard]] float GetSpeed() const;
-        void                SetSpeed(float);
+        [[nodiscard]] inline glm::vec3 GetRotation() const
+        {
+            return m_Rotation;
+        }
 
-        [[nodiscard]] float GetSensitivity() const;
-        void                SetSensitivity(float);
+        inline void SetRotation(glm::vec3 const &Value)
+        {
+            if (m_Rotation != Value)
+            {
+                m_Rotation      = Value;
+                m_IsRenderDirty = true;
+            }
+        }
 
-        [[nodiscard]] float GetFieldOfView() const;
-        void                SetFieldOfView(float);
+        [[nodiscard]] inline float GetSpeed() const
+        {
+            return m_Speed;
+        }
 
-        [[nodiscard]] float GetNearPlane() const;
-        void                SetNearPlane(float);
+        inline void SetSpeed(float const Value)
+        {
+            m_Speed = Value;
+        }
 
-        [[nodiscard]] float GetFarPlane() const;
-        void                SetFarPlane(float);
+        [[nodiscard]] inline float GetSensitivity() const
+        {
+            return m_Sensitivity;
+        }
 
-        [[nodiscard]] float GetDrawDistance() const;
-        void                SetDrawDistance(float);
+        inline void SetSensitivity(float const Value)
+        {
+            m_Sensitivity = Value;
+        }
+
+        [[nodiscard]] inline float GetFieldOfView() const
+        {
+            return m_FieldOfView;
+        }
+
+        inline void SetFieldOfView(float const Value)
+        {
+            if (m_FieldOfView != Value)
+            {
+                m_FieldOfView   = Value;
+                m_IsRenderDirty = true;
+            }
+        }
+
+        [[nodiscard]] inline float GetNearPlane() const
+        {
+            return m_NearPlane;
+        }
+
+        inline void SetNearPlane(float const Value)
+        {
+            if (m_NearPlane != Value)
+            {
+                m_NearPlane     = Value;
+                m_IsRenderDirty = true;
+            }
+        }
+
+        [[nodiscard]] inline float GetFarPlane() const
+        {
+            return m_FarPlane;
+        }
+
+        inline void SetFarPlane(float const Value)
+        {
+            if (m_FarPlane != Value)
+            {
+                m_FarPlane      = Value;
+                m_IsRenderDirty = true;
+            }
+        }
+
+        [[nodiscard]] inline float GetDrawDistance() const
+        {
+            return m_DrawDistance;
+        }
+
+        inline void SetDrawDistance(float const Value)
+        {
+            if (m_DrawDistance != Value)
+            {
+                m_DrawDistance  = Value;
+                m_IsRenderDirty = true;
+            }
+        }
 
         [[nodiscard]] glm::vec3 GetFront() const;
         [[nodiscard]] glm::vec3 GetUp() const;
@@ -71,9 +149,18 @@ namespace RenderCore
         [[nodiscard]] glm::mat4 GetViewMatrix() const;
         [[nodiscard]] glm::mat4 GetProjectionMatrix() const;
 
-        [[nodiscard]] CameraMovementStateFlags GetCameraMovementStateFlags() const;
-        void                                   SetCameraMovementStateFlags(CameraMovementStateFlags);
-        void                                   UpdateCameraMovement(float);
+
+        [[nodiscard]] inline CameraMovementStateFlags GetCameraMovementStateFlags() const
+        {
+            return m_MovementStateFlags;
+        }
+
+        inline void SetCameraMovementStateFlags(CameraMovementStateFlags const Value)
+        {
+            m_MovementStateFlags = Value;
+        }
+
+        void UpdateCameraMovement(float);
 
         [[nodiscard]] bool        IsInsideCameraFrustum(std::shared_ptr<Object> const &) const;
         static void               CalculateFrustumPlanes(glm::mat4 const &, std::array<glm::vec4, 6U> &);
@@ -81,7 +168,14 @@ namespace RenderCore
         [[nodiscard]] bool        IsInAllowedDistance(std::shared_ptr<Object> const &) const;
         [[nodiscard]] bool        CanDrawObject(std::shared_ptr<Object> const &) const;
 
-        [[nodiscard]] bool IsRenderDirty() const;
-        void               SetRenderDirty(bool) const;
+        [[nodiscard]] inline bool IsRenderDirty() const
+        {
+            return m_IsRenderDirty;
+        }
+
+        inline void SetRenderDirty(bool const Value) const
+        {
+            m_IsRenderDirty = Value;
+        }
     };
 } // namespace RenderCore

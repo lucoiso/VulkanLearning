@@ -9,12 +9,7 @@ module RenderCore.Types.Object;
 import RenderCore.Renderer;
 import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Pipeline;
-import RenderCore.Runtime.Device;
-import RenderCore.Runtime.Scene;
-import RenderCore.Utils.Constants;
 import RenderCore.Types.UniformBufferObject;
-import RenderCore.Types.Material;
-import RenderCore.Types.Texture;
 
 using namespace RenderCore;
 
@@ -28,116 +23,10 @@ Object::Object(std::uint32_t const ID, strzilla::string_view const Path, strzill
 {
 }
 
-Transform const &Object::GetTransform() const
-{
-    return m_Transform;
-}
-
-void Object::SetTransform(Transform const &Value)
-{
-    if (m_Transform != Value)
-    {
-        m_Transform     = Value;
-        m_IsRenderDirty = true;
-    }
-}
-
-std::uint32_t Object::GetNumInstances() const
-{
-    return static_cast<std::uint32_t>(std::size(m_InstanceTransform));
-}
-
-void Object::SetNumInstance(std::uint32_t const Value)
-{
-    if (GetNumInstances() != Value)
-    {
-        m_InstanceTransform.resize(Value);
-        m_IsRenderDirty = true;
-    }
-}
-
-Transform const &Object::GetInstanceTransform(std::uint32_t const Index) const
-{
-    return m_InstanceTransform.at(Index);
-}
-
-void Object::SetInstanceTransform(std::uint32_t const Index, Transform const &Value)
-{
-    if (Transform &TransformIt = m_InstanceTransform.at(Index);
-        TransformIt != Value)
-    {
-        TransformIt     = Value;
-        m_IsRenderDirty = true;
-    }
-}
-
-glm::vec3 Object::GetPosition() const
-{
-    return m_Transform.GetPosition();
-}
-
-void Object::SetPosition(glm::vec3 const &Value)
-{
-    if (m_Transform.GetPosition() != Value)
-    {
-        m_Transform.SetPosition(Value);
-        m_IsRenderDirty = true;
-    }
-}
-
-glm::vec3 Object::GetRotation() const
-{
-    return m_Transform.GetRotation();
-}
-
-void Object::SetRotation(glm::vec3 const &Value)
-{
-    if (m_Transform.GetRotation() != Value)
-    {
-        m_Transform.SetRotation(Value);
-        m_IsRenderDirty = true;
-    }
-}
-
-glm::vec3 Object::GetScale() const
-{
-    return m_Transform.GetScale();
-}
-
-void Object::SetScale(glm::vec3 const &Value)
-{
-    if (m_Transform.GetScale() != Value)
-    {
-        m_Transform.SetScale(Value);
-        m_IsRenderDirty = true;
-    }
-}
-
-glm::mat4 Object::GetMatrix() const
-{
-    return m_Transform.GetMatrix();
-}
-
-void Object::SetMatrix(glm::mat4 const &Value)
-{
-    m_Transform.SetMatrix(Value);
-    m_IsRenderDirty = true;
-}
-
 void Object::Destroy()
 {
     Resource::Destroy();
     Renderer::RequestUnloadObjects({ GetID() });
-}
-
-std::uint32_t Object::GetUniformOffset() const
-{
-    return m_UniformOffset;
-}
-
-void Object::SetUniformOffset(std::uint32_t const &Offset)
-{
-    m_UniformOffset = Offset;
 }
 
 void Object::SetupUniformDescriptor()
@@ -148,8 +37,6 @@ void Object::SetupUniformDescriptor()
 
 void Object::UpdateUniformBuffers() const
 {
-    EASY_FUNCTION(profiler::colors::Red50);
-
     if (!m_MappedData)
     {
         return;
@@ -179,8 +66,6 @@ void Object::UpdateUniformBuffers() const
 
 void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout const &PipelineLayout, std::uint32_t const ObjectIndex) const
 {
-    EASY_FUNCTION(profiler::colors::Red50);
-
     if (!m_Mesh)
     {
         return;
@@ -188,7 +73,7 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
 
     auto const &[SceneData, ModelData, TextureData] = GetPipelineDescriptorData();
 
-    std::array const BufferBindingInfos {
+    std::array<VkDescriptorBufferBindingInfoEXT, 3U> const BufferBindingInfos {
             VkDescriptorBufferBindingInfoEXT
             {
                     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
@@ -211,9 +96,9 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
 
     constexpr std::array BufferIndices { 0U, 1U, 2U };
 
-    constexpr std::uint8_t NumTextures = static_cast<std::uint8_t>(TextureType::Count);
+    constexpr auto NumTextures = static_cast<std::uint8_t>(TextureType::Count);
 
-    std::array const BufferOffsets {
+    std::array<VkDeviceSize, 3U> const BufferOffsets {
             SceneData.LayoutOffset,
             ObjectIndex * ModelData.LayoutSize + ModelData.LayoutOffset,
             ObjectIndex * NumTextures * TextureData.LayoutSize + TextureData.LayoutOffset
@@ -228,24 +113,4 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
                                        std::data(BufferOffsets));
 
     m_Mesh->BindBuffers(CommandBuffer, std::empty(m_InstanceTransform) ? 1U : GetNumInstances());
-}
-
-std::shared_ptr<Mesh> Object::GetMesh() const
-{
-    return m_Mesh;
-}
-
-void Object::SetMesh(std::shared_ptr<Mesh> const &Value)
-{
-    m_Mesh = Value;
-}
-
-bool Object::IsRenderDirty() const
-{
-    return m_IsRenderDirty;
-}
-
-void Object::MarkAsRenderDirty() const
-{
-    m_IsRenderDirty = true;
 }

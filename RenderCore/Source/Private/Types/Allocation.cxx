@@ -10,15 +10,8 @@ import RenderCore.Runtime.Device;
 
 using namespace RenderCore;
 
-bool ImageAllocation::IsValid() const
-{
-    return Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE;
-}
-
 void ImageAllocation::DestroyResources(VmaAllocator const &Allocator)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
     if (Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
@@ -40,15 +33,8 @@ void ImageAllocation::DestroyResources(VmaAllocator const &Allocator)
     }
 }
 
-bool BufferAllocation::IsValid() const
-{
-    return Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE;
-}
-
 void BufferAllocation::DestroyResources(VmaAllocator const &Allocator)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     if (Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE)
     {
         if (MappedData)
@@ -84,15 +70,8 @@ VkDeviceSize BufferAllocation::GetAllocationSize(VmaAllocator const &Allocator) 
     return AllocationInfo.size;
 }
 
-bool DescriptorData::IsValid() const
-{
-    return Buffer.IsValid() && SetLayout != VK_NULL_HANDLE;
-}
-
 void DescriptorData::DestroyResources(VmaAllocator const &Allocator, bool const IncludeStatic)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     if (IncludeStatic)
     {
         if (SetLayout != VK_NULL_HANDLE)

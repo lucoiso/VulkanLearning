@@ -8,7 +8,7 @@ export module RenderCore.Types.Vertex;
 
 namespace RenderCore
 {
-    export struct Vertex
+    export struct RENDERCOREMODULE_API Vertex
     {
         glm::vec3 Position {};
         glm::vec3 Normal {};

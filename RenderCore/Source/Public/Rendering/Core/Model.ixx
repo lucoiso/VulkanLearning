@@ -6,10 +6,7 @@ module;
 
 export module RenderCore.Runtime.Model;
 
-import RenderCore.Types.Vertex;
-import RenderCore.Types.Material;
-import RenderCore.Types.Mesh;
-import RenderCore.Types.Allocation;
+export import RenderCore.Types.Mesh;
 
 namespace RenderCore
 {

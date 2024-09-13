@@ -6,14 +6,9 @@ module;
 
 export module RenderCore.Types.Allocation;
 
-import RenderCore.Utils.Constants;
-import RenderCore.Types.Vertex;
-import RenderCore.Types.Material;
-import RenderCore.Types.UniformBufferObject;
-
 namespace RenderCore
 {
-    export struct ImageAllocation
+    export struct RENDERCOREMODULE_API ImageAllocation
     {
         VkImage       Image { VK_NULL_HANDLE };
         VkImageView   View { VK_NULL_HANDLE };
@@ -21,23 +16,31 @@ namespace RenderCore
         VkExtent2D    Extent {};
         VkFormat      Format {};
 
-        [[nodiscard]] bool IsValid() const;
-        void               DestroyResources(VmaAllocator const &);
+        inline [[nodiscard]] bool IsValid() const
+        {
+            return Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE;
+        }
+
+        void DestroyResources(VmaAllocator const &);
     };
 
-    export struct BufferAllocation
+    export struct RENDERCOREMODULE_API BufferAllocation
     {
         VkBuffer      Buffer { VK_NULL_HANDLE };
         VkDeviceSize  Size { 0U };
         VmaAllocation Allocation { VK_NULL_HANDLE };
         void *        MappedData { nullptr };
 
-        [[nodiscard]] bool         IsValid() const;
+        inline [[nodiscard]] bool IsValid() const
+        {
+            return Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE;
+        }
+
         void                       DestroyResources(VmaAllocator const &);
         [[nodiscard]] VkDeviceSize GetAllocationSize(VmaAllocator const &) const;
     };
 
-    export struct DescriptorData
+    export struct RENDERCOREMODULE_API DescriptorData
     {
         VkDescriptorSetLayout         SetLayout { VK_NULL_HANDLE };
         VkDeviceOrHostAddressConstKHR BufferDeviceAddress {};
@@ -45,8 +48,12 @@ namespace RenderCore
         VkDeviceSize                  LayoutSize { 0U };
         BufferAllocation              Buffer {};
 
-        [[nodiscard]] bool IsValid() const;
-        void               DestroyResources(VmaAllocator const &, bool);
+        inline[[nodiscard]] bool IsValid() const
+        {
+            return Buffer.IsValid() && SetLayout != VK_NULL_HANDLE;
+        }
+
+        void DestroyResources(VmaAllocator const &, bool);
 
         void SetDescriptorLayoutSize(VkDeviceSize const &);
     };

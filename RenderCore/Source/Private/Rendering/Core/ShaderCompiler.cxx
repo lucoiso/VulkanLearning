@@ -15,12 +15,7 @@ module;
 
 module RenderCore.Runtime.ShaderCompiler;
 
-import RenderCore.Utils.Helpers;
-import RenderCore.Utils.DebugHelpers;
-
 using namespace RenderCore;
-
-std::vector<ShaderStageData> g_StageInfos;
 
 bool CompileInternal(ShaderType const            ShaderType,
                      strzilla::string_view const Source,
@@ -29,8 +24,6 @@ bool CompileInternal(ShaderType const            ShaderType,
                      std::int32_t const          Version,
                      std::vector<std::uint32_t> &OutSPIRVCode)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     glslang::InitializeProcess();
 
     glslang::TShader Shader(Language);
@@ -97,8 +90,6 @@ bool CompileInternal(ShaderType const            ShaderType,
 #ifdef _DEBUG
 bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     static spvtools::SpirvTools SPIRVToolsInstance(SPV_ENV_VULKAN_1_3);
 
     if (!SPIRVToolsInstance.IsValid())
@@ -157,8 +148,6 @@ bool RenderCore::Compile(strzilla::string_view const Source,
                          EShLanguage const           Language,
                          std::vector<std::uint32_t> &OutSPIRVCode)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     std::filesystem::path const Path { std::data(Source) };
     std::stringstream           ShaderSource;
     std::ifstream               File { Path };
@@ -198,8 +187,6 @@ bool RenderCore::Compile(strzilla::string_view const Source,
 
 bool RenderCore::Load(strzilla::string_view const Source, std::vector<std::uint32_t> &OutSPIRVCode)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     std::filesystem::path const Path { std::data(Source) };
     if (!exists(Path))
     {
@@ -234,8 +221,6 @@ bool RenderCore::CompileOrLoadIfExists(strzilla::string_view const Source,
                                        EShLanguage const           Language,
                                        std::vector<std::uint32_t> &OutSPIRVCode)
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     if (strzilla::string const CompiledShaderPath = std::format("{}_{}.spv", std::data(Source), static_cast<std::uint8_t>(Language));
         std::filesystem::exists(std::data(CompiledShaderPath)))
     {
@@ -245,20 +230,8 @@ bool RenderCore::CompileOrLoadIfExists(strzilla::string_view const Source,
     return Compile(Source, ShaderType, EntryPoint, Version, Language, OutSPIRVCode);
 }
 
-std::vector<ShaderStageData> const &RenderCore::GetStageData()
-{
-    return g_StageInfos;
-}
-
-void RenderCore::ReleaseShaderResources()
-{
-    g_StageInfos.clear();
-}
-
 void RenderCore::CompileDefaultShaders()
 {
-    EASY_FUNCTION(profiler::colors::Red);
-
     constexpr auto GlslVersion = 450;
     constexpr auto EntryPoint  = "main";
 

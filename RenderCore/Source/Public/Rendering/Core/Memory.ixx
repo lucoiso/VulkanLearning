@@ -6,77 +6,65 @@ module;
 
 export module RenderCore.Runtime.Memory;
 
-import RenderCore.Types.Allocation;
-import RenderCore.Types.Vertex;
-import RenderCore.Types.Object;
-import RenderCore.Types.Mesh;
-import RenderCore.Types.Texture;
-import RenderCore.Utils.Helpers;
-import RenderCore.Utils.EnumHelpers;
-import RenderCore.Utils.Constants;
+export import RenderCore.Runtime.Scene;
+export import RenderCore.Types.Allocation;
+export import RenderCore.Types.Object;
+export import RenderCore.Utils.Constants;
+export import RenderCore.Utils.EnumHelpers;
+export import RenderCore.Utils.Helpers;
+
+namespace RenderCore
+{
+    VmaPool                                            g_StagingBufferPool{VK_NULL_HANDLE};
+    VmaPool                                            g_DescriptorBufferPool{VK_NULL_HANDLE};
+    VmaPool                                            g_BufferPool{VK_NULL_HANDLE};
+    VmaPool                                            g_ImagePool{VK_NULL_HANDLE};
+    VmaAllocator                                       g_Allocator{VK_NULL_HANDLE};
+    BufferAllocation                                   g_BufferAllocation{};
+    std::atomic<std::uint64_t>                         g_ImageAllocationIDCounter{0U};
+    std::unordered_map<std::uint32_t, ImageAllocation> g_AllocatedImages{};
+    std::unordered_map<std::uint32_t, std::uint32_t>   g_ImageAllocationCounter{};
+} // namespace RenderCore
 
 export namespace RenderCore
 {
     void CreateMemoryAllocator();
     void ReleaseMemoryResources();
 
-    [[nodiscard]] VmaAllocator const &GetAllocator();
-
     VmaAllocationInfo CreateBuffer(VkDeviceSize const &, VkBufferUsageFlags, strzilla::string_view, VkBuffer &, VmaAllocation &);
     void              CopyBuffer(VkCommandBuffer const &, VkBuffer const &, VkBuffer const &, VkDeviceSize const &);
     void              CreateUniformBuffers(BufferAllocation &, VkDeviceSize, strzilla::string_view);
 
-    void CreateImage(VkFormat const &,
-                     VkExtent2D const &,
-                     VkImageTiling const &,
-                     VkImageUsageFlags,
-                     VmaMemoryUsage,
-                     strzilla::string_view,
-                     VkImage &,
-                     VmaAllocation &);
+    void CreateImage(
+            VkFormat const &, VkExtent2D const &, VkImageTiling const &, VkImageUsageFlags, VmaMemoryUsage, strzilla::string_view, VkImage &, VmaAllocation &);
     void CreateImageView(VkImage const &, VkFormat const &, VkImageAspectFlags const &, VkImageView &);
     void CreateTextureImageView(ImageAllocation &, VkFormat);
     void CopyBufferToImage(VkCommandBuffer const &, VkBuffer const &, VkImage const &, VkExtent2D const &);
 
-    [[nodiscard]] std::tuple<std::uint32_t, VkBuffer, VmaAllocation> AllocateTexture(VkCommandBuffer const &,
-                                                                                     unsigned char const *,
-                                                                                     std::uint32_t,
-                                                                                     std::uint32_t,
-                                                                                     VkFormat,
-                                                                                     VkDeviceSize);
+    [[nodiscard]] std::tuple<std::uint32_t, VkBuffer, VmaAllocation>
+    AllocateTexture(VkCommandBuffer const &, unsigned char const *, std::uint32_t, std::uint32_t, VkFormat, VkDeviceSize);
 
     void AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> const &);
 
-    [[nodiscard]] VkBuffer const &       GetAllocationBuffer();
-    [[nodiscard]] void *                 GetAllocationMappedData();
-    [[nodiscard]] VkDescriptorBufferInfo GetAllocationBufferDescriptor(std::uint32_t, std::uint32_t);
-    [[nodiscard]] VkDescriptorImageInfo  GetAllocationImageDescriptor(std::uint32_t);
-
     template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
-    constexpr VkImageMemoryBarrier2 MountImageBarrier(VkImage const &     Image,
-                                                      VkFormat const &    Format,
+    RENDERCOREMODULE_API constexpr VkImageMemoryBarrier2 MountImageBarrier(VkImage const      &Image,
+                                                      VkFormat const     &Format,
                                                       std::uint32_t const FromQueueIndex = VK_QUEUE_FAMILY_IGNORED,
                                                       std::uint32_t const ToQueueIndex   = VK_QUEUE_FAMILY_IGNORED)
     {
-        EASY_FUNCTION(profiler::colors::Red);
-
-        VkImageMemoryBarrier2 ImageBarrier {
-                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                .srcAccessMask = 0U,
-                .dstAccessMask = 0U,
-                .oldLayout = OldLayout,
-                .newLayout = NewLayout,
-                .srcQueueFamilyIndex = FromQueueIndex,
-                .dstQueueFamilyIndex = ToQueueIndex,
-                .image = Image,
-                .subresourceRange = {
-                        .aspectMask = Aspect,
-                        .baseMipLevel = 0U,
-                        .levelCount = VK_REMAINING_MIP_LEVELS,
-                        .baseArrayLayer = 0U,
-                        .layerCount = VK_REMAINING_ARRAY_LAYERS
-                }
-        };
+        VkImageMemoryBarrier2 ImageBarrier{.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                           .srcAccessMask       = 0U,
+                                           .dstAccessMask       = 0U,
+                                           .oldLayout           = OldLayout,
+                                           .newLayout           = NewLayout,
+                                           .srcQueueFamilyIndex = FromQueueIndex,
+                                           .dstQueueFamilyIndex = ToQueueIndex,
+                                           .image               = Image,
+                                           .subresourceRange    = {.aspectMask     = Aspect,
+                                                                   .baseMipLevel   = 0U,
+                                                                   .levelCount     = VK_REMAINING_MIP_LEVELS,
+                                                                   .baseArrayLayer = 0U,
+                                                                   .layerCount     = VK_REMAINING_ARRAY_LAYERS}};
 
         if constexpr (HasFlag<VkImageAspectFlags>(Aspect, g_DepthAspect))
         {
@@ -143,32 +131,55 @@ export namespace RenderCore
     }
 
     template <VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect>
-    constexpr void RequestImageLayoutTransition(VkCommandBuffer const &CommandBuffer,
-                                                VkImage const &        Image,
-                                                VkFormat const &       Format,
+    RENDERCOREMODULE_API constexpr void RequestImageLayoutTransition(VkCommandBuffer const &CommandBuffer,
+                                                VkImage const         &Image,
+                                                VkFormat const        &Format,
                                                 std::uint32_t const    FromQueueIndex = VK_QUEUE_FAMILY_IGNORED,
                                                 std::uint32_t const    ToQueueIndex   = VK_QUEUE_FAMILY_IGNORED)
     {
         VkImageMemoryBarrier2 ImageBarrier = MountImageBarrier<OldLayout, NewLayout, Aspect>(Image, Format, FromQueueIndex, ToQueueIndex);
 
-        VkDependencyInfo const DependencyInfo {
-                .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
-                .imageMemoryBarrierCount = 1U,
-                .pImageMemoryBarriers = &ImageBarrier
-        };
+        VkDependencyInfo const DependencyInfo{.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                                              .dependencyFlags         = VK_DEPENDENCY_BY_REGION_BIT,
+                                              .imageMemoryBarrierCount = 1U,
+                                              .pImageMemoryBarriers    = &ImageBarrier};
 
         vkCmdPipelineBarrier2(CommandBuffer, &DependencyInfo);
     }
 
-    void SaveImageToFile(VkImage const &, strzilla::string_view, VkExtent2D const &);
+    RENDERCOREMODULE_API void SaveImageToFile(VkImage const &, strzilla::string_view, VkExtent2D const &);
 
     struct TextureDeleter
     {
-        void operator()(Texture *Texture) const;
+        void operator()(class Texture *Texture) const;
     };
 
-    void PrintMemoryAllocatorStats(bool);
+    RENDERCOREMODULE_API void PrintMemoryAllocatorStats(bool);
 
-    [[nodiscard]] strzilla::string GetMemoryAllocatorStats(bool);
+    RENDERCOREMODULE_API [[nodiscard]] strzilla::string GetMemoryAllocatorStats(bool);
+
+    RENDERCOREMODULE_API [[nodiscard]] inline VmaAllocator const &GetAllocator()
+    {
+        return g_Allocator;
+    }
+
+    RENDERCOREMODULE_API [[nodiscard]] inline VkBuffer const &GetAllocationBuffer()
+    {
+        return g_BufferAllocation.Buffer;
+    }
+
+    RENDERCOREMODULE_API [[nodiscard]] inline void *GetAllocationMappedData()
+    {
+        return g_BufferAllocation.MappedData;
+    }
+
+    RENDERCOREMODULE_API [[nodiscard]] inline VkDescriptorBufferInfo GetAllocationBufferDescriptor(std::uint32_t const Offset, std::uint32_t const Range)
+    {
+        return VkDescriptorBufferInfo{.buffer = GetAllocationBuffer(), .offset = Offset, .range = Range};
+    }
+
+    RENDERCOREMODULE_API [[nodiscard]] inline VkDescriptorImageInfo GetAllocationImageDescriptor(std::uint32_t const Index)
+    {
+        return VkDescriptorImageInfo{.sampler = GetSampler(), .imageView = g_AllocatedImages.at(Index).View, .imageLayout = g_ReadLayout};
+    }
 } // namespace RenderCore

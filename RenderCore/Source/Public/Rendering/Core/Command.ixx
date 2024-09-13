@@ -6,13 +6,17 @@ module;
 
 export module RenderCore.Runtime.Command;
 
-import RenderCore.Types.Object;
-import RenderCore.Types.Camera;
-import ThreadPool;
+export import ThreadPool;
+export import RenderCore.Types.Allocation;
 
 namespace RenderCore
 {
-    export struct ThreadResources
+    RENDERCOREMODULE_API ThreadPool::Pool g_ThreadPool {};
+
+    std::function<void(std::uint8_t)> g_OnCommandPoolResetCallback {};
+    std::function<void(VkCommandBuffer const &, ImageAllocation const &)> g_OnCommandBufferRecordCallback {};
+
+    export struct RENDERCOREMODULE_API ThreadResources
     {
         VkCommandPool   CommandPool { VK_NULL_HANDLE };
         VkCommandBuffer CommandBuffer { VK_NULL_HANDLE };
@@ -31,8 +35,22 @@ namespace RenderCore
     export void                 ReleaseCommandsResources();
     export void                 RecordCommandBuffers(std::uint32_t);
     export void                 SubmitCommandBuffers(std::uint32_t);
-    export void                 InitializeSingleCommandQueue(VkCommandPool &, std::vector<VkCommandBuffer> &, std::uint8_t);
-    export void                 FinishSingleCommandQueue(VkQueue const &, VkCommandPool const &, std::vector<VkCommandBuffer> const &);
 
-    export ThreadPool::Pool &GetThreadPool();
+    export RENDERCOREMODULE_API void InitializeSingleCommandQueue(VkCommandPool &, std::vector<VkCommandBuffer> &, std::uint8_t);
+    export RENDERCOREMODULE_API void FinishSingleCommandQueue(VkQueue const &, VkCommandPool const &, std::vector<VkCommandBuffer> const &);
+
+    export RENDERCOREMODULE_API [[nodiscard]] inline ThreadPool::Pool &GetThreadPool()
+    {
+        return g_ThreadPool;
+    }
+
+    export RENDERCOREMODULE_API inline void SetOnCommandPoolResetCallbackCallback(std::function<void(std::uint8_t)> &&Callback)
+    {
+        g_OnCommandPoolResetCallback = std::move(Callback);
+    }
+
+    export RENDERCOREMODULE_API inline void SetOnCommandBufferRecordCallbackCallback(std::function<void(VkCommandBuffer const &, ImageAllocation const &)> &&Callback)
+    {
+        g_OnCommandBufferRecordCallback = std::move(Callback);
+    }
 } // namespace RenderCore
