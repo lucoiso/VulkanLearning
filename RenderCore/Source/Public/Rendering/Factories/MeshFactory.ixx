@@ -22,4 +22,4 @@ namespace RenderCore
     };
 
     export RENDERCOREMODULE_API [[nodiscard]] std::shared_ptr<Mesh> ConstructMesh(MeshConstructionInputParameters const &);
-}; // namespace RenderCore
+}

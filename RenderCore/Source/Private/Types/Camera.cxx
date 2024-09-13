@@ -101,9 +101,9 @@ bool Camera::IsInsideCameraFrustum(std::shared_ptr<Object> const &Object) const
     std::array<glm::vec4, 6U> FrustumPlanes;
     CalculateFrustumPlanes(GetProjectionMatrix() * GetViewMatrix(), FrustumPlanes);
 
-    for (auto const &plane : FrustumPlanes)
+    for (auto const &PlaneIt : FrustumPlanes)
     {
-        if (!BoxIntersectsPlane(MeshBounds, plane))
+        if (!BoxIntersectsPlane(MeshBounds, PlaneIt))
         {
             return false;
         }

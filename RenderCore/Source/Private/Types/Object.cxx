@@ -73,7 +73,7 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
 
     auto const &[SceneData, ModelData, TextureData] = GetPipelineDescriptorData();
 
-    std::array<VkDescriptorBufferBindingInfoEXT, 3U> const BufferBindingInfos {
+    std::array const BufferBindingInfos {
             VkDescriptorBufferBindingInfoEXT
             {
                     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
@@ -98,7 +98,7 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
 
     constexpr auto NumTextures = static_cast<std::uint8_t>(TextureType::Count);
 
-    std::array<VkDeviceSize, 3U> const BufferOffsets {
+    std::array const BufferOffsets {
             SceneData.LayoutOffset,
             ObjectIndex * ModelData.LayoutSize + ModelData.LayoutOffset,
             ObjectIndex * NumTextures * TextureData.LayoutSize + TextureData.LayoutOffset

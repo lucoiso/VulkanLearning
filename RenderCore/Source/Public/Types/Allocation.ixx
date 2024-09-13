@@ -16,7 +16,7 @@ namespace RenderCore
         VkExtent2D    Extent {};
         VkFormat      Format {};
 
-        inline [[nodiscard]] bool IsValid() const
+        [[nodiscard]] inline bool IsValid() const
         {
             return Image != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE;
         }
@@ -31,7 +31,7 @@ namespace RenderCore
         VmaAllocation Allocation { VK_NULL_HANDLE };
         void *        MappedData { nullptr };
 
-        inline [[nodiscard]] bool IsValid() const
+        [[nodiscard]] inline bool IsValid() const
         {
             return Buffer != VK_NULL_HANDLE && Allocation != VK_NULL_HANDLE;
         }
@@ -48,7 +48,7 @@ namespace RenderCore
         VkDeviceSize                  LayoutSize { 0U };
         BufferAllocation              Buffer {};
 
-        inline[[nodiscard]] bool IsValid() const
+        [[nodiscard]] inline bool IsValid() const
         {
             return Buffer.IsValid() && SetLayout != VK_NULL_HANDLE;
         }

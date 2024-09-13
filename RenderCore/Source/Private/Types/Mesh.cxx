@@ -65,7 +65,7 @@ void Mesh::Optimize()
 
 void Mesh::SetupBounds()
 {
-    for (const auto &VertexIter : m_Vertices)
+    for (auto const &VertexIter : m_Vertices)
     {
         glm::vec4 const TransformedVertex = glm::vec4(VertexIter.Position, 1.0f) * m_Transform.GetMatrix();
 

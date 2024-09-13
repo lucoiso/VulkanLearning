@@ -56,7 +56,7 @@ export namespace RenderCore
     }
 
     template <typename Out, typename Opt, typename Avail>
-    RENDERCOREMODULE_API constexpr void GetAvailableResources(const char* const Identifier, Out &Resource, Opt const &Optional, Avail const &Available)
+    RENDERCOREMODULE_API constexpr void GetAvailableResources(char const * const Identifier, Out &Resource, Opt const &Optional, Avail const &Available)
     {
         std::for_each(std::execution::unseq,
                       std::cbegin(Resource),

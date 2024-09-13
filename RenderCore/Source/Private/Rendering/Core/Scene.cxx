@@ -99,7 +99,7 @@ void RenderCore::AllocateEmptyTexture(VkFormat const TextureFormat)
     auto const &[FamilyIndex, Queue] = GetGraphicsQueue();
 
     InitializeSingleCommandQueue(CommandPool, CommandBuffers, FamilyIndex);
-    const auto [Index, Buffer, Allocation] = AllocateTexture(CommandBuffers.at(0U),
+    auto const [Index, Buffer, Allocation] = AllocateTexture(CommandBuffers.at(0U),
                                                              std::data(DefaultTextureData),
                                                              DefaultTextureHalfSize,
                                                              DefaultTextureHalfSize,

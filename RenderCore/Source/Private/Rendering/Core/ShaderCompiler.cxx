@@ -88,7 +88,7 @@ bool CompileInternal(ShaderType const            ShaderType,
 }
 
 #ifdef _DEBUG
-bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
+bool ValidateSPIRV(std::vector<std::uint32_t> const &SPIRVData)
 {
     static spvtools::SpirvTools SPIRVToolsInstance(SPV_ENV_VULKAN_1_3);
 
@@ -103,9 +103,9 @@ bool ValidateSPIRV(const std::vector<std::uint32_t> &SPIRVData)
     {
         SPIRVToolsInstance.SetMessageConsumer(
                 [_func_internal_ = __func__](spv_message_level_t const              Level,
-                                             [[maybe_unused]] const char           *Source,
-                                             [[maybe_unused]] const spv_position_t &Position,
-                                             const char                            *Message)
+                                             [[maybe_unused]] char const           *Source,
+                                             [[maybe_unused]] spv_position_t const &Position,
+                                             char const                            *Message)
                 {
                     switch (Level)
                     {

@@ -21,7 +21,7 @@ namespace RenderCore
 
     export constexpr std::array g_DebugInstanceExtensions{VK_EXT_DEBUG_UTILS_EXTENSION_NAME, VK_EXT_DEBUG_REPORT_EXTENSION_NAME};
 
-    export constexpr std::array<const char *, 0U> g_DebugDeviceExtensions{
+    export constexpr std::array<char const *, 0U> g_DebugDeviceExtensions{
             // VK_AMD_BUFFER_MARKER_EXTENSION_NAME
             // VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME
     };

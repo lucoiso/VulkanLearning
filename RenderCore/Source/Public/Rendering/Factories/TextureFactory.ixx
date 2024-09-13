@@ -27,4 +27,4 @@ namespace RenderCore
     export RENDERCOREMODULE_API [[nodiscard]] std::shared_ptr<Texture> ConstructTexture(TextureConstructionInputParameters const &, TextureConstructionOutputParameters &);
 
     export RENDERCOREMODULE_API [[nodiscard]] std::shared_ptr<Texture> ConstructTextureFromFile(strzilla::string_view const &, VkCommandBuffer&, TextureConstructionOutputParameters &);
-}; // namespace RenderCore
+}

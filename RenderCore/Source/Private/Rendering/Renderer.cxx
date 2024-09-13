@@ -249,7 +249,7 @@ void Renderer::SetUseDefaultSync(bool const Value)
 
 std::shared_ptr<Object> Renderer::GetObjectByID(std::uint32_t const ObjectID)
 {
-    return *std::ranges::find_if(RenderCore::GetObjects(),
+    return *std::ranges::find_if(GetObjects(),
                                  [ObjectID](std::shared_ptr<Object> const &ObjectIter)
                                  {
                                      return ObjectIter->GetID() == ObjectID;
@@ -291,7 +291,6 @@ std::vector<std::shared_ptr<Texture>> Renderer::LoadImages(std::vector<strzilla:
 
     auto const &                                                [QueueIndex, Queue] = GetGraphicsQueue();
     std::unordered_map<VkBuffer, VmaAllocation>                 BufferAllocations {};
-    std::unordered_map<std::uint32_t, std::shared_ptr<Texture>> TextureMap {};
 
     InitializeSingleCommandQueue(CommandPool, CommandBuffers, QueueIndex);
     {

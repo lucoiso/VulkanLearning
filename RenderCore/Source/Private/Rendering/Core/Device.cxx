@@ -118,7 +118,7 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
     QueueCreateInfo.reserve(std::size(QueueFamilyIndices));
 
     std::vector Priorities { 0.F };
-    for (const auto &Index : QueueFamilyIndices | std::views::keys)
+    for (auto const &Index : QueueFamilyIndices | std::views::keys)
     {
         g_UniqueQueueFamilyIndices.push_back(Index);
 
@@ -228,8 +228,8 @@ VkSurfaceCapabilitiesKHR RenderCore::GetSurfaceCapabilities()
 
 SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow *const Window)
 {
-    std::vector<VkSurfaceFormatKHR> const SupportedFormats           = GetAvailablePhysicalDeviceSurfaceFormats();
-    std::vector<VkPresentModeKHR> const   SupportedPresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes();
+    std::vector<VkSurfaceFormatKHR> const SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats();
+    [[maybe_unused]] auto const PresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes();
 
     SurfaceProperties Output { .Format = SupportedFormats.front(), .Extent = GetWindowExtent(Window, GetSurfaceCapabilities()) };
 
@@ -342,7 +342,7 @@ std::vector<VkExtensionProperties> RenderCore::GetAvailablePhysicalDeviceLayerEx
 std::vector<strzilla::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNames()
 {
     std::vector<strzilla::string> Output;
-    for (const auto &[Name, Version] : GetAvailablePhysicalDeviceExtensions())
+    for (auto const &[Name, Version] : GetAvailablePhysicalDeviceExtensions())
     {
         Output.emplace_back(Name);
     }
@@ -353,7 +353,7 @@ std::vector<strzilla::string> RenderCore::GetAvailablePhysicalDeviceExtensionsNa
 std::vector<strzilla::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensionsNames(strzilla::string_view const LayerName)
 {
     std::vector<strzilla::string> Output;
-    for (const auto &[Name, Version] : GetAvailablePhysicalDeviceLayerExtensions(LayerName))
+    for (auto const &[Name, Version] : GetAvailablePhysicalDeviceLayerExtensions(LayerName))
     {
         Output.emplace_back(Name);
     }
@@ -364,7 +364,7 @@ std::vector<strzilla::string> RenderCore::GetAvailablePhysicalDeviceLayerExtensi
 std::vector<strzilla::string> RenderCore::GetAvailablePhysicalDeviceLayersNames()
 {
     std::vector<strzilla::string> Output;
-    for (const auto &[Name, SpecVer, ImplVer, Description] : GetAvailablePhysicalDeviceLayers())
+    for (auto const &[Name, SpecVer, ImplVer, Description] : GetAvailablePhysicalDeviceLayers())
     {
         Output.emplace_back(Name);
     }

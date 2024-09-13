@@ -151,7 +151,7 @@ export namespace RenderCore
 
     struct TextureDeleter
     {
-        void operator()(class Texture *Texture) const;
+        void operator()(Texture *Texture) const;
     };
 
     RENDERCOREMODULE_API void PrintMemoryAllocatorStats(bool);

@@ -106,7 +106,7 @@ void PipelineData::CreateMainCache(VkDevice const &LogicalDevice)
 {
     if (g_PipelineData.PipelineCache == VK_NULL_HANDLE)
     {
-        CheckVulkanResult(vkCreatePipelineCache(LogicalDevice, &g_PipelineCacheCreateInfo, nullptr, &g_PipelineData.PipelineCache));
+        CheckVulkanResult(vkCreatePipelineCache(LogicalDevice, &g_PipelineCacheCreateInfo, nullptr, &PipelineCache));
     }
 }
 
@@ -114,7 +114,7 @@ void PipelineData::CreateLibraryCache(VkDevice const &LogicalDevice)
 {
     if (g_PipelineData.PipelineLibraryCache == VK_NULL_HANDLE)
     {
-        CheckVulkanResult(vkCreatePipelineCache(LogicalDevice, &g_PipelineCacheCreateInfo, nullptr, &g_PipelineData.PipelineLibraryCache));
+        CheckVulkanResult(vkCreatePipelineCache(LogicalDevice, &g_PipelineCacheCreateInfo, nullptr, &PipelineLibraryCache));
     }
 }
 

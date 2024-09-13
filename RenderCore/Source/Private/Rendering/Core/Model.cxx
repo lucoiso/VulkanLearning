@@ -62,14 +62,14 @@ void RenderCore::SetVertexAttributes(std::shared_ptr<Mesh> const &Mesh, tinygltf
         Vertices.resize(PositionAccessor.count);
     }
 
-    const float * PositionData = GetPrimitiveData("POSITION", Model, Primitive);
-    const float * NormalData   = GetPrimitiveData("NORMAL", Model, Primitive);
-    const float * TexCoordData = GetPrimitiveData("TEXCOORD_0", Model, Primitive);
+    float const  * PositionData = GetPrimitiveData("POSITION", Model, Primitive);
+    float const  * NormalData   = GetPrimitiveData("NORMAL", Model, Primitive);
+    float const  * TexCoordData = GetPrimitiveData("TEXCOORD_0", Model, Primitive);
     std::uint32_t NumColorComponents {};
-    const float * ColorData   = GetPrimitiveData("COLOR_0", Model, Primitive, &NumColorComponents);
-    const float * JointData   = GetPrimitiveData("JOINTS_0", Model, Primitive);
-    const float * WeightData  = GetPrimitiveData("WEIGHTS_0", Model, Primitive);
-    const float * TangentData = GetPrimitiveData("TANGENT", Model, Primitive);
+    float const  * ColorData   = GetPrimitiveData("COLOR_0", Model, Primitive, &NumColorComponents);
+    float const  * JointData   = GetPrimitiveData("JOINTS_0", Model, Primitive);
+    float const  * WeightData  = GetPrimitiveData("WEIGHTS_0", Model, Primitive);
+    float const  * TangentData = GetPrimitiveData("TANGENT", Model, Primitive);
 
     bool const HasSkin = JointData && WeightData;
 
@@ -141,12 +141,12 @@ void RenderCore::AllocatePrimitiveIndices(std::shared_ptr<Mesh> const &Mesh, tin
         {
             case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
             {
-                InsertIndiceInContainer(Indices, IndexAccessor, reinterpret_cast<const std::uint32_t *>(IndicesData));
+                InsertIndiceInContainer(Indices, IndexAccessor, reinterpret_cast<std::uint32_t const *>(IndicesData));
                 break;
             }
             case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT:
             {
-                InsertIndiceInContainer(Indices, IndexAccessor, reinterpret_cast<const uint16_t *>(IndicesData));
+                InsertIndiceInContainer(Indices, IndexAccessor, reinterpret_cast<uint16_t const *>(IndicesData));
                 break;
             }
             case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE:

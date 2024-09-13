@@ -371,7 +371,7 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const    ImageInd
                 break;
             }
 
-            if (const auto &Object = Objects.at(ObjectAccessIndex);
+            if (auto const &Object = Objects.at(ObjectAccessIndex);
                 Camera.CanDrawObject(Object))
             {
                 if (!HasDraw)
