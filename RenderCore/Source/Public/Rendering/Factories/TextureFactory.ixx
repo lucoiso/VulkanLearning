@@ -6,7 +6,7 @@ module;
 
 export module RenderCore.Factories.Texture;
 
-export import RenderCore.Types.Texture;
+import RenderCore.Types.Texture;
 
 namespace RenderCore
 {

@@ -6,8 +6,8 @@ module;
 
 export module RenderCore.Runtime.Pipeline;
 
-export import RenderCore.Types.Allocation;
-export import RenderCore.Types.Object;
+import RenderCore.Types.Allocation;
+import RenderCore.Types.Object;
 
 namespace RenderCore
 {

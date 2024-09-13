@@ -6,12 +6,12 @@ module;
 
 export module RenderCore.Runtime.Scene;
 
-export import RenderCore.Utils.Constants;
-export import RenderCore.Types.Camera;
-export import RenderCore.Types.Illumination;
-export import RenderCore.Types.Allocation;
-export import RenderCore.Types.Object;
-export import RenderCore.Types.SurfaceProperties;
+import RenderCore.Utils.Constants;
+import RenderCore.Types.Camera;
+import RenderCore.Types.Illumination;
+import RenderCore.Types.Allocation;
+import RenderCore.Types.Object;
+import RenderCore.Types.SurfaceProperties;
 
 namespace RenderCore
 {

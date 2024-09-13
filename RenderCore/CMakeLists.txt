@@ -195,5 +195,5 @@ TARGET_PRECOMPILE_HEADERS(${LIBRARY_NAME} PUBLIC ${PCH_FILE})
 
 ADD_CUSTOM_TARGET(COPY_SHADERS
         COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different "${SHADERS_RESOURCES_DIRECTORY}" "${CMAKE_INSTALL_BINDIR}/Shaders"
-        COMMENT "Copying shaders"
+        COMMENT "Copying renderer default shaders"
 )

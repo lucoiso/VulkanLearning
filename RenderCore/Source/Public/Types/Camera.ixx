@@ -6,7 +6,8 @@ module;
 
 export module RenderCore.Types.Camera;
 
-export import RenderCore.Types.Object;
+import RenderCore.Types.Object;
+import RenderCore.Types.Transform;
 
 namespace RenderCore
 {

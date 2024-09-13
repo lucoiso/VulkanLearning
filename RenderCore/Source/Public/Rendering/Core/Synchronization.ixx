@@ -6,7 +6,7 @@ module;
 
 export module RenderCore.Runtime.Synchronization;
 
-export import RenderCore.Utils.Constants;
+import RenderCore.Utils.Constants;
 
 namespace RenderCore
 {

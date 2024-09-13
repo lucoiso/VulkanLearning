@@ -6,10 +6,11 @@ module;
 
 export module RenderCore.Renderer;
 
-export import RenderCore.Utils.Constants;
-export import RenderCore.Types.RendererStateFlags;
-export import RenderCore.Utils.EnumHelpers;
-export import RenderCore.Types.Object;
+import RenderCore.Utils.Constants;
+import RenderCore.Utils.EnumHelpers;
+import RenderCore.Types.Object;
+import RenderCore.Types.Texture;
+import RenderCore.Types.RendererStateFlags;
 import RenderCore.Runtime.SwapChain;
 
 namespace RenderCore

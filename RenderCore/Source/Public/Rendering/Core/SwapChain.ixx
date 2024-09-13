@@ -6,9 +6,9 @@ module;
 
 export module RenderCore.Runtime.SwapChain;
 
-export import RenderCore.Utils.Constants;
-export import RenderCore.Types.Allocation;
-export import RenderCore.Types.SurfaceProperties;
+import RenderCore.Utils.Constants;
+import RenderCore.Types.Allocation;
+import RenderCore.Types.SurfaceProperties;
 
 namespace RenderCore
 {

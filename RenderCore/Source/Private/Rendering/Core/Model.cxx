@@ -6,6 +6,9 @@ module;
 
 module RenderCore.Runtime.Model;
 
+import RenderCore.Types.Vertex;
+import RenderCore.Types.Transform;
+
 using namespace RenderCore;
 
 void RenderCore::InsertIndiceInContainer(std::vector<std::uint32_t> &Indices, tinygltf::Accessor const &IndexAccessor, auto const *Data)

@@ -6,7 +6,7 @@ module;
 
 export module RenderCore.Runtime.Model;
 
-export import RenderCore.Types.Mesh;
+import RenderCore.Types.Mesh;
 
 namespace RenderCore
 {

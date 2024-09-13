@@ -8,6 +8,7 @@ module RenderCore.Types.Camera;
 
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Utils.EnumHelpers;
+import RenderCore.Types.Mesh;
 
 using namespace RenderCore;
 

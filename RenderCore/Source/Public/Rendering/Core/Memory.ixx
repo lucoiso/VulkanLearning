@@ -6,12 +6,13 @@ module;
 
 export module RenderCore.Runtime.Memory;
 
-export import RenderCore.Runtime.Scene;
-export import RenderCore.Types.Allocation;
-export import RenderCore.Types.Object;
-export import RenderCore.Utils.Constants;
-export import RenderCore.Utils.EnumHelpers;
-export import RenderCore.Utils.Helpers;
+import RenderCore.Runtime.Scene;
+import RenderCore.Types.Allocation;
+import RenderCore.Types.Object;
+import RenderCore.Types.Texture;
+import RenderCore.Utils.Constants;
+import RenderCore.Utils.EnumHelpers;
+import RenderCore.Utils.Helpers;
 
 namespace RenderCore
 {

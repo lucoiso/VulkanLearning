@@ -6,7 +6,8 @@ module;
 
 export module RenderCore.Factories.Mesh;
 
-export import RenderCore.Types.Mesh;
+import RenderCore.Types.Mesh;
+import RenderCore.Types.Texture;
 
 namespace RenderCore
 {

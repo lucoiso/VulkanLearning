@@ -6,7 +6,7 @@ module;
 
 export module RenderCore.Types.Texture;
 
-export import RenderCore.Types.Resource;
+import RenderCore.Types.Resource;
 
 export namespace RenderCore
 {

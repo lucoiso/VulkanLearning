@@ -6,7 +6,9 @@ module;
 
 export module RenderCore.Types.Object;
 
-export import RenderCore.Types.Mesh;
+import RenderCore.Types.Mesh;
+import RenderCore.Types.Resource;
+import RenderCore.Types.Transform;
 
 namespace RenderCore
 {

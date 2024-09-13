@@ -28,6 +28,7 @@ import RenderCore.Runtime.Device;
 import RenderCore.Runtime.Instance;
 import RenderCore.Runtime.Command;
 import RenderCore.Types.UniformBufferObject;
+import RenderCore.Types.Vertex;
 
 using namespace RenderCore;
 

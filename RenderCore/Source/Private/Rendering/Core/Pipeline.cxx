@@ -13,7 +13,10 @@ import RenderCore.Runtime.SwapChain;
 import RenderCore.Runtime.Scene;
 import RenderCore.Types.Allocation;
 import RenderCore.Types.UniformBufferObject;
+import RenderCore.Types.Texture;
+import RenderCore.Types.Vertex;
 import RenderCore.Utils.Constants;
+import RenderCore.Utils.Helpers;
 
 using namespace RenderCore;
 

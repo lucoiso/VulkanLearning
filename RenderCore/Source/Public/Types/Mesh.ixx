@@ -6,11 +6,11 @@ module;
 
 export module RenderCore.Types.Mesh;
 
-export import RenderCore.Types.Resource;
-export import RenderCore.Types.Transform;
-export import RenderCore.Types.Vertex;
-export import RenderCore.Types.Material;
-export import RenderCore.Types.Texture;
+import RenderCore.Types.Resource;
+import RenderCore.Types.Transform;
+import RenderCore.Types.Vertex;
+import RenderCore.Types.Material;
+import RenderCore.Types.Texture;
 
 namespace RenderCore
 {

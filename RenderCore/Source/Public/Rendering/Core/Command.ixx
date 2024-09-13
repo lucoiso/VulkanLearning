@@ -6,8 +6,8 @@ module;
 
 export module RenderCore.Runtime.Command;
 
-export import ThreadPool;
-export import RenderCore.Types.Allocation;
+import ThreadPool;
+import RenderCore.Types.Allocation;
 
 namespace RenderCore
 {

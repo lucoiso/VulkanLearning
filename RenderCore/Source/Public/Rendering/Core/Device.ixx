@@ -6,7 +6,7 @@ module;
 
 export module RenderCore.Runtime.Device;
 
-export import RenderCore.Types.SurfaceProperties;
+import RenderCore.Types.SurfaceProperties;
 
 namespace RenderCore
 {
