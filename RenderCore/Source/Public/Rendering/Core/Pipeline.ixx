@@ -25,8 +25,8 @@ namespace RenderCore
         [[nodiscard]] inline bool IsValid() const
         {
             return MainPipeline != VK_NULL_HANDLE || FragmentShaderPipeline != VK_NULL_HANDLE || VertexInputPipeline != VK_NULL_HANDLE ||
-                   PreRasterizationPipeline != VK_NULL_HANDLE || FragmentOutputPipeline != VK_NULL_HANDLE || PipelineLayout != VK_NULL_HANDLE || PipelineCache
-                   != VK_NULL_HANDLE || PipelineLibraryCache != VK_NULL_HANDLE;
+                   PreRasterizationPipeline != VK_NULL_HANDLE || FragmentOutputPipeline != VK_NULL_HANDLE || PipelineLayout != VK_NULL_HANDLE ||
+                   PipelineCache != VK_NULL_HANDLE || PipelineLibraryCache != VK_NULL_HANDLE;
         }
 
         void DestroyResources(VkDevice const &, bool);
@@ -76,10 +76,10 @@ export namespace RenderCore
 
     RENDERCOREMODULE_API void CreatePipelineLibraries(PipelineData &, PipelineLibraryCreationArguments const &, VkPipelineCreateFlags, bool);
     RENDERCOREMODULE_API void CreateMainPipeline(PipelineData &,
-                            std::vector<VkPipelineShaderStageCreateInfo> const &,
-                            VkPipelineCreateFlags,
-                            VkPipelineDepthStencilStateCreateInfo const &,
-                            VkPipelineMultisampleStateCreateInfo const &);
+                                                 std::vector<VkPipelineShaderStageCreateInfo> const &,
+                                                 VkPipelineCreateFlags,
+                                                 VkPipelineDepthStencilStateCreateInfo const &,
+                                                 VkPipelineMultisampleStateCreateInfo const &);
 
     RENDERCOREMODULE_API [[nodiscard]] inline VkPipeline const &GetMainPipeline()
     {

@@ -63,7 +63,7 @@ namespace RenderCore
         RENDERCOREMODULE_API [[nodiscard]] std::vector<VkImageView> GetOffscreenImages();
         RENDERCOREMODULE_API void                                   SaveOffscreenFrameToImage(strzilla::string_view);
 
-        RENDERCOREMODULE_API [[nodiscard]] std::vector<std::shared_ptr<Texture>> LoadImages(std::vector<strzilla::string> const &);
+        RENDERCOREMODULE_API [[nodiscard]] std::vector<std::shared_ptr<Texture>> LoadImages(std::vector<strzilla::string_view> &&);
 
         RENDERCOREMODULE_API inline void SetOnInitializeCallback(std::function<void()> &&Callback)
         {

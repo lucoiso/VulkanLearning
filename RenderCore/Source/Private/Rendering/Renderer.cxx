@@ -193,6 +193,8 @@ void Renderer::Shutdown()
         return;
     }
 
+    std::lock_guard const Lock { g_RendererMutex };
+
     ReleaseSynchronizationObjects();
     ReleaseCommandsResources();
 
@@ -276,7 +278,7 @@ void Renderer::SaveOffscreenFrameToImage(strzilla::string_view const Path)
     SaveImageToFile(OffscreenImage.Image, Path, OffscreenImage.Extent);
 }
 
-std::vector<std::shared_ptr<Texture>> Renderer::LoadImages(std::vector<strzilla::string> const &Paths)
+std::vector<std::shared_ptr<Texture>> Renderer::LoadImages(std::vector<strzilla::string_view> &&Paths)
 {
     if (std::empty(Paths))
     {
@@ -296,13 +298,15 @@ std::vector<std::shared_ptr<Texture>> Renderer::LoadImages(std::vector<strzilla:
     {
         VkCommandBuffer &CommandBuffer = CommandBuffers.at(0U);
 
-        for (strzilla::string const& PathIt : Paths)
+        for (strzilla::string_view const& PathIt : Paths)
         {
             TextureConstructionOutputParameters Output {};
 
             if (std::shared_ptr<Texture> NewTexture = ConstructTextureFromFile(PathIt, CommandBuffer, Output);
                 NewTexture)
             {
+                NewTexture->SetupTexture();
+
                 OutputImages.push_back(std::move(NewTexture));
                 BufferAllocations.emplace(std::move(Output.StagingBuffer), std::move(Output.StagingAllocation));
             }

@@ -19,19 +19,19 @@ namespace RenderCore
     export void InitializeDevice(VkSurfaceKHR const &);
     export void ReleaseDeviceResources();
 
-    export [[nodiscard]] VkSurfaceCapabilitiesKHR GetSurfaceCapabilities();
-    export [[nodiscard]] SurfaceProperties GetSurfaceProperties(GLFWwindow *);
+    export [[nodiscard]] VkSurfaceCapabilitiesKHR   GetSurfaceCapabilities();
+    export [[nodiscard]] SurfaceProperties          GetSurfaceProperties(GLFWwindow *);
     export [[nodiscard]] std::vector<std::uint32_t> GetUniqueQueueFamilyIndicesU32();
 
-    [[nodiscard]] std::vector<VkPhysicalDevice> GetAvailablePhysicalDevices();
+    [[nodiscard]] std::vector<VkPhysicalDevice>      GetAvailablePhysicalDevices();
     [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions();
-    [[nodiscard]] std::vector<VkLayerProperties> GetAvailablePhysicalDeviceLayers();
+    [[nodiscard]] std::vector<VkLayerProperties>     GetAvailablePhysicalDeviceLayers();
     [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(strzilla::string_view);
-    [[nodiscard]] std::vector<strzilla::string> GetAvailablePhysicalDeviceExtensionsNames();
-    [[nodiscard]] std::vector<strzilla::string> GetAvailablePhysicalDeviceLayerExtensionsNames(strzilla::string_view);
-    [[nodiscard]] std::vector<strzilla::string> GetAvailablePhysicalDeviceLayersNames();
-    [[nodiscard]] std::vector<VkSurfaceFormatKHR> GetAvailablePhysicalDeviceSurfaceFormats();
-    [[nodiscard]] std::vector<VkPresentModeKHR> GetAvailablePhysicalDeviceSurfacePresentationModes();
+    [[nodiscard]] std::vector<strzilla::string>      GetAvailablePhysicalDeviceExtensionsNames();
+    [[nodiscard]] std::vector<strzilla::string>      GetAvailablePhysicalDeviceLayerExtensionsNames(strzilla::string_view);
+    [[nodiscard]] std::vector<strzilla::string>      GetAvailablePhysicalDeviceLayersNames();
+    [[nodiscard]] std::vector<VkSurfaceFormatKHR>    GetAvailablePhysicalDeviceSurfaceFormats();
+    [[nodiscard]] std::vector<VkPresentModeKHR>      GetAvailablePhysicalDeviceSurfacePresentationModes();
 
     export RENDERCOREMODULE_API [[nodiscard]] inline VkDevice &GetLogicalDevice()
     {

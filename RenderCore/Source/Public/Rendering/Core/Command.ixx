@@ -13,7 +13,7 @@ namespace RenderCore
 {
     RENDERCOREMODULE_API ThreadPool::Pool g_ThreadPool {};
 
-    std::function<void(std::uint8_t)> g_OnCommandPoolResetCallback {};
+    std::function<void(std::uint8_t)>                                     g_OnCommandPoolResetCallback {};
     std::function<void(VkCommandBuffer const &, ImageAllocation const &)> g_OnCommandBufferRecordCallback {};
 
     export struct RENDERCOREMODULE_API ThreadResources
@@ -49,7 +49,8 @@ namespace RenderCore
         g_OnCommandPoolResetCallback = std::move(Callback);
     }
 
-    export RENDERCOREMODULE_API inline void SetOnCommandBufferRecordCallbackCallback(std::function<void(VkCommandBuffer const &, ImageAllocation const &)> &&Callback)
+    export RENDERCOREMODULE_API inline void SetOnCommandBufferRecordCallbackCallback(
+            std::function<void(VkCommandBuffer const &, ImageAllocation const &)> &&Callback)
     {
         g_OnCommandBufferRecordCallback = std::move(Callback);
     }
