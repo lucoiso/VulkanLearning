@@ -102,14 +102,12 @@ FIND_PACKAGE(Boost REQUIRED COMPONENTS log)
 FIND_PACKAGE(tinygltf CONFIG REQUIRED)
 
 FIND_PACKAGE(glfw3 CONFIG REQUIRED)
-FIND_PACKAGE(imgui CONFIG REQUIRED)
 FIND_PACKAGE(meshoptimizer REQUIRED)
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC
         Boost::log
         TinyGLTF::TinyGLTF
         glfw
-        imgui::imgui
         meshoptimizer::meshoptimizer
 
         Timer

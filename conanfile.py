@@ -15,9 +15,6 @@ class VulkanRendererRecipe(ConanFile):
         # https://conan.io/center/recipes/glfw
         self.requires("glfw/3.4")
 
-        # https://conan.io/center/recipes/imgui
-        self.requires("imgui/1.91.0-docking")
-
         # https://conan.io/center/recipes/boost
         self.requires("boost/1.85.0")
 
@@ -29,7 +26,6 @@ class VulkanRendererRecipe(ConanFile):
 
     def configure(self):
         self.options["glfw/*"].shared = False
-        self.options["imgui/*"].shared = True
         self.options["boost/*"].shared = True
         self.options["boost/*"].without_cobalt = True
         self.options["meshoptimizer/*"].shared = True

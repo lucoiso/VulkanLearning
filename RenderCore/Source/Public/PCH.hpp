@@ -34,6 +34,10 @@
 #include <unordered_map>
 #include <vector>
 
+#ifndef VK_NO_PROTOTYPES
+    #define VK_NO_PROTOTYPES
+#endif
+
 #include <Volk/volk.h>
 
 #include <vma/vk_mem_alloc.h>
@@ -45,7 +49,6 @@
 
 #include <boost/log/trivial.hpp>
 #include <glm/ext.hpp>
-#include <imgui.h>
 #include <tiny_gltf.h>
 
 #include <stringzilla/stringzilla.hpp>
