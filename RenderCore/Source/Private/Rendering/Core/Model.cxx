@@ -65,14 +65,14 @@ void RenderCore::SetVertexAttributes(std::shared_ptr<Mesh> const &Mesh, tinygltf
         Vertices.resize(PositionAccessor.count);
     }
 
-    float const  * PositionData = GetPrimitiveData("POSITION", Model, Primitive);
-    float const  * NormalData   = GetPrimitiveData("NORMAL", Model, Primitive);
-    float const  * TexCoordData = GetPrimitiveData("TEXCOORD_0", Model, Primitive);
+    float const * PositionData = GetPrimitiveData("POSITION", Model, Primitive);
+    float const * NormalData   = GetPrimitiveData("NORMAL", Model, Primitive);
+    float const * TexCoordData = GetPrimitiveData("TEXCOORD_0", Model, Primitive);
     std::uint32_t NumColorComponents {};
-    float const  * ColorData   = GetPrimitiveData("COLOR_0", Model, Primitive, &NumColorComponents);
-    float const  * JointData   = GetPrimitiveData("JOINTS_0", Model, Primitive);
-    float const  * WeightData  = GetPrimitiveData("WEIGHTS_0", Model, Primitive);
-    float const  * TangentData = GetPrimitiveData("TANGENT", Model, Primitive);
+    float const * ColorData   = GetPrimitiveData("COLOR_0", Model, Primitive, &NumColorComponents);
+    float const * JointData   = GetPrimitiveData("JOINTS_0", Model, Primitive);
+    float const * WeightData  = GetPrimitiveData("WEIGHTS_0", Model, Primitive);
+    float const * TangentData = GetPrimitiveData("TANGENT", Model, Primitive);
 
     bool const HasSkin = JointData && WeightData;
 

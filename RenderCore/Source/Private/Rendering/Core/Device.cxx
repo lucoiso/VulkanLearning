@@ -228,8 +228,8 @@ VkSurfaceCapabilitiesKHR RenderCore::GetSurfaceCapabilities()
 
 SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow *const Window)
 {
-    std::vector<VkSurfaceFormatKHR> const SupportedFormats = GetAvailablePhysicalDeviceSurfaceFormats();
-    [[maybe_unused]] auto const PresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes();
+    std::vector<VkSurfaceFormatKHR> const SupportedFormats  = GetAvailablePhysicalDeviceSurfaceFormats();
+    [[maybe_unused]] auto const           PresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes();
 
     SurfaceProperties Output { .Format = SupportedFormats.front(), .Extent = GetWindowExtent(Window, GetSurfaceCapabilities()) };
 

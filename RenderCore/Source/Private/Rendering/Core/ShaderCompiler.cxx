@@ -10,7 +10,7 @@ module;
 #include <glslang/SPIRV/Logger.h>
 
 #ifdef _DEBUG
-    #include <spirv-tools/libspirv.hpp>
+#include <spirv-tools/libspirv.hpp>
 #endif
 
 module RenderCore.Runtime.ShaderCompiler;
@@ -101,32 +101,28 @@ bool ValidateSPIRV(std::vector<std::uint32_t> const &SPIRVData)
 
     if (!Initialized)
     {
-        SPIRVToolsInstance.SetMessageConsumer(
-                [_func_internal_ = __func__](spv_message_level_t const              Level,
-                                             [[maybe_unused]] char const           *Source,
-                                             [[maybe_unused]] spv_position_t const &Position,
-                                             char const                            *Message)
-                {
-                    switch (Level)
-                    {
-                        case SPV_MSG_FATAL:
-                        case SPV_MSG_INTERNAL_ERROR:
-                        case SPV_MSG_ERROR:
-                            BOOST_LOG_TRIVIAL(error) << "[" << _func_internal_ << "]: " << std::format("Error: {}\n", Message);
-                            break;
+        SPIRVToolsInstance.SetMessageConsumer([_func_internal_ = __func__](spv_message_level_t const              Level,
+                                                                           [[maybe_unused]] char const *          Source,
+                                                                           [[maybe_unused]] spv_position_t const &Position,
+                                                                           char const *                           Message)
+        {
+            switch (Level)
+            {
+                case SPV_MSG_FATAL:
+                case SPV_MSG_INTERNAL_ERROR:
+                case SPV_MSG_ERROR: BOOST_LOG_TRIVIAL(error) << "[" << _func_internal_ << "]: " << std::format("Error: {}\n", Message);
+                    break;
 
-                        case SPV_MSG_WARNING:
-                            BOOST_LOG_TRIVIAL(warning) << "[" << _func_internal_ << "]: " << std::format("Warning: {}\n", Message);
-                            break;
+                case SPV_MSG_WARNING: BOOST_LOG_TRIVIAL(warning) << "[" << _func_internal_ << "]: " << std::format("Warning: {}\n", Message);
+                    break;
 
-                        case SPV_MSG_INFO:
-                            BOOST_LOG_TRIVIAL(info) << "[" << _func_internal_ << "]: " << std::format("Info: {}\n", Message);
-                            break;
+                case SPV_MSG_INFO: BOOST_LOG_TRIVIAL(info) << "[" << _func_internal_ << "]: " << std::format("Info: {}\n", Message);
+                    break;
 
-                        default:
-                            break;
-                    }
-                });
+                default:
+                    break;
+            }
+        });
 
         Initialized = true;
     }

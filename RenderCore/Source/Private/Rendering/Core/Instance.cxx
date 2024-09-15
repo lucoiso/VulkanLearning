@@ -13,7 +13,7 @@ import RenderCore.Utils.DebugHelpers;
 using namespace RenderCore;
 
 #ifdef _DEBUG
-VkDebugUtilsMessengerEXT g_DebugMessenger{VK_NULL_HANDLE};
+VkDebugUtilsMessengerEXT g_DebugMessenger { VK_NULL_HANDLE };
 #endif
 
 bool RenderCore::CreateVulkanInstance()
@@ -52,7 +52,7 @@ bool RenderCore::CreateVulkanInstance()
     Layers.insert(std::cend(Layers), std::cbegin(g_DebugInstanceLayers), std::cend(g_DebugInstanceLayers));
     Extensions.insert(std::cend(Extensions), std::cbegin(g_DebugInstanceExtensions), std::cend(g_DebugInstanceExtensions));
 
-    VkDebugUtilsMessengerCreateInfoEXT CreateDebugInfo{};
+    VkDebugUtilsMessengerCreateInfoEXT CreateDebugInfo {};
     PopulateDebugInfo(CreateDebugInfo, nullptr);
     #endif
 
