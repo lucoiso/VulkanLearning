@@ -15,8 +15,8 @@ import RenderCore.Runtime.SwapChain;
 
 namespace RenderCore
 {
-    RENDERCOREMODULE_API auto g_StateFlags { RendererStateFlags::NONE };
-    RENDERCOREMODULE_API auto g_ObjectsManagementStateFlags { RendererObjectsManagementStateFlags::NONE };
+    RENDERCOREMODULE_API auto                              g_StateFlags { RendererStateFlags::NONE };
+    RENDERCOREMODULE_API auto                              g_ObjectsManagementStateFlags { RendererObjectsManagementStateFlags::NONE };
     RENDERCOREMODULE_API float                             g_FrameTime { 0.F };
     RENDERCOREMODULE_API float                             g_FrameRateCap { 0.016667F };
     RENDERCOREMODULE_API bool                              g_UseVSync { true };
@@ -28,27 +28,42 @@ namespace RenderCore
     RENDERCOREMODULE_API std::queue<std::function<void()>> g_NextTickDispatchQueue {};
 
     RENDERCOREMODULE_API std::vector<strzilla::string> g_ModelsToLoad {};
-    RENDERCOREMODULE_API std::vector<std::uint32_t> g_ModelsToUnload {};
+    RENDERCOREMODULE_API std::vector<std::uint32_t>    g_ModelsToUnload {};
 
     std::function<void()> g_OnInitializeCallback {};
     std::function<void()> g_OnRefreshCallback {};
     std::function<void()> g_OnDrawCallback {};
     std::function<void()> g_OnShutdownCallback {};
-}
+} // namespace RenderCore
 
 namespace RenderCore
 {
+    export RENDERCOREMODULE_API inline void SetOnInitializeCallback(std::function<void()> &&Callback)
+    {
+        g_OnInitializeCallback = std::move(Callback);
+    }
+
+    export RENDERCOREMODULE_API inline void SetOnRefreshCallback(std::function<void()> &&Callback)
+    {
+        g_OnRefreshCallback = std::move(Callback);
+    }
+
+    export RENDERCOREMODULE_API inline void SetOnDrawCallback(std::function<void()> &&Callback)
+    {
+        g_OnDrawCallback = std::move(Callback);
+    }
+
+    export RENDERCOREMODULE_API inline void SetOnShutdownCallback(std::function<void()> &&Callback)
+    {
+        g_OnShutdownCallback = std::move(Callback);
+    }
+
     export namespace Renderer
     {
         RENDERCOREMODULE_API void Tick();
-        RENDERCOREMODULE_API void DrawFrame(GLFWwindow *, double);
+        RENDERCOREMODULE_API void DrawFrame(double);
 
-        RENDERCOREMODULE_API void SetOnInitializeCallback(std::function<void()> &&);
-        RENDERCOREMODULE_API void SetOnRefreshCallback(std::function<void()> &&);
-        RENDERCOREMODULE_API void SetOnDrawCallback(std::function<void()> &&);
-        RENDERCOREMODULE_API void SetOnShutdownCallback(std::function<void()> &&);
-
-        RENDERCOREMODULE_API [[nodiscard]] bool Initialize(GLFWwindow *);
+        RENDERCOREMODULE_API [[nodiscard]] bool Initialize();
         RENDERCOREMODULE_API void               Shutdown();
 
         RENDERCOREMODULE_API void DispatchToMainThread(std::function<void()> &&);
@@ -65,26 +80,6 @@ namespace RenderCore
 
         RENDERCOREMODULE_API [[nodiscard]] std::vector<std::shared_ptr<Texture>> LoadImages(std::vector<strzilla::string_view> &&);
 
-        RENDERCOREMODULE_API inline void SetOnInitializeCallback(std::function<void()> &&Callback)
-        {
-            g_OnInitializeCallback = std::move(Callback);
-        }
-
-        RENDERCOREMODULE_API inline void SetOnRefreshCallback(std::function<void()> &&Callback)
-        {
-            g_OnRefreshCallback = std::move(Callback);
-        }
-
-        RENDERCOREMODULE_API inline void SetOnDrawCallback(std::function<void()> &&Callback)
-        {
-            g_OnDrawCallback = std::move(Callback);
-        }
-
-        RENDERCOREMODULE_API inline void SetOnShutdownCallback(std::function<void()> &&Callback)
-        {
-            g_OnShutdownCallback = std::move(Callback);
-        }
-
         RENDERCOREMODULE_API [[nodiscard]] inline std::mutex &GetMutex()
         {
             return g_RendererMutex;
@@ -93,7 +88,6 @@ namespace RenderCore
         RENDERCOREMODULE_API inline void DispatchToMainThread(std::function<void()> &&Functor)
         {
             g_MainThreadDispatchQueue.emplace(std::move(Functor));
-            glfwPostEmptyEvent();
         }
 
         RENDERCOREMODULE_API inline void DispatchToNextTick(std::function<void()> &&Functor)
@@ -201,4 +195,4 @@ namespace RenderCore
             return static_cast<std::uint8_t>(g_ImageIndex);
         }
     } // namespace Renderer
-} // namespace RenderCore
+}     // namespace RenderCore

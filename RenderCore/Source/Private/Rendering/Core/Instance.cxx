@@ -38,7 +38,9 @@ bool RenderCore::CreateVulkanInstance()
     std::vector Extensions(std::cbegin(g_RequiredInstanceExtensions), std::cend(g_RequiredInstanceExtensions));
 
     // ReSharper disable once CppTooWideScopeInitStatement
-    std::vector const GLFWExtensions = GetGLFWExtensions();
+    std::vector<strzilla::string> const GLFWExtensions = g_OnGetAdditionalInstanceExtensions
+                                                             ? g_OnGetAdditionalInstanceExtensions()
+                                                             : std::vector<strzilla::string> {};
 
     for (strzilla::string const &ExtensionIter : GLFWExtensions)
     {

@@ -17,11 +17,24 @@ namespace RenderCore
     RENDERCOREMODULE_API VkSwapchainKHR                            g_SwapChain { VK_NULL_HANDLE };
     RENDERCOREMODULE_API VkSwapchainKHR                            g_OldSwapChain { VK_NULL_HANDLE };
     RENDERCOREMODULE_API std::array<ImageAllocation, g_ImageCount> g_SwapChainImages {};
-}
+    RENDERCOREMODULE_API std::function<void(VkSurfaceKHR &)>       g_OnSurfaceCreation {};
+} // namespace RenderCore
 
 namespace RenderCore
 {
-    export void CreateVulkanSurface(GLFWwindow *);
+    export inline void CreateVulkanSurface()
+    {
+        if (g_OnSurfaceCreation)
+        {
+            g_OnSurfaceCreation(g_Surface);
+        }
+    }
+
+    export RENDERCOREMODULE_API inline void SetOnSurfaceCreationCallback(std::function<void(VkSurfaceKHR &)> &&Callback)
+    {
+        g_OnSurfaceCreation = std::move(Callback);
+    }
+
     export void CreateSwapChain(SurfaceProperties const &, VkSurfaceCapabilitiesKHR const &);
 
     export bool RequestSwapChainImage(std::uint32_t &);

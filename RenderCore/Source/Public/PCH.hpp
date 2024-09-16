@@ -35,7 +35,7 @@
 #include <vector>
 
 #ifndef VK_NO_PROTOTYPES
-    #define VK_NO_PROTOTYPES
+#define VK_NO_PROTOTYPES
 #endif
 
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
@@ -44,11 +44,6 @@
 #include <Volk/volk.h>
 
 #include <vma/vk_mem_alloc.h>
-
-#ifdef GLFW_INCLUDE_VULKAN
-    #undef GLFW_INCLUDE_VULKAN
-#endif
-#include <GLFW/glfw3.h>
 
 #include <boost/log/trivial.hpp>
 #include <glm/ext.hpp>

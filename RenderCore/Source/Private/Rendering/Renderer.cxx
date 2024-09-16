@@ -17,12 +17,13 @@ import RenderCore.Runtime.Scene;
 import RenderCore.Runtime.ShaderCompiler;
 import RenderCore.Runtime.SwapChain;
 import RenderCore.Runtime.Synchronization;
+import RenderCore.Types.Allocation;
 import RenderCore.Factories.Texture;
 import RenderCore.Utils.Helpers;
 
 using namespace RenderCore;
 
-void Renderer::DrawFrame(GLFWwindow *const Window, double const DeltaTime)
+void Renderer::DrawFrame(double const DeltaTime)
 {
     std::lock_guard const Lock { g_RendererMutex };
 
@@ -37,9 +38,8 @@ void Renderer::DrawFrame(GLFWwindow *const Window, double const DeltaTime)
 
     constexpr RendererStateFlags InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
                                                          RendererStateFlags::PENDING_RESOURCES_DESTRUCTION |
-                                                         RendererStateFlags::PENDING_RESOURCES_CREATION |
-                                                         RendererStateFlags::PENDING_PIPELINE_REFRESH |
-                                                         RendererStateFlags::INVALID_SIZE;
+                                                         RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::PENDING_PIPELINE_REFRESH
+                                                         | RendererStateFlags::INVALID_SIZE;
 
     if (HasAnyFlag(g_StateFlags, InvalidStatesToRender))
     {
@@ -94,7 +94,7 @@ void Renderer::DrawFrame(GLFWwindow *const Window, double const DeltaTime)
         if (!HasAnyFlag(g_StateFlags, RendererStateFlags::INVALID_SIZE | RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE) &&
             HasFlag(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION))
         {
-            auto const SurfaceProperties = GetSurfaceProperties(Window);
+            auto const SurfaceProperties = GetSurfaceProperties();
 
             if (!SurfaceProperties.IsValid())
             {
@@ -168,7 +168,7 @@ void Renderer::Tick()
     TickObjects(g_FrameTime);
 }
 
-bool Renderer::Initialize(GLFWwindow *const Window)
+bool Renderer::Initialize()
 {
     if (IsInitialized())
     {
@@ -177,7 +177,7 @@ bool Renderer::Initialize(GLFWwindow *const Window)
 
     CheckVulkanResult(volkInitialize());
     [[maybe_unused]] bool const _ = CreateVulkanInstance();
-    CreateVulkanSurface(Window);
+    CreateVulkanSurface();
     InitializeDevice(GetSurface());
     volkLoadDevice(GetLogicalDevice());
 
@@ -187,7 +187,7 @@ bool Renderer::Initialize(GLFWwindow *const Window)
     CreateSceneUniformBuffer();
     CreateImageSampler();
     CompileDefaultShaders();
-    auto const SurfaceProperties = GetSurfaceProperties(Window);
+    auto const SurfaceProperties = GetSurfaceProperties();
     AllocateEmptyTexture(SurfaceProperties.Format.format);
 
     AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION);
@@ -303,14 +303,14 @@ std::vector<std::shared_ptr<Texture>> Renderer::LoadImages(std::vector<strzilla:
     VkCommandPool                CommandPool { VK_NULL_HANDLE };
     std::vector<VkCommandBuffer> CommandBuffers { VK_NULL_HANDLE };
 
-    auto const &                                                [QueueIndex, Queue] = GetGraphicsQueue();
-    std::unordered_map<VkBuffer, VmaAllocation>                 BufferAllocations {};
+    auto const &                                [QueueIndex, Queue] = GetGraphicsQueue();
+    std::unordered_map<VkBuffer, VmaAllocation> BufferAllocations {};
 
     InitializeSingleCommandQueue(CommandPool, CommandBuffers, QueueIndex);
     {
         VkCommandBuffer &CommandBuffer = CommandBuffers.at(0U);
 
-        for (strzilla::string_view const& PathIt : Paths)
+        for (strzilla::string_view const &PathIt : Paths)
         {
             TextureConstructionOutputParameters Output {};
 

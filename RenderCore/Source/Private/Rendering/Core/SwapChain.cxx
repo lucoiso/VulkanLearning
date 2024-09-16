@@ -15,11 +15,6 @@ import RenderCore.Utils.Helpers;
 
 using namespace RenderCore;
 
-void RenderCore::CreateVulkanSurface(GLFWwindow *const Window)
-{
-    CheckVulkanResult(glfwCreateWindowSurface(GetInstance(), Window, nullptr, &g_Surface));
-}
-
 void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkSurfaceCapabilitiesKHR const &SurfaceCapabilities)
 {
     auto const QueueFamilyIndices      = GetUniqueQueueFamilyIndicesU32();

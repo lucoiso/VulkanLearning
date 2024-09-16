@@ -12,9 +12,6 @@ class VulkanRendererRecipe(ConanFile):
     generators = "CMakeDeps"
 
     def requirements(self):
-        # https://conan.io/center/recipes/glfw
-        self.requires("glfw/3.4")
-
         # https://conan.io/center/recipes/boost
         self.requires("boost/1.86.0")
 
@@ -25,8 +22,6 @@ class VulkanRendererRecipe(ConanFile):
         self.requires("meshoptimizer/0.21")
 
     def configure(self):
-        self.options["glfw/*"].shared = False
-        self.options["glfw/*"].vulkan_static = False
         self.options["boost/*"].shared = True
         self.options["boost/*"].without_cobalt = True
         self.options["meshoptimizer/*"].shared = True

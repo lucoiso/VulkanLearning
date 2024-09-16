@@ -10,28 +10,37 @@ import RenderCore.Types.SurfaceProperties;
 
 namespace RenderCore
 {
-    RENDERCOREMODULE_API VkPhysicalDevice                 g_PhysicalDevice { VK_NULL_HANDLE };
-    RENDERCOREMODULE_API VkPhysicalDeviceProperties       g_PhysicalDeviceProperties {};
-    RENDERCOREMODULE_API VkDevice                         g_Device { VK_NULL_HANDLE };
-    RENDERCOREMODULE_API std::pair<std::uint8_t, VkQueue> g_GraphicsQueue {};
-    RENDERCOREMODULE_API std::vector<std::uint8_t>        g_UniqueQueueFamilyIndices {};
+    RENDERCOREMODULE_API VkPhysicalDevice           g_PhysicalDevice{VK_NULL_HANDLE};
+    RENDERCOREMODULE_API VkPhysicalDeviceProperties g_PhysicalDeviceProperties{};
+    RENDERCOREMODULE_API VkDevice                   g_Device{VK_NULL_HANDLE};
+    RENDERCOREMODULE_API std::pair<std::uint8_t, VkQueue> g_GraphicsQueue{};
+    RENDERCOREMODULE_API std::vector<std::uint8_t> g_UniqueQueueFamilyIndices{};
+    RENDERCOREMODULE_API std::function<SurfaceProperties()> g_OnGetSurfaceProperties{};
 
     export void InitializeDevice(VkSurfaceKHR const &);
     export void ReleaseDeviceResources();
 
-    export [[nodiscard]] VkSurfaceCapabilitiesKHR   GetSurfaceCapabilities();
-    export [[nodiscard]] SurfaceProperties          GetSurfaceProperties(GLFWwindow *);
-    export [[nodiscard]] std::vector<std::uint32_t> GetUniqueQueueFamilyIndicesU32();
+    export RENDERCOREMODULE_API [[nodiscard]] VkSurfaceCapabilitiesKHR GetSurfaceCapabilities();
+    export RENDERCOREMODULE_API inline [[nodiscard]] SurfaceProperties GetSurfaceProperties()
+    {
+        return g_OnGetSurfaceProperties ? g_OnGetSurfaceProperties() : SurfaceProperties{};
+    }
+    export RENDERCOREMODULE_API [[nodiscard]] std::vector<std::uint32_t> GetUniqueQueueFamilyIndicesU32();
 
-    [[nodiscard]] std::vector<VkPhysicalDevice>      GetAvailablePhysicalDevices();
-    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions();
-    [[nodiscard]] std::vector<VkLayerProperties>     GetAvailablePhysicalDeviceLayers();
-    [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(strzilla::string_view);
-    [[nodiscard]] std::vector<strzilla::string>      GetAvailablePhysicalDeviceExtensionsNames();
-    [[nodiscard]] std::vector<strzilla::string>      GetAvailablePhysicalDeviceLayerExtensionsNames(strzilla::string_view);
-    [[nodiscard]] std::vector<strzilla::string>      GetAvailablePhysicalDeviceLayersNames();
-    [[nodiscard]] std::vector<VkSurfaceFormatKHR>    GetAvailablePhysicalDeviceSurfaceFormats();
-    [[nodiscard]] std::vector<VkPresentModeKHR>      GetAvailablePhysicalDeviceSurfacePresentationModes();
+    export RENDERCOREMODULE_API [[nodiscard]] std::vector<VkPhysicalDevice>      GetAvailablePhysicalDevices();
+    export RENDERCOREMODULE_API [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceExtensions();
+    export RENDERCOREMODULE_API [[nodiscard]] std::vector<VkLayerProperties>     GetAvailablePhysicalDeviceLayers();
+    export RENDERCOREMODULE_API [[nodiscard]] std::vector<VkExtensionProperties> GetAvailablePhysicalDeviceLayerExtensions(strzilla::string_view);
+    export RENDERCOREMODULE_API [[nodiscard]] std::vector<strzilla::string>      GetAvailablePhysicalDeviceExtensionsNames();
+    export RENDERCOREMODULE_API [[nodiscard]] std::vector<strzilla::string>      GetAvailablePhysicalDeviceLayerExtensionsNames(strzilla::string_view);
+    export RENDERCOREMODULE_API [[nodiscard]] std::vector<strzilla::string>      GetAvailablePhysicalDeviceLayersNames();
+    export RENDERCOREMODULE_API [[nodiscard]] std::vector<VkSurfaceFormatKHR>    GetAvailablePhysicalDeviceSurfaceFormats();
+    export RENDERCOREMODULE_API [[nodiscard]] std::vector<VkPresentModeKHR>      GetAvailablePhysicalDeviceSurfacePresentationModes();
+
+    export RENDERCOREMODULE_API inline void SetOnGetSurfacePropertiesCallback(std::function<SurfaceProperties()> &&Callback)
+    {
+        g_OnGetSurfaceProperties = std::move(Callback);
+    }
 
     export RENDERCOREMODULE_API [[nodiscard]] inline VkDevice &GetLogicalDevice()
     {

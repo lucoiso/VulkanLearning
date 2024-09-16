@@ -26,12 +26,6 @@ export namespace RenderCore
 
     RENDERCOREMODULE_API [[nodiscard]] bool operator==(VkExtent2D, VkExtent2D);
 
-    RENDERCOREMODULE_API [[nodiscard]] VkExtent2D GetFramebufferSize(GLFWwindow *);
-
-    RENDERCOREMODULE_API [[nodiscard]] VkExtent2D GetWindowExtent(GLFWwindow *, VkSurfaceCapabilitiesKHR const &);
-
-    RENDERCOREMODULE_API [[nodiscard]] std::vector<strzilla::string> GetGLFWExtensions();
-
     RENDERCOREMODULE_API [[nodiscard]] std::vector<VkLayerProperties> GetAvailableInstanceLayers();
 
     RENDERCOREMODULE_API [[nodiscard]] std::vector<strzilla::string> GetAvailableInstanceLayersNames();

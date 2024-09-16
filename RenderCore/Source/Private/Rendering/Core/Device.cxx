@@ -226,44 +226,6 @@ VkSurfaceCapabilitiesKHR RenderCore::GetSurfaceCapabilities()
     return Output;
 }
 
-SurfaceProperties RenderCore::GetSurfaceProperties(GLFWwindow *const Window)
-{
-    std::vector<VkSurfaceFormatKHR> const SupportedFormats  = GetAvailablePhysicalDeviceSurfaceFormats();
-    [[maybe_unused]] auto const           PresentationModes = GetAvailablePhysicalDeviceSurfacePresentationModes();
-
-    SurfaceProperties Output { .Format = SupportedFormats.front(), .Extent = GetWindowExtent(Window, GetSurfaceCapabilities()) };
-
-    if (auto const MatchingFormat = std::ranges::find_if(g_PreferredImageFormats,
-                                                         [&SupportedFormats](VkFormat const &Format)
-                                                         {
-                                                             return std::ranges::find_if(SupportedFormats,
-                                                                                         [Format](VkSurfaceFormatKHR const &SurfaceFormat)
-                                                                                         {
-                                                                                             return SurfaceFormat.format == Format;
-                                                                                         }) != std::cend(SupportedFormats);
-                                                         });
-        MatchingFormat != std::cend(g_PreferredImageFormats))
-    {
-        Output.Format = SupportedFormats.at(std::distance(std::cbegin(g_PreferredImageFormats), MatchingFormat));
-    }
-
-    Output.Mode = Renderer::GetVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
-
-    for (VkFormat const &FormatIter : g_PreferredDepthFormats)
-    {
-        VkFormatProperties FormatProperties;
-        vkGetPhysicalDeviceFormatProperties(g_PhysicalDevice, FormatIter, &FormatProperties);
-
-        if ((FormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) != 0U)
-        {
-            Output.DepthFormat = FormatIter;
-            break;
-        }
-    }
-
-    return Output;
-}
-
 std::vector<std::uint32_t> RenderCore::GetUniqueQueueFamilyIndicesU32()
 {
     std::vector<std::uint32_t> QueueFamilyIndicesU32(std::size(g_UniqueQueueFamilyIndices));

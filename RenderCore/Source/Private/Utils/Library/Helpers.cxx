@@ -54,59 +54,6 @@ bool RenderCore::operator==(VkExtent2D const Lhs, VkExtent2D const Rhs)
     return Lhs.width == Rhs.width && Lhs.height == Rhs.height;
 }
 
-VkExtent2D RenderCore::GetFramebufferSize(GLFWwindow *const Window)
-{
-    std::int32_t Width  = 0U;
-    std::int32_t Height = 0U;
-    glfwGetFramebufferSize(Window, &Width, &Height);
-
-    return VkExtent2D { .width = static_cast<std::uint32_t>(Width), .height = static_cast<std::uint32_t>(Height) };
-}
-
-VkExtent2D RenderCore::GetWindowExtent(GLFWwindow *const Window, VkSurfaceCapabilitiesKHR const &Capabilities)
-{
-    VkExtent2D ActualExtent = GetFramebufferSize(Window);
-
-    ActualExtent.width  = std::clamp(ActualExtent.width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
-    ActualExtent.height = std::clamp(ActualExtent.height, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
-
-    return ActualExtent;
-}
-
-std::vector<strzilla::string> RenderCore::GetGLFWExtensions()
-{
-    std::uint32_t   GLFWExtensionsCount = 0U;
-    char const **   GLFWExtensions      = glfwGetRequiredInstanceExtensions(&GLFWExtensionsCount);
-    std::span const GLFWExtensionsSpan(GLFWExtensions, GLFWExtensionsCount);
-
-    std::vector<strzilla::string> Output {};
-    Output.reserve(GLFWExtensionsCount);
-
-    if (!std::empty(GLFWExtensionsSpan))
-    {
-        for (char const *const &ExtensionIter : GLFWExtensionsSpan)
-        {
-            Output.emplace_back(ExtensionIter);
-        }
-    }
-    else
-    {
-        Output.emplace_back("VK_KHR_surface");
-
-        #ifdef WIN32
-        Output.emplace_back("VK_KHR_win32_surface");
-        #elif __linux__
-        Output.emplace_back("VK_KHR_xcb_surface");
-        #elif __APPLE__
-        Output.emplace_back("VK_KHR_macos_surface");
-        elif __ANDROID__
-        Output.emplace_back("VK_KHR_android_surface");
-        #endif
-    }
-
-    return Output;
-}
-
 std::vector<VkLayerProperties> RenderCore::GetAvailableInstanceLayers()
 {
     std::uint32_t LayersCount = 0U;
