@@ -109,7 +109,10 @@ void RenderCore::ResetCommandPool(std::uint32_t const Index)
                       ThreadResourcesIt.second.Reset(LogicalDevice);
                   });
 
-    g_OnCommandPoolResetCallback(static_cast<std::uint8_t>(Index));
+    if (g_OnCommandPoolResetCallback)
+    {
+        g_OnCommandPoolResetCallback(static_cast<std::uint8_t>(Index));
+    }
 
     vkResetCommandPool(LogicalDevice, g_CommandResources.at(Index).PrimaryCommandPool, 0U);
 }
@@ -300,7 +303,10 @@ void EndRendering(VkCommandBuffer const &CommandBuffer, ImageAllocation const &S
                                                                                                   OffscreenAllocation.Format);
     }
 
-    g_OnCommandBufferRecordCallback(CommandBuffer, SwapchainAllocation);
+    if (g_OnCommandBufferRecordCallback)
+    {
+        g_OnCommandBufferRecordCallback(CommandBuffer, SwapchainAllocation);
+    }
 
     RenderCore::RequestImageLayoutTransition<g_AttachmentLayout, g_PresentLayout, g_ImageAspect>(CommandBuffer,
                                                                                                  SwapchainAllocation.Image,

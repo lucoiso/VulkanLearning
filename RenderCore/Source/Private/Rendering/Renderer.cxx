@@ -112,7 +112,10 @@ void Renderer::DrawFrame(GLFWwindow *const Window, double const DeltaTime)
                 SetupPipelineLayouts();
                 CreatePipelineLibraries();
 
-                g_OnInitializeCallback();
+                if (g_OnInitializeCallback)
+                {
+                    g_OnInitializeCallback();
+                }
 
                 AddFlags(g_StateFlags, RendererStateFlags::INITIALIZED);
             }
@@ -122,7 +125,10 @@ void Renderer::DrawFrame(GLFWwindow *const Window, double const DeltaTime)
                 CreateOffscreenResources(SurfaceProperties);
             }
 
-            g_OnRefreshCallback();
+            if (g_OnRefreshCallback)
+            {
+                g_OnRefreshCallback();
+            }
 
             RemoveFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::INVALID_SIZE);
             AddFlags(g_StateFlags, RendererStateFlags::PENDING_PIPELINE_REFRESH);
@@ -142,7 +148,10 @@ void Renderer::DrawFrame(GLFWwindow *const Window, double const DeltaTime)
 
     if (!HasAnyFlag(g_StateFlags, InvalidStatesToRender) && RequestSwapChainImage(g_ImageIndex))
     {
-        g_OnDrawCallback();
+        if (g_OnDrawCallback)
+        {
+            g_OnDrawCallback();
+        }
 
         UpdateSceneUniformBuffer();
         Tick();
@@ -198,7 +207,10 @@ void Renderer::Shutdown()
     ReleaseSynchronizationObjects();
     ReleaseCommandsResources();
 
-    g_OnShutdownCallback();
+    if (g_OnShutdownCallback)
+    {
+        g_OnShutdownCallback();
+    }
 
     DestroyOffscreenImages();
 
