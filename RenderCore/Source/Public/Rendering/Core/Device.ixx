@@ -21,7 +21,7 @@ namespace RenderCore
     export void ReleaseDeviceResources();
 
     export RENDERCOREMODULE_API [[nodiscard]] VkSurfaceCapabilitiesKHR GetSurfaceCapabilities();
-    export RENDERCOREMODULE_API inline [[nodiscard]] SurfaceProperties GetSurfaceProperties()
+    export RENDERCOREMODULE_API [[nodiscard]] inline SurfaceProperties GetSurfaceProperties()
     {
         return g_OnGetSurfaceProperties ? g_OnGetSurfaceProperties() : SurfaceProperties{};
     }
