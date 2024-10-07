@@ -23,6 +23,7 @@ std::shared_ptr<Mesh> RenderCore::ConstructMesh(MeshConstructionInputParameters 
     SetVertexAttributes(NewMesh, Arguments.Model, Arguments.Primitive);
     SetPrimitiveTransform(NewMesh, Arguments.Node);
     AllocatePrimitiveIndices(NewMesh, Arguments.Model, Arguments.Primitive);
+    SetupMeshlets(NewMesh);
 
     tinygltf::Material const &MeshMaterial = Arguments.Model.materials.at(Arguments.Primitive.material);
 

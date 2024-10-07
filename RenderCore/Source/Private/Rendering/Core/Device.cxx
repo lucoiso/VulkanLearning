@@ -134,58 +134,54 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
             // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
             .pNext = nullptr,
-            .taskShader = VK_TRUE,
-            .meshShader = VK_TRUE
+            .taskShader = true,
+            .meshShader = true
     };
 
     VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT PipelineLibraryProperties {
             // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT,
             .pNext = &MeshShaderFeatures,
-            .graphicsPipelineLibrary = VK_TRUE,
-    };
-
-    VkPhysicalDeviceBufferDeviceAddressFeatures BufferDeviceAddressFeatures {
-            // Required
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
-            .pNext = &PipelineLibraryProperties,
-            .bufferDeviceAddress = VK_TRUE
+            .graphicsPipelineLibrary = true,
     };
 
     VkPhysicalDeviceDescriptorBufferFeaturesEXT DescriptorBufferFeatures {
             // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT,
-            .pNext = &BufferDeviceAddressFeatures,
-            .descriptorBuffer = VK_TRUE
+            .pNext = &PipelineLibraryProperties,
+            .descriptorBuffer = true
     };
 
-    VkPhysicalDeviceSynchronization2Features Synchronization2Features {
-            // Required
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
+    VkPhysicalDeviceVulkan13Features Vulkan13DeviceFeatures {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
             .pNext = &DescriptorBufferFeatures,
-            .synchronization2 = VK_TRUE
+            .synchronization2 = true,
+            .dynamicRendering = true,
+            .maintenance4 = true
     };
 
-    VkPhysicalDeviceDynamicRenderingFeatures DynamicRenderingFeatures {
-            // Required
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
-            .pNext = &Synchronization2Features,
-            .dynamicRendering = VK_TRUE
+    VkPhysicalDeviceVulkan12Features Vulkan12DeviceFeatures {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            .pNext = &Vulkan13DeviceFeatures,
+            .uniformAndStorageBuffer8BitAccess = true,
+            .timelineSemaphore = true,
+            .bufferDeviceAddress = true
     };
 
     VkPhysicalDeviceFeatures2 DeviceFeatures {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-            .pNext = &DynamicRenderingFeatures,
+            .pNext = &Vulkan12DeviceFeatures,
             .features = VkPhysicalDeviceFeatures {
-                    .independentBlend = VK_TRUE,
+                    .independentBlend = true,
                     .drawIndirectFirstInstance = true,
                     .fillModeNonSolid = true,
                     .wideLines = true,
-                    .samplerAnisotropy = VK_TRUE,
+                    .samplerAnisotropy = true,
                     .pipelineStatisticsQuery = true,
                     .vertexPipelineStoresAndAtomics = true,
                     .fragmentStoresAndAtomics = true,
                     .shaderImageGatherExtended = true,
+                    .shaderClipDistance = true,
                     .shaderInt16 = false
             }
     };

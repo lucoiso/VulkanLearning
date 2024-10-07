@@ -35,7 +35,7 @@ bool CompileInternal(ShaderType const            ShaderType,
     Shader.setSourceEntryPoint(std::data(EntryPoint));
     Shader.setEnvInput(ShaderType == ShaderType::GLSL ? glslang::EShSourceGlsl : glslang::EShSourceHlsl, Language, glslang::EShClientVulkan, 1);
     Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
-    Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
+    Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_6);
 
     TBuiltInResource const *Resources    = GetDefaultResources();
     constexpr auto          MessageFlags = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
@@ -228,35 +228,52 @@ bool RenderCore::CompileOrLoadIfExists(strzilla::string_view const Source,
 
 void RenderCore::CompileDefaultShaders()
 {
-    constexpr auto GlslVersion = 450;
+    constexpr auto ShaderType  = ShaderType::GLSL;
+    constexpr auto GlslVersion = 460;
     constexpr auto EntryPoint  = "main";
 
-    auto const CompileAndStage = [EntryPoint, GlslVersion](strzilla::string_view const Shader, EShLanguage const Language)
+    auto const CompileAndStage = [EntryPoint, GlslVersion] (strzilla::string_view const Shader, EShLanguage const Language, VkShaderStageFlagBits const Stage)
     {
         if (auto &[StageInfo, ShaderCode] = g_StageInfos.emplace_back();
-            CompileOrLoadIfExists(Shader, ShaderType::GLSL, EntryPoint, GlslVersion, Language, ShaderCode))
+            CompileOrLoadIfExists(Shader, ShaderType, EntryPoint, GlslVersion, Language, ShaderCode))
         {
             StageInfo = VkPipelineShaderStageCreateInfo {
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                    .stage = Language == EShLangVertex ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .stage = Stage,
                     .pName = EntryPoint
             };
         }
     };
 
-    // constexpr auto TaskLang { EShLangTask };
-    // constexpr auto TaskShader { DEFAULT_TASK_SHADER };
-    // CompileAndStage(TaskShader, TaskLang);
+    // Compute
+    // {
+    //     constexpr auto ShaderFile { DEFAULT_COMPUTE_SHADER };
+    //     constexpr auto ShaderStage { EShLangCompute };
+    //     constexpr auto ShaderStageFlag { VK_SHADER_STAGE_COMPUTE_BIT };
+    //     CompileAndStage(ShaderFile, ShaderStage, ShaderStageFlag);
+    // }
 
-    // constexpr auto MeshLang { EShLangMesh };
-    // constexpr auto MeshShader { DEFAULT_MESH_SHADER };
-    // CompileAndStage(MeshShader, MeshLang);
+    // Task
+    {
+        constexpr auto ShaderFile { DEFAULT_TASK_SHADER };
+        constexpr auto ShaderStage { EShLangTask };
+        constexpr auto ShaderStageFlag { VK_SHADER_STAGE_TASK_BIT_EXT };
+        CompileAndStage(ShaderFile, ShaderStage, ShaderStageFlag);
+    }
 
-    constexpr auto VertexLang { EShLangVertex };
-    constexpr auto VertexShader { DEFAULT_VERTEX_SHADER };
-    CompileAndStage(VertexShader, VertexLang);
+    // Mesh
+    {
+        constexpr auto ShaderFile { DEFAULT_MESH_SHADER };
+        constexpr auto ShaderLanguage { EShLangMesh };
+        constexpr auto ShaderStageFlag { VK_SHADER_STAGE_MESH_BIT_EXT };
+        CompileAndStage(ShaderFile, ShaderLanguage, ShaderStageFlag);
+    }
 
-    constexpr auto FragmentLang { EShLangFragment };
-    constexpr auto FragmentShader { DEFAULT_FRAGMENT_SHADER };
-    CompileAndStage(FragmentShader, FragmentLang);
+    // Fragment
+    {
+        constexpr auto ShaderFile { DEFAULT_FRAGMENT_SHADER };
+        constexpr auto ShaderLanguage { EShLangFragment };
+        constexpr auto ShaderStageFlag { VK_SHADER_STAGE_FRAGMENT_BIT };
+        CompileAndStage(ShaderFile, ShaderLanguage, ShaderStageFlag);
+    }
 }

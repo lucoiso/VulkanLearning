@@ -101,12 +101,9 @@ TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE BUILD_DLL)
 FIND_PACKAGE(Boost REQUIRED COMPONENTS log)
 FIND_PACKAGE(TinyGLTF REQUIRED)
 
-FIND_PACKAGE(meshoptimizer REQUIRED)
-
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC
         Boost::log
         TinyGLTF::TinyGLTF
-        meshoptimizer::meshoptimizer
 
         Timer
         ThreadPool
@@ -136,10 +133,10 @@ TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PUBLIC $ENV{VULKAN_SDK}/Include)
 
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE
         # Assets directory (relative to binaries)
-        DEFAULT_VERTEX_SHADER="Shaders/DEFAULT_SHADER.vert"
-        DEFAULT_FRAGMENT_SHADER="Shaders/DEFAULT_SHADER.frag"
-        DEFAULT_TASK_SHADER="Shaders/DEFAULT_SHADER.task"
-        DEFAULT_MESH_SHADER="Shaders/DEFAULT_SHADER.mesh"
+        DEFAULT_COMPUTE_SHADER="Shaders/ComputeShader.glsl"
+        DEFAULT_TASK_SHADER="Shaders/TaskShader.glsl"
+        DEFAULT_MESH_SHADER="Shaders/MeshShader.glsl"
+        DEFAULT_FRAGMENT_SHADER="Shaders/FragmentShader.glsl"
 )
 
 TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC

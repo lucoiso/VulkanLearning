@@ -8,10 +8,11 @@ module RenderCore.Runtime.Model;
 
 import RenderCore.Types.Vertex;
 import RenderCore.Types.Transform;
+import RenderCore.Types.Mesh;
 
 using namespace RenderCore;
 
-void RenderCore::InsertIndiceInContainer(std::vector<std::uint32_t> &Indices, tinygltf::Accessor const &IndexAccessor, auto const *Data)
+void RenderCore::InsertIndicesInContainer(std::vector<std::uint32_t> &Indices, tinygltf::Accessor const &IndexAccessor, auto const *Data)
 {
     for (std::uint32_t Iterator = 0U; Iterator < IndexAccessor.count; ++Iterator)
     {
@@ -124,7 +125,7 @@ void RenderCore::SetVertexAttributes(std::shared_ptr<Mesh> const &Mesh, tinygltf
         }
     }
 
-    Mesh->SetVertices(Vertices);
+    Mesh->SetupVertices(Vertices);
 }
 
 void RenderCore::AllocatePrimitiveIndices(std::shared_ptr<Mesh> const &Mesh, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
@@ -144,17 +145,17 @@ void RenderCore::AllocatePrimitiveIndices(std::shared_ptr<Mesh> const &Mesh, tin
         {
             case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
             {
-                InsertIndiceInContainer(Indices, IndexAccessor, reinterpret_cast<std::uint32_t const *>(IndicesData));
+                InsertIndicesInContainer(Indices, IndexAccessor, reinterpret_cast<std::uint32_t const *>(IndicesData));
                 break;
             }
             case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT:
             {
-                InsertIndiceInContainer(Indices, IndexAccessor, reinterpret_cast<uint16_t const *>(IndicesData));
+                InsertIndicesInContainer(Indices, IndexAccessor, reinterpret_cast<uint16_t const *>(IndicesData));
                 break;
             }
             case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE:
             {
-                InsertIndiceInContainer(Indices, IndexAccessor, IndicesData);
+                InsertIndicesInContainer(Indices, IndexAccessor, IndicesData);
                 break;
             }
             default:
@@ -162,12 +163,12 @@ void RenderCore::AllocatePrimitiveIndices(std::shared_ptr<Mesh> const &Mesh, tin
         }
     }
 
-    Mesh->SetIndices(Indices);
+    Mesh->SetupIndices(Indices);
 }
 
 void RenderCore::SetPrimitiveTransform(std::shared_ptr<Mesh> const &Mesh, tinygltf::Node const &Node)
 {
-    Transform Transform {};
+    Transform Transform{};
 
     if (!std::empty(Node.translation))
     {
@@ -190,5 +191,8 @@ void RenderCore::SetPrimitiveTransform(std::shared_ptr<Mesh> const &Mesh, tinygl
     }
 
     Mesh->SetTransform(Transform);
-    Mesh->SetupBounds();
+}
+
+void RenderCore::SetupMeshlets(std::shared_ptr<Mesh> const &Mesh)
+{
 }

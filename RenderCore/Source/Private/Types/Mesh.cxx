@@ -4,11 +4,11 @@
 
 module;
 
-#include <meshoptimizer.h>
-
 module RenderCore.Types.Mesh;
 
 import RenderCore.Runtime.Memory;
+import RenderCore.Types.UniformBufferObject;
+import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
@@ -22,68 +22,64 @@ Mesh::Mesh(std::uint32_t const ID, strzilla::string_view const Path, strzilla::s
 {
 }
 
-void Mesh::Optimize()
+void Mesh::SetupVertices(std::vector<Vertex> const &Value)
 {
-    std::size_t const IndexCount  = m_NumTriangles * 3;
-    std::size_t const VertexCount = std::size(m_Vertices);
+    std::size_t const NumRequested = std::size(Value);
+    std::size_t const NumMeshlets = (NumRequested + g_MaxMeshletVertices - 1) / g_MaxMeshletVertices;
 
-    std::vector<unsigned int> Remap(IndexCount);
-    std::size_t const         NewVertexCount = meshopt_generateVertexRemap(std::data(Remap),
-                                                                           std::data(m_Indices),
-                                                                           IndexCount,
-                                                                           std::data(m_Vertices),
-                                                                           VertexCount,
-                                                                           sizeof(Vertex));
+    m_Meshlets.resize(NumMeshlets);
 
-    std::vector<Vertex>       NewVertices(NewVertexCount);
-    std::vector<unsigned int> NewIndices(IndexCount);
-
-    meshopt_remapIndexBuffer(std::data(NewIndices), std::data(m_Indices), IndexCount, std::data(Remap));
-    meshopt_remapVertexBuffer(std::data(NewVertices), std::data(m_Vertices), VertexCount, sizeof(Vertex), std::data(Remap));
-
-    m_Vertices     = std::move(NewVertices);
-    m_Indices      = std::move(NewIndices);
-    m_NumTriangles = static_cast<std::uint32_t>(std::size(m_Indices) / 3U);
-
-    meshopt_optimizeVertexCache(std::data(m_Indices), std::data(m_Indices), IndexCount, std::size(m_Vertices));
-
-    meshopt_optimizeOverdraw(std::data(m_Indices),
-                             std::data(m_Indices),
-                             IndexCount,
-                             &m_Vertices[0].Position.x,
-                             std::size(m_Vertices),
-                             sizeof(Vertex),
-                             1.05f);
-
-    meshopt_optimizeVertexFetch(std::data(m_Vertices),
-                                std::data(m_Indices),
-                                IndexCount,
-                                std::data(m_Vertices),
-                                std::size(m_Vertices),
-                                sizeof(Vertex));
-}
-
-void Mesh::SetupBounds()
-{
-    for (auto const &VertexIter : m_Vertices)
+    for (std::size_t Iterator = 0; Iterator < NumMeshlets; ++Iterator)
     {
-        glm::vec4 const TransformedVertex = glm::vec4(VertexIter.Position, 1.0f) * m_Transform.GetMatrix();
+        std::size_t const StartIndex = Iterator * g_MaxMeshletVertices;
+        std::size_t const EndIndex = std::min(StartIndex + g_MaxMeshletVertices, NumRequested);
+        std::size_t const VertexCount = EndIndex - StartIndex;
 
-        m_Bounds.Min.x = std::min(m_Bounds.Min.x, TransformedVertex.x);
-        m_Bounds.Min.y = std::min(m_Bounds.Min.y, TransformedVertex.y);
-        m_Bounds.Min.z = std::min(m_Bounds.Min.z, TransformedVertex.z);
+        std::copy(std::cbegin(Value) + static_cast<std::ptrdiff_t>(StartIndex),
+                  std::cbegin(Value) + static_cast<std::ptrdiff_t>(EndIndex),
+                  std::data(m_Meshlets.at(Iterator).Vertices));
 
-        m_Bounds.Max.x = std::max(m_Bounds.Max.x, TransformedVertex.x);
-        m_Bounds.Max.y = std::max(m_Bounds.Max.y, TransformedVertex.y);
-        m_Bounds.Max.z = std::max(m_Bounds.Max.z, TransformedVertex.z);
+        m_Meshlets.at(Iterator).VertexCount = static_cast<std::uint32_t>(VertexCount);
     }
 }
 
-void Mesh::BindBuffers(VkCommandBuffer const &CommandBuffer, std::uint32_t const NumInstances) const
+void Mesh::SetupIndices(std::vector<std::uint32_t> const &Value)
 {
-    VkBuffer const &AllocationBuffer = GetAllocationBuffer();
+    std::size_t const CurrentNum = std::size(m_Meshlets);
+    std::size_t const NumRequested = std::size(Value);
+    constexpr std::uint8_t MaxIndices = g_MaxMeshletPrimitives * 3U;
+    std::size_t const NumMeshlets = (NumRequested + MaxIndices - 1) / MaxIndices;
 
-    vkCmdBindVertexBuffers(CommandBuffer, 0U, 1U, &AllocationBuffer, &m_VertexOffset);
-    vkCmdBindIndexBuffer(CommandBuffer, AllocationBuffer, m_IndexOffset, VK_INDEX_TYPE_UINT32);
-    vkCmdDrawIndexed(CommandBuffer, static_cast<std::uint32_t>(std::size(m_Indices)), NumInstances, 0U, 0U, 0U);
+    m_Meshlets.resize(std::max(CurrentNum, NumMeshlets));
+
+    for (std::size_t Iterator = 0; Iterator < NumMeshlets; ++Iterator)
+    {
+        std::size_t const StartIndex = Iterator * MaxIndices;
+        std::size_t const EndIndex = std::min(StartIndex + MaxIndices, NumRequested);
+        std::size_t const IndexCount = EndIndex - StartIndex;
+
+        std::copy(std::cbegin(Value) + static_cast<std::ptrdiff_t>(StartIndex),
+                  std::cbegin(Value) + static_cast<std::ptrdiff_t>(EndIndex),
+                  std::data(m_Meshlets.at(Iterator).Indices));
+
+        m_Meshlets.at(Iterator).IndexCount = static_cast<std::uint32_t>(IndexCount);
+    }
+}
+
+
+void Mesh::UpdateUniformBuffers(char * const OwningData) const
+{
+    if (!OwningData)
+    {
+        return;
+    }
+
+    if (IsRenderDirty())
+    {
+        constexpr auto ModelUBOSize    = sizeof(ModelUniformData);
+        constexpr auto MaterialUBOSize = sizeof(MaterialData);
+        std::memcpy(OwningData + ModelUBOSize, &GetMaterialData(), MaterialUBOSize);
+
+        SetRenderDirty(false);
+    }
 }

@@ -6,17 +6,27 @@ module;
 
 export module RenderCore.Types.Vertex;
 
+import RenderCore.Utils.Constants;
+
 namespace RenderCore
 {
     export struct RENDERCOREMODULE_API Vertex
     {
-        glm::vec3 Position {};
-        glm::vec3 Normal {};
-        glm::vec2 TextureCoordinate {};
-        glm::vec4 Color {};
-        glm::vec4 Joint {};
-        glm::vec4 Weight {};
-        glm::vec4 Tangent {};
+        alignas(16) glm::vec3 Position {};
+        alignas(16) glm::vec3 Normal {};
+        alignas(16) glm::vec2 TextureCoordinate {};
+        alignas(16) glm::vec4 Color {};
+        alignas(16) glm::vec4 Joint {};
+        alignas(16) glm::vec4 Weight {};
+        alignas(16) glm::vec4 Tangent {};
+    };
+
+    export struct RENDERCOREMODULE_API Meshlet
+    {
+        alignas(16) std::array<Vertex, g_MaxMeshletVertices> Vertices {};
+        alignas(16) std::array<std::uint32_t, g_MaxMeshletPrimitives * 3U> Indices {};
+        alignas(4) std::uint32_t VertexCount { 0U };
+        alignas(4) std::uint32_t IndexCount { 0U };
     };
 
     export namespace VertexAttributes
@@ -56,4 +66,4 @@ namespace RenderCore
                 .offset = static_cast<std::uint32_t>(offsetof(Vertex, Tangent))
         };
     } // namespace VertexAttributes
-}     // namespace RenderCore
+} // namespace RenderCore

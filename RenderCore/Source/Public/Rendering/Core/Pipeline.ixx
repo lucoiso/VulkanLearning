@@ -14,18 +14,15 @@ namespace RenderCore
     export struct RENDERCOREMODULE_API PipelineData
     {
         VkPipeline       MainPipeline { VK_NULL_HANDLE };
-        VkPipeline       VertexInputPipeline { VK_NULL_HANDLE };
-        VkPipeline       PreRasterizationPipeline { VK_NULL_HANDLE };
-        VkPipeline       FragmentOutputPipeline { VK_NULL_HANDLE };
-        VkPipeline       FragmentShaderPipeline { VK_NULL_HANDLE };
+        VkPipeline       FragmentPipeline { VK_NULL_HANDLE };
+        std::array<VkPipeline, 3U> PipelineLibraries {};
         VkPipelineLayout PipelineLayout { VK_NULL_HANDLE };
         VkPipelineCache  PipelineCache { VK_NULL_HANDLE };
         VkPipelineCache  PipelineLibraryCache { VK_NULL_HANDLE };
 
         [[nodiscard]] inline bool IsValid() const
         {
-            return MainPipeline != VK_NULL_HANDLE || FragmentShaderPipeline != VK_NULL_HANDLE || VertexInputPipeline != VK_NULL_HANDLE ||
-                   PreRasterizationPipeline != VK_NULL_HANDLE || FragmentOutputPipeline != VK_NULL_HANDLE || PipelineLayout != VK_NULL_HANDLE ||
+            return MainPipeline != VK_NULL_HANDLE || FragmentPipeline != VK_NULL_HANDLE || PipelineLayout != VK_NULL_HANDLE ||
                    PipelineCache != VK_NULL_HANDLE || PipelineLibraryCache != VK_NULL_HANDLE;
         }
 
@@ -37,19 +34,28 @@ namespace RenderCore
 
     export struct RENDERCOREMODULE_API PipelineDescriptorData
     {
-        DescriptorData SceneData {};
-        DescriptorData ModelData {};
-        DescriptorData TextureData {};
+        DescriptorData SceneData{};
+        DescriptorData ModelData{};
+        DescriptorData MaterialData{};
+        DescriptorData MeshletData{};
+        DescriptorData TextureData{};
 
         [[nodiscard]] inline bool IsValid() const
         {
-            return SceneData.IsValid() && ModelData.IsValid() && TextureData.IsValid();
+            return SceneData.IsValid()
+            && ModelData.IsValid()
+            && MaterialData.IsValid()
+            && MeshletData.IsValid()
+            && TextureData.IsValid();
         }
 
         void DestroyResources(VmaAllocator const &, bool);
 
         void SetDescriptorLayoutSize();
         void SetupSceneBuffer(BufferAllocation const &);
+
+        void SetupModelsBufferSizes(std::vector<std::shared_ptr<Object>> const &);
+        void MapModelTextureBuffer(unsigned char *, std::shared_ptr<Object> const &, std::uint32_t) const;
         void SetupModelsBuffer(std::vector<std::shared_ptr<Object>> const &);
     };
 

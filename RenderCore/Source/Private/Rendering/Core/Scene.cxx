@@ -52,14 +52,14 @@ void RenderCore::CreateImageSampler()
             .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
             .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
             .mipLodBias = 0.F,
-            .anisotropyEnable = VK_FALSE,
+            .anisotropyEnable = false,
             .maxAnisotropy = SurfaceProperties.limits.maxSamplerAnisotropy,
-            .compareEnable = VK_FALSE,
+            .compareEnable = false,
             .compareOp = VK_COMPARE_OP_ALWAYS,
             .minLod = 0.F,
             .maxLod = FLT_MAX,
             .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-            .unnormalizedCoordinates = VK_FALSE
+            .unnormalizedCoordinates = false
     };
 
     CheckVulkanResult(vkCreateSampler(GetLogicalDevice(), &SamplerCreateInfo, nullptr, &g_Sampler));
@@ -205,9 +205,7 @@ void RenderCore::LoadScene(strzilla::string_view const ModelPath)
                     std::uint32_t const ObjectID  = FetchID();
                     auto                NewObject = std::make_shared<Object>(ObjectID, ModelPath);
 
-                    NewMesh->Optimize();
                     NewObject->SetMesh(std::move(NewMesh));
-
                     g_Objects.push_back(std::move(NewObject));
                 }
             }
@@ -304,10 +302,11 @@ void RenderCore::UpdateSceneUniformBuffer()
         constexpr auto SceneUBOSize = sizeof(SceneUniformData);
 
         SceneUniformData const UpdatedUBO {
-                .ProjectionView = g_Camera.GetProjectionMatrix() * g_Camera.GetViewMatrix(),
                 .LightPosition = g_Illumination.GetPosition(),
                 .LightColor = g_Illumination.GetColor() * g_Illumination.GetIntensity(),
-                .AmbientLight = g_Illumination.GetAmbient()
+                .LightDiffuse = {},
+                .LightAmbient = {},
+                .LightSpecular = {}
         };
 
         std::memcpy(m_UniformBufferAllocation.first.MappedData, &UpdatedUBO, SceneUBOSize);

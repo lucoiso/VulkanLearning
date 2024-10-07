@@ -29,6 +29,8 @@ import RenderCore.Runtime.Instance;
 import RenderCore.Runtime.Command;
 import RenderCore.Types.UniformBufferObject;
 import RenderCore.Types.Vertex;
+import RenderCore.Types.Material;
+import RenderCore.Types.Mesh;
 
 using namespace RenderCore;
 
@@ -363,52 +365,44 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
         g_BufferAllocation.DestroyResources(g_Allocator);
     }
 
-    std::vector<Vertex>        Vertices;
-    std::vector<std::uint32_t> Indices;
+    std::vector<Meshlet> Meshlets;
+    constexpr std::size_t MeshletDataSize = sizeof(Meshlet);
 
     for (auto const &ObjectIter : Objects)
     {
         auto const &Mesh = ObjectIter->GetMesh();
-
-        Mesh->SetVertexOffset(std::size(Vertices) * sizeof(Vertex));
-        Mesh->SetIndexOffset(std::size(Indices) * sizeof(std::uint32_t));
-
-        Vertices.insert(std::end(Vertices), std::begin(Mesh->GetVertices()), std::end(Mesh->GetVertices()));
-        Indices.insert(std::end(Indices), std::begin(Mesh->GetIndices()), std::end(Mesh->GetIndices()));
-
-        ObjectIter->MarkAsRenderDirty();
+        Mesh->SetMeshletOffset(std::size(Meshlets) * MeshletDataSize);
+        Meshlets.insert(std::end(Meshlets), std::begin(Mesh->GetMeshlets()), std::end(Mesh->GetMeshlets()));
     }
 
-    VkDeviceSize const VertexBufferSize = std::size(Vertices) * sizeof(Vertex);
-    VkDeviceSize const IndexBufferSize  = std::size(Indices) * sizeof(std::uint32_t);
-    VkDeviceSize       UniformOffset    = VertexBufferSize + IndexBufferSize;
+    VkDeviceSize MeshletBufferSize = std::size(Meshlets) * MeshletDataSize;
 
     if (VkDeviceSize const MinAlignment = GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
         MinAlignment > 0U)
     {
-        UniformOffset = UniformOffset + MinAlignment - 1U & ~(MinAlignment - 1U);
+        MeshletBufferSize = MeshletBufferSize + MinAlignment - 1U & ~(MinAlignment - 1U);
     }
 
+    constexpr std::size_t UniformDataSize = sizeof(ModelUniformData) + sizeof(MaterialData);
+
     VmaAllocator const &Allocator  = GetAllocator();
-    VkDeviceSize const  BufferSize = UniformOffset + sizeof(ModelUniformData) * std::size(Objects);
+    VkDeviceSize const  BufferSize = MeshletBufferSize + UniformDataSize * std::size(Objects);
 
     CreateBuffer(BufferSize, g_ModelBufferUsage, "MODEL_UNIFIED_BUFFER", g_BufferAllocation.Buffer, g_BufferAllocation.Allocation);
 
     CheckVulkanResult(vmaMapMemory(Allocator, g_BufferAllocation.Allocation, &g_BufferAllocation.MappedData));
-    std::memcpy(g_BufferAllocation.MappedData, std::data(Vertices), VertexBufferSize);
-    std::memcpy(static_cast<char *>(g_BufferAllocation.MappedData) + VertexBufferSize, std::data(Indices), IndexBufferSize);
+    std::memcpy(g_BufferAllocation.MappedData, std::data(Meshlets), MeshletBufferSize);
 
-    CheckVulkanResult(vmaFlushAllocation(Allocator, g_BufferAllocation.Allocation, VertexBufferSize, IndexBufferSize));
+    CheckVulkanResult(vmaFlushAllocation(Allocator, g_BufferAllocation.Allocation, 0U, MeshletBufferSize));
     vmaUnmapMemory(Allocator, g_BufferAllocation.Allocation);
 
     for (auto const &ObjectIter : Objects)
     {
-        auto const &Mesh = ObjectIter->GetMesh();
-
-        Mesh->SetIndexOffset(Mesh->GetIndexOffset() + VertexBufferSize);
-
-        ObjectIter->SetUniformOffset(UniformOffset + sizeof(ModelUniformData) * std::distance(std::data(Objects), &ObjectIter));
+        ObjectIter->SetUniformOffset(MeshletBufferSize + UniformDataSize * std::distance(std::data(Objects), &ObjectIter));
         ObjectIter->SetupUniformDescriptor();
+
+        ObjectIter->MarkAsRenderDirty();
+        ObjectIter->GetMesh()->MarkAsRenderDirty();
     }
 }
 

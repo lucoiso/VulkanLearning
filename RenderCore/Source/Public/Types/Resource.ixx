@@ -10,6 +10,7 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Resource
     {
+        mutable bool     m_IsRenderDirty { true };
         bool             m_IsPendingDestroy { false };
         std::uint32_t    m_ID {};
         strzilla::string m_Path {};
@@ -56,6 +57,22 @@ namespace RenderCore
         virtual inline void Destroy()
         {
             m_IsPendingDestroy = true;
+        }
+
+        [[nodiscard]] inline bool IsRenderDirty() const
+        {
+            return m_IsRenderDirty;
+        }
+
+        inline void MarkAsRenderDirty() const
+        {
+            m_IsRenderDirty = true;
+        }
+
+    protected:
+        inline void SetRenderDirty(bool const Value) const
+        {
+            m_IsRenderDirty = Value;
         }
     };
 } // namespace RenderCore

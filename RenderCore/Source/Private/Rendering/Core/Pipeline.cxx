@@ -15,6 +15,7 @@ import RenderCore.Types.Allocation;
 import RenderCore.Types.UniformBufferObject;
 import RenderCore.Types.Texture;
 import RenderCore.Types.Vertex;
+import RenderCore.Types.Material;
 import RenderCore.Utils.Constants;
 import RenderCore.Utils.Helpers;
 
@@ -27,20 +28,20 @@ VkPhysicalDeviceDescriptorBufferPropertiesEXT g_DescriptorBufferProperties {
 constexpr VkPipelineMultisampleStateCreateInfo g_MultisampleState {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .rasterizationSamples = g_MSAASamples,
-        .sampleShadingEnable = VK_FALSE,
+        .sampleShadingEnable = false,
         .minSampleShading = 1.F,
         .pSampleMask = nullptr,
-        .alphaToCoverageEnable = VK_FALSE,
-        .alphaToOneEnable = VK_FALSE
+        .alphaToCoverageEnable = false,
+        .alphaToOneEnable = false
 };
 
 constexpr VkPipelineDepthStencilStateCreateInfo g_DepthStencilState {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-        .depthTestEnable = VK_TRUE,
-        .depthWriteEnable = VK_TRUE,
+        .depthTestEnable = true,
+        .depthWriteEnable = true,
         .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
-        .depthBoundsTestEnable = VK_FALSE,
-        .stencilTestEnable = VK_FALSE,
+        .depthBoundsTestEnable = false,
+        .stencilTestEnable = false,
         .front = {},
         .back = {},
         .minDepthBounds = 0.F,
@@ -57,10 +58,10 @@ void PipelineData::DestroyResources(VkDevice const &LogicalDevice, bool const In
         MainPipeline = VK_NULL_HANDLE;
     }
 
-    if (FragmentShaderPipeline != VK_NULL_HANDLE)
+    if (FragmentPipeline != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(LogicalDevice, FragmentShaderPipeline, nullptr);
-        FragmentShaderPipeline = VK_NULL_HANDLE;
+        vkDestroyPipeline(LogicalDevice, FragmentPipeline, nullptr);
+        FragmentPipeline = VK_NULL_HANDLE;
     }
 
     if (!IncludeStatic)
@@ -68,22 +69,13 @@ void PipelineData::DestroyResources(VkDevice const &LogicalDevice, bool const In
         return;
     }
 
-    if (VertexInputPipeline != VK_NULL_HANDLE)
+    for (VkPipeline &LibraryIt : PipelineLibraries)
     {
-        vkDestroyPipeline(LogicalDevice, VertexInputPipeline, nullptr);
-        VertexInputPipeline = VK_NULL_HANDLE;
-    }
-
-    if (PreRasterizationPipeline != VK_NULL_HANDLE)
-    {
-        vkDestroyPipeline(LogicalDevice, PreRasterizationPipeline, nullptr);
-        PreRasterizationPipeline = VK_NULL_HANDLE;
-    }
-
-    if (FragmentOutputPipeline != VK_NULL_HANDLE)
-    {
-        vkDestroyPipeline(LogicalDevice, FragmentOutputPipeline, nullptr);
-        FragmentOutputPipeline = VK_NULL_HANDLE;
+        if (LibraryIt != VK_NULL_HANDLE)
+        {
+            vkDestroyPipeline(LogicalDevice, LibraryIt, nullptr);
+            LibraryIt = VK_NULL_HANDLE;
+        }
     }
 
     if (PipelineLayout != VK_NULL_HANDLE)
@@ -125,6 +117,8 @@ void PipelineDescriptorData::DestroyResources(VmaAllocator const &Allocator, boo
 {
     SceneData.DestroyResources(Allocator, IncludeStatic);
     ModelData.DestroyResources(Allocator, IncludeStatic);
+    MaterialData.DestroyResources(Allocator, IncludeStatic);
+    MeshletData.DestroyResources(Allocator, IncludeStatic);
     TextureData.DestroyResources(Allocator, IncludeStatic);
 }
 
@@ -135,6 +129,8 @@ void PipelineDescriptorData::SetDescriptorLayoutSize()
 
     SceneData.SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
     ModelData.SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    MaterialData.SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    MeshletData.SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
     TextureData.SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
 }
 
@@ -143,46 +139,149 @@ void PipelineDescriptorData::SetupSceneBuffer(BufferAllocation const &SceneAlloc
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
     {
-        VmaAllocator const &         Allocator   = GetAllocator();
+        VmaAllocator const          &Allocator   = GetAllocator();
         constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
         SceneData.Buffer.Size = SceneData.LayoutSize;
         CreateBuffer(SceneData.LayoutSize, BufferUsage, "Scene Descriptor Buffer", SceneData.Buffer.Buffer, SceneData.Buffer.Allocation);
         vmaMapMemory(Allocator, SceneData.Buffer.Allocation, &SceneData.Buffer.MappedData);
 
-        VkBufferDeviceAddressInfo const BufferDeviceAddressInfo {
-                .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-                .buffer = SceneData.Buffer.Buffer
-        };
+        VkBufferDeviceAddressInfo const BufferDeviceAddressInfo{.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, .buffer = SceneData.Buffer.Buffer};
 
         SceneData.BufferDeviceAddress.deviceAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
     }
 
     {
-        VkBufferDeviceAddressInfo const BufferDeviceAddressInfo {
-                .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-                .buffer = SceneAllocation.Buffer
-        };
+        VkBufferDeviceAddressInfo const BufferDeviceAddressInfo{.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, .buffer = SceneAllocation.Buffer};
 
         VkDeviceSize const SceneUniformAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
 
-        VkDescriptorAddressInfoEXT const SceneDescriptorAddressInfo {
-                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT,
-                .address = SceneUniformAddress,
-                .range = sizeof(SceneUniformData),
-                .format = VK_FORMAT_UNDEFINED
-        };
+        VkDescriptorAddressInfoEXT const SceneDescriptorAddressInfo{.sType   = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT,
+                                                                    .address = SceneUniformAddress,
+                                                                    .range   = sizeof(SceneUniformData),
+                                                                    .format  = VK_FORMAT_UNDEFINED};
 
-        VkDescriptorGetInfoEXT const SceneDescriptorInfo {
-                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
-                .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .data = VkDescriptorDataEXT { .pUniformBuffer = &SceneDescriptorAddressInfo }
-        };
+        VkDescriptorGetInfoEXT const SceneDescriptorInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
+                                                         .type  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                                         .data  = VkDescriptorDataEXT{.pUniformBuffer = &SceneDescriptorAddressInfo}};
 
         vkGetDescriptorEXT(LogicalDevice,
                            &SceneDescriptorInfo,
                            g_DescriptorBufferProperties.uniformBufferDescriptorSize,
                            static_cast<unsigned char *>(SceneData.Buffer.MappedData) + SceneData.LayoutOffset);
+    }
+}
+void PipelineDescriptorData::SetupModelsBufferSizes(std::vector<std::shared_ptr<Object>> const &Objects)
+{
+    if (std::empty(Objects))
+    {
+        return;
+    }
+
+    VkDevice const     &LogicalDevice = GetLogicalDevice();
+    VmaAllocator const &Allocator     = GetAllocator();
+
+    auto const NumObjects = static_cast<std::uint32_t>(std::size(Objects));
+
+    auto const SetupBufferDescriptor = [&](DescriptorData             &InData,
+                                           strzilla::string_view const Identifier,
+                                           std::uint32_t const         SizeMultiplier = 1U,
+                                           VkBufferUsageFlags const    UsageFlags     = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
+                                                                                        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+    {
+        InData.Buffer.Size = SizeMultiplier * NumObjects * InData.LayoutSize;
+
+        CreateBuffer(InData.Buffer.Size, UsageFlags, std::data(Identifier), InData.Buffer.Buffer, InData.Buffer.Allocation);
+        vmaMapMemory(Allocator, InData.Buffer.Allocation, &InData.Buffer.MappedData);
+
+        VkBufferDeviceAddressInfo const BufferDeviceAddressInfo{.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, .buffer = InData.Buffer.Buffer};
+
+        InData.BufferDeviceAddress.deviceAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
+    };
+
+    // Projection
+    SetupBufferDescriptor(ModelData, "Model Descriptor Buffer");
+
+    // Materials
+    SetupBufferDescriptor(MaterialData, "Material Descriptor Buffer");
+
+    // Meshlets
+    SetupBufferDescriptor(MeshletData, "Meshlet Descriptor Buffer");
+
+    // Textures
+    {
+        constexpr auto NumTextures = static_cast<std::uint8_t>(TextureType::Count);
+
+        constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
+                                                   VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+
+
+        SetupBufferDescriptor(TextureData, "Texture Descriptor Buffer", NumTextures, BufferUsage);
+    }
+}
+
+static void MapDescriptorBuffer(DescriptorData const           &Data,
+                                unsigned char                  *Buffer,
+                                VkDeviceSize const             AddressInfo,
+                                std::uint32_t const            ObjectCount,
+                                std::uint32_t const            Offset,
+                                std::uint32_t const            Size,
+                                VkDescriptorType const         Type)
+{
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+
+    VkDescriptorAddressInfoEXT const ModelDescriptorAddressInfo {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT,
+                                                                 .address = AddressInfo + Offset,
+                                                                 .range = Size};
+
+    VkDescriptorGetInfoEXT const ModelDescriptorInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
+                                                     .type  = Type,
+                                                     .data  = VkDescriptorDataEXT{.pUniformBuffer = &ModelDescriptorAddressInfo}};
+
+    VkDeviceSize const BufferOffset = ObjectCount * Data.LayoutSize + Data.LayoutOffset;
+
+    vkGetDescriptorEXT(LogicalDevice, &ModelDescriptorInfo, g_DescriptorBufferProperties.uniformBufferDescriptorSize, Buffer + BufferOffset);
+}
+
+void PipelineDescriptorData::MapModelTextureBuffer(unsigned char *Buffer, std::shared_ptr<Object> const &Object, std::uint32_t const ObjectCount) const
+{
+    VkDevice const &LogicalDevice = GetLogicalDevice();
+    constexpr auto NumTextures    = static_cast<std::uint8_t>(TextureType::Count);
+    auto const     &Textures      = Object->GetMesh()->GetTextures();
+    std::uint32_t   TextureCount  = 0U;
+
+    for (std::uint8_t TypeIter = 0U; TypeIter < NumTextures; ++TypeIter)
+    {
+        auto const FindTexture = [&TypeIter] (std::shared_ptr<Texture> const &Texture)
+        {
+            auto const Types = Texture->GetTypes();
+
+            return std::find_if(std::execution::unseq,
+                                std::cbegin(Types),
+                                std::cend(Types),
+                                [&TypeIter](TextureType const &TextureType)
+                                {
+                                    return static_cast<std::uint8_t>(TextureType) == TypeIter;
+                                }) != std::end(Types);
+        };
+
+        auto const MatchingTexture = std::find_if(std::execution::unseq, std::cbegin(Textures), std::cend(Textures), FindTexture);
+        auto const &ImageDescriptor = MatchingTexture != std::cend(Textures) ? (*MatchingTexture)->GetImageDescriptor() : GetAllocationImageDescriptor(0U);
+
+        VkDescriptorGetInfoEXT const TextureDescriptorInfo {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
+            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .data = VkDescriptorDataEXT { .pCombinedImageSampler = &ImageDescriptor }
+        };
+
+        VkDeviceSize const BufferOffset = (TextureCount + ObjectCount * NumTextures) * TextureData.LayoutSize + TextureData.LayoutOffset;
+
+        vkGetDescriptorEXT(LogicalDevice,
+                           &TextureDescriptorInfo,
+                           g_DescriptorBufferProperties.combinedImageSamplerDescriptorSize,
+                           Buffer + BufferOffset);
+
+        ++TextureCount;
     }
 }
 
@@ -193,47 +292,14 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
         return;
     }
 
-    VkDevice const &    LogicalDevice = GetLogicalDevice();
-    VmaAllocator const &Allocator     = GetAllocator();
+    SetupModelsBufferSizes(Objects);
 
-    {
-        constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    VkDevice const &LogicalDevice = GetLogicalDevice();
 
-        ModelData.Buffer.Size = static_cast<std::uint32_t>(std::size(Objects)) * ModelData.LayoutSize;
-
-        CreateBuffer(ModelData.Buffer.Size, BufferUsage, "Model Descriptor Buffer", ModelData.Buffer.Buffer, ModelData.Buffer.Allocation);
-
-        vmaMapMemory(Allocator, ModelData.Buffer.Allocation, &ModelData.Buffer.MappedData);
-
-        VkBufferDeviceAddressInfo const BufferDeviceAddressInfo {
-                .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-                .buffer = ModelData.Buffer.Buffer
-        };
-
-        ModelData.BufferDeviceAddress.deviceAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
-    }
-
-    constexpr std::uint8_t NumTextures = static_cast<std::uint8_t>(TextureType::Count);
-
-    {
-        constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
-                                                   VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-
-        TextureData.Buffer.Size = NumTextures * static_cast<std::uint32_t>(std::size(Objects)) * TextureData.LayoutSize;
-        CreateBuffer(TextureData.Buffer.Size, BufferUsage, "Texture Descriptor Buffer", TextureData.Buffer.Buffer, TextureData.Buffer.Allocation);
-
-        vmaMapMemory(Allocator, TextureData.Buffer.Allocation, &TextureData.Buffer.MappedData);
-
-        VkBufferDeviceAddressInfo const BufferDeviceAddressInfo {
-                .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-                .buffer = TextureData.Buffer.Buffer
-        };
-
-        TextureData.BufferDeviceAddress.deviceAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
-    }
-
-    auto const ModelBuffer   = static_cast<unsigned char *>(ModelData.Buffer.MappedData);
-    auto const TextureBuffer = static_cast<unsigned char *>(TextureData.Buffer.MappedData);
+    auto const ModelBuffer    = static_cast<unsigned char *>(ModelData.Buffer.MappedData);
+    auto const MaterialBuffer = static_cast<unsigned char *>(MaterialData.Buffer.MappedData);
+    auto const MeshletBuffer   = static_cast<unsigned char *>(MeshletData.Buffer.MappedData);
+    auto const TextureBuffer  = static_cast<unsigned char *>(TextureData.Buffer.MappedData);
 
     std::uint32_t ObjectCount = 0U;
 
@@ -242,67 +308,35 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
             .buffer = GetAllocationBuffer()
     };
 
+    VkDeviceSize const ModelUniformAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
+
     for (std::shared_ptr<Object> const &ObjectIter : Objects)
     {
-        {
-            VkDeviceSize const ModelUniformAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
+        MapDescriptorBuffer(ModelData,
+                            ModelBuffer,
+                            ModelUniformAddress,
+                            ObjectCount,
+                            ObjectIter->GetUniformOffset(),
+                            sizeof(ModelUniformData),
+                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
-            VkDescriptorAddressInfoEXT ModelDescriptorAddressInfo {
-                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT,
-                    .address = ModelUniformAddress + ObjectIter->GetUniformOffset(),
-                    .range = sizeof(ModelUniformData)
-            };
+        MapDescriptorBuffer(MaterialData,
+                            MaterialBuffer,
+                            ModelUniformAddress,
+                            ObjectCount,
+                            ObjectIter->GetMaterialOffset(),
+                            sizeof(RenderCore::MaterialData),
+                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
-            VkDescriptorGetInfoEXT const ModelDescriptorInfo {
-                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
-                    .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .data = VkDescriptorDataEXT { .pUniformBuffer = &ModelDescriptorAddressInfo }
-            };
+        MapDescriptorBuffer(MeshletData,
+                            MeshletBuffer,
+                            ModelUniformAddress,
+                            ObjectCount,
+                            ObjectIter->GetMesh()->GetMeshletOffset(),
+                            ObjectIter->GetMesh()->GetNumMeshlets() * sizeof(Meshlet),
+                            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
-            VkDeviceSize const BufferOffset = ObjectCount * ModelData.LayoutSize + ModelData.LayoutOffset;
-
-            vkGetDescriptorEXT(LogicalDevice,
-                               &ModelDescriptorInfo,
-                               g_DescriptorBufferProperties.uniformBufferDescriptorSize,
-                               ModelBuffer + BufferOffset);
-        }
-
-        auto const &  Textures     = ObjectIter->GetMesh()->GetTextures();
-        std::uint32_t TextureCount = 0U;
-
-        for (std::uint8_t TypeIter = 0U; TypeIter < NumTextures; ++TypeIter)
-        {
-            auto MatchingTexture = std::ranges::find_if(Textures,
-                                                        [TypeIter](std::shared_ptr<Texture> const &Texture)
-                                                        {
-                                                            auto const Types = Texture->GetTypes();
-                                                            return std::ranges::find_if(Types,
-                                                                                        [TypeIter](TextureType const &TextureType)
-                                                                                        {
-                                                                                            return static_cast<std::uint8_t>(TextureType) == TypeIter;
-                                                                                        }) != std::end(Types);
-                                                        });
-
-            auto const &ImageDescriptor = MatchingTexture != std::cend(Textures)
-                                              ? (*MatchingTexture)->GetImageDescriptor()
-                                              : GetAllocationImageDescriptor(0U);
-
-            VkDescriptorGetInfoEXT const TextureDescriptorInfo {
-                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
-                    .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .data = VkDescriptorDataEXT { .pCombinedImageSampler = &ImageDescriptor }
-            };
-
-            VkDeviceSize const BufferOffset = (TextureCount + ObjectCount * NumTextures) * TextureData.LayoutSize + TextureData.LayoutOffset;
-
-            vkGetDescriptorEXT(LogicalDevice,
-                               &TextureDescriptorInfo,
-                               g_DescriptorBufferProperties.combinedImageSamplerDescriptorSize,
-                               TextureBuffer + BufferOffset);
-
-            ++TextureCount;
-        }
-
+        MapModelTextureBuffer(TextureBuffer, ObjectIter, ObjectCount);
         ++ObjectCount;
     }
 }
@@ -336,7 +370,7 @@ void RenderCore::CreatePipelineLibraries()
 
     for (auto const &[StageInfo, ShaderCode] : GetStageData())
     {
-        if (StageInfo.stage == VK_SHADER_STAGE_VERTEX_BIT)
+        if (StageInfo.stage == VK_SHADER_STAGE_MESH_BIT_EXT)
         {
             auto const CodeSize                            = static_cast<std::uint32_t>(std::size(ShaderCode) * sizeof(std::uint32_t));
             ShaderStagesInfo.emplace_back(StageInfo).pNext = &ShaderModuleInfo.emplace_back(VkShaderModuleCreateInfo {
@@ -349,7 +383,7 @@ void RenderCore::CreatePipelineLibraries()
     }
 
     constexpr VkPipelineColorBlendAttachmentState ColorBlendAttachmentStates {
-            .blendEnable = VK_TRUE,
+            .blendEnable = true,
             .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
             .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
             .colorBlendOp = VK_BLEND_OP_ADD,
@@ -361,12 +395,12 @@ void RenderCore::CreatePipelineLibraries()
 
     constexpr VkPipelineRasterizationStateCreateInfo RasterizationState {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-            .depthClampEnable = VK_FALSE,
-            .rasterizerDiscardEnable = VK_FALSE,
+            .depthClampEnable = false,
+            .rasterizerDiscardEnable = false,
             .polygonMode = VK_POLYGON_MODE_FILL,
             .cullMode = VK_CULL_MODE_BACK_BIT,
             .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-            .depthBiasEnable = VK_FALSE,
+            .depthBiasEnable = false,
             .depthBiasConstantFactor = 0.F,
             .depthBiasClamp = 0.F,
             .depthBiasSlopeFactor = 0.F,
@@ -377,15 +411,6 @@ void RenderCore::CreatePipelineLibraries()
             .RasterizationState = RasterizationState,
             .ColorBlendAttachment = ColorBlendAttachmentStates,
             .MultisampleState = g_MultisampleState,
-            .VertexBinding = GetBindingDescriptors(0U),
-            .VertexAttributes = GetAttributeDescriptions(0U,
-                                                         {
-                                                                 VertexAttributes::Position,
-                                                                 VertexAttributes::Normal,
-                                                                 VertexAttributes::TextureCoordinate,
-                                                                 VertexAttributes::Color,
-                                                                 VertexAttributes::Tangent,
-                                                         }),
             .ShaderStages = ShaderStagesInfo
     };
 
@@ -413,13 +438,39 @@ void CreateDescriptorSetLayout(VkDescriptorSetLayoutBinding const &Binding, std:
 
 void RenderCore::SetupPipelineLayouts()
 {
+    // TODO : add compute stage
+
     constexpr std::array LayoutBindings {
-            VkDescriptorSetLayoutBinding // Uniform Buffer
+            VkDescriptorSetLayoutBinding // Scene Buffer
             {
                     .binding = 0U,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .descriptorCount = 1U,
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = nullptr
+            },
+            VkDescriptorSetLayoutBinding // Model Buffer
+            {
+                    .binding = 0U,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1U,
+                    .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT,
+                    .pImmutableSamplers = nullptr
+            },
+            VkDescriptorSetLayoutBinding // Material Buffer
+            {
+                    .binding = 0U,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1U,
+                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = nullptr
+            },
+            VkDescriptorSetLayoutBinding // Meshlets Buffer
+            {
+                    .binding = 0U,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    .descriptorCount = 1U,
+                    .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT,
                     .pImmutableSamplers = nullptr
             },
             VkDescriptorSetLayoutBinding // Texture Sampler
@@ -432,13 +483,17 @@ void RenderCore::SetupPipelineLayouts()
             }
     };
 
-    CreateDescriptorSetLayout(LayoutBindings.at(0U), 1U, g_DescriptorData.SceneData.SetLayout);
-    CreateDescriptorSetLayout(LayoutBindings.at(0U), 1U, g_DescriptorData.ModelData.SetLayout);
-    CreateDescriptorSetLayout(LayoutBindings.at(1U), 5U, g_DescriptorData.TextureData.SetLayout);
+    CreateDescriptorSetLayout(LayoutBindings.at(0U), 1U, g_DescriptorData.SceneData.SetLayout); // Light
+    CreateDescriptorSetLayout(LayoutBindings.at(1U), 1U, g_DescriptorData.ModelData.SetLayout); // Projection
+    CreateDescriptorSetLayout(LayoutBindings.at(2U), 1U, g_DescriptorData.MaterialData.SetLayout); // Material
+    CreateDescriptorSetLayout(LayoutBindings.at(3U), 1U, g_DescriptorData.MeshletData.SetLayout); // Meshlets
+    CreateDescriptorSetLayout(LayoutBindings.at(4U), static_cast<std::uint8_t>(TextureType::Count), g_DescriptorData.TextureData.SetLayout); // Textures
 
     std::array const DescriptorLayouts {
             g_DescriptorData.SceneData.SetLayout,
             g_DescriptorData.ModelData.SetLayout,
+            g_DescriptorData.MaterialData.SetLayout,
+            g_DescriptorData.MeshletData.SetLayout,
             g_DescriptorData.TextureData.SetLayout
     };
 
@@ -474,6 +529,7 @@ void RenderCore::CreatePipelineLibraries(PipelineData &                         
     Data.CreateLibraryCache(LogicalDevice);
 
     // Vertex input library
+    if (!std::empty(Arguments.VertexAttributes))
     {
         VkGraphicsPipelineLibraryCreateInfoEXT VertexInputLibrary {
                 .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT,
@@ -491,7 +547,7 @@ void RenderCore::CreatePipelineLibraries(PipelineData &                         
         constexpr VkPipelineInputAssemblyStateCreateInfo InputAssemblyState {
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
                 .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-                .primitiveRestartEnable = VK_FALSE
+                .primitiveRestartEnable = false
         };
 
         VkGraphicsPipelineCreateInfo const VertexInputCreateInfo {
@@ -507,7 +563,7 @@ void RenderCore::CreatePipelineLibraries(PipelineData &                         
                                                     1U,
                                                     &VertexInputCreateInfo,
                                                     nullptr,
-                                                    &Data.VertexInputPipeline));
+                                                    &Data.PipelineLibraries.at(0U)));
     }
 
     // Pre rasterization library
@@ -546,7 +602,7 @@ void RenderCore::CreatePipelineLibraries(PipelineData &                         
                                                     1U,
                                                     &PreRasterizationInfo,
                                                     nullptr,
-                                                    &Data.PreRasterizationPipeline));
+                                                    &Data.PipelineLibraries.at(1U)));
     }
 
     // Fragment output library
@@ -571,7 +627,7 @@ void RenderCore::CreatePipelineLibraries(PipelineData &                         
 
         VkPipelineColorBlendStateCreateInfo const ColorBlendState {
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-                .logicOpEnable = VK_FALSE,
+                .logicOpEnable = false,
                 .logicOp = VK_LOGIC_OP_COPY,
                 .attachmentCount = 1U,
                 .pAttachments = &Arguments.ColorBlendAttachment,
@@ -592,7 +648,7 @@ void RenderCore::CreatePipelineLibraries(PipelineData &                         
                                                     1U,
                                                     &FragmentOutputCreateInfo,
                                                     nullptr,
-                                                    &Data.FragmentOutputPipeline));
+                                                    &Data.PipelineLibraries.at(2U)));
     }
 }
 
@@ -640,23 +696,29 @@ void RenderCore::CreateMainPipeline(PipelineData &                              
                                                     1U,
                                                     &FragmentShaderPipelineCreateInfo,
                                                     nullptr,
-                                                    &Data.FragmentShaderPipeline));
+                                                    &Data.FragmentPipeline));
     }
 
     // Main Pipeline
     {
-        std::vector const Libraries {
-                Data.VertexInputPipeline,
-                Data.PreRasterizationPipeline,
-                Data.FragmentOutputPipeline,
-                Data.FragmentShaderPipeline
-        };
+        std::vector<VkPipeline> PipelineData {};
+        PipelineData.reserve(std::size(Data.PipelineLibraries) + 1U);
+
+        for (VkPipeline const& LibraryIt : Data.PipelineLibraries)
+        {
+            if (LibraryIt != VK_NULL_HANDLE)
+            {
+                PipelineData.emplace_back(LibraryIt);
+            }
+        }
+
+        PipelineData.emplace_back(Data.FragmentPipeline);
 
         VkPipelineLibraryCreateInfoKHR PipelineLibraryCreateInfo {
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR,
                 .pNext = &RenderingCreateInfo,
-                .libraryCount = static_cast<std::uint32_t>(std::size(Libraries)),
-                .pLibraries = std::data(Libraries)
+                .libraryCount = static_cast<std::uint32_t>(std::size(PipelineData)),
+                .pLibraries = std::data(PipelineData)
         };
 
         VkGraphicsPipelineCreateInfo const GraphicsPipelineCreateInfo {

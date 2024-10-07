@@ -97,9 +97,10 @@ bool Camera::IsInsideCameraFrustum(std::shared_ptr<Object> const &Object) const
         return false;
     }
 
-    Bounds const &MeshBounds = Mesh->GetBounds();
+    Bounds const MeshBounds {.Min = Mesh->GetTransform().GetPosition(),
+                             .Max = Mesh->GetTransform().GetPosition()};
 
-    std::array<glm::vec4, 6U> FrustumPlanes;
+    std::array<glm::vec4, 6U> FrustumPlanes{};
     CalculateFrustumPlanes(GetProjectionMatrix() * GetViewMatrix(), FrustumPlanes);
 
     for (auto const &PlaneIt : FrustumPlanes)
@@ -168,7 +169,7 @@ bool Camera::IsInAllowedDistance(std::shared_ptr<Object> const &Object) const
         return false;
     }
 
-    glm::vec3 const CameraToTestLocation   = Mesh->GetCenter() - GetPosition();
+    glm::vec3 const CameraToTestLocation   = Mesh->GetTransform().GetPosition() - GetPosition();
     float const     DistanceToTestLocation = length(CameraToTestLocation);
 
     return DistanceToTestLocation <= GetDrawDistance();

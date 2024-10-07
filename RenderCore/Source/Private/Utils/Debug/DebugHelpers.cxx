@@ -20,7 +20,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL RenderCore::ValidationLayerDebugCallback([[maybe_
         BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Message: " << CallbackData->pMessage;
     }
 
-    return VK_FALSE;
+    return false;
 }
 
 VkResult RenderCore::CreateDebugUtilsMessenger(VkInstance const                                Instance,

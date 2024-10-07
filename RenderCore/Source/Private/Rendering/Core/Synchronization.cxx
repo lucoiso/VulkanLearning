@@ -21,7 +21,7 @@ void RenderCore::WaitAndResetFence(std::uint32_t const Index)
     }
 
     VkDevice const &LogicalDevice = GetLogicalDevice();
-    CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &g_Fences.at(Index), VK_FALSE, g_Timeout));
+    CheckVulkanResult(vkWaitForFences(LogicalDevice, 1U, &g_Fences.at(Index), false, g_Timeout));
     CheckVulkanResult(vkResetFences(LogicalDevice, 1U, &g_Fences.at(Index)));
     g_FenceInUse.at(Index) = false;
 

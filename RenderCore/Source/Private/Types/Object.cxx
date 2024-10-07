@@ -9,6 +9,9 @@ module RenderCore.Types.Object;
 import RenderCore.Renderer;
 import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Pipeline;
+import RenderCore.Runtime.Scene;
+import RenderCore.Types.Material;
+import RenderCore.Types.Texture;
 import RenderCore.Types.UniformBufferObject;
 
 using namespace RenderCore;
@@ -33,6 +36,13 @@ void Object::SetupUniformDescriptor()
 {
     m_UniformBufferInfo = GetAllocationBufferDescriptor(m_UniformOffset, sizeof(ModelUniformData));
     m_MappedData        = GetAllocationMappedData();
+
+    if (m_MappedData && m_Mesh)
+    {
+        auto const  MeshletsMappedData = static_cast<char *>(m_MappedData) + m_Mesh->GetMeshletOffset();
+        auto const& Meshlets           = m_Mesh->GetMeshlets();
+        std::memcpy(MeshletsMappedData, std::data(Meshlets), m_Mesh->GetNumMeshlets() * sizeof(Meshlet));
+    }
 }
 
 void Object::UpdateUniformBuffers() const
@@ -42,26 +52,21 @@ void Object::UpdateUniformBuffers() const
         return;
     }
 
-    if (m_IsRenderDirty)
+    auto const UniformData = static_cast<char *>(m_MappedData) + GetUniformOffset();
+
+    if (IsRenderDirty())
     {
         constexpr auto ModelUBOSize = sizeof(ModelUniformData);
 
-        ModelUniformData const UpdatedModelUBO {
-                .Model = m_Transform.GetMatrix() * m_Mesh->GetTransform().GetMatrix(),
-                .BaseColorFactor = m_Mesh->GetMaterialData().BaseColorFactor,
-                .EmissiveFactor = m_Mesh->GetMaterialData().EmissiveFactor,
-                .MetallicFactor = static_cast<double>(m_Mesh->GetMaterialData().MetallicFactor),
-                .RoughnessFactor = static_cast<double>(m_Mesh->GetMaterialData().RoughnessFactor),
-                .AlphaCutoff = static_cast<double>(m_Mesh->GetMaterialData().AlphaCutoff),
-                .NormalScale = static_cast<double>(m_Mesh->GetMaterialData().NormalScale),
-                .OcclusionStrength = static_cast<double>(m_Mesh->GetMaterialData().OcclusionStrength),
-                .AlphaMode = static_cast<std::int32_t>(m_Mesh->GetMaterialData().AlphaMode),
-                .DoubleSided = static_cast<std::int32_t>(m_Mesh->GetMaterialData().DoubleSided)
-        };
+        ModelUniformData const UpdatedModelUBO{.ProjectionView = GetCamera().GetProjectionMatrix(),
+                                               .Model          = m_Transform.GetMatrix() * m_Mesh->GetTransform().GetMatrix(),
+                                               .MeshletCount = GetMesh()->GetNumMeshlets()};
 
-        std::memcpy(static_cast<char *>(m_MappedData) + GetUniformOffset(), &UpdatedModelUBO, ModelUBOSize);
-        m_IsRenderDirty = false;
+        std::memcpy(UniformData, &UpdatedModelUBO, ModelUBOSize);
+        SetRenderDirty(false);
     }
+
+    m_Mesh->UpdateUniformBuffers(UniformData);
 }
 
 void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout const &PipelineLayout, std::uint32_t const ObjectIndex) const
@@ -71,7 +76,11 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
         return;
     }
 
-    auto const &[SceneData, ModelData, TextureData] = GetPipelineDescriptorData();
+    auto const &[SceneData,
+                 ModelData,
+                 MaterialData,
+                 MeshletData,
+                 TextureData] = GetPipelineDescriptorData();
 
     std::array const BufferBindingInfos {
             VkDescriptorBufferBindingInfoEXT
@@ -87,6 +96,16 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
             },
             VkDescriptorBufferBindingInfoEXT {
                     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+                    .address = MaterialData.BufferDeviceAddress.deviceAddress,
+                    .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
+            },
+            VkDescriptorBufferBindingInfoEXT {
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+                .address = MeshletData.BufferDeviceAddress.deviceAddress,
+                .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
+        },
+            VkDescriptorBufferBindingInfoEXT {
+                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
                     .address = TextureData.BufferDeviceAddress.deviceAddress,
                     .usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
             }
@@ -94,13 +113,17 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
 
     vkCmdBindDescriptorBuffersEXT(CommandBuffer, static_cast<std::uint32_t>(std::size(BufferBindingInfos)), std::data(BufferBindingInfos));
 
-    constexpr std::array BufferIndices { 0U, 1U, 2U };
+    constexpr std::array BufferIndices { 0U, 1U, 2U, 3U, 4U };
 
     constexpr auto NumTextures = static_cast<std::uint8_t>(TextureType::Count);
 
+    std::uint32_t const NumMeshlets = GetMesh()->GetNumMeshlets();
+
     std::array const BufferOffsets {
             SceneData.LayoutOffset,
-            ObjectIndex * ModelData.LayoutSize + ModelData.LayoutOffset,
+            ObjectIndex * ModelData.LayoutSize    + ModelData.LayoutOffset,
+            ObjectIndex * MaterialData.LayoutSize + MaterialData.LayoutOffset,
+            ObjectIndex * MeshletData.LayoutSize  + MeshletData.LayoutOffset,
             ObjectIndex * NumTextures * TextureData.LayoutSize + TextureData.LayoutOffset
     };
 
@@ -112,5 +135,5 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
                                        std::data(BufferIndices),
                                        std::data(BufferOffsets));
 
-    m_Mesh->BindBuffers(CommandBuffer, std::empty(m_InstanceTransform) ? 1U : GetNumInstances());
+    vkCmdDrawMeshTasksEXT(CommandBuffer, NumMeshlets, 1U, 1U);
 }

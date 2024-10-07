@@ -16,14 +16,10 @@ namespace RenderCore
 {
     export class RENDERCOREMODULE_API Mesh : public Resource
     {
-        Bounds                     m_Bounds {};
-        Transform                  m_Transform {};
-        std::vector<Vertex>        m_Vertices {};
-        std::vector<std::uint32_t> m_Indices {};
-        std::uint32_t              m_NumTriangles { 0U };
+        Transform m_Transform {};
 
-        VkDeviceSize m_VertexOffset { 0U };
-        VkDeviceSize m_IndexOffset { 0U };
+        std::vector<Meshlet> m_Meshlets {};
+        VkDeviceSize m_MeshletOffset { 0U };
 
         MaterialData                          m_MaterialData {};
         std::vector<std::shared_ptr<Texture>> m_Textures {};
@@ -35,98 +31,62 @@ namespace RenderCore
         Mesh(std::uint32_t, strzilla::string_view);
         Mesh(std::uint32_t, strzilla::string_view, strzilla::string_view);
 
-        void Optimize();
-        void SetupBounds();
-
         [[nodiscard]] inline Transform const &GetTransform() const
         {
             return m_Transform;
         }
 
-        inline void SetTransform(Transform const &Transform)
+        inline void SetTransform(Transform const &Value)
         {
-            m_Transform = Transform;
+            if (m_Transform != Value)
+            {
+                m_Transform = Value;
+                MarkAsRenderDirty();
+            }
         }
 
-        [[nodiscard]] inline glm::vec3 GetCenter() const
+        [[nodiscard]] inline std::vector<Meshlet> const &GetMeshlets() const
         {
-            return (m_Bounds.Min + m_Bounds.Max) / 2.0f;
+            return m_Meshlets;
         }
 
-        [[nodiscard]] inline float GetSize() const
+        inline void SetMeshlets(std::vector<Meshlet> const &Value)
         {
-            return distance(m_Bounds.Min, m_Bounds.Max);
+            m_Meshlets = Value;
+            MarkAsRenderDirty();
         }
 
-        [[nodiscard]] inline Bounds const &GetBounds() const
+        [[nodiscard]] inline std::uint32_t GetNumMeshlets() const
         {
-            return m_Bounds;
+            return static_cast<std::uint32_t>(std::size(m_Meshlets));
         }
 
-        [[nodiscard]] inline std::vector<Vertex> const &GetVertices() const
+        [[nodiscard]] inline VkDeviceSize GetMeshletOffset() const
         {
-            return m_Vertices;
+            return m_MeshletOffset;
         }
 
-        inline void SetVertices(std::vector<Vertex> const &Vertices)
+        inline void SetMeshletOffset(VkDeviceSize const &Value)
         {
-            m_Vertices = Vertices;
+            m_MeshletOffset = Value;
+            MarkAsRenderDirty();
         }
 
-        [[nodiscard]] inline std::vector<std::uint32_t> const &GetIndices() const
-        {
-            return m_Indices;
-        }
-
-        inline void SetIndices(std::vector<std::uint32_t> const &Indices)
-        {
-            m_Indices      = Indices;
-            m_NumTriangles = static_cast<std::uint32_t>(std::size(m_Indices) / 3U);
-        }
-
-        [[nodiscard]] inline std::uint32_t GetNumTriangles() const
-        {
-            return m_NumTriangles;
-        }
-
-        [[nodiscard]] inline std::uint32_t GetNumVertices() const
-        {
-            return static_cast<std::uint32_t>(std::size(m_Vertices));
-        }
-
-        [[nodiscard]] inline std::uint32_t GetNumIndices() const
-        {
-            return static_cast<std::uint32_t>(std::size(m_Indices));
-        }
-
-        [[nodiscard]] inline VkDeviceSize GetVertexOffset() const
-        {
-            return m_VertexOffset;
-        }
-
-        inline void SetVertexOffset(VkDeviceSize const &VertexOffset)
-        {
-            m_VertexOffset = VertexOffset;
-        }
-
-        [[nodiscard]] inline VkDeviceSize GetIndexOffset() const
-        {
-            return m_IndexOffset;
-        }
-
-        inline void SetIndexOffset(VkDeviceSize const &IndexOffset)
-        {
-            m_IndexOffset = IndexOffset;
-        }
+        void SetupVertices(std::vector<Vertex> const&);
+        void SetupIndices(std::vector<std::uint32_t> const&);
 
         [[nodiscard]] inline MaterialData const &GetMaterialData() const
         {
             return m_MaterialData;
         }
 
-        inline void SetMaterialData(MaterialData const &MaterialData)
+        inline void SetMaterialData(MaterialData const &Value)
         {
-            m_MaterialData = MaterialData;
+            if (m_MaterialData != Value)
+            {
+                m_MaterialData = Value;
+                MarkAsRenderDirty();
+            }
         }
 
         [[nodiscard]] inline std::vector<std::shared_ptr<Texture>> const &GetTextures() const
@@ -134,16 +94,21 @@ namespace RenderCore
             return m_Textures;
         }
 
-        inline void SetTextures(std::vector<std::shared_ptr<Texture>> const &Textures)
+        inline void SetTextures(std::vector<std::shared_ptr<Texture>> const &Value)
         {
-            m_Textures = Textures;
-
-            for (auto const &Texture : m_Textures)
+            if (m_Textures != Value)
             {
-                Texture->SetupTexture();
+                m_Textures = Value;
+
+                for (auto const &Texture : m_Textures)
+                {
+                    Texture->SetupTexture();
+                }
+
+                MarkAsRenderDirty();
             }
         }
 
-        void BindBuffers(VkCommandBuffer const &, std::uint32_t) const;
+        void UpdateUniformBuffers(char *) const;
     };
 } // namespace RenderCore

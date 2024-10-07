@@ -38,7 +38,7 @@ void RenderCore::CreateSwapChain(SurfaceProperties const &SurfaceProperties, VkS
             .preTransform = SurfaceCapabilities.currentTransform,
             .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             .presentMode = g_CachedProperties.Mode,
-            .clipped = VK_TRUE,
+            .clipped = true,
             .oldSwapchain = g_OldSwapChain
     };
 

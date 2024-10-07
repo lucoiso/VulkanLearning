@@ -7,8 +7,10 @@ module;
 export module RenderCore.Types.Object;
 
 import RenderCore.Types.Mesh;
+import RenderCore.Types.Vertex;
 import RenderCore.Types.Resource;
 import RenderCore.Types.Transform;
+import RenderCore.Types.UniformBufferObject;
 
 namespace RenderCore
 {
@@ -44,7 +46,7 @@ namespace RenderCore
             if (m_Transform != Value)
             {
                 m_Transform     = Value;
-                m_IsRenderDirty = true;
+                MarkAsRenderDirty();
             }
         }
 
@@ -58,7 +60,7 @@ namespace RenderCore
             if (GetNumInstances() != Value)
             {
                 m_InstanceTransform.resize(Value);
-                m_IsRenderDirty = true;
+                MarkAsRenderDirty();
             }
         }
 
@@ -73,7 +75,7 @@ namespace RenderCore
                 TransformIt != Value)
             {
                 TransformIt     = Value;
-                m_IsRenderDirty = true;
+                MarkAsRenderDirty();
             }
         }
 
@@ -87,7 +89,7 @@ namespace RenderCore
             if (m_Transform.GetPosition() != Value)
             {
                 m_Transform.SetPosition(Value);
-                m_IsRenderDirty = true;
+                MarkAsRenderDirty();
             }
         }
 
@@ -101,7 +103,7 @@ namespace RenderCore
             if (m_Transform.GetRotation() != Value)
             {
                 m_Transform.SetRotation(Value);
-                m_IsRenderDirty = true;
+                MarkAsRenderDirty();
             }
         }
 
@@ -115,7 +117,7 @@ namespace RenderCore
             if (m_Transform.GetScale() != Value)
             {
                 m_Transform.SetScale(Value);
-                m_IsRenderDirty = true;
+                MarkAsRenderDirty();
             }
         }
 
@@ -127,12 +129,17 @@ namespace RenderCore
         inline void SetMatrix(glm::mat4 const &Value)
         {
             m_Transform.SetMatrix(Value);
-            m_IsRenderDirty = true;
+            MarkAsRenderDirty();
         }
 
         [[nodiscard]] inline std::uint32_t GetUniformOffset() const
         {
             return m_UniformOffset;
+        }
+
+        [[nodiscard]] inline std::uint32_t GetMaterialOffset() const
+        {
+            return m_UniformOffset + sizeof(ModelUniformData);
         }
 
         inline void SetUniformOffset(std::uint32_t const &Offset)
@@ -148,16 +155,6 @@ namespace RenderCore
         inline void SetMesh(std::shared_ptr<Mesh> const &Value)
         {
             m_Mesh = Value;
-        }
-
-        [[nodiscard]] inline bool IsRenderDirty() const
-        {
-            return m_IsRenderDirty;
-        }
-
-        inline void MarkAsRenderDirty() const
-        {
-            m_IsRenderDirty = true;
         }
 
         void Destroy() override;

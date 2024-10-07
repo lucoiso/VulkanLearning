@@ -152,8 +152,11 @@ void RenderCore::DispatchQueue(std::queue<std::function<void()>> &Queue)
 {
     while (!std::empty(Queue))
     {
-        auto &Dispatch = Queue.front();
-        Dispatch();
+        if (auto &Dispatch = Queue.front())
+        {
+            Dispatch();
+        }
+        
         Queue.pop();
     }
 }
