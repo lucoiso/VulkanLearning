@@ -7,7 +7,7 @@
 
 #define g_NumTasks 32
 #define g_NumVertices 64
-#define g_NumPrimitives 126
+#define g_NumPrimitives 124
 
 const uint g_MaxVertexIterations = ((g_NumVertices + g_NumTasks - 1) / g_NumTasks);
 const uint g_MaxIndexIterations = ((g_NumPrimitives + g_NumTasks - 1) / g_NumTasks);

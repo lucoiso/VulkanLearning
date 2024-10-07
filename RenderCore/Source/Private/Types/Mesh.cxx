@@ -87,7 +87,10 @@ void Mesh::SetupMeshlets(std::vector<Vertex> &&Vertices, std::vector<std::uint32
     auto const &[MeshletVertexOffset, MeshletTriangleOffset, MeshletVertexCount, MeshletTriangleCount] = OptimizerMeshlets.at(NumMeshlets - 1U);
 
     MeshletVertices.resize(MeshletVertexOffset + MeshletVertexCount);
-    MeshletTriangles.resize(MeshletTriangleOffset + (MeshletTriangleCount * 3 + 3 & ~3));
+
+    std::size_t const LastNumTriangles = MeshletTriangleOffset + (MeshletTriangleCount * 3 + 3 & ~3);
+    MeshletTriangles.resize(LastNumTriangles);
+
     OptimizerMeshlets.resize(NumMeshlets);
 
     meshopt_optimizeMeshlet(&MeshletVertices.at(MeshletVertexOffset), &MeshletTriangles.at(MeshletTriangleOffset), MeshletTriangleCount, MeshletVertexCount);
@@ -108,11 +111,9 @@ void Mesh::SetupMeshlets(std::vector<Vertex> &&Vertices, std::vector<std::uint32
             NewMeshlet.Vertices.at(VertexIt) = Vertices.at(MeshletVertices.at(MeshletVertexOffset + VertexIt));
         }
 
-        for (std::size_t TriangleIt = 0U; TriangleIt < MeshletTriangleCount * 3U; ++TriangleIt)
+        for (std::size_t IndexIt = 0U; IndexIt < MeshletTriangleCount * 3U; ++IndexIt)
         {
-            NewMeshlet.Indices.at(TriangleIt) = MeshletTriangles.at(TriangleIt + MeshletTriangleOffset);
-            NewMeshlet.Indices.at(TriangleIt) = MeshletTriangles.at(TriangleIt + MeshletTriangleOffset + 1U);
-            NewMeshlet.Indices.at(TriangleIt) = MeshletTriangles.at(TriangleIt + MeshletTriangleOffset + 2U);
+            NewMeshlet.Indices.at(IndexIt) = MeshletTriangles.at(IndexIt + MeshletTriangleOffset);
         }
 
         NewMeshlet.VertexCount = MeshletVertexCount;
