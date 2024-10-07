@@ -1,26 +1,18 @@
 #version 460
+
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+#extension GL_GOOGLE_include_directive : require
+
+#include "Types.h"
 
 layout(std140, set = 0, binding = 0) uniform SceneUniformData
 {
-    vec3 LightPosition;
-    vec3 LightColor;
-    vec3 LightDiffuse;
-    vec3 LightAmbient;
-    vec3 LightSpecular;
+    LightingUBO Data;
 } SceneData;
 
 layout(std140, set = 0, binding = 1) uniform MaterialUniformData
 {
-    vec4 BaseColorFactor;
-    vec3 EmissiveFactor;
-    float MetallicFactor;
-    float RoughnessFactor;
-    float AlphaCutoff;
-    float NormalScale;
-    float OcclusionStrength;
-    uint8_t AlphaMode;
-    bool DoubleSided;
+    MaterialUBO Data;
 } MaterialData;
 
 layout(set = 4, binding = 0) uniform sampler2D BaseColorMap;
@@ -29,17 +21,14 @@ layout(set = 4, binding = 2) uniform sampler2D OcclusionMap;
 layout(set = 4, binding = 3) uniform sampler2D EmissiveMap;
 layout(set = 4, binding = 4) uniform sampler2D MetallicRoughnessMap;
 
-layout(location = 0) in FragmentData
+layout(location = 0) in FragSharedData
 {
-    vec4 FragPosition;
-    vec3 FragNormal;
-    vec2 FragUV;
-    vec4 FragColor;
+    FragmentData Data;
 } FragData;
 
 layout(location = 0) out vec4 OutFragColor;
 
 void main()
 {
-    OutFragColor = FragData.FragColor;
+    OutFragColor = FragData.Data.FragColor;
 }

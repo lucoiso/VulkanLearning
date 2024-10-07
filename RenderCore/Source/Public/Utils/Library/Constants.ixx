@@ -40,14 +40,14 @@ export namespace RenderCore
 
     constexpr auto g_StagingMemoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
 
-    constexpr auto g_DescriptorMemoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+    constexpr auto g_DescriptorMemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
-    constexpr auto g_ModelMemoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+    constexpr auto g_ModelMemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
     constexpr auto g_ModelBufferUsage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
                                         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-    constexpr auto g_TextureMemoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+    constexpr auto g_TextureMemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
     constexpr VkSampleCountFlagBits g_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     constexpr VkImageTiling         g_ImageTiling = VK_IMAGE_TILING_OPTIMAL;

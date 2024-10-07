@@ -17,8 +17,102 @@ module RenderCore.Runtime.ShaderCompiler;
 
 using namespace RenderCore;
 
+class SimpleIncluder : public glslang::TShader::Includer
+{
+public:
+    void TryInclude(strzilla::string const& HeaderName, std::filesystem::path const& Path)
+    {
+        if (m_Includes.contains(HeaderName) || m_Sources.contains(HeaderName))
+        {
+            return;
+        }
+
+        std::filesystem::path const IncludePath { Path / std::data(HeaderName) };
+        std::stringstream           IncludeSource;
+        std::ifstream               IncludeFile { IncludePath };
+
+        if (!IncludeFile.is_open())
+        {
+            return;
+        }
+
+        IncludeSource << IncludeFile.rdbuf();
+        IncludeFile.close();
+
+        addSource(HeaderName, IncludeSource.str());
+    }
+
+    IncludeResult* includeSystem(const char* HeaderName, const char* IncluderName, std::size_t InclusionDepth) override
+    {
+        return nullptr;
+    }
+
+    IncludeResult* includeLocal(const char* HeaderName, const char* IncluderName, std::size_t InclusionDepth) override
+    {
+        strzilla::string const IncludedHeader { HeaderName };
+        if (auto const SourceIt = m_Sources.find(IncludedHeader); SourceIt != std::end(m_Sources))
+        {
+            auto const &MatchingSource = SourceIt->second;
+            auto const Result = std::make_shared<IncludeResult>(HeaderName, std::data(MatchingSource), std::size(MatchingSource), nullptr);
+            m_Includes.emplace(IncludedHeader, Result);
+
+            return Result.get();
+        }
+
+        return &s_FailResult;
+    }
+
+    void releaseInclude(IncludeResult* Include) override
+    {
+        if (Include != &s_FailResult)
+        {
+            strzilla::string const HeaderName { std::data(Include->headerName) };
+
+            if (m_Includes.contains(HeaderName))
+            {
+                m_Includes.erase(HeaderName);
+            }
+
+            if (m_Sources.contains(HeaderName))
+            {
+                m_Sources.erase(HeaderName);
+            }
+        }
+    }
+
+    void addSource(const std::string& HeaderName, const std::string& Source)
+    {
+        m_Sources.emplace(strzilla::string { HeaderName },  strzilla::string { std::data(Source) });
+    }
+
+private:
+    static inline const strzilla::string s_Empty;
+    static inline IncludeResult s_FailResult{s_Empty, "invalid header", 14, nullptr};
+
+    std::map<strzilla::string, std::shared_ptr<IncludeResult>> m_Includes;
+    std::map<strzilla::string, strzilla::string> m_Sources;
+};
+
+std::vector<std::string> ExtractShaderIncludesInternal(const char* Input)
+{
+    std::vector<std::string> MatchingIncludes;
+
+    std::regex includeRegex("#include\\s+\"([^\"]+)\"");
+
+    std::string InputStr(Input);
+    std::sregex_iterator RegexIterator(std::begin(InputStr), std::end(InputStr), includeRegex);
+
+    for (std::sregex_iterator EndIterator; RegexIterator != EndIterator; ++RegexIterator)
+    {
+        MatchingIncludes.emplace_back((*RegexIterator)[1].str());
+    }
+
+    return MatchingIncludes;
+}
+
 bool CompileInternal(ShaderType const            ShaderType,
                      strzilla::string_view const Source,
+                     std::filesystem::path const Path,
                      EShLanguage const           Language,
                      strzilla::string_view const EntryPoint,
                      std::int32_t const          Version,
@@ -29,7 +123,16 @@ bool CompileInternal(ShaderType const            ShaderType,
     glslang::TShader Shader(Language);
 
     char const *ShaderContent = std::data(Source);
-    Shader.setStringsWithLengths(&ShaderContent, nullptr, 1);
+
+    std::vector<std::string> MatchingIncludes = ExtractShaderIncludesInternal(std::data(Source));
+    std::vector<char*> Includes(std::size(MatchingIncludes), nullptr);
+
+    for (std::size_t Iterator = 0U; Iterator < std::size(MatchingIncludes); ++Iterator)
+    {
+        Includes.at(Iterator) = std::data(MatchingIncludes.at(Iterator));
+    }
+
+    Shader.setStringsWithLengthsAndNames(&ShaderContent, nullptr, std::data(Includes), 1);
 
     Shader.setEntryPoint(std::data(EntryPoint));
     Shader.setSourceEntryPoint(std::data(EntryPoint));
@@ -40,7 +143,15 @@ bool CompileInternal(ShaderType const            ShaderType,
     TBuiltInResource const *Resources    = GetDefaultResources();
     constexpr auto          MessageFlags = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
 
-    if (!Shader.parse(Resources, Version, ECoreProfile, false, true, MessageFlags))
+    SimpleIncluder ShaderIncluder {};
+    std::filesystem::path const ParentPath = Path.parent_path();
+
+    for (std::string const& IncludeIt : Includes)
+    {
+        ShaderIncluder.TryInclude(std::data(IncludeIt), ParentPath);
+    }
+
+    if (!Shader.parse(Resources, Version, ECoreProfile, false, true, MessageFlags, ShaderIncluder))
     {
         glslang::FinalizeProcess();
 
@@ -156,7 +267,7 @@ bool RenderCore::Compile(strzilla::string_view const Source,
     ShaderSource << File.rdbuf();
     File.close();
 
-    bool const Result = CompileInternal(ShaderType, ShaderSource.str(), Language, EntryPoint, Version, OutSPIRVCode);
+    bool const Result = CompileInternal(ShaderType, ShaderSource.str(), Path, Language, EntryPoint, Version, OutSPIRVCode);
 
     if (Result)
     {

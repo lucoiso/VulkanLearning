@@ -22,50 +22,36 @@ Mesh::Mesh(std::uint32_t const ID, strzilla::string_view const Path, strzilla::s
 {
 }
 
-void Mesh::SetupVertices(std::vector<Vertex> const &Value)
+void Mesh::SetupMeshlets(std::vector<Vertex> &&Vertices, std::vector<std::uint32_t> &&Indices)
 {
-    std::size_t const NumRequested = std::size(Value);
-    std::size_t const NumMeshlets = (NumRequested + g_MaxMeshletVertices - 1) / g_MaxMeshletVertices;
+    std::size_t const IndexCount = std::size(Indices);
+    std::size_t CurrentIndex = 0U;
 
-    m_Meshlets.resize(NumMeshlets);
-
-    for (std::size_t Iterator = 0; Iterator < NumMeshlets; ++Iterator)
+    while (CurrentIndex < IndexCount)
     {
-        std::size_t const StartIndex = Iterator * g_MaxMeshletVertices;
-        std::size_t const EndIndex = std::min(StartIndex + g_MaxMeshletVertices, NumRequested);
-        std::size_t const VertexCount = EndIndex - StartIndex;
+        Meshlet CurrentMeshlet;
 
-        std::copy(std::cbegin(Value) + static_cast<std::ptrdiff_t>(StartIndex),
-                  std::cbegin(Value) + static_cast<std::ptrdiff_t>(EndIndex),
-                  std::data(m_Meshlets.at(Iterator).Vertices));
+        std::size_t PrimitiveCount = 0;
 
-        m_Meshlets.at(Iterator).VertexCount = static_cast<std::uint32_t>(VertexCount);
+        while (PrimitiveCount < g_MaxMeshletPrimitives && CurrentIndex < IndexCount)
+        {
+            for (std::size_t TriangleVertexIt = 0; TriangleVertexIt < 3; ++TriangleVertexIt)
+            {
+                std::uint32_t const IndexIt = Indices.at(CurrentIndex++);
+                if (CurrentMeshlet.VertexCount < g_MaxMeshletVertices)
+                {
+                    CurrentMeshlet.Vertices.at(CurrentMeshlet.VertexCount++) = Vertices.at(IndexIt);
+                }
+
+                CurrentMeshlet.Indices.at(CurrentMeshlet.IndexCount++) = IndexIt;
+            }
+
+            ++PrimitiveCount;
+        }
+
+        m_Meshlets.push_back(std::move(CurrentMeshlet));
     }
 }
-
-void Mesh::SetupIndices(std::vector<std::uint32_t> const &Value)
-{
-    std::size_t const CurrentNum = std::size(m_Meshlets);
-    std::size_t const NumRequested = std::size(Value);
-    constexpr std::uint8_t MaxIndices = g_MaxMeshletPrimitives * 3U;
-    std::size_t const NumMeshlets = (NumRequested + MaxIndices - 1) / MaxIndices;
-
-    m_Meshlets.resize(std::max(CurrentNum, NumMeshlets));
-
-    for (std::size_t Iterator = 0; Iterator < NumMeshlets; ++Iterator)
-    {
-        std::size_t const StartIndex = Iterator * MaxIndices;
-        std::size_t const EndIndex = std::min(StartIndex + MaxIndices, NumRequested);
-        std::size_t const IndexCount = EndIndex - StartIndex;
-
-        std::copy(std::cbegin(Value) + static_cast<std::ptrdiff_t>(StartIndex),
-                  std::cbegin(Value) + static_cast<std::ptrdiff_t>(EndIndex),
-                  std::data(m_Meshlets.at(Iterator).Indices));
-
-        m_Meshlets.at(Iterator).IndexCount = static_cast<std::uint32_t>(IndexCount);
-    }
-}
-
 
 void Mesh::UpdateUniformBuffers(char * const OwningData) const
 {

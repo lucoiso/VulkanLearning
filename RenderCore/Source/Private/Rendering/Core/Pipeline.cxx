@@ -239,7 +239,6 @@ static void MapDescriptorBuffer(DescriptorData const           &Data,
                                                      .data  = VkDescriptorDataEXT{.pUniformBuffer = &ModelDescriptorAddressInfo}};
 
     VkDeviceSize const BufferOffset = ObjectCount * Data.LayoutSize + Data.LayoutOffset;
-
     vkGetDescriptorEXT(LogicalDevice, &ModelDescriptorInfo, g_DescriptorBufferProperties.uniformBufferDescriptorSize, Buffer + BufferOffset);
 }
 

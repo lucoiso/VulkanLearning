@@ -58,7 +58,7 @@ float const *RenderCore::GetPrimitiveData(strzilla::string_view const &ID,
     return nullptr;
 }
 
-void RenderCore::SetVertexAttributes(std::shared_ptr<Mesh> const &Mesh, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
+std::vector<Vertex> RenderCore::SetVertexAttributes(tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
 {
     std::vector<Vertex> Vertices;
     {
@@ -125,10 +125,10 @@ void RenderCore::SetVertexAttributes(std::shared_ptr<Mesh> const &Mesh, tinygltf
         }
     }
 
-    Mesh->SetupVertices(Vertices);
+    return Vertices;
 }
 
-void RenderCore::AllocatePrimitiveIndices(std::shared_ptr<Mesh> const &Mesh, tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
+std::vector<std::uint32_t> RenderCore::AllocatePrimitiveIndices(tinygltf::Model const &Model, tinygltf::Primitive const &Primitive)
 {
     std::vector<std::uint32_t> Indices;
 
@@ -163,10 +163,10 @@ void RenderCore::AllocatePrimitiveIndices(std::shared_ptr<Mesh> const &Mesh, tin
         }
     }
 
-    Mesh->SetupIndices(Indices);
+    return Indices;
 }
 
-void RenderCore::SetPrimitiveTransform(std::shared_ptr<Mesh> const &Mesh, tinygltf::Node const &Node)
+Transform RenderCore::GetPrimitiveTransform(tinygltf::Node const &Node)
 {
     Transform Transform{};
 
@@ -190,9 +190,5 @@ void RenderCore::SetPrimitiveTransform(std::shared_ptr<Mesh> const &Mesh, tinygl
         Transform.SetMatrix(glm::make_mat4(std::data(Node.matrix)));
     }
 
-    Mesh->SetTransform(Transform);
-}
-
-void RenderCore::SetupMeshlets(std::shared_ptr<Mesh> const &Mesh)
-{
+    return Transform;
 }

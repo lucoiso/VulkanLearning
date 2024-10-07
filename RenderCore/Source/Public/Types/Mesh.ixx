@@ -72,8 +72,7 @@ namespace RenderCore
             MarkAsRenderDirty();
         }
 
-        void SetupVertices(std::vector<Vertex> const&);
-        void SetupIndices(std::vector<std::uint32_t> const&);
+        void SetupMeshlets(std::vector<Vertex> &&, std::vector<std::uint32_t> &&);
 
         [[nodiscard]] inline MaterialData const &GetMaterialData() const
         {

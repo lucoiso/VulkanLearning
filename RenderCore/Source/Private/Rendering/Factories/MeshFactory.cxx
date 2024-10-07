@@ -7,6 +7,8 @@ module;
 module RenderCore.Factories.Mesh;
 
 import RenderCore.Runtime.Model;
+import RenderCore.Types.Transform;
+import RenderCore.Types.Vertex;
 
 using namespace RenderCore;
 
@@ -20,10 +22,12 @@ std::shared_ptr<Mesh> RenderCore::ConstructMesh(MeshConstructionInputParameters 
     strzilla::string const MeshName = std::format("{}_{:03d}", std::empty(Arguments.Mesh.name) ? "None" : Arguments.Mesh.name, Arguments.ID);
     auto              NewMesh  = std::make_shared<Mesh>(Arguments.ID, Arguments.Path, MeshName);
 
-    SetVertexAttributes(NewMesh, Arguments.Model, Arguments.Primitive);
-    SetPrimitiveTransform(NewMesh, Arguments.Node);
-    AllocatePrimitiveIndices(NewMesh, Arguments.Model, Arguments.Primitive);
-    SetupMeshlets(NewMesh);
+    Transform TransformConfig = GetPrimitiveTransform(Arguments.Node);
+    NewMesh->SetTransform(std::move(TransformConfig));
+
+    std::vector<Vertex> Vertices = SetVertexAttributes(Arguments.Model, Arguments.Primitive);
+    std::vector<std::uint32_t> Indices = AllocatePrimitiveIndices(Arguments.Model, Arguments.Primitive);
+    NewMesh->SetupMeshlets(std::move(Vertices), std::move(Indices));
 
     tinygltf::Material const &MeshMaterial = Arguments.Model.materials.at(Arguments.Primitive.material);
 
