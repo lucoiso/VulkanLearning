@@ -69,7 +69,7 @@ export namespace RenderCore
 
     constexpr std::uint8_t g_MaxMeshletVertices = 64U;
 
-    constexpr std::uint8_t g_MaxMeshletPrimitives = 126U;
+    constexpr std::uint8_t g_MaxMeshletPrimitives = 124U;
 
     constexpr std::array g_ClearValues{VkClearValue{.color = {{0.F, 0.F, 0.F, 0.F}}}, VkClearValue{.depthStencil = {1.F, 0U}}};
 } // namespace RenderCore

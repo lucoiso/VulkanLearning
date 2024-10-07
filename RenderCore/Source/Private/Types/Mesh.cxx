@@ -4,6 +4,8 @@
 
 module;
 
+#include <meshoptimizer.h>
+
 module RenderCore.Types.Mesh;
 
 import RenderCore.Runtime.Memory;
@@ -24,32 +26,99 @@ Mesh::Mesh(std::uint32_t const ID, strzilla::string_view const Path, strzilla::s
 
 void Mesh::SetupMeshlets(std::vector<Vertex> &&Vertices, std::vector<std::uint32_t> &&Indices)
 {
-    std::size_t const IndexCount = std::size(Indices);
-    std::size_t CurrentIndex = 0U;
+    std::size_t const InitialVertexCount = std::size(Vertices);
+    std::size_t const InitialIndexCount = std::size(Indices);
 
-    while (CurrentIndex < IndexCount)
+    std::vector<std::uint32_t> Remap(InitialIndexCount);
+    std::size_t const          NewVertexCount = meshopt_generateVertexRemap(std::data(Remap),
+                                                                           std::data(Indices),
+                                                                           InitialIndexCount,
+                                                                           std::data(Vertices),
+                                                                           InitialVertexCount,
+                                                                           sizeof(Vertex));
+
+    std::vector<Vertex>       NewVertices(NewVertexCount);
+    std::vector<unsigned int> NewIndices(InitialIndexCount);
+
+    meshopt_remapIndexBuffer(std::data(NewIndices), std::data(Indices), InitialIndexCount, std::data(Remap));
+    meshopt_remapVertexBuffer(std::data(NewVertices), std::data(Vertices), InitialVertexCount, sizeof(Vertex), std::data(Remap));
+
+    Vertices     = std::move(NewVertices);
+    Indices      = std::move(NewIndices);
+
+    meshopt_optimizeVertexCache(std::data(Indices), std::data(Indices), InitialIndexCount, std::size(Vertices));
+
+    meshopt_optimizeOverdraw(std::data(Indices),
+                             std::data(Indices),
+                             InitialIndexCount,
+                             &Vertices.at(0).Position.x,
+                             std::size(Vertices),
+                             sizeof(Vertex),
+                             1.05f);
+
+    meshopt_optimizeVertexFetch(std::data(Vertices),
+                                std::data(Indices),
+                                InitialIndexCount,
+                                std::data(Vertices),
+                                std::size(Vertices),
+                                sizeof(Vertex));
+
+    std::size_t const PostOptVertexCount = std::size(Vertices);
+    std::size_t const PostOptIndexCount = std::size(Indices);
+
+    std::size_t const MaxMeshlets = meshopt_buildMeshletsBound(PostOptIndexCount, g_MaxMeshletVertices, g_MaxMeshletPrimitives);
+
+    std::vector<meshopt_Meshlet> OptimizerMeshlets(MaxMeshlets);
+    std::vector<std::uint32_t> MeshletVertices(MaxMeshlets * g_MaxMeshletVertices);
+    std::vector<std::uint8_t> MeshletTriangles(MaxMeshlets * g_MaxMeshletPrimitives * 3);
+
+    std::size_t const NumMeshlets = meshopt_buildMeshlets(std::data(OptimizerMeshlets),
+                                                          std::data(MeshletVertices),
+                                                          std::data(MeshletTriangles),
+                                                          std::data(Indices),
+                                                          PostOptIndexCount,
+                                                          &Vertices.at(0).Position.x,
+                                                          PostOptVertexCount,
+                                                          sizeof(Vertex),
+                                                          g_MaxMeshletVertices,
+                                                          g_MaxMeshletPrimitives,
+                                                          0.F);
+
+    auto const &[MeshletVertexOffset, MeshletTriangleOffset, MeshletVertexCount, MeshletTriangleCount] = OptimizerMeshlets.at(NumMeshlets - 1U);
+
+    MeshletVertices.resize(MeshletVertexOffset + MeshletVertexCount);
+    MeshletTriangles.resize(MeshletTriangleOffset + (MeshletTriangleCount * 3 + 3 & ~3));
+    OptimizerMeshlets.resize(NumMeshlets);
+
+    meshopt_optimizeMeshlet(&MeshletVertices.at(MeshletVertexOffset), &MeshletTriangles.at(MeshletTriangleOffset), MeshletTriangleCount, MeshletVertexCount);
+
+    m_Meshlets.resize(NumMeshlets);
+
+    for (std::size_t MeshletIt = 0; MeshletIt < NumMeshlets; ++MeshletIt)
     {
-        Meshlet CurrentMeshlet;
+        Meshlet NewMeshlet;
 
-        std::size_t PrimitiveCount = 0;
+        auto const &[MeshletVertexOffset,
+                     MeshletTriangleOffset,
+                     MeshletVertexCount,
+                     MeshletTriangleCount] = OptimizerMeshlets[MeshletIt];
 
-        while (PrimitiveCount < g_MaxMeshletPrimitives && CurrentIndex < IndexCount)
+        for (std::size_t VertexIt = 0U; VertexIt < MeshletVertexCount; ++VertexIt)
         {
-            for (std::size_t TriangleVertexIt = 0; TriangleVertexIt < 3; ++TriangleVertexIt)
-            {
-                std::uint32_t const IndexIt = Indices.at(CurrentIndex++);
-                if (CurrentMeshlet.VertexCount < g_MaxMeshletVertices)
-                {
-                    CurrentMeshlet.Vertices.at(CurrentMeshlet.VertexCount++) = Vertices.at(IndexIt);
-                }
-
-                CurrentMeshlet.Indices.at(CurrentMeshlet.IndexCount++) = IndexIt;
-            }
-
-            ++PrimitiveCount;
+            NewMeshlet.Vertices.at(VertexIt) = Vertices.at(MeshletVertices.at(MeshletVertexOffset + VertexIt));
         }
 
-        m_Meshlets.push_back(std::move(CurrentMeshlet));
+        for (std::size_t TriangleIt = 0U; TriangleIt < MeshletTriangleCount * 3U; ++TriangleIt)
+        {
+            NewMeshlet.Indices.at(TriangleIt) = MeshletTriangles.at(TriangleIt + MeshletTriangleOffset);
+            NewMeshlet.Indices.at(TriangleIt) = MeshletTriangles.at(TriangleIt + MeshletTriangleOffset + 1U);
+            NewMeshlet.Indices.at(TriangleIt) = MeshletTriangles.at(TriangleIt + MeshletTriangleOffset + 2U);
+        }
+
+        NewMeshlet.VertexCount = MeshletVertexCount;
+        NewMeshlet.IndexCount = MeshletTriangleCount * 3;
+
+        m_Meshlets.at(MeshletIt) = NewMeshlet;
     }
 }
 
