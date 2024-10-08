@@ -26,26 +26,4 @@ namespace RenderCore
         alignas(16) glm::mat4 ProjectionView {};
         alignas(16) glm::mat4 Model {};
     };
-
-    static VkDeviceSize GetSceneUniformSize()
-    {
-        VkDeviceSize UniformSize = sizeof(SceneUniformData);
-
-        if (VkDeviceSize const UniformAlignment = GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
-            UniformAlignment > 0U)
-        {
-            UniformSize = UniformSize + UniformAlignment - 1U & ~(UniformAlignment - 1U);
-        }
-    }
-
-    static VkDeviceSize GetModelUniformSize()
-    {
-        VkDeviceSize UniformSize = sizeof(ModelUniformData);
-
-        if (VkDeviceSize const UniformAlignment = GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
-            UniformAlignment > 0U)
-        {
-            UniformSize = UniformSize + UniformAlignment - 1U & ~(UniformAlignment - 1U);
-        }
-    }
 } // namespace RenderCore
