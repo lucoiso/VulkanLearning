@@ -10,7 +10,7 @@
 #define g_NumPrimitives 64
 #define g_MeshletPerTask 32
 
-#define g_UseExternalMeshShader 0
+#define g_UseExternalMeshShader 1
 
 const uint g_MaxVertexIterations = ((g_NumVertices + g_NumTasks - 1) / g_NumTasks);
 const uint g_MaxIndexIterations = ((g_NumPrimitives + g_NumTasks - 1) / g_NumTasks);

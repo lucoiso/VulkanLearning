@@ -19,7 +19,6 @@ export namespace RenderCore
                                                     VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
                                                     VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME,
                                                     VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME,
-                                                    VK_NV_MESH_SHADER_EXTENSION_NAME,
                                                     VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME};
 
     constexpr std::array<char const *, 0U> g_OptionalInstanceLayers{};
@@ -28,7 +27,7 @@ export namespace RenderCore
 
     constexpr std::array<char const *, 0U> g_OptionalInstanceExtensions{};
 
-    constexpr std::array<char const *, 0U> g_OptionalDeviceExtensions{};
+    constexpr std::array g_OptionalDeviceExtensions{ VK_NV_MESH_SHADER_EXTENSION_NAME };
 
     constexpr VkPipelineCreateFlags g_PipelineFlags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
 
