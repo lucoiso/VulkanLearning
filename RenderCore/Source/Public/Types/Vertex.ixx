@@ -12,9 +12,9 @@ namespace RenderCore
 {
     export struct RENDERCOREMODULE_API Vertex
     {
+        alignas(8)  glm::vec2 TextureCoordinate{};
         alignas(16) glm::vec3 Position {};
         alignas(16) glm::vec3 Normal {};
-        alignas(16) glm::vec2 TextureCoordinate {};
         alignas(16) glm::vec4 Color {};
         alignas(16) glm::vec4 Joint {};
         alignas(16) glm::vec4 Weight {};
@@ -23,10 +23,18 @@ namespace RenderCore
 
     export struct RENDERCOREMODULE_API Meshlet
     {
+        alignas(4)  std::uint32_t VertexCount{ 0U };
+        alignas(4)  std::uint32_t IndexCount{ 0U };
+        alignas(4)  std::array<std::uint32_t, g_MaxMeshletPrimitives * 3U> Indices {};
         alignas(16) std::array<Vertex, g_MaxMeshletVertices> Vertices {};
-        alignas(16) std::array<std::uint32_t, g_MaxMeshletPrimitives * 3U> Indices {};
-        alignas(4) std::uint32_t VertexCount { 0U };
-        alignas(4) std::uint32_t IndexCount { 0U };
+
+        static constexpr std::size_t GetSize()
+        {
+            return sizeof(std::uint32_t)
+                 + sizeof(std::uint32_t)
+                 + (sizeof(std::uint32_t) * g_MaxMeshletPrimitives * 3U)
+                 + (sizeof(Vertex) * g_MaxMeshletVertices);
+        }
     };
 
     export namespace VertexAttributes

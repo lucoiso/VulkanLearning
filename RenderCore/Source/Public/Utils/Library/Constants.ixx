@@ -19,6 +19,7 @@ export namespace RenderCore
                                                     VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
                                                     VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME,
                                                     VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME,
+                                                    VK_NV_MESH_SHADER_EXTENSION_NAME,
                                                     VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME};
 
     constexpr std::array<char const *, 0U> g_OptionalInstanceLayers{};

@@ -36,8 +36,7 @@ export namespace RenderCore
     void              CopyBuffer(VkCommandBuffer const &, VkBuffer const &, VkBuffer const &, VkDeviceSize const &);
     void              CreateUniformBuffers(BufferAllocation &, VkDeviceSize, strzilla::string_view);
 
-    void CreateImage(
-            VkFormat const &, VkExtent2D const &, VkImageTiling const &, VkImageUsageFlags, VmaMemoryUsage, strzilla::string_view, VkImage &, VmaAllocation &);
+    void CreateImage(VkFormat const &, VkExtent2D const &, VkImageTiling const &, VkImageUsageFlags, VmaMemoryUsage, strzilla::string_view, VkImage &, VmaAllocation &);
     void CreateImageView(VkImage const &, VkFormat const &, VkImageAspectFlags const &, VkImageView &);
     void CreateTextureImageView(ImageAllocation &, VkFormat);
     void CopyBufferToImage(VkCommandBuffer const &, VkBuffer const &, VkImage const &, VkExtent2D const &);
@@ -162,6 +161,11 @@ export namespace RenderCore
     RENDERCOREMODULE_API [[nodiscard]] inline VmaAllocator const &GetAllocator()
     {
         return g_Allocator;
+    }
+
+    RENDERCOREMODULE_API [[nodiscard]] inline BufferAllocation const& GetAllocation()
+    {
+        return g_BufferAllocation;
     }
 
     RENDERCOREMODULE_API [[nodiscard]] inline VkBuffer const &GetAllocationBuffer()

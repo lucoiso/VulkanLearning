@@ -183,30 +183,23 @@ void PipelineDescriptorData::SetupModelsBufferSizes(std::vector<std::shared_ptr<
 
     auto const NumObjects = static_cast<std::uint32_t>(std::size(Objects));
 
-    auto const SetupBufferDescriptor = [&](DescriptorData             &InData,
-                                           strzilla::string_view const Identifier,
-                                           std::uint32_t const         SizeMultiplier = 1U,
-                                           VkBufferUsageFlags const    UsageFlags     = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
-                                                                                        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+    auto const SetupBufferDescriptor = [&](DescriptorData &InData)
     {
-        InData.Buffer.Size = SizeMultiplier * NumObjects * InData.LayoutSize;
-
-        CreateBuffer(InData.Buffer.Size, UsageFlags, std::data(Identifier), InData.Buffer.Buffer, InData.Buffer.Allocation);
-        vmaMapMemory(Allocator, InData.Buffer.Allocation, &InData.Buffer.MappedData);
-
         VkBufferDeviceAddressInfo const BufferDeviceAddressInfo{.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, .buffer = InData.Buffer.Buffer};
-
         InData.BufferDeviceAddress.deviceAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
     };
 
     // Projection
-    SetupBufferDescriptor(ModelData, "Model Descriptor Buffer");
+    ModelData.Buffer = GetAllocation();
+    SetupBufferDescriptor(ModelData);
 
     // Materials
-    SetupBufferDescriptor(MaterialData, "Material Descriptor Buffer");
+    MaterialData.Buffer = GetAllocation();
+    SetupBufferDescriptor(MaterialData);
 
     // Meshlets
-    SetupBufferDescriptor(MeshletData, "Meshlet Descriptor Buffer");
+    MeshletData.Buffer = GetAllocation();
+    SetupBufferDescriptor(MeshletData);
 
     // Textures
     {
@@ -216,8 +209,9 @@ void PipelineDescriptorData::SetupModelsBufferSizes(std::vector<std::shared_ptr<
                                                    VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
                                                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-
-        SetupBufferDescriptor(TextureData, "Texture Descriptor Buffer", NumTextures, BufferUsage);
+        
+        // TODO : bind directly to the image buffers
+        // SetupBufferDescriptor(TextureData, "Texture Descriptor Buffer", NumTextures, BufferUsage);
     }
 }
 
@@ -268,6 +262,8 @@ static void MapDescriptorBuffer(DescriptorData const   &Data,
 
 void PipelineDescriptorData::MapModelTextureBuffer(unsigned char *Buffer, std::shared_ptr<Object> const &Object, std::uint32_t const ObjectCount) const
 {
+    return ; // TODO : remove
+
     VkDevice const &LogicalDevice = GetLogicalDevice();
     constexpr auto NumTextures    = static_cast<std::uint8_t>(TextureType::Count);
     auto const     &Textures      = Object->GetMesh()->GetTextures();
@@ -321,7 +317,7 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
     auto const ModelBuffer    = static_cast<unsigned char *>(ModelData.Buffer.MappedData);
     auto const MaterialBuffer = static_cast<unsigned char *>(MaterialData.Buffer.MappedData);
-    auto const MeshletBuffer   = static_cast<unsigned char *>(MeshletData.Buffer.MappedData);
+    auto const MeshletBuffer  = static_cast<unsigned char *>(MeshletData.Buffer.MappedData);
     auto const TextureBuffer  = static_cast<unsigned char *>(TextureData.Buffer.MappedData);
 
     std::uint32_t ObjectCount = 0U;
@@ -356,7 +352,7 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
                             ModelUniformAddress,
                             ObjectCount,
                             ObjectIter->GetMesh()->GetMeshletOffset(),
-                            ObjectIter->GetMesh()->GetNumMeshlets() * sizeof(Meshlet),
+                            ObjectIter->GetMesh()->GetNumMeshlets() * Meshlet::GetSize(),
                             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
         MapModelTextureBuffer(TextureBuffer, ObjectIter, ObjectCount);

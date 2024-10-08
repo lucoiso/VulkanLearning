@@ -10,15 +10,17 @@
 #define g_NumPrimitives 64
 #define g_MeshletPerTask 32
 
+#define g_UseExternalMeshShader 0
+
 const uint g_MaxVertexIterations = ((g_NumVertices + g_NumTasks - 1) / g_NumTasks);
 const uint g_MaxIndexIterations = ((g_NumPrimitives + g_NumTasks - 1) / g_NumTasks);
 const uint g_MaxMeshletIterations = ((g_MeshletPerTask + g_NumTasks - 1) / g_NumTasks);
 
 struct Vertex
 {
+    vec2 UV;
     vec3 Position;
     vec3 Normal;
-    vec2 UV;
     vec4 Joint;
     vec4 Weight;
     vec4 Tangent;
@@ -26,10 +28,10 @@ struct Vertex
 
 struct Meshlet
 {
-    Vertex Vertices[g_NumVertices];
-    uint Indices[g_NumPrimitives * 3];
     uint NumVertices;
     uint NumIndices;
+    uint Indices[g_NumPrimitives * 3];
+    Vertex Vertices[g_NumVertices];
 };
 
 vec3 GetPosition(Meshlet Part, uint VertexIndex)
@@ -49,9 +51,9 @@ vec2 GetUV(Meshlet Part, uint VertexIndex)
 
 struct ModelUBO
 {
+    uint NumMeshlets;
     mat4 ProjectionView;
     mat4 ModelView;
-    uint NumMeshlets;
 };
 
 struct LightingUBO
@@ -78,10 +80,10 @@ struct MaterialUBO
 
 struct FragmentData
 {
-    vec4 FragPosition;
+    vec4 FragColor;
+    vec3 FragView;
     vec3 FragNormal;
     vec2 FragUV;
-    vec4 FragColor;
 };
 
 #define g_MaxColors 10

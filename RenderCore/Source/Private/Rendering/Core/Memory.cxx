@@ -365,16 +365,16 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
         g_BufferAllocation.DestroyResources(g_Allocator);
     }
 
+    constexpr std::size_t MeshletDataSize = Meshlet::GetSize();
 
     std::vector<Meshlet> Meshlets;
-
-    constexpr std::size_t MeshletDataSize = sizeof(Meshlet);
-
     for (auto const &ObjectIter : Objects)
     {
         auto const &Mesh = ObjectIter->GetMesh();
+        auto const &MeshMeshlets = Mesh->GetMeshlets();
+
         Mesh->SetMeshletOffset(std::size(Meshlets) * MeshletDataSize);
-        Meshlets.insert(std::end(Meshlets), std::begin(Mesh->GetMeshlets()), std::end(Mesh->GetMeshlets()));
+        Meshlets.insert(std::end(Meshlets), std::begin(MeshMeshlets), std::end(MeshMeshlets));
     }
 
     VkDeviceSize MeshletBufferSize = std::size(Meshlets) * MeshletDataSize;

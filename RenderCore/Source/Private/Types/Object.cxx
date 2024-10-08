@@ -54,9 +54,9 @@ void Object::UpdateUniformBuffers() const
     {
         constexpr auto ModelUBOSize = sizeof(ModelUniformData);
 
-        ModelUniformData const UpdatedModelUBO{.ProjectionView = GetCamera().GetProjectionMatrix(),
-                                               .Model          = m_Transform.GetMatrix() * m_Mesh->GetTransform().GetMatrix(),
-                                               .MeshletCount = GetMesh()->GetNumMeshlets()};
+        ModelUniformData const UpdatedModelUBO {.MeshletCount   = GetMesh()->GetNumMeshlets(),
+                                                .ProjectionView = GetCamera().GetProjectionMatrix(),
+                                                .Model          = m_Transform.GetMatrix() * m_Mesh->GetTransform().GetMatrix()};
 
         std::memcpy(UniformData, &UpdatedModelUBO, ModelUBOSize);
         SetRenderDirty(false);
@@ -98,10 +98,10 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
                     .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
             },
             VkDescriptorBufferBindingInfoEXT {
-                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
-                .address = MeshletData.BufferDeviceAddress.deviceAddress,
-                .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
-        },
+                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+                    .address = MeshletData.BufferDeviceAddress.deviceAddress,
+                    .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
+            },
             VkDescriptorBufferBindingInfoEXT {
                     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
                     .address = TextureData.BufferDeviceAddress.deviceAddress,
@@ -115,13 +115,17 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
 
     constexpr auto NumTextures = static_cast<std::uint8_t>(TextureType::Count);
 
-    std::uint32_t const NumMeshlets = GetMesh()->GetNumMeshlets();
+    std::uint32_t const NumMeshlets = m_Mesh->GetNumMeshlets();
+    
+            // ObjectIndex * ModelData.LayoutSize    + ModelData.LayoutOffset,
+            // ObjectIndex * MaterialData.LayoutSize + MaterialData.LayoutOffset,
+            // ObjectIndex * NumMeshlets * MeshletData.LayoutSize + MeshletData.LayoutOffset,
 
     std::array const BufferOffsets {
             SceneData.LayoutOffset,
             ObjectIndex * ModelData.LayoutSize    + ModelData.LayoutOffset,
             ObjectIndex * MaterialData.LayoutSize + MaterialData.LayoutOffset,
-            ObjectIndex * NumMeshlets * MeshletData.LayoutSize + MeshletData.LayoutOffset,
+            ObjectIndex * MeshletData.LayoutSize  + MeshletData.LayoutOffset,
             ObjectIndex * NumTextures * TextureData.LayoutSize + TextureData.LayoutOffset
     };
 
@@ -134,5 +138,13 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
                                        std::data(BufferOffsets));
 
     std::uint32_t const NumTasks = std::trunc(NumMeshlets + g_MaxMeshTasks - 1U) / g_MaxMeshTasks;
-    vkCmdDrawMeshTasksEXT(CommandBuffer, NumTasks, 1U, 1U); // TODO : investigate GPU crash after increasing workgroup.x
+
+    if (vkCmdDrawMeshTasksNV != nullptr)
+    {
+        vkCmdDrawMeshTasksNV(CommandBuffer, NumTasks, 0U);
+    }
+    else
+    {
+        vkCmdDrawMeshTasksEXT(CommandBuffer, NumTasks, 1U, 1U);
+    }
 }
