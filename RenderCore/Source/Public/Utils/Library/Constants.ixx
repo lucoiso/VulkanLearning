@@ -44,8 +44,7 @@ export namespace RenderCore
 
     constexpr auto g_ModelMemoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
-    constexpr auto g_ModelBufferUsage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                                        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    constexpr auto g_ModelBufferUsage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
     constexpr auto g_TextureMemoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 

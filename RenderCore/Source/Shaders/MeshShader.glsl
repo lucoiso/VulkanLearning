@@ -41,7 +41,11 @@ void main()
 
     uint NumVertices = CurrentMeshlet.NumVertices;
     uint NumIndices = CurrentMeshlet.NumIndices;
-    
+
+#if g_UseExternalMeshShader
+    return; // TODO : remove - crashing AMD GPUs and taking too much time to unfreeze my pc .-.
+#endif // g_UseExternalMeshShader
+
 #if g_UseExternalMeshShader
     SetMeshOutputsEXT(NumVertices, NumIndices);
 #else
