@@ -13,6 +13,7 @@ import RenderCore.Runtime.Scene;
 import RenderCore.Types.Material;
 import RenderCore.Types.Texture;
 import RenderCore.Types.UniformBufferObject;
+import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
 
@@ -132,5 +133,6 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
                                        std::data(BufferIndices),
                                        std::data(BufferOffsets));
 
-    vkCmdDrawMeshTasksEXT(CommandBuffer, 1U, 1U, 1U); // TODO : investigate GPU crash after increasing workgroup.x
+    std::uint32_t const NumTasks = std::trunc(NumMeshlets + g_MaxMeshTasks - 1U) / g_MaxMeshTasks;
+    vkCmdDrawMeshTasksEXT(CommandBuffer, NumTasks, 1U, 1U); // TODO : investigate GPU crash after increasing workgroup.x
 }

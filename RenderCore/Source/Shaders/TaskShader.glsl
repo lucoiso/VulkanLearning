@@ -17,6 +17,6 @@ void main()
 {
     if (ModelData.Data.NumMeshlets > 0)
     {
-        EmitMeshTasksEXT(ModelData.Data.NumMeshlets, 1, 1);
+        EmitMeshTasksEXT(g_MaxMeshletIterations, 1, 1);
     }
 }

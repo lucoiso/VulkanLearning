@@ -67,6 +67,8 @@ export namespace RenderCore
 
     constexpr std::uint32_t g_Timeout = std::numeric_limits<std::uint32_t>::max();
 
+    constexpr std::uint8_t g_MaxMeshTasks = 32U;
+
     constexpr std::uint8_t g_MaxMeshletVertices = 64U;
 
     constexpr std::uint8_t g_MaxMeshletPrimitives = 124U;

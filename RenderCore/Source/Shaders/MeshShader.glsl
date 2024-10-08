@@ -39,7 +39,7 @@ void main()
 
     SetMeshOutputsEXT(NumVertices, NumIndices);
 
-    for (uint Iterator = 0; Iterator < NumVertices; Iterator++)
+    [[unroll]] for (uint Iterator = 0; Iterator < g_MaxVertexIterations; Iterator++)
     {
         vec3 Position = GetPosition(CurrentMeshlet, Iterator);
         vec3 Normal = GetNormal(CurrentMeshlet, Iterator);
@@ -56,7 +56,7 @@ void main()
         gl_MeshVerticesEXT[Iterator].gl_Position = ClipPosition;
     }
 
-    for (uint Iterator = 0; Iterator < NumIndices / 3; Iterator++)
+    [[unroll]] for (uint Iterator = 0; Iterator < g_MaxIndexIterations / 3; Iterator++)
     {
         uint Index0 = CurrentMeshlet.Indices[Iterator * 3];
         uint Index1 = CurrentMeshlet.Indices[Iterator * 3 + 1];
