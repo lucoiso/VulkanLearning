@@ -120,7 +120,7 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
             SceneData.LayoutOffset,
             ObjectIndex * ModelData.LayoutSize    + ModelData.LayoutOffset,
             ObjectIndex * MaterialData.LayoutSize + MaterialData.LayoutOffset,
-            ObjectIndex * MeshletData.LayoutSize  + MeshletData.LayoutOffset,
+            ObjectIndex * NumMeshlets * MeshletData.LayoutSize + MeshletData.LayoutOffset,
             ObjectIndex * NumTextures * TextureData.LayoutSize + TextureData.LayoutOffset
     };
 
@@ -132,5 +132,5 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
                                        std::data(BufferIndices),
                                        std::data(BufferOffsets));
 
-    vkCmdDrawMeshTasksEXT(CommandBuffer, NumMeshlets, 1U, 1U);
+    vkCmdDrawMeshTasksEXT(CommandBuffer, 1U, 1U, 1U); // TODO : investigate GPU crash after increasing workgroup.x
 }
