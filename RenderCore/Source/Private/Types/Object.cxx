@@ -112,14 +112,7 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
     vkCmdBindDescriptorBuffersEXT(CommandBuffer, static_cast<std::uint32_t>(std::size(BufferBindingInfos)), std::data(BufferBindingInfos));
 
     constexpr std::array BufferIndices { 0U, 1U, 2U, 3U, 4U };
-
     constexpr auto NumTextures = static_cast<std::uint8_t>(TextureType::Count);
-
-    std::uint32_t const NumMeshlets = m_Mesh->GetNumMeshlets();
-    
-            // ObjectIndex * ModelData.LayoutSize    + ModelData.LayoutOffset,
-            // ObjectIndex * MaterialData.LayoutSize + MaterialData.LayoutOffset,
-            // ObjectIndex * NumMeshlets * MeshletData.LayoutSize + MeshletData.LayoutOffset,
 
     std::array const BufferOffsets {
             SceneData.LayoutOffset,
@@ -137,6 +130,7 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
                                        std::data(BufferIndices),
                                        std::data(BufferOffsets));
 
+    std::uint32_t const NumMeshlets = m_Mesh->GetNumMeshlets();
     std::uint32_t const NumTasks = std::trunc(NumMeshlets + g_MaxMeshTasks - 1U) / g_MaxMeshTasks;
 
     if (vkCmdDrawMeshTasksNV != nullptr)

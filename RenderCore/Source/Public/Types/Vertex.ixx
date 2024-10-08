@@ -27,14 +27,6 @@ namespace RenderCore
         alignas(4)  std::uint32_t IndexCount{ 0U };
         alignas(4)  std::array<std::uint32_t, g_MaxMeshletPrimitives * 3U> Indices {};
         alignas(16) std::array<Vertex, g_MaxMeshletVertices> Vertices {};
-
-        static constexpr std::size_t GetSize()
-        {
-            return sizeof(std::uint32_t)
-                 + sizeof(std::uint32_t)
-                 + (sizeof(std::uint32_t) * g_MaxMeshletPrimitives * 3U)
-                 + (sizeof(Vertex) * g_MaxMeshletVertices);
-        }
     };
 
     export namespace VertexAttributes

@@ -239,13 +239,13 @@ static void MapDescriptorBuffer(DescriptorData const   &Data,
     VkDeviceSize BufferDescriptorSize = 0U;
     switch (Type)
     {
-        case VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+        case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
         {
             DescriptorData.pUniformBuffer = &ModelDescriptorAddressInfo;
             BufferDescriptorSize = g_DescriptorBufferProperties.uniformBufferDescriptorSize;
             break;
         }
-        case VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+        case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
         {
             DescriptorData.pStorageBuffer = &ModelDescriptorAddressInfo;
             BufferDescriptorSize = g_DescriptorBufferProperties.storageBufferDescriptorSize;
@@ -321,7 +321,7 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
     auto const ModelBuffer    = static_cast<unsigned char *>(ModelData.Buffer.MappedData);
     auto const MaterialBuffer = static_cast<unsigned char *>(MaterialData.Buffer.MappedData);
-    auto const MeshletBuffer   = static_cast<unsigned char *>(MeshletData.Buffer.MappedData);
+    auto const MeshletBuffer  = static_cast<unsigned char *>(MeshletData.Buffer.MappedData);
     auto const TextureBuffer  = static_cast<unsigned char *>(TextureData.Buffer.MappedData);
 
     std::uint32_t ObjectCount = 0U;
@@ -331,13 +331,13 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
             .buffer = GetAllocationBuffer()
     };
 
-    VkDeviceSize const ModelUniformAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
+    VkDeviceSize const AllocationAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
 
     for (std::shared_ptr<Object> const &ObjectIter : Objects)
     {
         MapDescriptorBuffer(ModelData,
                             ModelBuffer,
-                            ModelUniformAddress,
+                            AllocationAddress,
                             ObjectCount,
                             ObjectIter->GetUniformOffset(),
                             sizeof(ModelUniformData),
@@ -345,7 +345,7 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
         MapDescriptorBuffer(MaterialData,
                             MaterialBuffer,
-                            ModelUniformAddress,
+                            AllocationAddress,
                             ObjectCount,
                             ObjectIter->GetMaterialOffset(),
                             sizeof(RenderCore::MaterialData),
@@ -353,7 +353,7 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
         MapDescriptorBuffer(MeshletData,
                             MeshletBuffer,
-                            ModelUniformAddress,
+                            AllocationAddress,
                             ObjectCount,
                             ObjectIter->GetMesh()->GetMeshletOffset(),
                             ObjectIter->GetMesh()->GetNumMeshlets() * sizeof(Meshlet),

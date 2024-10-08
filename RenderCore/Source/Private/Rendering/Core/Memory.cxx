@@ -300,7 +300,7 @@ void RenderCore::CopyBufferToImage(VkCommandBuffer const &CommandBuffer, VkBuffe
 }
 
 std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(VkCommandBuffer const &CommandBuffer,
-                                                                               unsigned char const *  Data,
+                                                                               unsigned char const   *Data,
                                                                                std::uint32_t const    Width,
                                                                                std::uint32_t const    Height,
                                                                                VkFormat const         ImageFormat,
@@ -365,7 +365,7 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
         g_BufferAllocation.DestroyResources(g_Allocator);
     }
 
-    constexpr std::size_t MeshletDataSize = Meshlet::GetSize();
+    constexpr std::size_t MeshletDataSize = sizeof(Meshlet);
 
     std::vector<Meshlet> Meshlets;
     for (auto const &ObjectIter : Objects)
@@ -379,16 +379,24 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
 
     VkDeviceSize MeshletBufferSize = std::size(Meshlets) * MeshletDataSize;
 
-    if (VkDeviceSize const MinAlignment = GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
-        MinAlignment > 0U)
+    if (VkDeviceSize const StorageAlignment = GetPhysicalDeviceProperties().limits.minStorageBufferOffsetAlignment;
+        StorageAlignment > 0U)
     {
-        MeshletBufferSize = MeshletBufferSize + MinAlignment - 1U & ~(MinAlignment - 1U);
+        MeshletBufferSize = MeshletBufferSize + StorageAlignment - 1U & ~(StorageAlignment - 1U);
     }
 
-    VmaAllocator const &Allocator  = GetAllocator();
+    VmaAllocator const &Allocator = GetAllocator();
 
     constexpr std::size_t UniformDataSize = sizeof(ModelUniformData) + sizeof(MaterialData);
-    VkDeviceSize const  TotalBufferSize = MeshletBufferSize + UniformDataSize * std::size(Objects);
+    VkDeviceSize UniformBufferSize = UniformDataSize * std::size(Objects);
+
+    if (VkDeviceSize const UniformAlignment = GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment;
+        UniformAlignment > 0U)
+    {
+        UniformBufferSize = UniformBufferSize + UniformAlignment - 1U & ~(UniformAlignment - 1U);
+    }
+
+    VkDeviceSize const TotalBufferSize = MeshletBufferSize + UniformBufferSize;
 
     CreateBuffer(TotalBufferSize, g_ModelBufferUsage, "MODEL_UNIFIED_BUFFER", g_BufferAllocation.Buffer, g_BufferAllocation.Allocation);
 
