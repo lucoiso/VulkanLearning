@@ -238,18 +238,26 @@ void BeginRendering(VkCommandBuffer const &CommandBuffer,
                     ImageAllocation const &DepthAllocation,
                     ImageAllocation const &OffscreenAllocation)
 {
-    std::vector ImageBarriers {
-            RenderCore::MountImageBarrier<g_UndefinedLayout, g_AttachmentLayout,
-                                          g_ImageAspect>(SwapchainAllocation.Image, SwapchainAllocation.Format),
-            RenderCore::MountImageBarrier<g_UndefinedLayout, g_AttachmentLayout, g_DepthAspect>(DepthAllocation.Image, DepthAllocation.Format)
+    std::vector ImageBarriers
+    {
+            RenderCore::MountImageBarrier<g_UndefinedLayout,
+                                          g_AttachmentLayout,
+                                          g_ImageAspect>(SwapchainAllocation.Image,
+                                                         SwapchainAllocation.Format),
+            RenderCore::MountImageBarrier<g_UndefinedLayout,
+                                          g_AttachmentLayout,
+                                          g_DepthAspect>(DepthAllocation.Image,
+                                                        DepthAllocation.Format)
     };
 
     bool const &HasOffscreenRendering = Renderer::GetRenderOffscreen();
 
-    if (HasOffscreenRendering)
+    if (HasOffscreenRendering && OffscreenAllocation.Image != VK_NULL_HANDLE)
     {
-        ImageBarriers.push_back(RenderCore::MountImageBarrier<g_UndefinedLayout, g_AttachmentLayout, g_ImageAspect>(OffscreenAllocation.Image,
-                                    OffscreenAllocation.Format));
+        ImageBarriers.push_back(RenderCore::MountImageBarrier<g_UndefinedLayout,
+                                                              g_AttachmentLayout,
+                                                              g_ImageAspect>(OffscreenAllocation.Image,
+                                                                             OffscreenAllocation.Format));
     }
 
     VkDependencyInfo const DependencyInfo {
@@ -296,7 +304,7 @@ void EndRendering(VkCommandBuffer const &CommandBuffer, ImageAllocation const &S
 {
     vkCmdEndRendering(CommandBuffer);
 
-    if (Renderer::GetRenderOffscreen())
+    if (Renderer::GetRenderOffscreen() && OffscreenAllocation.Image != VK_NULL_HANDLE)
     {
         RenderCore::RequestImageLayoutTransition<g_AttachmentLayout, g_ReadLayout, g_ImageAspect>(CommandBuffer,
                                                                                                   OffscreenAllocation.Image,

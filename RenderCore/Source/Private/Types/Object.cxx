@@ -36,13 +36,6 @@ void Object::SetupUniformDescriptor()
 {
     m_UniformBufferInfo = GetAllocationBufferDescriptor(m_UniformOffset, sizeof(ModelUniformData));
     m_MappedData        = GetAllocationMappedData();
-
-    if (m_MappedData && m_Mesh)
-    {
-        auto const  MeshletsMappedData = static_cast<char *>(m_MappedData) + m_Mesh->GetMeshletOffset();
-        auto const& Meshlets           = m_Mesh->GetMeshlets();
-        std::memcpy(MeshletsMappedData, std::data(Meshlets), m_Mesh->GetNumMeshlets() * sizeof(Meshlet));
-    }
 }
 
 void Object::UpdateUniformBuffers() const
@@ -51,6 +44,8 @@ void Object::UpdateUniformBuffers() const
     {
         return;
     }
+
+    // TODO : move to mesh
 
     auto const UniformData = static_cast<char *>(m_MappedData) + GetUniformOffset();
 
@@ -71,6 +66,8 @@ void Object::UpdateUniformBuffers() const
 
 void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout const &PipelineLayout, std::uint32_t const ObjectIndex) const
 {
+    // TODO : move to mesh
+
     if (!m_Mesh)
     {
         return;

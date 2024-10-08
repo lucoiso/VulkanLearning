@@ -149,7 +149,10 @@ namespace RenderCore
 
         RENDERCOREMODULE_API inline void RequestUpdateResources()
         {
-            AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+            if (HasFlag(g_StateFlags, RendererStateFlags::INITIALIZED))
+            {
+                AddFlags(g_StateFlags, RendererStateFlags::PENDING_RESOURCES_DESTRUCTION);
+            }
         }
 
         RENDERCOREMODULE_API [[nodiscard]] inline float const &GetFrameTime()

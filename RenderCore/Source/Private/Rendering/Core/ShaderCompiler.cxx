@@ -17,6 +17,23 @@ module RenderCore.Runtime.ShaderCompiler;
 
 using namespace RenderCore;
 
+std::vector<strzilla::string> ExtractShaderIncludesInternal(strzilla::string_view const& Input)
+{
+    std::vector<strzilla::string> MatchingIncludes;
+
+    std::regex includeRegex("#include\\s+\"([^\"]+)\"");
+
+    std::string const InputStr(std::begin(Input), std::end(Input));
+    std::sregex_iterator RegexIterator(std::cbegin(InputStr), std::cend(InputStr), includeRegex);
+
+    for (std::sregex_iterator EndIterator; RegexIterator != EndIterator; ++RegexIterator)
+    {
+        MatchingIncludes.emplace_back((*RegexIterator)[1].str());
+    }
+
+    return MatchingIncludes;
+}
+
 class SimpleIncluder : public glslang::TShader::Includer
 {
 public:
@@ -39,7 +56,15 @@ public:
         IncludeSource << IncludeFile.rdbuf();
         IncludeFile.close();
 
-        addSource(HeaderName, IncludeSource.str());
+        strzilla::string const SourceContent { std::data(IncludeSource.str()) };
+        std::vector<strzilla::string> AdditionalIncludes = ExtractShaderIncludesInternal(std::data(SourceContent));
+
+        for (strzilla::string_view const& IncludeIt : AdditionalIncludes)
+        {
+            TryInclude(IncludeIt, Path);
+        }
+
+        AddSourceZilla(HeaderName, SourceContent);
     }
 
     IncludeResult* includeSystem(const char* HeaderName, const char* IncluderName, std::size_t InclusionDepth) override
@@ -82,7 +107,12 @@ public:
 
     void addSource(const std::string& HeaderName, const std::string& Source)
     {
-        m_Sources.emplace(strzilla::string { HeaderName },  strzilla::string { std::data(Source) });
+        AddSourceZilla(strzilla::string{ HeaderName }, strzilla::string{ std::data(Source) });
+    }
+
+    void AddSourceZilla(const strzilla::string& HeaderName, const strzilla::string& Source)
+    {
+        m_Sources.emplace(HeaderName, std::data(Source));
     }
 
 private:
@@ -93,38 +123,32 @@ private:
     std::map<strzilla::string, strzilla::string> m_Sources;
 };
 
-std::vector<std::string> ExtractShaderIncludesInternal(const char* Input)
+bool CompileInternal(ShaderType const             ShaderType,
+                     strzilla::string_view const  Source,
+                     std::filesystem::path const &Path,
+                     EShLanguage const            Language,
+                     strzilla::string_view const  EntryPoint,
+                     std::int32_t const           Version,
+                     std::vector<std::uint32_t>  &OutSPIRVCode)
 {
-    std::vector<std::string> MatchingIncludes;
+    BOOST_LOG_TRIVIAL(info) << "[" << __func__ << "]: Compiling shader: " << Path;
 
-    std::regex includeRegex("#include\\s+\"([^\"]+)\"");
+#ifdef _DEBUG
+    BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Shader source content: " << Source;
+#endif // _DEBUG
 
-    std::string InputStr(Input);
-    std::sregex_iterator RegexIterator(std::begin(InputStr), std::end(InputStr), includeRegex);
-
-    for (std::sregex_iterator EndIterator; RegexIterator != EndIterator; ++RegexIterator)
-    {
-        MatchingIncludes.emplace_back((*RegexIterator)[1].str());
-    }
-
-    return MatchingIncludes;
-}
-
-bool CompileInternal(ShaderType const            ShaderType,
-                     strzilla::string_view const Source,
-                     std::filesystem::path const Path,
-                     EShLanguage const           Language,
-                     strzilla::string_view const EntryPoint,
-                     std::int32_t const          Version,
-                     std::vector<std::uint32_t> &OutSPIRVCode)
-{
     glslang::InitializeProcess();
-
     glslang::TShader Shader(Language);
 
-    char const *ShaderContent = std::data(Source);
+    auto const SourceStandardContent = std::data(Source);
 
-    std::vector<std::string> MatchingIncludes = ExtractShaderIncludesInternal(std::data(Source));
+    std::vector<strzilla::string> MatchingIncludes = ExtractShaderIncludesInternal(std::data(Source));
+
+    strzilla::string const CurrentPath { std::data(Path.string()) };
+    strzilla::string const CurrentFilename { std::data(Path.filename().string()) };
+
+    MatchingIncludes.insert(std::begin(MatchingIncludes), CurrentFilename);
+
     std::vector<char*> Includes(std::size(MatchingIncludes), nullptr);
 
     for (std::size_t Iterator = 0U; Iterator < std::size(MatchingIncludes); ++Iterator)
@@ -132,7 +156,7 @@ bool CompileInternal(ShaderType const            ShaderType,
         Includes.at(Iterator) = std::data(MatchingIncludes.at(Iterator));
     }
 
-    Shader.setStringsWithLengthsAndNames(&ShaderContent, nullptr, std::data(Includes), 1);
+    Shader.setStringsWithLengthsAndNames(&SourceStandardContent, nullptr, std::data(Includes), 1);
 
     Shader.setEntryPoint(std::data(EntryPoint));
     Shader.setSourceEntryPoint(std::data(EntryPoint));
@@ -146,9 +170,16 @@ bool CompileInternal(ShaderType const            ShaderType,
     SimpleIncluder ShaderIncluder {};
     std::filesystem::path const ParentPath = Path.parent_path();
 
-    for (std::string const& IncludeIt : Includes)
+    for (strzilla::string const& IncludeIt : MatchingIncludes)
     {
-        ShaderIncluder.TryInclude(std::data(IncludeIt), ParentPath);
+        if (IncludeIt == CurrentFilename)
+        {
+            ShaderIncluder.AddSourceZilla(IncludeIt, Source);
+        }
+        else
+        {
+            ShaderIncluder.TryInclude(std::data(IncludeIt), ParentPath);
+        }
     }
 
     if (!Shader.parse(Resources, Version, ECoreProfile, false, true, MessageFlags, ShaderIncluder))
@@ -158,7 +189,8 @@ bool CompileInternal(ShaderType const            ShaderType,
         auto const InfoLog(strzilla::string { "Info Log: " } + Shader.getInfoLog());
         auto const DebugLog(strzilla::string { "Debug Log: " } + Shader.getInfoDebugLog());
 
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: " << std::format("Failed to parse shader:\n{}\n{}",
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: " << std::format("Failed to parse shader '{}':\n{}\n{}",
+                                                                            std::data(CurrentPath),
                                                                             std::data(InfoLog),
                                                                             std::data(DebugLog));
         return false;
@@ -174,16 +206,12 @@ bool CompileInternal(ShaderType const            ShaderType,
         auto const InfoLog(strzilla::string { "Info Log: " } + Shader.getInfoLog());
         auto const DebugLog(strzilla::string { "Debug Log: " } + Shader.getInfoDebugLog());
 
-        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: " << std::format("Failed to parse shader:\n{}\n{}",
+        BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: " << std::format("Failed to parse shader '{}':\n{}\n{}",
+                                                                            std::data(CurrentPath),
                                                                             std::data(InfoLog),
                                                                             std::data(DebugLog));
         return false;
     }
-
-    #ifdef _DEBUG
-    // Uncomment to print the shader code
-    // BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Compiling shader:\n" << Source;
-    #endif
 
     spv::SpvBuildLogger Logger;
     GlslangToSpv(*Program.getIntermediate(Language), OutSPIRVCode, &Logger);
@@ -199,7 +227,7 @@ bool CompileInternal(ShaderType const            ShaderType,
 }
 
 #ifdef _DEBUG
-bool ValidateSPIRV(std::vector<std::uint32_t> const &SPIRVData)
+bool ValidateSPIRV(std::filesystem::path const& Path, std::vector<std::uint32_t> const &SPIRVData)
 {
     static spvtools::SpirvTools SPIRVToolsInstance(SPV_ENV_VULKAN_1_3);
 
@@ -238,15 +266,14 @@ bool ValidateSPIRV(std::vector<std::uint32_t> const &SPIRVData)
         Initialized = true;
     }
 
-    // Uncomment to print SPIR-V disassembly
-    // if (strzilla::string DisassemblySPIRVData; SPIRVToolsInstance.Disassemble(SPIRVData, &DisassemblySPIRVData))
-    // {
-    //     BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Generated SPIR-V shader disassembly:\n" << DisassemblySPIRVData;
-    // }
+    if (std::string DisassemblySPIRVData; SPIRVToolsInstance.Disassemble(SPIRVData, &DisassemblySPIRVData))
+    {
+        BOOST_LOG_TRIVIAL(debug) << "[" << __func__ << "]: Generated SPIR-V shader disassembly for the shader file '" << Path << "':\n" << DisassemblySPIRVData;
+    }
 
     return SPIRVToolsInstance.Validate(SPIRVData);
 }
-#endif
+#endif // _DEBUG
 
 bool RenderCore::Compile(strzilla::string_view const Source,
                          ShaderType const            ShaderType,
@@ -272,11 +299,11 @@ bool RenderCore::Compile(strzilla::string_view const Source,
     if (Result)
     {
         #ifdef _DEBUG
-        if (!ValidateSPIRV(OutSPIRVCode))
+        if (!ValidateSPIRV(Path, OutSPIRVCode))
         {
             return false;
         }
-        #endif
+        #endif // _DEBUG
 
         strzilla::string const SPIRVPath = std::format("{}_{}.spv", std::data(Source), static_cast<std::uint8_t>(Language));
         std::ofstream          SPIRVFile(SPIRVPath, std::ios::binary);

@@ -212,7 +212,8 @@ void PipelineDescriptorData::SetupModelsBufferSizes(std::vector<std::shared_ptr<
     {
         constexpr auto NumTextures = static_cast<std::uint8_t>(TextureType::Count);
 
-        constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
+        constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
+                                                   VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
                                                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 
@@ -220,13 +221,13 @@ void PipelineDescriptorData::SetupModelsBufferSizes(std::vector<std::shared_ptr<
     }
 }
 
-static void MapDescriptorBuffer(DescriptorData const           &Data,
-                                unsigned char                  *Buffer,
-                                VkDeviceSize const             AddressInfo,
-                                std::uint32_t const            ObjectCount,
-                                std::uint32_t const            Offset,
-                                std::uint32_t const            Size,
-                                VkDescriptorType const         Type)
+static void MapDescriptorBuffer(DescriptorData const   &Data,
+                                unsigned char          *Buffer,
+                                VkDeviceSize const     AddressInfo,
+                                std::uint32_t const    ObjectCount,
+                                std::uint32_t const    Offset,
+                                std::uint32_t const    Size,
+                                VkDescriptorType const Type)
 {
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
@@ -234,12 +235,35 @@ static void MapDescriptorBuffer(DescriptorData const           &Data,
                                                                  .address = AddressInfo + Offset,
                                                                  .range = Size};
 
+    VkDescriptorDataEXT DescriptorData {};
+    VkDeviceSize BufferDescriptorSize = 0U;
+    switch (Type)
+    {
+        case VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+        {
+            DescriptorData.pUniformBuffer = &ModelDescriptorAddressInfo;
+            BufferDescriptorSize = g_DescriptorBufferProperties.uniformBufferDescriptorSize;
+            break;
+        }
+        case VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+        {
+            DescriptorData.pStorageBuffer = &ModelDescriptorAddressInfo;
+            BufferDescriptorSize = g_DescriptorBufferProperties.storageBufferDescriptorSize;
+            break;
+        }
+        default:
+        {
+            BOOST_LOG_TRIVIAL(error) << "[" << __func__ << "]: Using unregistered descriptor type: " << Type;
+            break;
+        }
+    }
+
     VkDescriptorGetInfoEXT const ModelDescriptorInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
                                                      .type  = Type,
-                                                     .data  = VkDescriptorDataEXT{.pUniformBuffer = &ModelDescriptorAddressInfo}};
+                                                     .data  = DescriptorData };
 
     VkDeviceSize const BufferOffset = ObjectCount * Data.LayoutSize + Data.LayoutOffset;
-    vkGetDescriptorEXT(LogicalDevice, &ModelDescriptorInfo, g_DescriptorBufferProperties.uniformBufferDescriptorSize, Buffer + BufferOffset);
+    vkGetDescriptorEXT(LogicalDevice, &ModelDescriptorInfo, BufferDescriptorSize, Buffer + BufferOffset);
 }
 
 void PipelineDescriptorData::MapModelTextureBuffer(unsigned char *Buffer, std::shared_ptr<Object> const &Object, std::uint32_t const ObjectCount) const

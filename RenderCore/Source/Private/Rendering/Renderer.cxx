@@ -38,8 +38,9 @@ void Renderer::DrawFrame(double const DeltaTime)
 
     constexpr RendererStateFlags InvalidStatesToRender = RendererStateFlags::PENDING_DEVICE_PROPERTIES_UPDATE |
                                                          RendererStateFlags::PENDING_RESOURCES_DESTRUCTION |
-                                                         RendererStateFlags::PENDING_RESOURCES_CREATION | RendererStateFlags::PENDING_PIPELINE_REFRESH
-                                                         | RendererStateFlags::INVALID_SIZE;
+                                                         RendererStateFlags::PENDING_RESOURCES_CREATION |
+                                                         RendererStateFlags::PENDING_PIPELINE_REFRESH |
+                                                         RendererStateFlags::INVALID_SIZE;
 
     if (HasAnyFlag(g_StateFlags, InvalidStatesToRender))
     {
@@ -118,6 +119,8 @@ void Renderer::DrawFrame(double const DeltaTime)
                 }
 
                 AddFlags(g_StateFlags, RendererStateFlags::INITIALIZED);
+                RequestUpdateResources();
+                return;
             }
 
             if (g_RenderOffscreen)

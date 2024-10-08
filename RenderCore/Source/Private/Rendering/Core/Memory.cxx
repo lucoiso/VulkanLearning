@@ -365,7 +365,9 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
         g_BufferAllocation.DestroyResources(g_Allocator);
     }
 
+
     std::vector<Meshlet> Meshlets;
+
     constexpr std::size_t MeshletDataSize = sizeof(Meshlet);
 
     for (auto const &ObjectIter : Objects)
@@ -383,12 +385,12 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
         MeshletBufferSize = MeshletBufferSize + MinAlignment - 1U & ~(MinAlignment - 1U);
     }
 
-    constexpr std::size_t UniformDataSize = sizeof(ModelUniformData) + sizeof(MaterialData);
-
     VmaAllocator const &Allocator  = GetAllocator();
-    VkDeviceSize const  BufferSize = MeshletBufferSize + UniformDataSize * std::size(Objects);
 
-    CreateBuffer(BufferSize, g_ModelBufferUsage, "MODEL_UNIFIED_BUFFER", g_BufferAllocation.Buffer, g_BufferAllocation.Allocation);
+    constexpr std::size_t UniformDataSize = sizeof(ModelUniformData) + sizeof(MaterialData);
+    VkDeviceSize const  TotalBufferSize = MeshletBufferSize + UniformDataSize * std::size(Objects);
+
+    CreateBuffer(TotalBufferSize, g_ModelBufferUsage, "MODEL_UNIFIED_BUFFER", g_BufferAllocation.Buffer, g_BufferAllocation.Allocation);
 
     CheckVulkanResult(vmaMapMemory(Allocator, g_BufferAllocation.Allocation, &g_BufferAllocation.MappedData));
     std::memcpy(g_BufferAllocation.MappedData, std::data(Meshlets), MeshletBufferSize);
