@@ -44,13 +44,13 @@ export namespace RenderCore
                                                                                           std::vector<VkVertexInputAttributeDescription> const &);
 
     template <typename ItemType, typename ContainerType>
-    RENDERCOREMODULE_API constexpr bool Contains(ContainerType const &Container, ItemType const &Item)
+    RENDERCOREMODULE_API bool Contains(ContainerType const &Container, ItemType const &Item)
     {
         return std::ranges::find(Container, Item) != std::cend(Container);
     }
 
     template <typename Out, typename Opt, typename Avail>
-    RENDERCOREMODULE_API constexpr void GetAvailableResources(char const * const Identifier, Out &Resource, Opt const &Optional, Avail const &Available)
+    RENDERCOREMODULE_API void GetAvailableResources(char const * const Identifier, Out &Resource, Opt const &Optional, Avail const &Available)
     {
         std::for_each(std::execution::unseq,
                       std::cbegin(Resource),
@@ -76,4 +76,17 @@ export namespace RenderCore
     }
 
     RENDERCOREMODULE_API void DispatchQueue(std::queue<std::function<void()>> &);
+
+    template <typename ...Args>
+    RENDERCOREMODULE_API VkDeviceSize GetAlignedSize(VkDeviceSize const InAlignment, std::size_t const Num = 1U)
+    {
+        VkDeviceSize Output = Num * sizeof...(Args);
+
+        if (InAlignment > 0U)
+        {
+            Output = Output + InAlignment - 1U & ~(InAlignment - 1U);
+        }
+
+        return Output;
+    }
 } // namespace RenderCore

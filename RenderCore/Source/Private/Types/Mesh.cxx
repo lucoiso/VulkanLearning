@@ -9,6 +9,7 @@ module;
 module RenderCore.Types.Mesh;
 
 import RenderCore.Runtime.Memory;
+import RenderCore.Types.Object;
 import RenderCore.Types.UniformBufferObject;
 import RenderCore.Utils.Constants;
 
@@ -132,10 +133,7 @@ void Mesh::UpdateUniformBuffers(char * const OwningData) const
 
     if (IsRenderDirty())
     {
-        constexpr auto ModelUBOSize    = sizeof(ModelUniformData);
-        constexpr auto MaterialUBOSize = sizeof(MaterialData);
-        std::memcpy(OwningData + ModelUBOSize, &GetMaterialData(), MaterialUBOSize);
-
+        std::memcpy(OwningData + sizeof(ModelUniformData), &GetMaterialData(), sizeof(MaterialData));
         SetRenderDirty(false);
     }
 }

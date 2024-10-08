@@ -18,8 +18,8 @@ module;
 module RenderCore.Runtime.Scene;
 
 import RenderCore.Runtime.Memory;
-import RenderCore.Runtime.Device;
 import RenderCore.Runtime.Command;
+import RenderCore.Runtime.Device;
 import RenderCore.Factories.Mesh;
 import RenderCore.Factories.Texture;
 import RenderCore.Types.UniformBufferObject;
@@ -33,9 +33,8 @@ std::mutex g_ObjectMutex {};
 
 void RenderCore::CreateSceneUniformBuffer()
 {
-    constexpr VkDeviceSize BufferSize = sizeof(SceneUniformData);
-    CreateUniformBuffers(m_UniformBufferAllocation.first, BufferSize, "SCENE_UNIFORM");
-    m_UniformBufferAllocation.second = { .buffer = m_UniformBufferAllocation.first.Buffer, .offset = 0U, .range = BufferSize };
+    CreateUniformBuffers(m_UniformBufferAllocation.first, sizeof(SceneUniformData), "SCENE_UNIFORM");
+    m_UniformBufferAllocation.second = { .buffer = m_UniformBufferAllocation.first.Buffer, .offset = 0U, .range = sizeof(SceneUniformData) };
 }
 
 void RenderCore::CreateImageSampler()
@@ -299,8 +298,6 @@ void RenderCore::UpdateSceneUniformBuffer()
 {
     if (g_Camera.IsRenderDirty() || g_Illumination.IsRenderDirty())
     {
-        constexpr auto SceneUBOSize = sizeof(SceneUniformData);
-
         SceneUniformData const UpdatedUBO {
                 .LightPosition = g_Illumination.GetPosition(),
                 .LightColor = g_Illumination.GetColor() * g_Illumination.GetIntensity(),
@@ -309,7 +306,7 @@ void RenderCore::UpdateSceneUniformBuffer()
                 .LightSpecular = {}
         };
 
-        std::memcpy(m_UniformBufferAllocation.first.MappedData, &UpdatedUBO, SceneUBOSize);
+        std::memcpy(m_UniformBufferAllocation.first.MappedData, &UpdatedUBO, sizeof(SceneUniformData));
     }
 }
 

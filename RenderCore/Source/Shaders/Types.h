@@ -7,7 +7,7 @@
 
 #define g_NumTasks 32
 #define g_NumVertices 64
-#define g_NumPrimitives 64
+#define g_NumPrimitives 124
 #define g_MeshletPerTask 32
 
 #define g_UseExternalMeshShader 1

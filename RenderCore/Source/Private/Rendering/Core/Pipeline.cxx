@@ -138,6 +138,8 @@ void PipelineDescriptorData::SetupSceneBuffer(BufferAllocation const &SceneAlloc
 {
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
+    
+
     {
         VmaAllocator const          &Allocator   = GetAllocator();
         constexpr VkBufferUsageFlags BufferUsage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;

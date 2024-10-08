@@ -10,6 +10,7 @@ import RenderCore.Types.Mesh;
 import RenderCore.Types.Vertex;
 import RenderCore.Types.Resource;
 import RenderCore.Types.Transform;
+import RenderCore.Types.Material;
 import RenderCore.Types.UniformBufferObject;
 
 namespace RenderCore

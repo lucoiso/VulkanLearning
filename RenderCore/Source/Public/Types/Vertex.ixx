@@ -10,7 +10,7 @@ import RenderCore.Utils.Constants;
 
 namespace RenderCore
 {
-    export struct RENDERCOREMODULE_API Vertex
+    export struct RENDERCOREMODULE_API alignas(16) Vertex
     {
         alignas(8)  glm::vec2 TextureCoordinate{};
         alignas(16) glm::vec3 Position {};
@@ -21,7 +21,7 @@ namespace RenderCore
         alignas(16) glm::vec4 Tangent {};
     };
 
-    export struct RENDERCOREMODULE_API Meshlet
+    export struct RENDERCOREMODULE_API alignas(16) Meshlet
     {
         alignas(4)  std::uint32_t VertexCount{ 0U };
         alignas(4)  std::uint32_t IndexCount{ 0U };

@@ -30,22 +30,21 @@ std::shared_ptr<Mesh> RenderCore::ConstructMesh(MeshConstructionInputParameters 
     NewMesh->SetupMeshlets(std::move(Vertices), std::move(Indices));
 
     tinygltf::Material const &MeshMaterial = Arguments.Model.materials.at(Arguments.Primitive.material);
+    AlphaMode const AlphaMode = MeshMaterial.alphaMode == "OPAQUE"
+                                ? AlphaMode::ALPHA_OPAQUE
+                                : MeshMaterial.alphaMode == "MASK"
+                                    ? AlphaMode::ALPHA_MASK
+                                    : AlphaMode::ALPHA_BLEND;
 
-    NewMesh->SetMaterialData({
-                                     .BaseColorFactor = glm::make_vec4(std::data(MeshMaterial.pbrMetallicRoughness.baseColorFactor)),
-                                     .EmissiveFactor = glm::make_vec3(std::data(MeshMaterial.emissiveFactor)),
-                                     .MetallicFactor = static_cast<float>(MeshMaterial.pbrMetallicRoughness.metallicFactor),
-                                     .RoughnessFactor = static_cast<float>(MeshMaterial.pbrMetallicRoughness.roughnessFactor),
-                                     .AlphaCutoff = static_cast<float>(MeshMaterial.alphaCutoff),
-                                     .NormalScale = static_cast<float>(MeshMaterial.normalTexture.scale),
-                                     .OcclusionStrength = static_cast<float>(MeshMaterial.occlusionTexture.strength),
-                                     .AlphaMode = MeshMaterial.alphaMode == "OPAQUE"
-                                                      ? AlphaMode::ALPHA_OPAQUE
-                                                      : MeshMaterial.alphaMode == "MASK"
-                                                            ? AlphaMode::ALPHA_MASK
-                                                            : AlphaMode::ALPHA_BLEND,
-                                     .DoubleSided = MeshMaterial.doubleSided
-                             });
+    NewMesh->SetMaterialData({.AlphaMode = AlphaMode,
+                              .DoubleSided = MeshMaterial.doubleSided,
+                              .MetallicFactor = static_cast<float>(MeshMaterial.pbrMetallicRoughness.metallicFactor),
+                              .RoughnessFactor = static_cast<float>(MeshMaterial.pbrMetallicRoughness.roughnessFactor),
+                              .AlphaCutoff = static_cast<float>(MeshMaterial.alphaCutoff),
+                              .NormalScale = static_cast<float>(MeshMaterial.normalTexture.scale),
+                              .OcclusionStrength = static_cast<float>(MeshMaterial.occlusionTexture.strength),
+                              .EmissiveFactor = glm::make_vec3(std::data(MeshMaterial.emissiveFactor)),
+                              .BaseColorFactor = glm::make_vec4(std::data(MeshMaterial.pbrMetallicRoughness.baseColorFactor))});
 
     std::vector<std::shared_ptr<Texture>> Textures {};
 

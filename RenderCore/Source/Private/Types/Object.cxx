@@ -10,9 +10,11 @@ import RenderCore.Renderer;
 import RenderCore.Runtime.Memory;
 import RenderCore.Runtime.Pipeline;
 import RenderCore.Runtime.Scene;
+import RenderCore.Runtime.Device;
 import RenderCore.Types.Material;
 import RenderCore.Types.Texture;
 import RenderCore.Types.UniformBufferObject;
+import RenderCore.Utils.Helpers;
 import RenderCore.Utils.Constants;
 
 using namespace RenderCore;
@@ -35,7 +37,7 @@ void Object::Destroy()
 
 void Object::SetupUniformDescriptor()
 {
-    m_UniformBufferInfo = GetAllocationBufferDescriptor(m_UniformOffset, sizeof(ModelUniformData));
+    m_UniformBufferInfo = GetAllocationBufferDescriptor(GetUniformOffset(), sizeof(ModelUniformData));
     m_MappedData        = GetAllocationMappedData();
 }
 
@@ -52,13 +54,11 @@ void Object::UpdateUniformBuffers() const
 
     if (IsRenderDirty())
     {
-        constexpr auto ModelUBOSize = sizeof(ModelUniformData);
-
         ModelUniformData const UpdatedModelUBO {.MeshletCount   = GetMesh()->GetNumMeshlets(),
                                                 .ProjectionView = GetCamera().GetProjectionMatrix(),
                                                 .Model          = m_Transform.GetMatrix() * m_Mesh->GetTransform().GetMatrix()};
 
-        std::memcpy(UniformData, &UpdatedModelUBO, ModelUBOSize);
+        std::memcpy(UniformData, &UpdatedModelUBO, sizeof(ModelUniformData));
         SetRenderDirty(false);
     }
 
