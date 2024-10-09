@@ -116,7 +116,7 @@ void RenderCore::CreateMemoryAllocator()
                 .memoryTypeIndex = MemoryType,
                 .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
                 .priority = 1.F,
-                .minAllocationAlignment = GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment
+                // .minAllocationAlignment = GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment
         };
 
         CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_BufferPool));

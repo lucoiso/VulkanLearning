@@ -10,23 +10,23 @@ import RenderCore.Utils.Constants;
 
 namespace RenderCore
 {
-    export struct RENDERCOREMODULE_API alignas(16) Vertex
+    export struct RENDERCOREMODULE_API Vertex
     {
-        alignas(8)  glm::vec2 TextureCoordinate{};
-        alignas(16) glm::vec3 Position {};
-        alignas(16) glm::vec3 Normal {};
-        alignas(16) glm::vec4 Color {};
-        alignas(16) glm::vec4 Joint {};
-        alignas(16) glm::vec4 Weight {};
-        alignas(16) glm::vec4 Tangent {};
+        glm::vec2 TextureCoordinate{};
+        glm::vec3 Position {};
+        glm::vec3 Normal {};
+        glm::vec4 Color {};
+        glm::vec4 Joint {};
+        glm::vec4 Weight {};
+        glm::vec4 Tangent {};
     };
 
-    export struct RENDERCOREMODULE_API alignas(16) Meshlet
+    export struct RENDERCOREMODULE_API Meshlet
     {
-        alignas(4)  std::uint32_t VertexCount{ 0U };
-        alignas(4)  std::uint32_t IndexCount{ 0U };
-        alignas(4)  std::array<std::uint32_t, g_MaxMeshletPrimitives * 3U> Indices {};
-        alignas(16) std::array<Vertex, g_MaxMeshletVertices> Vertices {};
+        std::uint32_t VertexCount{ 0U };
+        std::uint32_t IndexCount{ 0U };
+        std::array<Vertex, g_MaxMeshletVertices> Vertices {};
+        std::array<std::uint32_t, g_MaxMeshletIndices> Indices{};
     };
 
     export namespace VertexAttributes

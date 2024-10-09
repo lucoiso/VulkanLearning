@@ -71,7 +71,7 @@ void Mesh::SetupMeshlets(std::vector<Vertex> &&Vertices, std::vector<std::uint32
 
     std::vector<meshopt_Meshlet> OptimizerMeshlets(MaxMeshlets);
     std::vector<std::uint32_t> MeshletVertices(MaxMeshlets * g_MaxMeshletVertices);
-    std::vector<std::uint8_t> MeshletTriangles(MaxMeshlets * g_MaxMeshletPrimitives * 3);
+    std::vector<std::uint8_t> MeshletTriangles(MaxMeshlets * g_MaxMeshletIndices);
 
     std::size_t const NumMeshlets = meshopt_buildMeshlets(std::data(OptimizerMeshlets),
                                                           std::data(MeshletVertices),

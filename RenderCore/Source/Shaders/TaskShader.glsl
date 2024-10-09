@@ -23,9 +23,9 @@ void main()
     if (ModelData.Data.NumMeshlets > 0)
     {
 #if g_UseExternalMeshShader
-        EmitMeshTasksEXT(g_MaxMeshletIterations, 1, 1);
+        EmitMeshTasksEXT(ModelData.Data.NumMeshlets, 1, 1);
 #else
-        gl_TaskCountNV = g_MaxMeshletIterations;
+        gl_TaskCountNV = ModelData.Data.NumMeshlets;
 #endif // g_UseExternalMeshShader
     }
 }

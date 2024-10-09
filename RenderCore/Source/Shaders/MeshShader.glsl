@@ -22,7 +22,7 @@ layout(std140, set = 1, binding = 0) uniform ModelUniformData
     ModelUBO Data;
 } ModelData;
 
-layout(std430, set = 3, binding = 0) buffer MeshletBuffer
+layout(std430, set = 3, binding = 0) readonly buffer MeshletBuffer
 {
     Meshlet Buffer[];
 } MeshletData;
@@ -52,7 +52,7 @@ void main()
     gl_PrimitiveCountNV = NumIndices / 3;
 #endif // g_UseExternalMeshShader
 
-    [[unroll]] for (uint Iterator = 0; Iterator < NumVertices; Iterator++)
+    [[unroll]] for (uint Iterator = 0; Iterator < NumVertices; ++Iterator)
     {
         vec3 Position = GetPosition(CurrentMeshlet, Iterator);        
         vec4 WorldPos = ModelData.Data.ModelView * vec4(Position, 1.0);

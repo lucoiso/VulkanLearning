@@ -135,10 +135,10 @@ void Object::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout c
 
     if (vkCmdDrawMeshTasksNV != nullptr)
     {
-        vkCmdDrawMeshTasksNV(CommandBuffer, NumTasks, 0U);
+        vkCmdDrawMeshTasksNV(CommandBuffer, NumMeshlets, 0U);
     }
     else
     {
-        vkCmdDrawMeshTasksEXT(CommandBuffer, NumTasks, 1U, 1U);
+        vkCmdDrawMeshTasksEXT(CommandBuffer, NumMeshlets, 1U, 1U);
     }
 }

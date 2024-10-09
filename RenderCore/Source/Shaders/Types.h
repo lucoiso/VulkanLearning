@@ -8,55 +8,42 @@
 #define g_NumTasks 32
 #define g_NumVertices 64
 #define g_NumPrimitives 124
+#define g_NumIndices g_NumPrimitives * 3
 #define g_MeshletPerTask 32
 
-#define g_UseExternalMeshShader 1
+#define g_UseExternalMeshShader 0
 
 const uint g_MaxVertexIterations = ((g_NumVertices + g_NumTasks - 1) / g_NumTasks);
 const uint g_MaxIndexIterations = ((g_NumPrimitives + g_NumTasks - 1) / g_NumTasks);
 const uint g_MaxMeshletIterations = ((g_MeshletPerTask + g_NumTasks - 1) / g_NumTasks);
 
-struct Vertex
+struct Vertex // std430
 {
     vec2 UV;
     vec3 Position;
     vec3 Normal;
+    vec4 Color;
     vec4 Joint;
     vec4 Weight;
     vec4 Tangent;
 };
 
-struct Meshlet
+struct Meshlet // std430
 {
     uint NumVertices;
     uint NumIndices;
-    uint Indices[g_NumPrimitives * 3];
     Vertex Vertices[g_NumVertices];
+    uint Indices[g_NumIndices];
 };
 
-vec3 GetPosition(Meshlet Part, uint VertexIndex)
-{
-    return Part.Vertices[VertexIndex].Position;
-}
-
-vec3 GetNormal(Meshlet Part, uint VertexIndex)
-{
-    return Part.Vertices[VertexIndex].Normal;
-}
-
-vec2 GetUV(Meshlet Part, uint VertexIndex)
-{
-    return Part.Vertices[VertexIndex].UV;
-}
-
-struct ModelUBO
+struct ModelUBO // std140
 {
     uint NumMeshlets;
     mat4 ProjectionView;
     mat4 ModelView;
 };
 
-struct LightingUBO
+struct LightingUBO // std140
 {
     vec3 LightPosition;
     vec3 LightColor;
@@ -65,17 +52,17 @@ struct LightingUBO
     vec3 LightSpecular;
 };
 
-struct MaterialUBO
+struct MaterialUBO // std140
 {
-    vec4 BaseColorFactor;
-    vec3 EmissiveFactor;
+    uint8_t AlphaMode;
+    bool DoubleSided;
     float MetallicFactor;
     float RoughnessFactor;
     float AlphaCutoff;
     float NormalScale;
     float OcclusionStrength;
-    uint8_t AlphaMode;
-    bool DoubleSided;
+    vec3 EmissiveFactor;
+    vec4 BaseColorFactor;
 };
 
 struct FragmentData
@@ -99,5 +86,20 @@ vec3 MeshletColors[g_MaxColors] = {
     vec3(0,0.5,1),
     vec3(1,1,1)
 };
+
+vec3 GetPosition(Meshlet Part, uint VertexIndex)
+{
+    return Part.Vertices[VertexIndex].Position;
+}
+
+vec3 GetNormal(Meshlet Part, uint VertexIndex)
+{
+    return Part.Vertices[VertexIndex].Normal;
+}
+
+vec2 GetUV(Meshlet Part, uint VertexIndex)
+{
+    return Part.Vertices[VertexIndex].UV;
+}
 
 #endif // _TYPES_H_
