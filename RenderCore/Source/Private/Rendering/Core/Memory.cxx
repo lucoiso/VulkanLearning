@@ -369,24 +369,35 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
     VmaAllocator const& Allocator = GetAllocator();
     auto const &Limits = GetPhysicalDeviceProperties().limits;
 
-    constexpr auto MeshletDataSize = sizeof(Meshlet);
-
     std::vector<Meshlet> Meshlets;
     for (auto const &ObjectIter : Objects)
     {
         auto const &Mesh = ObjectIter->GetMesh();
         auto const &MeshMeshlets = Mesh->GetMeshlets();
 
-        Mesh->SetMeshletOffset(std::size(Meshlets) * MeshletDataSize);
+        Mesh->SetMeshletOffset(std::size(Meshlets) * sizeof(Meshlet));
         Meshlets.insert(std::end(Meshlets), std::begin(MeshMeshlets), std::end(MeshMeshlets));
     }
 
-    VkDeviceSize const MeshletBufferSize = sizeof(Meshlet) * std::size(Meshlets);
-    VkDeviceSize const UniformDataSize   = sizeof(ModelUniformData) + sizeof(MaterialData)* std::size(Objects);
+    VkDeviceSize MeshletBufferSize = sizeof(Meshlet) * std::size(Meshlets);
+
+    if (VkDeviceSize const &MinAlignment = Limits.minStorageBufferOffsetAlignment;
+        MinAlignment > 0U)
+    {
+        MeshletBufferSize = MeshletBufferSize + MinAlignment - 1U & ~(MinAlignment - 1U);
+    }
+
+    VkDeviceSize UniformDataSize = (sizeof(ModelUniformData) + sizeof(MaterialData)) * std::size(Objects);
+
+    if (VkDeviceSize const &MinAlignment = Limits.minUniformBufferOffsetAlignment;
+        MinAlignment > 0U)
+    {
+        UniformDataSize = UniformDataSize + MinAlignment - 1U & ~(MinAlignment - 1U);
+    }
 
     VkDeviceSize const TotalBufferSize = MeshletBufferSize + UniformDataSize;
 
-    CreateBuffer(TotalBufferSize, g_ModelBufferUsage, "MODEL_UNIFIED_BUFFER", g_BufferAllocation.Buffer, g_BufferAllocation.Allocation);
+    CreateBuffer(TotalBufferSize, g_ModelBufferUsage, "SCENE_UNIFIED_BUFFER", g_BufferAllocation.Buffer, g_BufferAllocation.Allocation);
 
     CheckVulkanResult(vmaMapMemory(Allocator, g_BufferAllocation.Allocation, &g_BufferAllocation.MappedData));
     std::memcpy(g_BufferAllocation.MappedData, std::data(Meshlets), sizeof(Meshlet) * std::size(Meshlets));

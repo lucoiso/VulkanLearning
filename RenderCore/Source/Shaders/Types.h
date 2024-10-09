@@ -14,7 +14,7 @@
 #define g_UseExternalMeshShader 0
 
 const uint g_MaxVertexIterations = ((g_NumVertices + g_NumTasks - 1) / g_NumTasks);
-const uint g_MaxIndexIterations = ((g_NumPrimitives + g_NumTasks - 1) / g_NumTasks);
+const uint g_MaxIndexIterations = ((g_NumIndices + g_NumTasks - 1) / g_NumTasks);
 const uint g_MaxMeshletIterations = ((g_MeshletPerTask + g_NumTasks - 1) / g_NumTasks);
 
 struct Vertex // std430

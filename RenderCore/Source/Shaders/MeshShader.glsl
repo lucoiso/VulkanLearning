@@ -52,7 +52,7 @@ void main()
     gl_PrimitiveCountNV = NumIndices / 3;
 #endif // g_UseExternalMeshShader
 
-    [[unroll]] for (uint Iterator = 0; Iterator < NumVertices; ++Iterator)
+    [[unroll]] for (uint Iterator = 0; Iterator < g_MaxVertexIterations; ++Iterator)
     {
         vec3 Position = GetPosition(CurrentMeshlet, Iterator);        
         vec4 WorldPos = ModelData.Data.ModelView * vec4(Position, 1.0);
@@ -74,7 +74,7 @@ void main()
         FragData[Iterator].Data.FragColor = vec4(MeshletColors[MeshletIndex % g_MaxColors], 1.0);
     }
 
-    [[unroll]] for (uint Iterator = 0; Iterator < NumIndices / 3; Iterator += 3)
+    [[unroll]] for (uint Iterator = 0; Iterator < g_MaxIndexIterations; Iterator += 3)
     {
         uint Index0 = CurrentMeshlet.Indices[Iterator];
         uint Index1 = CurrentMeshlet.Indices[Iterator + 1];
