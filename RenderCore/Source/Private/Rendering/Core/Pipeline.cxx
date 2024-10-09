@@ -115,11 +115,19 @@ void PipelineData::CreateLibraryCache(VkDevice const &LogicalDevice)
 
 void PipelineDescriptorData::DestroyResources(VmaAllocator const &Allocator, bool const IncludeStatic)
 {
-    SceneData.DestroyResources(Allocator, IncludeStatic);
-    ModelData.DestroyResources(Allocator, IncludeStatic);
-    MaterialData.DestroyResources(Allocator, IncludeStatic);
-    MeshletData.DestroyResources(Allocator, IncludeStatic);
-    TextureData.DestroyResources(Allocator, IncludeStatic);
+    SceneData         .DestroyResources(Allocator, IncludeStatic);
+    ModelData         .DestroyResources(Allocator, IncludeStatic);
+    MaterialData      .DestroyResources(Allocator, IncludeStatic);
+    MeshletData       .DestroyResources(Allocator, IncludeStatic);
+    IndexData         .DestroyResources(Allocator, IncludeStatic);
+    VertexUVData      .DestroyResources(Allocator, IncludeStatic);
+    VertexPositionData.DestroyResources(Allocator, IncludeStatic);
+    VertexNormalData  .DestroyResources(Allocator, IncludeStatic);
+    VertexColorData   .DestroyResources(Allocator, IncludeStatic);
+    VertexJointData   .DestroyResources(Allocator, IncludeStatic);
+    VertexWeightData  .DestroyResources(Allocator, IncludeStatic);
+    VertexTangentData .DestroyResources(Allocator, IncludeStatic);
+    TextureData       .DestroyResources(Allocator, IncludeStatic);
 }
 
 void PipelineDescriptorData::SetDescriptorLayoutSize()
@@ -127,18 +135,24 @@ void PipelineDescriptorData::SetDescriptorLayoutSize()
     VkPhysicalDeviceProperties2 DeviceProperties { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2, .pNext = &g_DescriptorBufferProperties };
     vkGetPhysicalDeviceProperties2(GetPhysicalDevice(), &DeviceProperties);
 
-    SceneData.SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
-    ModelData.SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
-    MaterialData.SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
-    MeshletData.SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
-    TextureData.SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    SceneData         .SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    ModelData         .SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    MaterialData      .SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    MeshletData       .SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    IndexData         .SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    VertexUVData      .SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    VertexPositionData.SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    VertexNormalData  .SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    VertexColorData   .SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    VertexJointData   .SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    VertexWeightData  .SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    VertexTangentData .SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
+    TextureData       .SetDescriptorLayoutSize(g_DescriptorBufferProperties.descriptorBufferOffsetAlignment);
 }
 
 void PipelineDescriptorData::SetupSceneBuffer(BufferAllocation const &SceneAllocation)
 {
     VkDevice const &LogicalDevice = GetLogicalDevice();
-
-    
 
     {
         VmaAllocator const          &Allocator   = GetAllocator();
@@ -209,6 +223,30 @@ void PipelineDescriptorData::SetupModelsBufferSizes(std::vector<std::shared_ptr<
 
     // Meshlets
     SetupBufferDescriptor(MeshletData, "Meshlet Descriptor Buffer");
+
+    // Index
+    SetupBufferDescriptor(IndexData, "Index Descriptor Buffer");
+
+    // Vertex UV
+    SetupBufferDescriptor(VertexUVData, "Vertex UV Descriptor Buffer");
+
+    // Vertex Position
+    SetupBufferDescriptor(VertexPositionData, "Vertex Position Descriptor Buffer");
+
+    // Vertex Normal
+    SetupBufferDescriptor(VertexNormalData, "Vertex Normal Descriptor Buffer");
+
+    // Vertex Color
+    SetupBufferDescriptor(VertexColorData, "Vertex Color Descriptor Buffer");
+
+    // Vertex Joint
+    SetupBufferDescriptor(VertexJointData, "Vertex Joint Descriptor Buffer");
+
+    // Vertex Weight
+    SetupBufferDescriptor(VertexWeightData, "Vertex Weight Descriptor Buffer");
+
+    // Vertex Tangent
+    SetupBufferDescriptor(VertexTangentData, "Vertex Tangent Descriptor Buffer");
 
     // Textures
     {
@@ -321,10 +359,18 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
     VkDevice const &LogicalDevice = GetLogicalDevice();
 
-    auto const ModelBuffer    = static_cast<unsigned char *>(ModelData.Buffer.MappedData);
-    auto const MaterialBuffer = static_cast<unsigned char *>(MaterialData.Buffer.MappedData);
-    auto const MeshletBuffer  = static_cast<unsigned char *>(MeshletData.Buffer.MappedData);
-    auto const TextureBuffer  = static_cast<unsigned char *>(TextureData.Buffer.MappedData);
+    auto const ModelBuffer          = static_cast<unsigned char *>(ModelData.Buffer.MappedData);
+    auto const MaterialBuffer       = static_cast<unsigned char *>(MaterialData.Buffer.MappedData);
+    auto const MeshletBuffer        = static_cast<unsigned char *>(MeshletData.Buffer.MappedData);
+    auto const IndexBuffer          = static_cast<unsigned char *>(IndexData.Buffer.MappedData);
+    auto const VertexUVBuffer       = static_cast<unsigned char *>(VertexUVData.Buffer.MappedData);
+    auto const VertexPositionBuffer = static_cast<unsigned char *>(VertexPositionData.Buffer.MappedData);
+    auto const VertexNormalBuffer   = static_cast<unsigned char *>(VertexNormalData.Buffer.MappedData);
+    auto const VertexColorBuffer    = static_cast<unsigned char *>(VertexColorData.Buffer.MappedData);
+    auto const VertexJointBuffer    = static_cast<unsigned char *>(VertexJointData.Buffer.MappedData);
+    auto const VertexWeightBuffer   = static_cast<unsigned char *>(VertexWeightData.Buffer.MappedData);
+    auto const VertexTangentBuffer  = static_cast<unsigned char *>(VertexTangentData.Buffer.MappedData);
+    auto const TextureBuffer        = static_cast<unsigned char *>(TextureData.Buffer.MappedData);
 
     std::uint32_t ObjectCount = 0U;
 
@@ -337,32 +383,99 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
     for (std::shared_ptr<Object> const &ObjectIter : Objects)
     {
-        MapDescriptorBuffer(ModelData,
-                            ModelBuffer,
-                            AllocationAddress,
-                            ObjectCount,
-                            ObjectIter->GetUniformOffset(),
-                            sizeof(ModelUniformData),
-                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        if (auto const& Mesh = ObjectIter->GetMesh())
+        {
+            MapDescriptorBuffer(ModelData,
+                                ModelBuffer,
+                                AllocationAddress,
+                                ObjectCount,
+                                Mesh->GetUniformOffset(),
+                                sizeof(ModelUniformData),
+                                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
-        MapDescriptorBuffer(MaterialData,
-                            MaterialBuffer,
-                            AllocationAddress,
-                            ObjectCount,
-                            ObjectIter->GetMaterialOffset(),
-                            sizeof(RenderCore::MaterialData),
-                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+            MapDescriptorBuffer(MaterialData,
+                                MaterialBuffer,
+                                AllocationAddress,
+                                ObjectCount,
+                                Mesh->GetMaterialOffset(),
+                                sizeof(RenderCore::MaterialData),
+                                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
-        MapDescriptorBuffer(MeshletData,
-                            MeshletBuffer,
-                            AllocationAddress,
-                            ObjectCount,
-                            ObjectIter->GetMesh()->GetMeshletOffset(),
-                            ObjectIter->GetMesh()->GetNumMeshlets() * sizeof(Meshlet),
-                            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+            MapDescriptorBuffer(MeshletData,
+                                MeshletBuffer,
+                                AllocationAddress,
+                                ObjectCount,
+                                Mesh->GetMeshletsOffset(),
+                                Mesh->GetNumMeshlets() * sizeof(Meshlet),
+                                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
-        MapModelTextureBuffer(TextureBuffer, ObjectIter, ObjectCount);
-        ++ObjectCount;
+            MapDescriptorBuffer(MeshletData,
+                                MeshletBuffer,
+                                AllocationAddress,
+                                ObjectCount,
+                                Mesh->GetIndicesOffset(),
+                                Mesh->GetNumIndices() * sizeof(std::uint32_t),
+                                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+            MapDescriptorBuffer(MeshletData,
+                                MeshletBuffer,
+                                AllocationAddress,
+                                ObjectCount,
+                                Mesh->GetVertexUVsOffset(),
+                                Mesh->GetNumVertexUVs() * sizeof(glm::vec2),
+                                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+            MapDescriptorBuffer(MeshletData,
+                                MeshletBuffer,
+                                AllocationAddress,
+                                ObjectCount,
+                                Mesh->GetVertexPositionsOffset(),
+                                Mesh->GetNumVertexPositions() * sizeof(glm::vec3),
+                                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+            MapDescriptorBuffer(MeshletData,
+                                MeshletBuffer,
+                                AllocationAddress,
+                                ObjectCount,
+                                Mesh->GetVertexNormalsOffset(),
+                                Mesh->GetNumVertexNormals() * sizeof(glm::vec3),
+                                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+            MapDescriptorBuffer(MeshletData,
+                                MeshletBuffer,
+                                AllocationAddress,
+                                ObjectCount,
+                                Mesh->GetVertexColorsOffset(),
+                                Mesh->GetNumVertexColors() * sizeof(glm::vec4),
+                                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+            MapDescriptorBuffer(MeshletData,
+                                MeshletBuffer,
+                                AllocationAddress,
+                                ObjectCount,
+                                Mesh->GetVertexJointsOffset(),
+                                Mesh->GetNumVertexJoints() * sizeof(glm::vec4),
+                                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+            MapDescriptorBuffer(MeshletData,
+                                MeshletBuffer,
+                                AllocationAddress,
+                                ObjectCount,
+                                Mesh->GetVertexWeightsOffset(),
+                                Mesh->GetNumVertexWeights() * sizeof(glm::vec4),
+                                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+            MapDescriptorBuffer(MeshletData,
+                                MeshletBuffer,
+                                AllocationAddress,
+                                ObjectCount,
+                                Mesh->GetVertexTangentsOffset(),
+                                Mesh->GetNumVertexTangents() * sizeof(glm::vec4),
+                                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+            MapModelTextureBuffer(TextureBuffer, ObjectIter, ObjectCount);
+            ++ObjectCount;
+        }
     }
 }
 
@@ -498,6 +611,70 @@ void RenderCore::SetupPipelineLayouts()
                     .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT,
                     .pImmutableSamplers = nullptr
             },
+            VkDescriptorSetLayoutBinding // Indices Buffer
+            {
+                    .binding = 0U,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    .descriptorCount = 1U,
+                    .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT,
+                    .pImmutableSamplers = nullptr
+            },
+            VkDescriptorSetLayoutBinding // Vertex UVs Buffer
+            {
+                    .binding = 0U,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    .descriptorCount = 1U,
+                    .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT,
+                    .pImmutableSamplers = nullptr
+            },
+            VkDescriptorSetLayoutBinding // Vertex Positions Buffer
+            {
+                    .binding = 0U,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    .descriptorCount = 1U,
+                    .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT,
+                    .pImmutableSamplers = nullptr
+            },
+            VkDescriptorSetLayoutBinding // Vertex Normals Buffer
+            {
+                    .binding = 0U,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    .descriptorCount = 1U,
+                    .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT,
+                    .pImmutableSamplers = nullptr
+            },
+            VkDescriptorSetLayoutBinding // Vertex Colors Buffer
+            {
+                    .binding = 0U,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    .descriptorCount = 1U,
+                    .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT,
+                    .pImmutableSamplers = nullptr
+            },
+            VkDescriptorSetLayoutBinding // Vertex Joints Buffer
+            {
+                    .binding = 0U,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    .descriptorCount = 1U,
+                    .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT,
+                    .pImmutableSamplers = nullptr
+            },
+            VkDescriptorSetLayoutBinding // Vertex Weights Buffer
+            {
+                    .binding = 0U,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    .descriptorCount = 1U,
+                    .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT,
+                    .pImmutableSamplers = nullptr
+            },
+            VkDescriptorSetLayoutBinding // Vertex Tangents Buffer
+            {
+                    .binding = 0U,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    .descriptorCount = 1U,
+                    .stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT,
+                    .pImmutableSamplers = nullptr
+            },
             VkDescriptorSetLayoutBinding // Texture Sampler
             {
                     .binding = 0U,
@@ -508,17 +685,33 @@ void RenderCore::SetupPipelineLayouts()
             }
     };
 
-    CreateDescriptorSetLayout(LayoutBindings.at(0U), 1U, g_DescriptorData.SceneData.SetLayout); // Light
-    CreateDescriptorSetLayout(LayoutBindings.at(1U), 1U, g_DescriptorData.ModelData.SetLayout); // Projection
-    CreateDescriptorSetLayout(LayoutBindings.at(2U), 1U, g_DescriptorData.MaterialData.SetLayout); // Material
-    CreateDescriptorSetLayout(LayoutBindings.at(3U), 1U, g_DescriptorData.MeshletData.SetLayout); // Meshlets
-    CreateDescriptorSetLayout(LayoutBindings.at(4U), static_cast<std::uint8_t>(TextureType::Count), g_DescriptorData.TextureData.SetLayout); // Textures
+    CreateDescriptorSetLayout(LayoutBindings.at(0U ), 1U, g_DescriptorData.SceneData.SetLayout         ); // Light
+    CreateDescriptorSetLayout(LayoutBindings.at(1U ), 1U, g_DescriptorData.ModelData.SetLayout         ); // Projection
+    CreateDescriptorSetLayout(LayoutBindings.at(2U ), 1U, g_DescriptorData.MaterialData.SetLayout      ); // Material
+    CreateDescriptorSetLayout(LayoutBindings.at(3U ), 1U, g_DescriptorData.MeshletData.SetLayout       ); // Meshlets
+    CreateDescriptorSetLayout(LayoutBindings.at(4U ), 1U, g_DescriptorData.IndexData.SetLayout         ); // Indices
+    CreateDescriptorSetLayout(LayoutBindings.at(5U ), 1U, g_DescriptorData.VertexUVData.SetLayout      ); // Vertex UVs
+    CreateDescriptorSetLayout(LayoutBindings.at(6U ), 1U, g_DescriptorData.VertexPositionData.SetLayout); // Vertex Positions
+    CreateDescriptorSetLayout(LayoutBindings.at(7U ), 1U, g_DescriptorData.VertexNormalData.SetLayout  ); // Vertex Normals
+    CreateDescriptorSetLayout(LayoutBindings.at(8U ), 1U, g_DescriptorData.VertexColorData.SetLayout   ); // Vertex Colors
+    CreateDescriptorSetLayout(LayoutBindings.at(9U ), 1U, g_DescriptorData.VertexJointData.SetLayout   ); // Vertex Joints
+    CreateDescriptorSetLayout(LayoutBindings.at(10U), 1U, g_DescriptorData.VertexWeightData.SetLayout  ); // Vertex Weights
+    CreateDescriptorSetLayout(LayoutBindings.at(11U), 1U, g_DescriptorData.VertexTangentData.SetLayout ); // Vertex Tangents
+    CreateDescriptorSetLayout(LayoutBindings.at(12U), static_cast<std::uint8_t>(TextureType::Count), g_DescriptorData.TextureData.SetLayout); // Textures
 
     std::array const DescriptorLayouts {
             g_DescriptorData.SceneData.SetLayout,
             g_DescriptorData.ModelData.SetLayout,
             g_DescriptorData.MaterialData.SetLayout,
             g_DescriptorData.MeshletData.SetLayout,
+            g_DescriptorData.IndexData.SetLayout,
+            g_DescriptorData.VertexUVData.SetLayout,
+            g_DescriptorData.VertexPositionData.SetLayout,
+            g_DescriptorData.VertexNormalData.SetLayout,
+            g_DescriptorData.VertexColorData.SetLayout,
+            g_DescriptorData.VertexJointData.SetLayout,
+            g_DescriptorData.VertexWeightData.SetLayout,
+            g_DescriptorData.VertexTangentData.SetLayout,
             g_DescriptorData.TextureData.SetLayout
     };
 

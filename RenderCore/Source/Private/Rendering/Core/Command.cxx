@@ -394,8 +394,11 @@ std::vector<VkCommandBuffer> RecordSceneCommands(std::uint32_t const    ImageInd
                     vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline);
                 }
 
-                Object->UpdateUniformBuffers();
-                Object->DrawObject(CommandBuffer, PipelineLayout, ObjectAccessIndex);
+                if (std::shared_ptr<Mesh> const& ObjectMesh = Object->GetMesh())
+                {
+                    ObjectMesh->UpdateUniformBuffers();
+                    ObjectMesh->DrawObject(CommandBuffer, PipelineLayout, ObjectAccessIndex);
+                }
             }
         }
 

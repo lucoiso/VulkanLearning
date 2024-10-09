@@ -22,10 +22,15 @@ layout(std140, set = 1, binding = 0) uniform ModelUniformData
     ModelUBO Data;
 } ModelData;
 
-layout(std140, set = 3, binding = 0) readonly buffer MeshletBuffer
-{
-    Meshlet Buffer[];
-} MeshletData;
+layout(std430, set =  3, binding = 0) buffer MeshletsData        { Meshlet Meshlets       []; };
+layout(std430, set =  4, binding = 0) buffer IndicesData         { uint    Indices        []; };
+layout(std430, set =  5, binding = 0) buffer VertexUVsData       { vec2    VertexUVs      []; };
+layout(std430, set =  6, binding = 0) buffer VertexPositionsData { vec3    VertexPositions[]; };
+layout(std430, set =  7, binding = 0) buffer VertexNormalsData   { vec3    VertexNormals  []; };
+layout(std430, set =  8, binding = 0) buffer VertexColorsData    { vec4    VertexColors   []; };
+layout(std430, set =  9, binding = 0) buffer VertexJointsData    { vec4    VertexJoints   []; };
+layout(std430, set = 10, binding = 0) buffer VertexWeightsData   { vec4    VertexWeights  []; };
+layout(std430, set = 11, binding = 0) buffer VertexTangentsData  { vec4    VertexTangents []; };
 
 layout(location = 0) out FragSharedData
 {
@@ -35,57 +40,49 @@ layout(location = 0) out FragSharedData
 void main()
 {
     uint MeshletIndex = gl_WorkGroupID.x;
-    if (MeshletIndex >= ModelData.Data.NumMeshlets) return;
 
-    Meshlet CurrentMeshlet = MeshletData.Buffer[MeshletIndex];
+    Meshlet CurrentMeshlet = Meshlets[MeshletIndex];
+    mat4 ModelViewProjection = ModelData.Data.ProjectionView * ModelData.Data.ModelView;
 
-    uint NumVertices = CurrentMeshlet.NumVertices;
-    uint NumIndices = CurrentMeshlet.NumIndices;
-
-#if g_UseExternalMeshShader
-    return; // TODO : remove - crashing AMD GPUs and taking too much time to unfreeze my pc .-.
-#endif // g_UseExternalMeshShader
+    vec3 MeshletColor = MeshletColors[MeshletIndex % g_MaxColors];
 
 #if g_UseExternalMeshShader
-    SetMeshOutputsEXT(NumVertices, NumIndices);
-#else
-    gl_PrimitiveCountNV = NumIndices / 3;
+    SetMeshOutputsEXT(CurrentMeshlet.VertexCount, CurrentMeshlet.IndexCount);
 #endif // g_UseExternalMeshShader
 
-    [[unroll]] for (uint Iterator = 0; Iterator < g_MaxVertexIterations; ++Iterator)
+    [[unroll]]
+    for (uint VertexIt = 0; VertexIt < CurrentMeshlet.VertexCount; ++VertexIt)
     {
-        vec3 Position = GetPosition(CurrentMeshlet, Iterator);        
-        vec4 WorldPos = ModelData.Data.ModelView * vec4(Position, 1.0);
-        vec4 ViewPos = ModelData.Data.ProjectionView * WorldPos;
-        
+        uint VertexIndex = CurrentMeshlet.VertexOffset + VertexIt;
+
+        vec4 WorldPosition = ModelData.Data.ModelView * vec4(VertexPositions[VertexIndex], 1.0);
+        FragData[VertexIt].Data.FragView = WorldPosition.xyz;
+        FragData[VertexIt].Data.FragNormal = VertexNormals[VertexIndex];
+        FragData[VertexIt].Data.FragUV = VertexUVs[VertexIndex];
+        FragData[VertexIt].Data.FragColor = vec4(MeshletColor, 1.0);
+
 #if g_UseExternalMeshShader
-        gl_MeshVerticesEXT[Iterator].gl_Position = ViewPos;
+        gl_MeshVerticesEXT[VertexIt].gl_Position = ModelViewProjection * vec4(VertexPositions[VertexIndex], 1.0);
 #else
-        gl_MeshVerticesNV[Iterator].gl_Position = ViewPos;
+        gl_MeshVerticesNV[VertexIt].gl_Position = ModelViewProjection * vec4(VertexPositions[VertexIndex], 1.0);
 #endif // g_UseExternalMeshShader
-
-        vec3 Normal = normalize(mat3(ModelData.Data.ModelView) * GetNormal(CurrentMeshlet, Iterator));
-        vec2 UV = GetUV(CurrentMeshlet, Iterator);
-
-        FragData[Iterator].Data.FragView = ViewPos.xyz;
-        FragData[Iterator].Data.FragNormal = Normal;
-        FragData[Iterator].Data.FragUV = UV;
-
-        FragData[Iterator].Data.FragColor = vec4(MeshletColors[MeshletIndex % g_MaxColors], 1.0);
     }
 
-    [[unroll]] for (uint Iterator = 0; Iterator < g_MaxIndexIterations; Iterator += 3)
+    [[unroll]]
+    for (uint IndexIt = 0; IndexIt < CurrentMeshlet.IndexCount; IndexIt += 3)
     {
-        uint Index0 = CurrentMeshlet.Indices[Iterator];
-        uint Index1 = CurrentMeshlet.Indices[Iterator + 1];
-        uint Index2 = CurrentMeshlet.Indices[Iterator + 2];
+        uint Index0 = Indices[CurrentMeshlet.IndexOffset + IndexIt];
+        uint Index1 = Indices[CurrentMeshlet.IndexOffset + IndexIt + 1];
+        uint Index2 = Indices[CurrentMeshlet.IndexOffset + IndexIt + 2];
         
 #if g_UseExternalMeshShader
-        gl_PrimitiveTriangleIndicesEXT[Iterator] = uvec3(Index0, Index1, Index2);
+        gl_PrimitiveTriangleIndicesEXT[IndexIt / 3] = uvec3(Index0, Index1, Index2);
 #else
-        gl_PrimitiveIndicesNV[Iterator] = Index0;
-        gl_PrimitiveIndicesNV[Iterator + 1] = Index1;
-        gl_PrimitiveIndicesNV[Iterator + 2] = Index2;
+        gl_PrimitiveIndicesNV[gl_PrimitiveCountNV * 3 + 0] = Index0;
+        gl_PrimitiveIndicesNV[gl_PrimitiveCountNV * 3 + 1] = Index1;
+        gl_PrimitiveIndicesNV[gl_PrimitiveCountNV * 3 + 2] = Index2;
+        
+        ++gl_PrimitiveCountNV;
 #endif // g_UseExternalMeshShader
     }
 }

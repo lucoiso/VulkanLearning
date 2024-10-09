@@ -17,28 +17,16 @@ const uint g_MaxVertexIterations = ((g_NumVertices + g_NumTasks - 1) / g_NumTask
 const uint g_MaxIndexIterations = ((g_NumIndices + g_NumTasks - 1) / g_NumTasks);
 const uint g_MaxMeshletIterations = ((g_MeshletPerTask + g_NumTasks - 1) / g_NumTasks);
 
-struct Vertex
-{
-    vec2 UV;
-    vec3 Position;
-    vec3 Normal;
-    vec4 Color;
-    vec4 Joint;
-    vec4 Weight;
-    vec4 Tangent;
-};
-
 struct Meshlet
 {
-    uint NumVertices;
-    uint NumIndices;
-    Vertex Vertices[g_NumVertices];
-    uint Indices[g_NumIndices];
+    uint VertexCount;
+    uint IndexCount;
+    uint VertexOffset;
+    uint IndexOffset;
 };
 
 struct ModelUBO
 {
-    uint NumMeshlets;
     mat4 ProjectionView;
     mat4 ModelView;
 };
@@ -52,7 +40,7 @@ struct LightingUBO
     vec3 LightSpecular;
 };
 
-struct MaterialUBO // std140
+struct MaterialUBO
 {
     uint8_t AlphaMode;
     bool DoubleSided;
@@ -86,20 +74,4 @@ vec3 MeshletColors[g_MaxColors] = {
     vec3(0,0.5,1),
     vec3(1,1,1)
 };
-
-vec3 GetPosition(Meshlet Part, uint VertexIndex)
-{
-    return Part.Vertices[VertexIndex].Position;
-}
-
-vec3 GetNormal(Meshlet Part, uint VertexIndex)
-{
-    return Part.Vertices[VertexIndex].Normal;
-}
-
-vec2 GetUV(Meshlet Part, uint VertexIndex)
-{
-    return Part.Vertices[VertexIndex].UV;
-}
-
 #endif // _TYPES_H_
