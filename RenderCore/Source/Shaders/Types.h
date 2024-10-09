@@ -17,7 +17,7 @@ const uint g_MaxVertexIterations = ((g_NumVertices + g_NumTasks - 1) / g_NumTask
 const uint g_MaxIndexIterations = ((g_NumIndices + g_NumTasks - 1) / g_NumTasks);
 const uint g_MaxMeshletIterations = ((g_MeshletPerTask + g_NumTasks - 1) / g_NumTasks);
 
-struct Vertex // std430
+struct Vertex
 {
     vec2 UV;
     vec3 Position;
@@ -28,7 +28,7 @@ struct Vertex // std430
     vec4 Tangent;
 };
 
-struct Meshlet // std430
+struct Meshlet
 {
     uint NumVertices;
     uint NumIndices;
@@ -36,14 +36,14 @@ struct Meshlet // std430
     uint Indices[g_NumIndices];
 };
 
-struct ModelUBO // std140
+struct ModelUBO
 {
     uint NumMeshlets;
     mat4 ProjectionView;
     mat4 ModelView;
 };
 
-struct LightingUBO // std140
+struct LightingUBO
 {
     vec3 LightPosition;
     vec3 LightColor;

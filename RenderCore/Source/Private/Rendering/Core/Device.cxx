@@ -177,13 +177,19 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
             .pNext = &Vulkan13DeviceFeatures,
             .uniformAndStorageBuffer8BitAccess = true,
+            .scalarBlockLayout = true,
             .timelineSemaphore = true,
             .bufferDeviceAddress = true
     };
 
+    VkPhysicalDeviceVulkan11Features Vulkan11DeviceFeatures{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
+            .pNext = &Vulkan12DeviceFeatures,
+    };
+
     VkPhysicalDeviceFeatures2 DeviceFeatures {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-            .pNext = &Vulkan12DeviceFeatures,
+            .pNext = &Vulkan11DeviceFeatures,
             .features = VkPhysicalDeviceFeatures {
                     .independentBlend = true,
                     .drawIndirectFirstInstance = true,

@@ -22,7 +22,7 @@ layout(std140, set = 1, binding = 0) uniform ModelUniformData
     ModelUBO Data;
 } ModelData;
 
-layout(std430, set = 3, binding = 0) readonly buffer MeshletBuffer
+layout(std140, set = 3, binding = 0) readonly buffer MeshletBuffer
 {
     Meshlet Buffer[];
 } MeshletData;

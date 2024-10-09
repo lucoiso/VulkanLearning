@@ -369,24 +369,25 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
     VmaAllocator const& Allocator = GetAllocator();
     auto const &Limits = GetPhysicalDeviceProperties().limits;
 
+    VkDeviceSize MeshletAlignedSize = sizeof(Meshlet);
+
+    if (VkDeviceSize const& MinAlignment = Limits.minStorageBufferOffsetAlignment;
+        MinAlignment > 0U)
+    {
+        MeshletAlignedSize = MeshletAlignedSize + MinAlignment - 1U & ~(MinAlignment - 1U);
+    }
+
     std::vector<Meshlet> Meshlets;
     for (auto const &ObjectIter : Objects)
     {
         auto const &Mesh = ObjectIter->GetMesh();
         auto const &MeshMeshlets = Mesh->GetMeshlets();
 
-        Mesh->SetMeshletOffset(std::size(Meshlets) * sizeof(Meshlet));
+        Mesh->SetMeshletOffset(std::size(Meshlets) * MeshletAlignedSize);
         Meshlets.insert(std::end(Meshlets), std::begin(MeshMeshlets), std::end(MeshMeshlets));
     }
 
-    VkDeviceSize MeshletBufferSize = sizeof(Meshlet) * std::size(Meshlets);
-
-    if (VkDeviceSize const &MinAlignment = Limits.minStorageBufferOffsetAlignment;
-        MinAlignment > 0U)
-    {
-        MeshletBufferSize = MeshletBufferSize + MinAlignment - 1U & ~(MinAlignment - 1U);
-    }
-
+    VkDeviceSize const MeshletBufferSize = MeshletAlignedSize * std::size(Meshlets);
     VkDeviceSize UniformDataSize = (sizeof(ModelUniformData) + sizeof(MaterialData)) * std::size(Objects);
 
     if (VkDeviceSize const &MinAlignment = Limits.minUniformBufferOffsetAlignment;
