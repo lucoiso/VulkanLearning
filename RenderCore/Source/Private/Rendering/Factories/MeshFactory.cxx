@@ -36,8 +36,8 @@ std::shared_ptr<Mesh> RenderCore::ConstructMesh(MeshConstructionInputParameters 
                                     ? AlphaMode::ALPHA_MASK
                                     : AlphaMode::ALPHA_BLEND;
 
-    NewMesh->SetMaterialData({.AlphaMode = AlphaMode,
-                              .DoubleSided = MeshMaterial.doubleSided,
+    NewMesh->SetMaterialData({.AlphaMode = static_cast<std::uint8_t>(AlphaMode),
+                              .DoubleSided = static_cast<std::uint8_t>(MeshMaterial.doubleSided),
                               .MetallicFactor = static_cast<float>(MeshMaterial.pbrMetallicRoughness.metallicFactor),
                               .RoughnessFactor = static_cast<float>(MeshMaterial.pbrMetallicRoughness.roughnessFactor),
                               .AlphaCutoff = static_cast<float>(MeshMaterial.alphaCutoff),

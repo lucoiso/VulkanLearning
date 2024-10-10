@@ -7,26 +7,15 @@
 
 layout(std140, set = 0, binding = 0) uniform SceneUniformData
 {
-    vec3 LightPosition;
-    vec3 LightColor;
-    vec3 LightDiffuse;
-    vec3 LightAmbient;
-    vec3 LightSpecular;
-} SceneData;
+    LightingUBO SceneData;
+};
 
-layout(std140, set = 0, binding = 1) uniform MaterialUniformData
+layout(std140, set = 2, binding = 0) uniform MaterialUniformData
 {
-    vec4 BaseColorFactor;
-    vec3 EmissiveFactor;
-    float MetallicFactor;
-    float RoughnessFactor;
-    float AlphaCutoff;
-    float NormalScale;
-    float OcclusionStrength;
-    uint8_t AlphaMode;
-    bool DoubleSided;
-} MaterialData;
+    MaterialUBO MaterialData;
+};
 
-void main() {
+void main()
+{
     // TODO : implement
 }

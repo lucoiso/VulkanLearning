@@ -12,21 +12,30 @@ namespace RenderCore
 
     export struct RENDERCOREMODULE_API MaterialData
     {
-        AlphaMode AlphaMode {};
-        bool      DoubleSided{};
-        float     MetallicFactor {};
-        float     RoughnessFactor {};
-        float     AlphaCutoff {};
-        float     NormalScale {};
-        float     OcclusionStrength {};
-        alignas(16) glm::vec3 EmissiveFactor{};
-        alignas(16) glm::vec4 BaseColorFactor{};
+        glm::uint8   AlphaMode{};
+        glm::uint8   DoubleSided{};
+        glm::uint8   _Padding1[2];
+        glm::float32 MetallicFactor {};
+        glm::float32 RoughnessFactor {};
+        glm::float32 AlphaCutoff {};
+        glm::float32 NormalScale {};
+        glm::float32 OcclusionStrength {};
+        glm::float32 _Padding2[2];
+        glm::vec3    EmissiveFactor{};
+        glm::float32 _Padding3[1];
+        glm::vec4    BaseColorFactor{};
 
         inline bool operator==(MaterialData const &Rhs) const
         {
-            return BaseColorFactor == Rhs.BaseColorFactor && EmissiveFactor == Rhs.EmissiveFactor && MetallicFactor == Rhs.MetallicFactor &&
-                   RoughnessFactor == Rhs.RoughnessFactor && AlphaCutoff == Rhs.AlphaCutoff && NormalScale == Rhs.NormalScale && OcclusionStrength ==
-                   Rhs.OcclusionStrength && AlphaMode == Rhs.AlphaMode && DoubleSided == Rhs.DoubleSided;
+            return BaseColorFactor == Rhs.BaseColorFactor &&
+                   EmissiveFactor == Rhs.EmissiveFactor &&
+                   MetallicFactor == Rhs.MetallicFactor &&
+                   RoughnessFactor == Rhs.RoughnessFactor &&
+                   AlphaCutoff == Rhs.AlphaCutoff &&
+                   NormalScale == Rhs.NormalScale &&
+                   OcclusionStrength == Rhs.OcclusionStrength &&
+                   AlphaMode == Rhs.AlphaMode &&
+                   DoubleSided == Rhs.DoubleSided;
         }
     };
 } // namespace RenderCore

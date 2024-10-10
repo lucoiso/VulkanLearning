@@ -59,11 +59,7 @@ void RenderCore::CreateMemoryAllocator()
 
     CheckVulkanResult(vmaCreateAllocator(&AllocatorInfo, &g_Allocator));
 
-    auto const& Limits = GetPhysicalDeviceProperties().limits;
-
-    VkDeviceSize const ModelAlignment = Limits.minUniformBufferOffsetAlignment > Limits.minStorageBufferOffsetAlignment
-                                      ? Limits.minUniformBufferOffsetAlignment
-                                      : Limits.minStorageBufferOffsetAlignment;
+    constexpr VkDeviceSize ModelAlignment = 0;
 
     {
         // Staging Buffer Pool
@@ -374,26 +370,52 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
     }
 
     VmaAllocator const& Allocator = GetAllocator();
-    std::vector<Meshlet> Meshlets;
+
+    std::vector<Meshlet>   Meshlets;
+    std::vector<glm::uint> Indices;
+    std::vector<Vertex>    Vertices;
 
     for (auto const &ObjectIter : Objects)
     {
         auto const &Mesh = ObjectIter->GetMesh();
-        auto const &MeshMeshlets = Mesh->GetMeshlets();
 
-        Mesh->SetMeshletOffset(std::size(Meshlets) * sizeof(Meshlet));
+        auto const &MeshMeshlets = Mesh->GetMeshlets();
+        auto const &MeshIndices  = Mesh->GetIndices();
+        auto const &MeshVertices = Mesh->GetVertices();
+
+        Mesh->SetMeshletsOffset(std::size(Meshlets) * sizeof(Meshlet));
+        Mesh->SetIndicesOffset (std::size(Indices)  * sizeof(glm::uint));
+        Mesh->SetVerticesOffset(std::size(Vertices) * sizeof(Vertex));
+
         Meshlets.insert(std::end(Meshlets), std::begin(MeshMeshlets), std::end(MeshMeshlets));
+        Indices .insert(std::end(Indices),  std::begin(MeshIndices),  std::end(MeshIndices));
+        Vertices.insert(std::end(Vertices), std::begin(MeshVertices), std::end(MeshVertices));
     }
 
-    VkDeviceSize const MeshletBufferSize = sizeof(Meshlet) * std::size(Meshlets);
-    VkDeviceSize const UniformDataSize = (sizeof(ModelUniformData) + sizeof(MaterialData)) * std::size(Objects);
-    VkDeviceSize const TotalBufferSize = MeshletBufferSize + UniformDataSize;
+    VkDeviceSize const MeshletsBufferSize = sizeof(Meshlet)                                   * std::size(Meshlets);
+    VkDeviceSize const IndicesBufferSize  = sizeof(glm::uint)                                 * std::size(Indices);
+    VkDeviceSize const VerticesBufferSize = sizeof(Vertex)                                    * std::size(Vertices);
+    VkDeviceSize const UniformDataSize    = (sizeof(ModelUniformData) + sizeof(MaterialData)) * std::size(Objects);
+
+    VkDeviceSize const TotalBufferSize = MeshletsBufferSize + IndicesBufferSize + VerticesBufferSize + UniformDataSize;
+    VkDeviceSize const UniformOffset   = TotalBufferSize - UniformDataSize;
 
     CreateBuffer(TotalBufferSize, g_ModelBufferUsage, "SCENE_UNIFIED_BUFFER", g_BufferAllocation.Buffer, g_BufferAllocation.Allocation);
     CheckVulkanResult(vmaMapMemory(Allocator, g_BufferAllocation.Allocation, &g_BufferAllocation.MappedData));
 
-    std::memcpy(g_BufferAllocation.MappedData, std::data(Meshlets), sizeof(Meshlet) * std::size(Meshlets));
-    CheckVulkanResult(vmaFlushAllocation(Allocator, g_BufferAllocation.Allocation, 0U, MeshletBufferSize));
+    std::memcpy(g_BufferAllocation.MappedData,
+                std::data(Meshlets),
+                MeshletsBufferSize);
+
+    std::memcpy(reinterpret_cast<char*>(g_BufferAllocation.MappedData) + MeshletsBufferSize,
+                std::data(Indices),
+                IndicesBufferSize);
+
+    std::memcpy(reinterpret_cast<char*>(g_BufferAllocation.MappedData) + MeshletsBufferSize + IndicesBufferSize,
+                std::data(Vertices),
+                VerticesBufferSize);
+
+    CheckVulkanResult(vmaFlushAllocation(Allocator, g_BufferAllocation.Allocation, 0U, UniformOffset));
     vmaUnmapMemory(Allocator, g_BufferAllocation.Allocation);
 
     for (auto const &ObjectIter : Objects)
@@ -402,10 +424,13 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
         {
             std::size_t const CurrentIndex = std::distance(std::data(Objects), &ObjectIter);
 
-            ObjectMesh->SetUniformOffset(MeshletBufferSize + (sizeof(ModelUniformData) + sizeof(MaterialData)) * CurrentIndex);
-            ObjectMesh->SetupUniformDescriptor();
+            ObjectMesh->SetIndicesOffset (ObjectMesh->GetIndicesOffset()  + MeshletsBufferSize);
+            ObjectMesh->SetVerticesOffset(ObjectMesh->GetVerticesOffset() + IndicesBufferSize);
 
+            ObjectMesh->SetUniformOffset(UniformOffset + (sizeof(ModelUniformData) + sizeof(MaterialData)) * CurrentIndex);
             ObjectMesh->MarkAsRenderDirty();
+
+            ObjectMesh->SetupUniformDescriptor();
         }
     }
 }

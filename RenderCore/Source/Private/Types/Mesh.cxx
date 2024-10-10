@@ -43,14 +43,14 @@ void Mesh::SetupMeshlets(std::vector<Vertex> &&Vertices, std::vector<std::uint32
                                               VertexCount,
                                               sizeof(Vertex));
 
-    std::vector<Vertex>       NewVertices(VertexCount);
-    std::vector<unsigned int> NewIndices(IndexCount);
+    std::vector<Vertex>    NewVertices(VertexCount);
+    std::vector<glm::uint> NewIndices(IndexCount);
 
     meshopt_remapIndexBuffer(std::data(NewIndices), std::data(Indices), IndexCount, std::data(Remap));
     meshopt_remapVertexBuffer(std::data(NewVertices), std::data(Vertices), VertexCount, sizeof(Vertex), std::data(Remap));
 
-    Vertices     = std::move(NewVertices);
-    Indices      = std::move(NewIndices);
+    Vertices = std::move(NewVertices);
+    Indices  = std::move(NewIndices);
 
     meshopt_optimizeVertexCache(std::data(Indices), std::data(Indices), IndexCount, std::size(Vertices));
 
@@ -72,6 +72,9 @@ void Mesh::SetupMeshlets(std::vector<Vertex> &&Vertices, std::vector<std::uint32
     VertexCount = std::size(Vertices);
     IndexCount  = std::size(Indices);
 
+    m_Vertices = std::move(Vertices);
+    m_Indices  = std::move(Indices);
+
     std::size_t const MaxMeshlets = meshopt_buildMeshletsBound(IndexCount, g_MaxMeshletVertices, g_MaxMeshletPrimitives);
 
     std::vector<meshopt_Meshlet> OptimizerMeshlets(MaxMeshlets);
@@ -81,9 +84,9 @@ void Mesh::SetupMeshlets(std::vector<Vertex> &&Vertices, std::vector<std::uint32
     std::size_t const NumMeshlets = meshopt_buildMeshlets(std::data(OptimizerMeshlets),
                                                           std::data(MeshletVertices),
                                                           std::data(MeshletTriangles),
-                                                          std::data(Indices),
+                                                          std::data(m_Indices),
                                                           IndexCount,
-                                                          &Vertices.at(0).Position.x,
+                                                          &m_Vertices.at(0).Position.x,
                                                           VertexCount,
                                                           sizeof(Vertex),
                                                           g_MaxMeshletVertices,
@@ -108,57 +111,62 @@ void Mesh::SetupMeshlets(std::vector<Vertex> &&Vertices, std::vector<std::uint32
 
     for (std::size_t MeshletIt = 0; MeshletIt < NumMeshlets; ++MeshletIt)
     {
-        Meshlet NewMeshlet;
-
         auto const &[LocalMeshletVertexOffset,
                      LocalMeshletTriangleOffset,
                      LocalMeshletVertexCount,
                      LocalMeshletTriangleCount] = OptimizerMeshlets[MeshletIt];
 
-        for (std::size_t VertexIt = 0U; VertexIt < LocalMeshletVertexCount; ++VertexIt)
-        {
-            NewMeshlet.Vertices.at(VertexIt) = Vertices.at(MeshletVertices.at(LocalMeshletVertexOffset + VertexIt));
-        }
+        Meshlet &NewMeshlet = m_Meshlets.at(MeshletIt);
 
-        for (std::size_t IndexIt = 0U; IndexIt < MeshletTriangleCount * 3U; ++IndexIt)
-        {
-            NewMeshlet.Indices.at(IndexIt) = MeshletTriangles.at(IndexIt + LocalMeshletTriangleOffset);
-        }
-
-        NewMeshlet.VertexCount = LocalMeshletVertexCount;
-        NewMeshlet.IndexCount = LocalMeshletTriangleCount * 3;
-
-        m_Meshlets.at(MeshletIt) = NewMeshlet;
+        NewMeshlet.IndexCount   = LocalMeshletTriangleCount * 3U;
+        NewMeshlet.VertexCount  = LocalMeshletVertexCount;
+        NewMeshlet.IndexOffset  = LocalMeshletTriangleOffset;
+        NewMeshlet.VertexOffset = LocalMeshletVertexOffset;
     }
 }
 
 void Mesh::SetupUniformDescriptor()
 {
-    m_UniformBufferInfo = GetAllocationBufferDescriptor(GetUniformOffset(), sizeof(ModelUniformData));
-    m_MappedData        = GetAllocationMappedData();
+    m_MappedData = GetAllocationMappedData();
+
+    UpdateUniformBuffers();
+    UpdatePrimitivesBuffers();
 }
 
 void Mesh::UpdateUniformBuffers() const
+{
+    if (!m_MappedData || !IsRenderDirty())
+    {
+        return;
+    }
+
+    ModelUniformData const UpdatedModelUBO {.ProjectionView = GetCamera().GetProjectionMatrix(),
+                                            .Model          = m_Transform.GetMatrix() * m_Transform.GetMatrix()};
+
+    auto const UniformData = static_cast<char*>(m_MappedData) + GetUniformOffset();
+    std::memcpy(UniformData, &UpdatedModelUBO, sizeof(ModelUniformData));
+
+    auto const MaterialData = UniformData + sizeof(ModelUniformData);
+    std::memcpy(MaterialData, &m_MaterialData, sizeof(MaterialData));
+
+    SetRenderDirty(false);
+}
+
+void RenderCore::Mesh::UpdatePrimitivesBuffers() const
 {
     if (!m_MappedData)
     {
         return;
     }
 
-    // TODO : move to mesh
+    auto const MeshletsData = static_cast<char*>(m_MappedData) + GetMeshletsOffset();
+    std::memcpy(MeshletsData, std::data(m_Meshlets), std::size(m_Meshlets) * sizeof(Meshlet));
 
-    if (IsRenderDirty())
-    {
-        ModelUniformData const UpdatedModelUBO {.MeshletCount   = GetNumMeshlets(),
-                                                .ProjectionView = GetCamera().GetProjectionMatrix(),
-                                                .Model          = m_Transform.GetMatrix() * m_Transform.GetMatrix()};
+    auto const IndicesData = static_cast<char*>(m_MappedData) + GetIndicesOffset();
+    std::memcpy(IndicesData, std::data(m_Indices), std::size(m_Indices) * sizeof(glm::uint));
 
-        auto const UniformData = static_cast<char*>(m_MappedData) + GetUniformOffset();
-        std::memcpy(UniformData, &UpdatedModelUBO, sizeof(ModelUniformData));
-
-        std::memcpy(UniformData + sizeof(ModelUniformData), &GetMaterialData(), sizeof(MaterialData));
-        SetRenderDirty(false);
-    }
+    auto const VerticesData = static_cast<char*>(m_MappedData) + GetVerticesOffset();
+    std::memcpy(VerticesData, std::data(m_Vertices), std::size(m_Vertices) * sizeof(Vertex));
 }
 
 void Mesh::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout const &PipelineLayout, std::uint32_t const ObjectIndex) const
@@ -166,7 +174,9 @@ void Mesh::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout con
     auto const &[SceneData,
                  ModelData,
                  MaterialData,
-                 MeshletData,
+                 MeshletsData,
+                 IndicesData,
+                 VerticesData,
                  TextureData] = GetPipelineDescriptorData();
 
     std::array const BufferBindingInfos {
@@ -188,7 +198,17 @@ void Mesh::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout con
             },
             VkDescriptorBufferBindingInfoEXT {
                     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
-                    .address = MeshletData.BufferDeviceAddress.deviceAddress,
+                    .address = MeshletsData.BufferDeviceAddress.deviceAddress,
+                    .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
+            },
+            VkDescriptorBufferBindingInfoEXT {
+                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+                    .address = IndicesData.BufferDeviceAddress.deviceAddress,
+                    .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
+            },
+            VkDescriptorBufferBindingInfoEXT {
+                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+                    .address = VerticesData.BufferDeviceAddress.deviceAddress,
                     .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
             },
             VkDescriptorBufferBindingInfoEXT {
@@ -200,14 +220,16 @@ void Mesh::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout con
 
     vkCmdBindDescriptorBuffersEXT(CommandBuffer, static_cast<std::uint32_t>(std::size(BufferBindingInfos)), std::data(BufferBindingInfos));
 
-    constexpr std::array BufferIndices { 0U, 1U, 2U, 3U, 4U };
+    constexpr std::array BufferIndices { 0U, 1U, 2U, 3U, 4U, 5U, 6U };
     constexpr auto NumTextures = static_cast<std::uint8_t>(TextureType::Count);
 
     std::array const BufferOffsets {
             SceneData.LayoutOffset,
             ObjectIndex * ModelData.LayoutSize    + ModelData.LayoutOffset,
             ObjectIndex * MaterialData.LayoutSize + MaterialData.LayoutOffset,
-            ObjectIndex * MeshletData.LayoutSize  + MeshletData.LayoutOffset,
+            ObjectIndex * MeshletsData.LayoutSize + MeshletsData.LayoutOffset,
+            ObjectIndex * IndicesData.LayoutSize  + IndicesData.LayoutOffset,
+            ObjectIndex * VerticesData.LayoutSize + VerticesData.LayoutOffset,
             ObjectIndex * NumTextures * TextureData.LayoutSize + TextureData.LayoutOffset
     };
 
@@ -220,14 +242,7 @@ void Mesh::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout con
                                        std::data(BufferOffsets));
 
     std::uint32_t const NumMeshlets = GetNumMeshlets();
-    std::uint32_t const NumTasks = std::trunc(NumMeshlets + g_MaxMeshTasks - 1U) / g_MaxMeshTasks;
+    std::uint32_t const NumTasks = std::ceil(NumMeshlets + g_MaxMeshTasks - 1U) / g_MaxMeshTasks;
 
-    if (vkCmdDrawMeshTasksNV != nullptr)
-    {
-        vkCmdDrawMeshTasksNV(CommandBuffer, NumTasks, 0U);
-    }
-    else
-    {
-        vkCmdDrawMeshTasksEXT(CommandBuffer, NumTasks, 1U, 1U);
-    }
+    vkCmdDrawMeshTasksEXT(CommandBuffer, NumTasks, 1U, 1U);
 }

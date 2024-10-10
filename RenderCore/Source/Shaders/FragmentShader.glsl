@@ -7,19 +7,19 @@
 
 layout(std140, set = 0, binding = 0) uniform SceneUniformData
 {
-    LightingUBO Data;
-} SceneData;
+    LightingUBO SceneData;
+};
 
-layout(std140, set = 0, binding = 1) uniform MaterialUniformData
+layout(std140, set = 2, binding = 0) uniform MaterialUniformData
 {
-    MaterialUBO Data;
-} MaterialData;
+    MaterialUBO MaterialData;
+};
 
-layout(set = 4, binding = 0) uniform sampler2D BaseColorMap;
-layout(set = 4, binding = 1) uniform sampler2D NormalMap;
-layout(set = 4, binding = 2) uniform sampler2D OcclusionMap;
-layout(set = 4, binding = 3) uniform sampler2D EmissiveMap;
-layout(set = 4, binding = 4) uniform sampler2D MetallicRoughnessMap;
+layout(set = 6, binding = 0) uniform sampler2D BaseColorMap;
+layout(set = 6, binding = 1) uniform sampler2D NormalMap;
+layout(set = 6, binding = 2) uniform sampler2D OcclusionMap;
+layout(set = 6, binding = 3) uniform sampler2D EmissiveMap;
+layout(set = 6, binding = 4) uniform sampler2D MetallicRoughnessMap;
 
 layout(location = 0) in FragSharedData
 {

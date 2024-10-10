@@ -178,6 +178,7 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
             .pNext = &Vulkan13DeviceFeatures,
             .uniformAndStorageBuffer8BitAccess = true,
             .scalarBlockLayout = true,
+            .uniformBufferStandardLayout = true,
             .timelineSemaphore = true,
             .bufferDeviceAddress = true
     };

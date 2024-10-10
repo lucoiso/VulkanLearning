@@ -37,16 +37,20 @@ namespace RenderCore
         DescriptorData SceneData{};
         DescriptorData ModelData{};
         DescriptorData MaterialData{};
-        DescriptorData MeshletData{};
+        DescriptorData MeshletsData{};
+        DescriptorData IndicesData{};
+        DescriptorData VerticesData{};
         DescriptorData TextureData{};
 
         [[nodiscard]] inline bool IsValid() const
         {
             return SceneData.IsValid()
-            && ModelData.IsValid()
-            && MaterialData.IsValid()
-            && MeshletData.IsValid()
-            && TextureData.IsValid();
+                && ModelData.IsValid()
+                && MaterialData.IsValid()
+                && MeshletsData.IsValid()
+                && IndicesData.IsValid()
+                && VerticesData.IsValid()
+                && TextureData.IsValid();
         }
 
         void DestroyResources(VmaAllocator const &, bool);

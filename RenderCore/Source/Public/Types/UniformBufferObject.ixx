@@ -22,8 +22,7 @@ namespace RenderCore
 
     export struct RENDERCOREMODULE_API ModelUniformData
     {
-        std::uint32_t MeshletCount{ 0U };
-        alignas(16) glm::mat4 ProjectionView {};
-        alignas(16) glm::mat4 Model {};
+        glm::mat4 ProjectionView {};
+        glm::mat4 Model {};
     };
 } // namespace RenderCore

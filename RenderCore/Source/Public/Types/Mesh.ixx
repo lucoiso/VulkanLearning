@@ -23,13 +23,16 @@ namespace RenderCore
         std::vector<Transform> m_InstanceTransform{};
 
         std::uint32_t          m_UniformOffset{};
-        VkDeviceSize           m_MeshletOffset{ 0U };
+        VkDeviceSize           m_MeshletsOffset{ 0U };
+        VkDeviceSize           m_IndicesOffset{ 0U };
+        VkDeviceSize           m_VerticesOffset{ 0U };
 
-        VkDescriptorBufferInfo                m_UniformBufferInfo{};
-        MaterialData                          m_MaterialData{};
+        MaterialData                          m_MaterialData {};
         std::vector<Meshlet>                  m_Meshlets {};
+        std::vector<glm::uint>                m_Indices {};
+        std::vector<Vertex>                   m_Vertices {};
         std::vector<std::shared_ptr<Texture>> m_Textures {};
-        void*                                 m_MappedData{ nullptr };
+        void*                                 m_MappedData { nullptr };
 
     public:
         ~Mesh() override = default;
@@ -154,26 +157,59 @@ namespace RenderCore
             return m_Meshlets;
         }
 
-        inline void SetMeshlets(std::vector<Meshlet> const &Value)
-        {
-            m_Meshlets = Value;
-            MarkAsRenderDirty();
-        }
-
         [[nodiscard]] inline std::uint32_t GetNumMeshlets() const
         {
             return static_cast<std::uint32_t>(std::size(m_Meshlets));
         }
 
-        [[nodiscard]] inline VkDeviceSize GetMeshletOffset() const
+        [[nodiscard]] inline VkDeviceSize GetMeshletsOffset() const
         {
-            return m_MeshletOffset;
+            return m_MeshletsOffset;
         }
 
-        inline void SetMeshletOffset(VkDeviceSize const &Value)
+        inline void SetMeshletsOffset(VkDeviceSize const &Value)
         {
-            m_MeshletOffset = Value;
-            MarkAsRenderDirty();
+            m_MeshletsOffset = Value;
+        }
+
+        [[nodiscard]] inline VkDeviceSize GetIndicesOffset() const
+        {
+            return m_IndicesOffset;
+        }
+
+        inline void SetIndicesOffset(VkDeviceSize const& Value)
+        {
+            m_IndicesOffset = Value;
+        }
+
+        [[nodiscard]] inline VkDeviceSize GetVerticesOffset() const
+        {
+            return m_VerticesOffset;
+        }
+
+        inline void SetVerticesOffset(VkDeviceSize const& Value)
+        {
+            m_VerticesOffset = Value;
+        }
+
+        [[nodiscard]] inline std::vector<glm::uint> const& GetIndices() const
+        {
+            return m_Indices;
+        }
+
+        [[nodiscard]] inline std::uint32_t GetNumIndices() const
+        {
+            return static_cast<std::uint32_t>(std::size(m_Indices));
+        }
+
+        [[nodiscard]] inline std::vector<Vertex> const& GetVertices() const
+        {
+            return m_Vertices;
+        }
+
+        [[nodiscard]] inline std::uint32_t GetNumVertices() const
+        {
+            return static_cast<std::uint32_t>(std::size(m_Vertices));
         }
 
         void SetupMeshlets(std::vector<Vertex> &&, std::vector<std::uint32_t> &&);
@@ -213,7 +249,10 @@ namespace RenderCore
         }
 
         void SetupUniformDescriptor();
+
         void UpdateUniformBuffers() const;
+        void UpdatePrimitivesBuffers() const;
+
         void DrawObject(VkCommandBuffer const&, VkPipelineLayout const&, std::uint32_t) const;
     };
 } // namespace RenderCore
