@@ -59,6 +59,12 @@ void RenderCore::CreateMemoryAllocator()
 
     CheckVulkanResult(vmaCreateAllocator(&AllocatorInfo, &g_Allocator));
 
+    auto const& Limits = GetPhysicalDeviceProperties().limits;
+
+    VkDeviceSize const ModelAlignment = Limits.minUniformBufferOffsetAlignment > Limits.minStorageBufferOffsetAlignment
+                                      ? Limits.minUniformBufferOffsetAlignment
+                                      : Limits.minStorageBufferOffsetAlignment;
+
     {
         // Staging Buffer Pool
         constexpr VmaAllocationCreateInfo AllocationCreateInfo { .flags = g_MapMemoryFlag, .usage = g_StagingMemoryUsage };
@@ -72,7 +78,8 @@ void RenderCore::CreateMemoryAllocator()
                 .memoryTypeIndex = MemoryType,
                 .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
                 .minBlockCount = 0U,
-                .priority = 0.F
+                .priority = 0.F,
+                .minAllocationAlignment = ModelAlignment
         };
 
         CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_StagingBufferPool));
@@ -116,11 +123,11 @@ void RenderCore::CreateMemoryAllocator()
                 .memoryTypeIndex = MemoryType,
                 .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
                 .priority = 1.F,
-                // .minAllocationAlignment = GetPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment
+                .minAllocationAlignment = ModelAlignment
         };
 
         CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_BufferPool));
-        vmaSetPoolName(g_Allocator, g_BufferPool, "Buffer Pool");
+        vmaSetPoolName(g_Allocator, g_BufferPool, "Scene Buffer Pool");
     }
 
     {
@@ -367,54 +374,39 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
     }
 
     VmaAllocator const& Allocator = GetAllocator();
-    auto const &Limits = GetPhysicalDeviceProperties().limits;
-
-    VkDeviceSize MeshletAlignedSize = sizeof(Meshlet);
-
-    if (VkDeviceSize const& MinAlignment = Limits.minStorageBufferOffsetAlignment;
-        MinAlignment > 0U)
-    {
-        MeshletAlignedSize = MeshletAlignedSize + MinAlignment - 1U & ~(MinAlignment - 1U);
-    }
-
     std::vector<Meshlet> Meshlets;
+
     for (auto const &ObjectIter : Objects)
     {
         auto const &Mesh = ObjectIter->GetMesh();
         auto const &MeshMeshlets = Mesh->GetMeshlets();
 
-        Mesh->SetMeshletOffset(std::size(Meshlets) * MeshletAlignedSize);
+        Mesh->SetMeshletOffset(std::size(Meshlets) * sizeof(Meshlet));
         Meshlets.insert(std::end(Meshlets), std::begin(MeshMeshlets), std::end(MeshMeshlets));
     }
 
-    VkDeviceSize const MeshletBufferSize = MeshletAlignedSize * std::size(Meshlets);
-    VkDeviceSize UniformDataSize = (sizeof(ModelUniformData) + sizeof(MaterialData)) * std::size(Objects);
-
-    if (VkDeviceSize const &MinAlignment = Limits.minUniformBufferOffsetAlignment;
-        MinAlignment > 0U)
-    {
-        UniformDataSize = UniformDataSize + MinAlignment - 1U & ~(MinAlignment - 1U);
-    }
-
+    VkDeviceSize const MeshletBufferSize = sizeof(Meshlet) * std::size(Meshlets);
+    VkDeviceSize const UniformDataSize = (sizeof(ModelUniformData) + sizeof(MaterialData)) * std::size(Objects);
     VkDeviceSize const TotalBufferSize = MeshletBufferSize + UniformDataSize;
 
     CreateBuffer(TotalBufferSize, g_ModelBufferUsage, "SCENE_UNIFIED_BUFFER", g_BufferAllocation.Buffer, g_BufferAllocation.Allocation);
-
     CheckVulkanResult(vmaMapMemory(Allocator, g_BufferAllocation.Allocation, &g_BufferAllocation.MappedData));
-    std::memcpy(g_BufferAllocation.MappedData, std::data(Meshlets), sizeof(Meshlet) * std::size(Meshlets));
 
+    std::memcpy(g_BufferAllocation.MappedData, std::data(Meshlets), sizeof(Meshlet) * std::size(Meshlets));
     CheckVulkanResult(vmaFlushAllocation(Allocator, g_BufferAllocation.Allocation, 0U, MeshletBufferSize));
     vmaUnmapMemory(Allocator, g_BufferAllocation.Allocation);
 
     for (auto const &ObjectIter : Objects)
     {
-        std::size_t const CurrentIndex = std::distance(std::data(Objects), &ObjectIter);
+        if (auto const& ObjectMesh = ObjectIter->GetMesh())
+        {
+            std::size_t const CurrentIndex = std::distance(std::data(Objects), &ObjectIter);
 
-        ObjectIter->SetUniformOffset(MeshletBufferSize + (sizeof(ModelUniformData) + sizeof(MaterialData)) * CurrentIndex);
-        ObjectIter->SetupUniformDescriptor();
+            ObjectMesh->SetUniformOffset(MeshletBufferSize + (sizeof(ModelUniformData) + sizeof(MaterialData)) * CurrentIndex);
+            ObjectMesh->SetupUniformDescriptor();
 
-        ObjectIter->MarkAsRenderDirty();
-        ObjectIter->GetMesh()->MarkAsRenderDirty();
+            ObjectMesh->MarkAsRenderDirty();
+        }
     }
 }
 

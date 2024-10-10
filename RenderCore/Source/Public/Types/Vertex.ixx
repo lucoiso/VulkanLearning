@@ -12,7 +12,7 @@ namespace RenderCore
 {
     export struct RENDERCOREMODULE_API Vertex
     {
-        alignas(16) glm::vec2 TextureCoordinate{};
+        alignas(8)  glm::vec2 UV {};
         alignas(16) glm::vec3 Position {};
         alignas(16) glm::vec3 Normal {};
         alignas(16) glm::vec4 Color {};
@@ -41,9 +41,9 @@ namespace RenderCore
                 .offset = static_cast<std::uint32_t>(offsetof(Vertex, Normal))
         };
 
-        constexpr VkVertexInputAttributeDescription TextureCoordinate {
+        constexpr VkVertexInputAttributeDescription UV {
                 .format = VK_FORMAT_R32G32_SFLOAT,
-                .offset = static_cast<std::uint32_t>(offsetof(Vertex, TextureCoordinate))
+                .offset = static_cast<std::uint32_t>(offsetof(Vertex, UV))
         };
 
         constexpr VkVertexInputAttributeDescription Color {

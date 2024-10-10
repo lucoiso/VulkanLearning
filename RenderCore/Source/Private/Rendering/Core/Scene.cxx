@@ -317,6 +317,9 @@ void RenderCore::UpdateObjectsUniformBuffer()
                   std::end(g_Objects),
                   [](std::shared_ptr<Object> const &ObjectIter)
                   {
-                      ObjectIter->UpdateUniformBuffers();
+                      if (auto const& ObjectMesh = ObjectIter->GetMesh())
+                      {
+                          ObjectMesh->UpdateUniformBuffers();
+                      }
                   });
 }

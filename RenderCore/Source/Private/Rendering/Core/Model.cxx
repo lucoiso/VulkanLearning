@@ -91,7 +91,7 @@ std::vector<Vertex> RenderCore::SetVertexAttributes(tinygltf::Model const &Model
 
         if (TexCoordData)
         {
-            Vertices.at(Iterator).TextureCoordinate = glm::make_vec2(&TexCoordData[Iterator * 2]);
+            Vertices.at(Iterator).UV = glm::make_vec2(&TexCoordData[Iterator * 2]);
         }
 
         if (ColorData)

@@ -14,6 +14,7 @@ import RenderCore.Runtime.Scene;
 import RenderCore.Types.Allocation;
 import RenderCore.Types.UniformBufferObject;
 import RenderCore.Types.Texture;
+import RenderCore.Types.Mesh;
 import RenderCore.Types.Vertex;
 import RenderCore.Types.Material;
 import RenderCore.Utils.Constants;
@@ -337,11 +338,19 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
     for (std::shared_ptr<Object> const &ObjectIter : Objects)
     {
+        auto const& ObjectMesh = ObjectIter->GetMesh();
+
+        if (!ObjectMesh)
+        {
+            ++ObjectCount;
+            continue;
+        }
+
         MapDescriptorBuffer(ModelData,
                             ModelBuffer,
                             AllocationAddress,
                             ObjectCount,
-                            ObjectIter->GetUniformOffset(),
+                            ObjectMesh->GetUniformOffset(),
                             sizeof(ModelUniformData),
                             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
@@ -349,7 +358,7 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
                             MaterialBuffer,
                             AllocationAddress,
                             ObjectCount,
-                            ObjectIter->GetMaterialOffset(),
+                            ObjectMesh->GetMaterialOffset(),
                             sizeof(RenderCore::MaterialData),
                             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
@@ -357,8 +366,8 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
                             MeshletBuffer,
                             AllocationAddress,
                             ObjectCount,
-                            ObjectIter->GetMesh()->GetMeshletOffset(),
-                            ObjectIter->GetMesh()->GetNumMeshlets() * sizeof(Meshlet),
+                            ObjectMesh->GetMeshletOffset(),
+                            ObjectMesh->GetNumMeshlets() * sizeof(Meshlet),
                             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
         MapModelTextureBuffer(TextureBuffer, ObjectIter, ObjectCount);
