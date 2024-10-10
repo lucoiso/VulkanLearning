@@ -12,21 +12,22 @@ namespace RenderCore
 {
     export struct RENDERCOREMODULE_API Vertex
     {
-        glm::vec2 UV{};
-        glm::vec3 Position{};
-        glm::vec3 Normal{};
-        glm::vec4 Color{};
-        glm::vec4 Joint{};
-        glm::vec4 Weight{};
-        glm::vec4 Tangent {};
+        alignas(8)  glm::vec2 UV{};
+        alignas(8)  glm::float32 _Padding1{};
+        alignas(16) glm::vec3 Position{};
+        alignas(16) glm::vec3 Normal{};
+        alignas(16) glm::vec4 Color{};
+        alignas(16) glm::vec4 Joint{};
+        alignas(16) glm::vec4 Weight{};
+        alignas(16) glm::vec4 Tangent{};
     };
 
     export struct RENDERCOREMODULE_API Meshlet
     {
-        glm::uint IndexCount{ 0U };
-        glm::uint VertexCount{ 0U };
-        glm::uint IndexOffset{ 0U };
-        glm::uint VertexOffset{ 0U };
+        alignas(4) glm::uint IndexCount{ 0U };
+        alignas(4) glm::uint VertexCount{ 0U };
+        alignas(4) glm::uint IndexOffset{ 0U };
+        alignas(4) glm::uint VertexOffset{ 0U };
     };
 
     export namespace VertexAttributes

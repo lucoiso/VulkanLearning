@@ -11,28 +11,27 @@ import RenderCore.Types.Transform;
 import RenderCore.Types.Vertex;
 import RenderCore.Types.Material;
 import RenderCore.Types.Texture;
-import RenderCore.Types.UniformBufferObject;
 
 namespace RenderCore
 {
     export class RENDERCOREMODULE_API Mesh : public Resource
     {
-        mutable bool           m_IsRenderDirty{ true };
+        mutable bool m_IsRenderDirty{ true };
 
         Transform              m_Transform{};
         std::vector<Transform> m_InstanceTransform{};
 
-        std::uint32_t          m_UniformOffset{};
-        VkDeviceSize           m_MeshletsOffset{ 0U };
-        VkDeviceSize           m_IndicesOffset{ 0U };
-        VkDeviceSize           m_VerticesOffset{ 0U };
+        VkDeviceSize m_ModelOffset{ 0U };
+        VkDeviceSize m_MaterialOffset{ 0U };
+        VkDeviceSize m_MeshletsOffset{ 0U };
+        VkDeviceSize m_IndicesOffset{ 0U };
+        VkDeviceSize m_VerticesOffset{ 0U };
 
         MaterialData                          m_MaterialData {};
         std::vector<Meshlet>                  m_Meshlets {};
         std::vector<glm::uint>                m_Indices {};
         std::vector<Vertex>                   m_Vertices {};
         std::vector<std::shared_ptr<Texture>> m_Textures {};
-        void*                                 m_MappedData { nullptr };
 
     public:
         ~Mesh() override = default;
@@ -55,12 +54,12 @@ namespace RenderCore
             }
         }
 
-        [[nodiscard]] inline std::uint32_t GetNumInstances() const
+        [[nodiscard]] inline std::size_t GetNumInstances() const
         {
-            return static_cast<std::uint32_t>(std::size(m_InstanceTransform));
+            return std::size(m_InstanceTransform);
         }
 
-        inline void SetNumInstance(std::uint32_t const Value)
+        inline void SetNumInstance(std::size_t const Value)
         {
             if (GetNumInstances() != Value)
             {
@@ -137,19 +136,24 @@ namespace RenderCore
             MarkAsRenderDirty();
         }
 
-        [[nodiscard]] inline std::uint32_t GetUniformOffset() const
+        [[nodiscard]] inline VkDeviceSize GetModelOffset() const
         {
-            return m_UniformOffset;
+            return m_ModelOffset;
         }
 
-        [[nodiscard]] inline std::uint32_t GetMaterialOffset() const
+        inline void SetModelOffset(VkDeviceSize const& Offset)
         {
-            return m_UniformOffset + sizeof(ModelUniformData);
+            m_ModelOffset = Offset;
         }
 
-        inline void SetUniformOffset(std::uint32_t const& Offset)
+        [[nodiscard]] inline VkDeviceSize GetMaterialOffset() const
         {
-            m_UniformOffset = Offset;
+            return m_MaterialOffset;
+        }
+
+        inline void SetMaterialOffset(VkDeviceSize const& Offset)
+        {
+            m_MaterialOffset = Offset;
         }
 
         [[nodiscard]] inline std::vector<Meshlet> const &GetMeshlets() const
@@ -157,9 +161,9 @@ namespace RenderCore
             return m_Meshlets;
         }
 
-        [[nodiscard]] inline std::uint32_t GetNumMeshlets() const
+        [[nodiscard]] inline std::size_t GetNumMeshlets() const
         {
-            return static_cast<std::uint32_t>(std::size(m_Meshlets));
+            return std::size(m_Meshlets);
         }
 
         [[nodiscard]] inline VkDeviceSize GetMeshletsOffset() const
@@ -197,9 +201,9 @@ namespace RenderCore
             return m_Indices;
         }
 
-        [[nodiscard]] inline std::uint32_t GetNumIndices() const
+        [[nodiscard]] inline std::size_t GetNumIndices() const
         {
-            return static_cast<std::uint32_t>(std::size(m_Indices));
+            return std::size(m_Indices);
         }
 
         [[nodiscard]] inline std::vector<Vertex> const& GetVertices() const
@@ -207,9 +211,9 @@ namespace RenderCore
             return m_Vertices;
         }
 
-        [[nodiscard]] inline std::uint32_t GetNumVertices() const
+        [[nodiscard]] inline std::size_t GetNumVertices() const
         {
-            return static_cast<std::uint32_t>(std::size(m_Vertices));
+            return std::size(m_Vertices);
         }
 
         void SetupMeshlets(std::vector<Vertex> &&, std::vector<std::uint32_t> &&);

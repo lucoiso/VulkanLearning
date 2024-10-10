@@ -127,15 +127,15 @@ void Mesh::SetupMeshlets(std::vector<Vertex> &&Vertices, std::vector<std::uint32
 
 void Mesh::SetupUniformDescriptor()
 {
-    m_MappedData = GetAllocationMappedData();
-
     UpdateUniformBuffers();
     UpdatePrimitivesBuffers();
 }
 
 void Mesh::UpdateUniformBuffers() const
 {
-    if (!m_MappedData || !IsRenderDirty())
+    void* UniformMappedData = GetUniformAllocation().MappedData;
+
+    if (!UniformMappedData || !IsRenderDirty())
     {
         return;
     }
@@ -143,29 +143,31 @@ void Mesh::UpdateUniformBuffers() const
     ModelUniformData const UpdatedModelUBO {.ProjectionView = GetCamera().GetProjectionMatrix(),
                                             .Model          = m_Transform.GetMatrix() * m_Transform.GetMatrix()};
 
-    auto const UniformData = static_cast<char*>(m_MappedData) + GetUniformOffset();
-    std::memcpy(UniformData, &UpdatedModelUBO, sizeof(ModelUniformData));
+    auto const ModelUniformData = static_cast<char*>(UniformMappedData) + GetModelOffset();
+    std::memcpy(ModelUniformData, &UpdatedModelUBO, sizeof(ModelUniformData));
 
-    auto const MaterialData = UniformData + sizeof(ModelUniformData);
-    std::memcpy(MaterialData, &m_MaterialData, sizeof(MaterialData));
+    auto const MaterialUniformData = static_cast<char*>(UniformMappedData) + GetMaterialOffset();
+    std::memcpy(MaterialUniformData, &m_MaterialData, sizeof(MaterialData));
 
     SetRenderDirty(false);
 }
 
 void RenderCore::Mesh::UpdatePrimitivesBuffers() const
 {
-    if (!m_MappedData)
+    void* StorageMappedData = GetStorageAllocation().MappedData;
+
+    if (!StorageMappedData)
     {
         return;
     }
 
-    auto const MeshletsData = static_cast<char*>(m_MappedData) + GetMeshletsOffset();
+    auto const MeshletsData = static_cast<char*>(StorageMappedData) + GetMeshletsOffset();
     std::memcpy(MeshletsData, std::data(m_Meshlets), std::size(m_Meshlets) * sizeof(Meshlet));
 
-    auto const IndicesData = static_cast<char*>(m_MappedData) + GetIndicesOffset();
+    auto const IndicesData = static_cast<char*>(StorageMappedData) + GetIndicesOffset();
     std::memcpy(IndicesData, std::data(m_Indices), std::size(m_Indices) * sizeof(glm::uint));
 
-    auto const VerticesData = static_cast<char*>(m_MappedData) + GetVerticesOffset();
+    auto const VerticesData = static_cast<char*>(StorageMappedData) + GetVerticesOffset();
     std::memcpy(VerticesData, std::data(m_Vertices), std::size(m_Vertices) * sizeof(Vertex));
 }
 
@@ -241,8 +243,8 @@ void Mesh::DrawObject(VkCommandBuffer const &CommandBuffer, VkPipelineLayout con
                                        std::data(BufferIndices),
                                        std::data(BufferOffsets));
 
-    std::uint32_t const NumMeshlets = GetNumMeshlets();
-    std::uint32_t const NumTasks = std::ceil(NumMeshlets + g_MaxMeshTasks - 1U) / g_MaxMeshTasks;
+    std::size_t const NumMeshlets = GetNumMeshlets();
+    std::size_t const NumTasks = std::ceil(NumMeshlets + g_MaxMeshTasks - 1U) / g_MaxMeshTasks;
 
     vkCmdDrawMeshTasksEXT(CommandBuffer, NumTasks, 1U, 1U);
 }

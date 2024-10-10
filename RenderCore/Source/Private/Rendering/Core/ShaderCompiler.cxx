@@ -393,12 +393,12 @@ void RenderCore::CompileDefaultShaders()
     // }
 
     // Task
-    // {
-    //     constexpr auto ShaderFile { DEFAULT_TASK_SHADER };
-    //     constexpr auto ShaderStage { EShLangTask };
-    //     constexpr auto ShaderStageFlag { VK_SHADER_STAGE_TASK_BIT_EXT };
-    //     CompileAndStage(ShaderFile, ShaderStage, ShaderStageFlag);
-    // }
+    {
+        constexpr auto ShaderFile { DEFAULT_TASK_SHADER };
+        constexpr auto ShaderStage { EShLangTask };
+        constexpr auto ShaderStageFlag { VK_SHADER_STAGE_TASK_BIT_EXT };
+        CompileAndStage(ShaderFile, ShaderStage, ShaderStageFlag);
+    }
 
     // Mesh
     {

@@ -3,6 +3,7 @@
 #extension GL_EXT_control_flow_attributes : require
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+#extension GL_EXT_scalar_block_layout : require
 
 #include "Types.h"
 
@@ -13,7 +14,7 @@ layout(local_size_x = g_NumTasks) in;
 layout(max_vertices = g_NumVertices, max_primitives = g_NumPrimitives) out;
 layout(triangles) out;
 
-layout(std140, set = 1, binding = 0) uniform ModelUniformData
+layout(std430, set = 1, binding = 0) uniform ModelUniformData
 {
     ModelUBO ModelData;
 };
@@ -48,6 +49,7 @@ void main()
 
     uint NumVertices = CurrentMeshlet.VertexCount;
     uint NumIndices = CurrentMeshlet.IndexCount;
+
     mat4 ModelViewProjection = ModelData.ProjectionView * ModelData.ModelView;
     vec3 MeshletColor = MeshletColors[MeshletIndex % g_MaxColors];
 

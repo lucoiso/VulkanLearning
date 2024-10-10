@@ -7,7 +7,6 @@ module;
 export module RenderCore.Types.UniformBufferObject;
 
 export import RenderCore.Types.Vertex;
-import RenderCore.Runtime.Device;
 
 namespace RenderCore
 {
@@ -22,7 +21,7 @@ namespace RenderCore
 
     export struct RENDERCOREMODULE_API ModelUniformData
     {
-        glm::mat4 ProjectionView {};
-        glm::mat4 Model {};
+        alignas(64) glm::mat4 ProjectionView {};
+        alignas(64) glm::mat4 Model {};
     };
 } // namespace RenderCore

@@ -130,14 +130,6 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
                                   });
     }
 
-    VkPhysicalDeviceMeshShaderFeaturesNV MeshShaderFeaturesNV {
-            // Required
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV,
-            .pNext = nullptr,
-            .taskShader = true,
-            .meshShader = true
-    };
-
     VkPhysicalDeviceMeshShaderFeaturesEXT MeshShaderFeaturesEXT {
             // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
@@ -146,15 +138,10 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
             .meshShader = true
     };
 
-    bool const ContainsNVidiaMeshShaderExt = std::find(std::execution::unseq,
-                                                       std::cbegin(AvailableExtensions),
-                                                       std::cend(AvailableExtensions),
-                                                       VK_NV_MESH_SHADER_EXTENSION_NAME) != std::cend(AvailableExtensions);
-
     VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT PipelineLibraryProperties {
             // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT,
-            .pNext = ContainsNVidiaMeshShaderExt ? reinterpret_cast<void*>(&MeshShaderFeaturesNV) : reinterpret_cast<void*>(&MeshShaderFeaturesEXT),
+            .pNext = &MeshShaderFeaturesEXT,
             .graphicsPipelineLibrary = true,
     };
 

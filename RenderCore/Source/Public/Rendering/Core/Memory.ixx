@@ -16,12 +16,19 @@ import RenderCore.Utils.Helpers;
 
 namespace RenderCore
 {
-    VmaPool                                            g_StagingBufferPool{VK_NULL_HANDLE};
-    VmaPool                                            g_DescriptorBufferPool{VK_NULL_HANDLE};
-    VmaPool                                            g_BufferPool{VK_NULL_HANDLE};
-    VmaPool                                            g_ImagePool{VK_NULL_HANDLE};
-    VmaAllocator                                       g_Allocator{VK_NULL_HANDLE};
-    BufferAllocation                                   g_BufferAllocation{};
+    VmaPool g_StagingUniformBufferPool{VK_NULL_HANDLE};
+    VmaPool g_StagingStorageBufferPool{VK_NULL_HANDLE};
+            
+    VmaPool g_DescriptorBufferPool{VK_NULL_HANDLE};
+    VmaPool g_UniformPool{VK_NULL_HANDLE};
+    VmaPool g_StoragePool{VK_NULL_HANDLE};
+    VmaPool g_ImagePool{VK_NULL_HANDLE};
+
+    VmaAllocator g_Allocator{VK_NULL_HANDLE};
+                     
+    BufferAllocation g_UniformAllocation{};
+    BufferAllocation g_StorageAllocation{};
+
     std::atomic<std::uint64_t>                         g_ImageAllocationIDCounter{0U};
     std::unordered_map<std::uint32_t, ImageAllocation> g_AllocatedImages{};
     std::unordered_map<std::uint32_t, std::uint32_t>   g_ImageAllocationCounter{};
@@ -163,24 +170,14 @@ export namespace RenderCore
         return g_Allocator;
     }
 
-    RENDERCOREMODULE_API [[nodiscard]] inline BufferAllocation const& GetAllocation()
+    RENDERCOREMODULE_API [[nodiscard]] inline BufferAllocation const& GetUniformAllocation()
     {
-        return g_BufferAllocation;
+        return g_UniformAllocation;
     }
 
-    RENDERCOREMODULE_API [[nodiscard]] inline VkBuffer const &GetAllocationBuffer()
+    RENDERCOREMODULE_API [[nodiscard]] inline BufferAllocation const& GetStorageAllocation()
     {
-        return g_BufferAllocation.Buffer;
-    }
-
-    RENDERCOREMODULE_API [[nodiscard]] inline void *GetAllocationMappedData()
-    {
-        return g_BufferAllocation.MappedData;
-    }
-
-    RENDERCOREMODULE_API [[nodiscard]] inline VkDescriptorBufferInfo GetAllocationBufferDescriptor(std::uint32_t const Offset, std::uint32_t const Range)
-    {
-        return VkDescriptorBufferInfo{.buffer = GetAllocationBuffer(), .offset = Offset, .range = Range};
+        return g_StorageAllocation;
     }
 
     RENDERCOREMODULE_API [[nodiscard]] inline VkDescriptorImageInfo GetAllocationImageDescriptor(std::uint32_t const Index)

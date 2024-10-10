@@ -59,13 +59,13 @@ void RenderCore::CreateMemoryAllocator()
 
     CheckVulkanResult(vmaCreateAllocator(&AllocatorInfo, &g_Allocator));
 
-    constexpr VkDeviceSize ModelAlignment = 0;
+    auto const &Limits = GetPhysicalDeviceProperties().limits;
 
     {
-        // Staging Buffer Pool
+        // Staging Uniform Buffer Pool
         constexpr VmaAllocationCreateInfo AllocationCreateInfo { .flags = g_MapMemoryFlag, .usage = g_StagingMemoryUsage };
 
-        constexpr VkBufferCreateInfo BufferCreateInfo { .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = 0x100, .usage = g_ModelBufferUsage };
+        constexpr VkBufferCreateInfo BufferCreateInfo { .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = 0x100, .usage = g_UniformBufferUsage };
 
         std::uint32_t MemoryType;
         CheckVulkanResult(vmaFindMemoryTypeIndexForBufferInfo(g_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &MemoryType));
@@ -75,11 +75,32 @@ void RenderCore::CreateMemoryAllocator()
                 .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
                 .minBlockCount = 0U,
                 .priority = 0.F,
-                .minAllocationAlignment = ModelAlignment
+                .minAllocationAlignment = Limits.minUniformBufferOffsetAlignment
         };
 
-        CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_StagingBufferPool));
-        vmaSetPoolName(g_Allocator, g_StagingBufferPool, "Staging Buffer Pool");
+        CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_StagingUniformBufferPool));
+        vmaSetPoolName(g_Allocator, g_StagingUniformBufferPool, "Staging Uniform Buffer Pool");
+    }
+
+    {
+        // Staging Storage Buffer Pool
+        constexpr VmaAllocationCreateInfo AllocationCreateInfo{ .flags = g_MapMemoryFlag, .usage = g_StagingMemoryUsage };
+
+        constexpr VkBufferCreateInfo BufferCreateInfo{ .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = 0x100, .usage = g_StorageBufferUsage };
+
+        std::uint32_t MemoryType;
+        CheckVulkanResult(vmaFindMemoryTypeIndexForBufferInfo(g_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &MemoryType));
+
+        VmaPoolCreateInfo const PoolCreateInfo{
+                .memoryTypeIndex = MemoryType,
+                .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
+                .minBlockCount = 0U,
+                .priority = 0.F,
+                .minAllocationAlignment = Limits.minStorageBufferOffsetAlignment
+        };
+
+        CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_StagingStorageBufferPool));
+        vmaSetPoolName(g_Allocator, g_StagingStorageBufferPool, "Staging Storage Buffer Pool");
     }
 
     {
@@ -107,10 +128,10 @@ void RenderCore::CreateMemoryAllocator()
     }
 
     {
-        // Buffer Pool
+        // Uniform Buffer Pool
         constexpr VmaAllocationCreateInfo AllocationCreateInfo { .flags = g_MapMemoryFlag, .usage = g_ModelMemoryUsage };
 
-        constexpr VkBufferCreateInfo BufferCreateInfo { .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = 0x100, .usage = g_ModelBufferUsage };
+        constexpr VkBufferCreateInfo BufferCreateInfo { .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = 0x100, .usage = g_UniformBufferUsage };
 
         std::uint32_t MemoryType;
         CheckVulkanResult(vmaFindMemoryTypeIndexForBufferInfo(g_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &MemoryType));
@@ -119,11 +140,31 @@ void RenderCore::CreateMemoryAllocator()
                 .memoryTypeIndex = MemoryType,
                 .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
                 .priority = 1.F,
-                .minAllocationAlignment = ModelAlignment
+                .minAllocationAlignment = Limits.minUniformBufferOffsetAlignment
         };
 
-        CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_BufferPool));
-        vmaSetPoolName(g_Allocator, g_BufferPool, "Scene Buffer Pool");
+        CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_UniformPool));
+        vmaSetPoolName(g_Allocator, g_UniformPool, "Uniform Buffer Pool");
+    }
+
+    {
+        // Storage Buffer Pool
+        constexpr VmaAllocationCreateInfo AllocationCreateInfo{ .flags = g_MapMemoryFlag, .usage = g_ModelMemoryUsage };
+
+        constexpr VkBufferCreateInfo BufferCreateInfo{ .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = 0x100, .usage = g_StorageBufferUsage };
+
+        std::uint32_t MemoryType;
+        CheckVulkanResult(vmaFindMemoryTypeIndexForBufferInfo(g_Allocator, &BufferCreateInfo, &AllocationCreateInfo, &MemoryType));
+
+        VmaPoolCreateInfo const PoolCreateInfo{
+                .memoryTypeIndex = MemoryType,
+                .flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
+                .priority = 1.F,
+                .minAllocationAlignment = Limits.minStorageBufferOffsetAlignment
+        };
+
+        CheckVulkanResult(vmaCreatePool(g_Allocator, &PoolCreateInfo, &g_StoragePool));
+        vmaSetPoolName(g_Allocator, g_StoragePool, "Storage Buffer Pool");
     }
 
     {
@@ -156,7 +197,8 @@ void RenderCore::CreateMemoryAllocator()
 
 void RenderCore::ReleaseMemoryResources()
 {
-    g_BufferAllocation.DestroyResources(g_Allocator);
+    g_UniformAllocation.DestroyResources(g_Allocator);
+    g_StorageAllocation.DestroyResources(g_Allocator);
 
     for (auto &ImageIter : g_AllocatedImages | std::views::values)
     {
@@ -164,14 +206,20 @@ void RenderCore::ReleaseMemoryResources()
     }
     g_AllocatedImages.clear();
 
-    vmaDestroyPool(g_Allocator, g_StagingBufferPool);
-    g_StagingBufferPool = VK_NULL_HANDLE;
+    vmaDestroyPool(g_Allocator, g_StagingUniformBufferPool);
+    g_StagingUniformBufferPool = VK_NULL_HANDLE;
+
+    vmaDestroyPool(g_Allocator, g_StagingStorageBufferPool);
+    g_StagingStorageBufferPool = VK_NULL_HANDLE;
 
     vmaDestroyPool(g_Allocator, g_DescriptorBufferPool);
     g_DescriptorBufferPool = VK_NULL_HANDLE;
 
-    vmaDestroyPool(g_Allocator, g_BufferPool);
-    g_BufferPool = VK_NULL_HANDLE;
+    vmaDestroyPool(g_Allocator, g_UniformPool);
+    g_UniformPool = VK_NULL_HANDLE;
+
+    vmaDestroyPool(g_Allocator, g_StoragePool);
+    g_StoragePool = VK_NULL_HANDLE;
 
     vmaDestroyPool(g_Allocator, g_ImagePool);
     g_ImagePool = VK_NULL_HANDLE;
@@ -187,11 +235,13 @@ VmaAllocationInfo RenderCore::CreateBuffer(VkDeviceSize const &        Size,
                                            VmaAllocation &             Allocation)
 {
     bool const IsStagingBuffer = Identifier.starts_with("STAGING_");
+    bool const IsUniform = Usage & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    bool const IsStorage = Usage & VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
     VmaAllocationCreateInfo AllocationCreateInfo {
             .flags = 0U,
             .usage = g_ModelMemoryUsage,
-            .pool = IsStagingBuffer ? g_StagingBufferPool : g_BufferPool
+            .pool = IsStagingBuffer ? (IsUniform ? g_StagingUniformBufferPool : g_StagingStorageBufferPool) : (IsUniform ? g_UniformPool : g_StoragePool)
     };
 
     if (Usage & VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT)
@@ -199,7 +249,7 @@ VmaAllocationInfo RenderCore::CreateBuffer(VkDeviceSize const &        Size,
         AllocationCreateInfo.pool = g_DescriptorBufferPool;
         AllocationCreateInfo.flags |= g_MapMemoryFlag;
     }
-    else if (IsStagingBuffer || Usage & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT || Identifier == "IMGUI_RENDER")
+    else if (IsStagingBuffer || IsUniform || IsStorage || Identifier == "IMGUI_RENDER")
     {
         AllocationCreateInfo.flags |= g_MapMemoryFlag;
 
@@ -334,15 +384,17 @@ std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(V
                 NewAllocation.Image,
                 NewAllocation.Allocation);
 
-    RequestImageLayoutTransition<g_UndefinedLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, g_ImageAspect>(CommandBuffer,
-        NewAllocation.Image,
-        NewAllocation.Format);
+    constexpr auto TransferLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+    RequestImageLayoutTransition<g_UndefinedLayout, TransferLayout, g_ImageAspect>(CommandBuffer,
+                                                                                   NewAllocation.Image,
+                                                                                   NewAllocation.Format);
 
     CopyBufferToImage(CommandBuffer, Output.first, NewAllocation.Image, NewAllocation.Extent);
 
-    RequestImageLayoutTransition<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, g_ReadLayout, g_ImageAspect>(CommandBuffer,
-                                                                                                        NewAllocation.Image,
-                                                                                                        NewAllocation.Format);
+    RequestImageLayoutTransition<TransferLayout, g_ReadLayout, g_ImageAspect>(CommandBuffer,
+                                                                              NewAllocation.Image,
+                                                                              NewAllocation.Format);
 
     CreateImageView(NewAllocation.Image, NewAllocation.Format, g_ImageAspect, NewAllocation.View);
     vmaUnmapMemory(Allocator, Output.second);
@@ -364,9 +416,14 @@ std::tuple<std::uint32_t, VkBuffer, VmaAllocation> RenderCore::AllocateTexture(V
 
 void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> const &Objects)
 {
-    if (g_BufferAllocation.IsValid())
+    if (g_UniformAllocation.IsValid())
     {
-        g_BufferAllocation.DestroyResources(g_Allocator);
+        g_UniformAllocation.DestroyResources(g_Allocator);
+    }
+
+    if (g_StorageAllocation.IsValid())
+    {
+        g_StorageAllocation.DestroyResources(g_Allocator);
     }
 
     VmaAllocator const& Allocator = GetAllocator();
@@ -392,31 +449,26 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
         Vertices.insert(std::end(Vertices), std::begin(MeshVertices), std::end(MeshVertices));
     }
 
-    VkDeviceSize const MeshletsBufferSize = sizeof(Meshlet)                                   * std::size(Meshlets);
-    VkDeviceSize const IndicesBufferSize  = sizeof(glm::uint)                                 * std::size(Indices);
-    VkDeviceSize const VerticesBufferSize = sizeof(Vertex)                                    * std::size(Vertices);
-    VkDeviceSize const UniformDataSize    = (sizeof(ModelUniformData) + sizeof(MaterialData)) * std::size(Objects);
+    VkDeviceSize const MeshletsBufferSize = sizeof(Meshlet)          * std::size(Meshlets);
+    VkDeviceSize const IndicesBufferSize  = sizeof(glm::uint)        * std::size(Indices);
+    VkDeviceSize const VerticesBufferSize = sizeof(Vertex)           * std::size(Vertices);
+    VkDeviceSize const ModelDataSize      = sizeof(ModelUniformData) * std::size(Objects);
+    VkDeviceSize const MaterialDataSize   = sizeof(MaterialData)     * std::size(Objects);
 
-    VkDeviceSize const TotalBufferSize = MeshletsBufferSize + IndicesBufferSize + VerticesBufferSize + UniformDataSize;
-    VkDeviceSize const UniformOffset   = TotalBufferSize - UniformDataSize;
+    VkDeviceSize const UniformBufferSize = ModelDataSize + MaterialDataSize;
+    VkDeviceSize const StorageBufferSize = MeshletsBufferSize + IndicesBufferSize + VerticesBufferSize;
 
-    CreateBuffer(TotalBufferSize, g_ModelBufferUsage, "SCENE_UNIFIED_BUFFER", g_BufferAllocation.Buffer, g_BufferAllocation.Allocation);
-    CheckVulkanResult(vmaMapMemory(Allocator, g_BufferAllocation.Allocation, &g_BufferAllocation.MappedData));
+    CreateBuffer(UniformBufferSize, g_UniformBufferUsage, "SCENE_UNIFORM_UNIFIED_BUFFER", g_UniformAllocation.Buffer, g_UniformAllocation.Allocation);
+    CreateBuffer(StorageBufferSize, g_StorageBufferUsage, "SCENE_STORAGE_UNIFIED_BUFFER", g_StorageAllocation.Buffer, g_StorageAllocation.Allocation);
 
-    std::memcpy(g_BufferAllocation.MappedData,
-                std::data(Meshlets),
-                MeshletsBufferSize);
+    CheckVulkanResult(vmaMapMemory(Allocator, g_UniformAllocation.Allocation, &g_UniformAllocation.MappedData));
+    CheckVulkanResult(vmaMapMemory(Allocator, g_StorageAllocation.Allocation, &g_StorageAllocation.MappedData));
 
-    std::memcpy(reinterpret_cast<char*>(g_BufferAllocation.MappedData) + MeshletsBufferSize,
-                std::data(Indices),
-                IndicesBufferSize);
+    CheckVulkanResult(vmaFlushAllocation(Allocator, g_UniformAllocation.Allocation, 0U, UniformBufferSize));
+    CheckVulkanResult(vmaFlushAllocation(Allocator, g_StorageAllocation.Allocation, 0U, StorageBufferSize));
 
-    std::memcpy(reinterpret_cast<char*>(g_BufferAllocation.MappedData) + MeshletsBufferSize + IndicesBufferSize,
-                std::data(Vertices),
-                VerticesBufferSize);
-
-    CheckVulkanResult(vmaFlushAllocation(Allocator, g_BufferAllocation.Allocation, 0U, UniformOffset));
-    vmaUnmapMemory(Allocator, g_BufferAllocation.Allocation);
+    vmaUnmapMemory(Allocator, g_UniformAllocation.Allocation);
+    vmaUnmapMemory(Allocator, g_StorageAllocation.Allocation);
 
     for (auto const &ObjectIter : Objects)
     {
@@ -427,9 +479,10 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
             ObjectMesh->SetIndicesOffset (ObjectMesh->GetIndicesOffset()  + MeshletsBufferSize);
             ObjectMesh->SetVerticesOffset(ObjectMesh->GetVerticesOffset() + IndicesBufferSize);
 
-            ObjectMesh->SetUniformOffset(UniformOffset + (sizeof(ModelUniformData) + sizeof(MaterialData)) * CurrentIndex);
-            ObjectMesh->MarkAsRenderDirty();
+            ObjectMesh->SetModelOffset   (sizeof(ModelUniformData) * CurrentIndex);
+            ObjectMesh->SetMaterialOffset(sizeof(MaterialData)     * CurrentIndex + ModelDataSize);
 
+            ObjectMesh->MarkAsRenderDirty();
             ObjectMesh->SetupUniformDescriptor();
         }
     }

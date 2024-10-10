@@ -339,12 +339,19 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
     std::uint32_t ObjectCount = 0U;
 
-    VkBufferDeviceAddressInfo const BufferDeviceAddressInfo {
+    VkBufferDeviceAddressInfo const UniformDeviceAddressInfo {
             .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-            .buffer = GetAllocationBuffer()
+            .buffer = GetUniformAllocation().Buffer
     };
 
-    VkDeviceSize const AllocationAddress = vkGetBufferDeviceAddress(LogicalDevice, &BufferDeviceAddressInfo);
+    VkDeviceSize const UniformAllocationAddress = vkGetBufferDeviceAddress(LogicalDevice, &UniformDeviceAddressInfo);
+
+    VkBufferDeviceAddressInfo const StorageDeviceAddressInfo{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+            .buffer = GetStorageAllocation().Buffer
+    };
+
+    VkDeviceSize const StorageAllocationAddress = vkGetBufferDeviceAddress(LogicalDevice, &StorageDeviceAddressInfo);
 
     for (std::shared_ptr<Object> const &ObjectIter : Objects)
     {
@@ -358,15 +365,15 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
         MapDescriptorBuffer(ModelData,
                             ModelBuffer,
-                            AllocationAddress,
+                            UniformAllocationAddress,
                             ObjectCount,
-                            ObjectMesh->GetUniformOffset(),
+                            ObjectMesh->GetModelOffset(),
                             sizeof(ModelUniformData),
                             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
         MapDescriptorBuffer(MaterialData,
                             MaterialBuffer,
-                            AllocationAddress,
+                            UniformAllocationAddress,
                             ObjectCount,
                             ObjectMesh->GetMaterialOffset(),
                             sizeof(RenderCore::MaterialData),
@@ -374,7 +381,7 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
         MapDescriptorBuffer(MeshletsData,
                             MeshletsBuffer,
-                            AllocationAddress,
+                            StorageAllocationAddress,
                             ObjectCount,
                             ObjectMesh->GetMeshletsOffset(),
                             ObjectMesh->GetNumMeshlets() * sizeof(Meshlet),
@@ -382,7 +389,7 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
         MapDescriptorBuffer(IndicesData,
                             IndicesBuffer,
-                            AllocationAddress,
+                            StorageAllocationAddress,
                             ObjectCount,
                             ObjectMesh->GetIndicesOffset(),
                             ObjectMesh->GetNumIndices() * sizeof(glm::uint),
@@ -390,7 +397,7 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
 
         MapDescriptorBuffer(VerticesData,
                             VerticesBuffer,
-                            AllocationAddress,
+                            StorageAllocationAddress,
                             ObjectCount,
                             ObjectMesh->GetVerticesOffset(),
                             ObjectMesh->GetNumVertices() * sizeof(Vertex),
