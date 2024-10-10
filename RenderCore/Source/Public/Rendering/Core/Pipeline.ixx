@@ -38,14 +38,6 @@ namespace RenderCore
         DescriptorData ModelData{};
         DescriptorData MaterialData{};
         DescriptorData MeshletData{};
-        DescriptorData IndexData{};
-        DescriptorData VertexUVData{};
-        DescriptorData VertexPositionData{};
-        DescriptorData VertexNormalData{};
-        DescriptorData VertexColorData{};
-        DescriptorData VertexJointData{};
-        DescriptorData VertexWeightData{};
-        DescriptorData VertexTangentData{};
         DescriptorData TextureData{};
 
         [[nodiscard]] inline bool IsValid() const

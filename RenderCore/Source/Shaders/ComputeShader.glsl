@@ -7,12 +7,24 @@
 
 layout(std140, set = 0, binding = 0) uniform SceneUniformData
 {
-    LightingUBO Data;
+    vec3 LightPosition;
+    vec3 LightColor;
+    vec3 LightDiffuse;
+    vec3 LightAmbient;
+    vec3 LightSpecular;
 } SceneData;
 
 layout(std140, set = 0, binding = 1) uniform MaterialUniformData
 {
-    MaterialUBO Data;
+    vec4 BaseColorFactor;
+    vec3 EmissiveFactor;
+    float MetallicFactor;
+    float RoughnessFactor;
+    float AlphaCutoff;
+    float NormalScale;
+    float OcclusionStrength;
+    uint8_t AlphaMode;
+    bool DoubleSided;
 } MaterialData;
 
 void main() {

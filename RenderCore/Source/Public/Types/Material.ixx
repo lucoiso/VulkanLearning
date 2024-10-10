@@ -12,16 +12,15 @@ namespace RenderCore
 
     export struct RENDERCOREMODULE_API MaterialData
     {
-        alignas(1)  AlphaMode    AlphaMode {};
-        alignas(1)  bool         DoubleSided{};
-        alignas(4)  glm::uint8   Padding[2]{};
-        alignas(4)  glm::float32 MetallicFactor {};
-        alignas(4)  glm::float32 RoughnessFactor {};
-        alignas(4)  glm::float32 AlphaCutoff {};
-        alignas(4)  glm::float32 NormalScale {};
-        alignas(4)  glm::float32 OcclusionStrength {};
-        alignas(16) glm::vec3    EmissiveFactor{};
-        alignas(16) glm::vec4    BaseColorFactor{};
+        AlphaMode AlphaMode {};
+        bool      DoubleSided{};
+        float     MetallicFactor {};
+        float     RoughnessFactor {};
+        float     AlphaCutoff {};
+        float     NormalScale {};
+        float     OcclusionStrength {};
+        alignas(16) glm::vec3 EmissiveFactor{};
+        alignas(16) glm::vec4 BaseColorFactor{};
 
         inline bool operator==(MaterialData const &Rhs) const
         {
