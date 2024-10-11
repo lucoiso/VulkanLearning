@@ -1,4 +1,4 @@
-#version 460
+#version 450
 
 #extension GL_EXT_control_flow_attributes : require
 #extension GL_GOOGLE_include_directive : require
@@ -8,6 +8,9 @@
 #include "Types.h"
 
 #extension GL_EXT_mesh_shader : require
+
+// Debugging
+// #extension GL_EXT_debug_printf : enable
 
 layout(local_size_x = g_NumTasks) in;
 
@@ -26,7 +29,7 @@ layout(std430, set = 3, binding = 0) readonly buffer MeshletBuffer
 
 layout(std430, set = 4, binding = 0) readonly buffer IndicesBuffer
 {
-    uint Indices[];
+    uint8_t Indices[];
 };
 
 layout(std430, set = 5, binding = 0) readonly buffer VerticesBuffer
@@ -42,42 +45,36 @@ layout(location = 0) out FragSharedData
 void main()
 {
     uint MeshletIndex = gl_WorkGroupID.x;
-    uint GroupSize = gl_WorkGroupSize.x;
-    uint LocalInvocation = gl_LocalInvocationIndex;
+    Meshlet Meshlet = Meshlets[MeshletIndex];
 
-    Meshlet CurrentMeshlet = Meshlets[MeshletIndex];
-
-    uint NumVertices = CurrentMeshlet.VertexCount;
-    uint NumIndices = CurrentMeshlet.IndexCount;
-
-    mat4 ModelViewProjection = ModelData.ProjectionView * ModelData.ModelView;
-    vec3 MeshletColor = MeshletColors[MeshletIndex % g_MaxColors];
-
-    SetMeshOutputsEXT(NumVertices, NumIndices);
+    SetMeshOutputsEXT(Meshlet.VertexCount, Meshlet.TriangleCount);
 
     [[unroll]]
-    for (uint VertexIt = LocalInvocation; VertexIt < NumVertices; VertexIt += GroupSize)
+    for (uint VertexIt = 0; VertexIt < Meshlet.VertexCount; ++VertexIt)
     {
-        uint VertexIndex = CurrentMeshlet.VertexOffset + VertexIt;
-        
-        vec4 WorldPosition = ModelData.ModelView * vec4(Vertices[VertexIndex].Position, 1.0);
-        FragData[VertexIt].Data.FragView = WorldPosition.xyz;
-        FragData[VertexIt].Data.FragNormal = Vertices[VertexIndex].Normal;
-        FragData[VertexIt].Data.FragUV = Vertices[VertexIndex].UV;
-        FragData[VertexIt].Data.FragColor = vec4(MeshletColor, 1.0);
+        uint VertexIndex = Meshlet.VertexOffset + VertexIt;
+        Vertex Vertex = Vertices[VertexIndex];
 
-        gl_MeshVerticesEXT[VertexIt].gl_Position = ModelViewProjection * vec4(Vertices[VertexIndex].Position, 1.0);
+        vec4 WorldPosition = ModelData.ModelView * vec4(Vertex.Position, 1.0);
+        vec4 ClipPosition = ModelData.ProjectionView * WorldPosition;
+
+        gl_MeshVerticesEXT[VertexIt].gl_Position = ClipPosition;
+
+        FragData[VertexIt].Data.FragUV = Vertex.UV;
+        FragData[VertexIt].Data.FragNormal = mat3(transpose(inverse(ModelData.ModelView))) * Vertex.Normal;
+        FragData[VertexIt].Data.FragView = -WorldPosition.xyz;
+        FragData[VertexIt].Data.FragColor = vec4(MeshletColors[MeshletIndex % g_MaxColors], 1.0);
     }
 
     [[unroll]]
-    for (uint IndexIt = LocalInvocation; IndexIt < NumIndices; IndexIt += GroupSize)
+    for (uint IndexIt = 0; IndexIt < Meshlet.TriangleCount; ++IndexIt)
     {
-        uint Offset = CurrentMeshlet.IndexOffset + IndexIt * 3;
+        uint TriangleIndex = Meshlet.TriangleOffset + IndexIt * 3;
 
-        uint Index0 = Indices[Offset + 0];
-        uint Index1 = Indices[Offset + 1];
-        uint Index2 = Indices[Offset + 2];
-        
+        uint Index0 = Indices[TriangleIndex + 0];
+        uint Index1 = Indices[TriangleIndex + 1];
+        uint Index2 = Indices[TriangleIndex + 2];
+
         gl_PrimitiveTriangleIndicesEXT[IndexIt] = uvec3(Index0, Index1, Index2);
     }
 }

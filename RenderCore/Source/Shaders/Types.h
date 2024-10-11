@@ -28,10 +28,10 @@ struct Vertex
 
 struct Meshlet
 {
-    uint IndexCount;
-    uint VertexCount;
-    uint IndexOffset;
     uint VertexOffset;
+    uint TriangleOffset;
+    uint VertexCount;
+    uint TriangleCount;
 };
 
 struct ModelUBO

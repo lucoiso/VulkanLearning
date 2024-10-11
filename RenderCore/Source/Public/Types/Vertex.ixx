@@ -24,10 +24,10 @@ namespace RenderCore
 
     export struct RENDERCOREMODULE_API Meshlet
     {
-        alignas(4) glm::uint IndexCount{ 0U };
-        alignas(4) glm::uint VertexCount{ 0U };
-        alignas(4) glm::uint IndexOffset{ 0U };
         alignas(4) glm::uint VertexOffset{ 0U };
+        alignas(4) glm::uint TriangleOffset{ 0U };
+        alignas(4) glm::uint VertexCount{ 0U };
+        alignas(4) glm::uint TriangleCount{ 0U };
     };
 
     export namespace VertexAttributes

@@ -162,8 +162,8 @@ bool CompileInternal(ShaderType const             ShaderType,
     Shader.setEnvInputVulkanRulesRelaxed();
     Shader.setSourceEntryPoint(std::data(EntryPoint));
     Shader.setEnvInput(ShaderType == ShaderType::GLSL ? glslang::EShSourceGlsl : glslang::EShSourceHlsl, Language, glslang::EShClientVulkan, 1);
-    Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
-    Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_6);
+    Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_1);
+    Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_4);
 
     TBuiltInResource const *Resources    = GetDefaultResources();
     constexpr auto          MessageFlags = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
@@ -368,7 +368,7 @@ bool RenderCore::CompileOrLoadIfExists(strzilla::string_view const Source,
 void RenderCore::CompileDefaultShaders()
 {
     constexpr auto ShaderType  = ShaderType::GLSL;
-    constexpr auto GlslVersion = 460;
+    constexpr auto GlslVersion = 450;
     constexpr auto EntryPoint  = "main";
 
     auto const CompileAndStage = [EntryPoint, GlslVersion] (strzilla::string_view const Shader, EShLanguage const Language, VkShaderStageFlagBits const Stage)

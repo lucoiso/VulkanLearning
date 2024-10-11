@@ -252,7 +252,7 @@ namespace RenderCore
             }
         }
 
-        void SetupUniformDescriptor();
+        void SetupUniformDescriptor() const;
 
         void UpdateUniformBuffers() const;
         void UpdatePrimitivesBuffers() const;

@@ -163,6 +163,7 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
     VkPhysicalDeviceVulkan12Features Vulkan12DeviceFeatures {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
             .pNext = &Vulkan13DeviceFeatures,
+            .storageBuffer8BitAccess = true,
             .uniformAndStorageBuffer8BitAccess = true,
             .scalarBlockLayout = true,
             .uniformBufferStandardLayout = true,
