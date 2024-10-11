@@ -58,9 +58,9 @@ export namespace RenderCore
         return g_Objects;
     }
 
-    RENDERCOREMODULE_API [[nodiscard]] inline std::uint32_t GetNumAllocations()
+    RENDERCOREMODULE_API [[nodiscard]] inline std::size_t GetNumAllocations()
     {
-        return static_cast<std::uint32_t>(std::size(g_Objects));
+        return std::size(g_Objects);
     }
 
     RENDERCOREMODULE_API [[nodiscard]] inline BufferAllocation const &GetSceneUniformBuffer()

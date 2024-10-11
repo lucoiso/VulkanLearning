@@ -130,14 +130,6 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
                                   });
     }
 
-    VkPhysicalDeviceMeshShaderFeaturesNV MeshShaderFeaturesNV {
-            // Required
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV,
-            .pNext = nullptr,
-            .taskShader = true,
-            .meshShader = true
-    };
-
     VkPhysicalDeviceMeshShaderFeaturesEXT MeshShaderFeaturesEXT {
             // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
@@ -146,15 +138,10 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
             .meshShader = true
     };
 
-    bool const ContainsNVidiaMeshShaderExt = std::find(std::execution::unseq,
-                                                       std::cbegin(AvailableExtensions),
-                                                       std::cend(AvailableExtensions),
-                                                       VK_NV_MESH_SHADER_EXTENSION_NAME) != std::cend(AvailableExtensions);
-
     VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT PipelineLibraryProperties {
             // Required
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT,
-            .pNext = ContainsNVidiaMeshShaderExt ? reinterpret_cast<void*>(&MeshShaderFeaturesNV) : reinterpret_cast<void*>(&MeshShaderFeaturesEXT),
+            .pNext = &MeshShaderFeaturesEXT,
             .graphicsPipelineLibrary = true,
     };
 
@@ -177,13 +164,20 @@ void CreateLogicalDevice(VkSurfaceKHR const &VulkanSurface)
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
             .pNext = &Vulkan13DeviceFeatures,
             .uniformAndStorageBuffer8BitAccess = true,
+            .scalarBlockLayout = true,
+            .uniformBufferStandardLayout = true,
             .timelineSemaphore = true,
             .bufferDeviceAddress = true
     };
 
+    VkPhysicalDeviceVulkan11Features Vulkan11DeviceFeatures{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
+            .pNext = &Vulkan12DeviceFeatures,
+    };
+
     VkPhysicalDeviceFeatures2 DeviceFeatures {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-            .pNext = &Vulkan12DeviceFeatures,
+            .pNext = &Vulkan11DeviceFeatures,
             .features = VkPhysicalDeviceFeatures {
                     .independentBlend = true,
                     .drawIndirectFirstInstance = true,

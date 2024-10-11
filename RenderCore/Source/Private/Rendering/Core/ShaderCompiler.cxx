@@ -159,6 +159,7 @@ bool CompileInternal(ShaderType const             ShaderType,
     Shader.setStringsWithLengthsAndNames(&SourceStandardContent, nullptr, std::data(Includes), 1);
 
     Shader.setEntryPoint(std::data(EntryPoint));
+    Shader.setEnvInputVulkanRulesRelaxed();
     Shader.setSourceEntryPoint(std::data(EntryPoint));
     Shader.setEnvInput(ShaderType == ShaderType::GLSL ? glslang::EShSourceGlsl : glslang::EShSourceHlsl, Language, glslang::EShClientVulkan, 1);
     Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);

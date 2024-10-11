@@ -27,7 +27,7 @@ export namespace RenderCore
 
     constexpr std::array<char const *, 0U> g_OptionalInstanceExtensions{};
 
-    constexpr std::array g_OptionalDeviceExtensions{ VK_NV_MESH_SHADER_EXTENSION_NAME };
+    constexpr std::array<char const*, 0U> g_OptionalDeviceExtensions{};
 
     constexpr VkPipelineCreateFlags g_PipelineFlags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR | VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
 
@@ -44,7 +44,9 @@ export namespace RenderCore
 
     constexpr auto g_ModelMemoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
-    constexpr auto g_ModelBufferUsage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    constexpr auto g_UniformBufferUsage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+    constexpr auto g_StorageBufferUsage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
     constexpr auto g_TextureMemoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
@@ -71,6 +73,8 @@ export namespace RenderCore
     constexpr std::uint8_t g_MaxMeshletVertices = 64U;
 
     constexpr std::uint8_t g_MaxMeshletPrimitives = 124U;
+
+    constexpr std::uint16_t g_MaxMeshletIndices = g_MaxMeshletPrimitives * 3U;
 
     constexpr std::array g_ClearValues{VkClearValue{.color = {{0.F, 0.F, 0.F, 0.F}}}, VkClearValue{.depthStencil = {1.F, 0U}}};
 } // namespace RenderCore

@@ -12,22 +12,29 @@ namespace RenderCore
 
     export struct RENDERCOREMODULE_API MaterialData
     {
-        alignas(1)  AlphaMode AlphaMode {};
-        alignas(1)  bool      DoubleSided{};
-        alignas(4)  uint8_t   Padding[2];
-        alignas(4)  float     MetallicFactor {};
-        alignas(4)  float     RoughnessFactor {};
-        alignas(4)  float     AlphaCutoff {};
-        alignas(4)  float     NormalScale {};
-        alignas(4)  float     OcclusionStrength {};
-        alignas(16) glm::vec3 EmissiveFactor{};
-        alignas(16) glm::vec4 BaseColorFactor{};
+        alignas(1)  glm::uint8   AlphaMode{};
+        alignas(1)  glm::uint8   DoubleSided{};
+        alignas(1)  glm::uint8   _Padding1[2]{};
+        alignas(4)  glm::float32 MetallicFactor {};
+        alignas(4)  glm::float32 RoughnessFactor {};
+        alignas(4)  glm::float32 AlphaCutoff {};
+        alignas(4)  glm::float32 NormalScale {};
+        alignas(4)  glm::float32 OcclusionStrength {};
+        alignas(4)  glm::float32 _Padding2[2] {};
+        alignas(16) glm::vec3    EmissiveFactor{};
+        alignas(16) glm::vec4    BaseColorFactor{};
 
         inline bool operator==(MaterialData const &Rhs) const
         {
-            return BaseColorFactor == Rhs.BaseColorFactor && EmissiveFactor == Rhs.EmissiveFactor && MetallicFactor == Rhs.MetallicFactor &&
-                   RoughnessFactor == Rhs.RoughnessFactor && AlphaCutoff == Rhs.AlphaCutoff && NormalScale == Rhs.NormalScale && OcclusionStrength ==
-                   Rhs.OcclusionStrength && AlphaMode == Rhs.AlphaMode && DoubleSided == Rhs.DoubleSided;
+            return BaseColorFactor   == Rhs.BaseColorFactor   &&
+                   EmissiveFactor    == Rhs.EmissiveFactor    &&
+                   MetallicFactor    == Rhs.MetallicFactor    &&
+                   RoughnessFactor   == Rhs.RoughnessFactor   &&
+                   AlphaCutoff       == Rhs.AlphaCutoff       &&
+                   NormalScale       == Rhs.NormalScale       &&
+                   OcclusionStrength == Rhs.OcclusionStrength &&
+                   AlphaMode         == Rhs.AlphaMode         &&
+                   DoubleSided       == Rhs.DoubleSided;
         }
     };
 } // namespace RenderCore

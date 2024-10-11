@@ -36,15 +36,15 @@ std::shared_ptr<Mesh> RenderCore::ConstructMesh(MeshConstructionInputParameters 
                                     ? AlphaMode::ALPHA_MASK
                                     : AlphaMode::ALPHA_BLEND;
 
-    NewMesh->SetMaterialData({.AlphaMode = AlphaMode,
-                              .DoubleSided = MeshMaterial.doubleSided,
-                              .MetallicFactor = static_cast<float>(MeshMaterial.pbrMetallicRoughness.metallicFactor),
-                              .RoughnessFactor = static_cast<float>(MeshMaterial.pbrMetallicRoughness.roughnessFactor),
-                              .AlphaCutoff = static_cast<float>(MeshMaterial.alphaCutoff),
-                              .NormalScale = static_cast<float>(MeshMaterial.normalTexture.scale),
-                              .OcclusionStrength = static_cast<float>(MeshMaterial.occlusionTexture.strength),
-                              .EmissiveFactor = glm::make_vec3(std::data(MeshMaterial.emissiveFactor)),
-                              .BaseColorFactor = glm::make_vec4(std::data(MeshMaterial.pbrMetallicRoughness.baseColorFactor))});
+    NewMesh->SetMaterialData({.AlphaMode         = static_cast<glm::uint8>(AlphaMode),
+                              .DoubleSided       = static_cast<glm::uint8>(MeshMaterial.doubleSided),
+                              .MetallicFactor    = static_cast<glm::float32>(MeshMaterial.pbrMetallicRoughness.metallicFactor),
+                              .RoughnessFactor   = static_cast<glm::float32>(MeshMaterial.pbrMetallicRoughness.roughnessFactor),
+                              .AlphaCutoff       = static_cast<glm::float32>(MeshMaterial.alphaCutoff),
+                              .NormalScale       = static_cast<glm::float32>(MeshMaterial.normalTexture.scale),
+                              .OcclusionStrength = static_cast<glm::float32>(MeshMaterial.occlusionTexture.strength),
+                              .EmissiveFactor    = glm::make_vec3(std::data(MeshMaterial.emissiveFactor)),
+                              .BaseColorFactor   = glm::make_vec4(std::data(MeshMaterial.pbrMetallicRoughness.baseColorFactor))});
 
     std::vector<std::shared_ptr<Texture>> Textures {};
 
