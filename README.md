@@ -1,5 +1,10 @@
 [![vulkan-renderer CMake Workflow](https://github.com/lucoiso/vulkan-renderer/actions/workflows/cmake-build.yml/badge.svg)](https://github.com/lucoiso/vulkan-renderer/actions/workflows/cmake-build.yml)
 
+# Note
+This renderer was made while studying vulkan and some modern extensions. It is not intended to be used in other projects and is not was designed before implemented. I do not recommend to use it in your project.
+
+A new renderer will be made here: https://github.com/lucoiso/luvk
+
 # Dependencies
 
 1. Compiler w/ support for C++23
