@@ -392,7 +392,7 @@ void PipelineDescriptorData::SetupModelsBuffer(std::vector<std::shared_ptr<Objec
                             StorageAllocationAddress,
                             ObjectCount,
                             ObjectMesh->GetIndicesOffset(),
-                            ObjectMesh->GetNumIndices() * sizeof(glm::uint),
+                            ObjectMesh->GetNumIndices() * sizeof(glm::uint8),
                             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
         MapDescriptorBuffer(VerticesData,

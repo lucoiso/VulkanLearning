@@ -182,7 +182,7 @@ void Mesh::UpdatePrimitivesBuffers() const
     std::memcpy(MeshletsData, std::data(m_Meshlets), std::size(m_Meshlets) * sizeof(Meshlet));
 
     auto const IndicesData = static_cast<char*>(StorageMappedData) + GetIndicesOffset();
-    std::memcpy(IndicesData, std::data(m_Indices), std::size(m_Indices) * sizeof(glm::uint));
+    std::memcpy(IndicesData, std::data(m_Indices), std::size(m_Indices) * sizeof(glm::uint8));
 
     auto const VerticesData = static_cast<char*>(StorageMappedData) + GetVerticesOffset();
     std::memcpy(VerticesData, std::data(m_Vertices), std::size(m_Vertices) * sizeof(Vertex));

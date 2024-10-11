@@ -428,9 +428,9 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
 
     VmaAllocator const& Allocator = GetAllocator();
 
-    std::vector<Meshlet>   Meshlets;
-    std::vector<glm::uint> Indices;
-    std::vector<Vertex>    Vertices;
+    std::vector<Meshlet>    Meshlets;
+    std::vector<glm::uint8> Indices;
+    std::vector<Vertex>     Vertices;
 
     for (auto const &ObjectIter : Objects)
     {
@@ -441,7 +441,7 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
         auto const &MeshVertices = Mesh->GetVertices();
 
         Mesh->SetMeshletsOffset(std::size(Meshlets) * sizeof(Meshlet));
-        Mesh->SetIndicesOffset (std::size(Indices)  * sizeof(glm::uint));
+        Mesh->SetIndicesOffset (std::size(Indices)  * sizeof(glm::uint8));
         Mesh->SetVerticesOffset(std::size(Vertices) * sizeof(Vertex));
 
         Meshlets.insert(std::end(Meshlets), std::begin(MeshMeshlets), std::end(MeshMeshlets));
@@ -450,7 +450,7 @@ void RenderCore::AllocateModelsBuffers(std::vector<std::shared_ptr<Object>> cons
     }
 
     VkDeviceSize const MeshletsBufferSize = sizeof(Meshlet)          * std::size(Meshlets);
-    VkDeviceSize const IndicesBufferSize  = sizeof(glm::uint)        * std::size(Indices);
+    VkDeviceSize const IndicesBufferSize  = sizeof(glm::uint8)       * std::size(Indices);
     VkDeviceSize const VerticesBufferSize = sizeof(Vertex)           * std::size(Vertices);
     VkDeviceSize const ModelDataSize      = sizeof(ModelUniformData) * std::size(Objects);
     VkDeviceSize const MaterialDataSize   = sizeof(MaterialData)     * std::size(Objects);

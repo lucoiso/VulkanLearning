@@ -29,7 +29,7 @@ namespace RenderCore
 
         MaterialData                          m_MaterialData {};
         std::vector<Meshlet>                  m_Meshlets {};
-        std::vector<glm::uint>                m_Indices {};
+        std::vector<glm::uint8>               m_Indices {};
         std::vector<Vertex>                   m_Vertices {};
         std::vector<std::shared_ptr<Texture>> m_Textures {};
 
@@ -196,7 +196,7 @@ namespace RenderCore
             m_VerticesOffset = Value;
         }
 
-        [[nodiscard]] inline std::vector<glm::uint> const& GetIndices() const
+        [[nodiscard]] inline std::vector<glm::uint8> const& GetIndices() const
         {
             return m_Indices;
         }
